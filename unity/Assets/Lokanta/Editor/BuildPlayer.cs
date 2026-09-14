@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -71,11 +71,64 @@ namespace Lokanta.EditorTools
 
         // =====================================================================
         [MenuItem("Lokanta/Yapi - Windows")]
-        public static void Windows()
+        public static void Windows() { WindowsBuild("windows", il2cpp: false); }
+
+        /// <summary>
+        /// BUDAMA SINAVI. Windows, ama Android'in derleyicisi ve
+        /// budayicisiyla: IL2CPP + ManagedStrippingLevel.High.
+        ///
+        /// Neden var: link.xml'in kendi yorumu "bu dosyanin korudugu
+        /// hata, projedeki HICBIR testin ulasamadigi tek yapilandirmada
+        /// yasiyor" diyordu - yani koruma akil yurutmeyle yazilmis,
+        /// hic KOSULMAMISTI. APK'yi kosturacak cihaz yokken de budayici
+        /// burada kosuyor: ayni link.xml, ayni Lokanta.Content ve
+        /// Newtonsoft derlemeleri, ayni yansimayla icerik yukleme.
+        ///
+        /// Koruma yanlis olsaydi belirti cokme degil SESSIZ VARSAYILAN
+        /// olurdu; oyun acilis dogrulamasinda hata ekranina duser ve tur
+        /// ilk kontrolde kalir. Yani turun 129 kontrolu bu yapilandirmayi
+        /// da olcebiliyor.
+        ///
+        /// Android'in birebir ayni olmadigi yer: motor modullerinin
+        /// budanmasi platforma gore degisiyor. Ayni olan ve onemli olan
+        /// yer: kendi derlemelerimizin YONETILEN budamasi.
+        ///
+        ///   .\tools\unity\tur.ps1 -Yapi windows-il2cpp
+        /// </summary>
+        [MenuItem("Lokanta/Yapi - Windows (IL2CPP + budama)")]
+        public static void WindowsIl2cpp() { WindowsBuild("windows-il2cpp", il2cpp: true); }
+
+        private static void WindowsBuild(string leaf, bool il2cpp)
         {
             Common();
 
-            string dir = Out("windows");
+            // AYAR GERI ALINIYOR. IL2CPP yapisi ~15 dakika, Mono ~1;
+            // ayar projede kalirsa her tur kosusu on bes kat yavaslar ve
+            // bunu kimse fark etmeden aylarca odeyebilir.
+            ScriptingImplementation oncekiArka =
+                PlayerSettings.GetScriptingBackend(NamedBuildTarget.Standalone);
+            ManagedStrippingLevel oncekiBudama =
+                PlayerSettings.GetManagedStrippingLevel(NamedBuildTarget.Standalone);
+
+            if (il2cpp)
+            {
+                PlayerSettings.SetScriptingBackend(
+                    NamedBuildTarget.Standalone, ScriptingImplementation.IL2CPP);
+                PlayerSettings.SetManagedStrippingLevel(
+                    NamedBuildTarget.Standalone, ManagedStrippingLevel.High);
+            }
+
+            try { WindowsCore(leaf); }
+            finally
+            {
+                PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, oncekiArka);
+                PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.Standalone, oncekiBudama);
+            }
+        }
+
+        private static void WindowsCore(string leaf)
+        {
+            string dir = Out(leaf);
             BuildPlayerOptions o = new BuildPlayerOptions
             {
                 scenes = new[] { Scene },
@@ -94,7 +147,7 @@ namespace Lokanta.EditorTools
             PlayerSettings.runInBackground = true;
             PlayerSettings.resizableWindow = true;
 
-            Report(BuildPipeline.BuildPlayer(o), "Windows");
+            Report(BuildPipeline.BuildPlayer(o), leaf);
         }
 
         // =====================================================================

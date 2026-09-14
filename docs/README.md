@@ -60,6 +60,8 @@ Mobil (iOS/Android) ve ileride Steam. 2.5D, yumuşak low-poly. Unity. Tek kişil
 | **[42-kadro-ve-mudahale.md](42-kadro-ve-mudahale.md)** | **Pasif oyuncu artık batıyor; müdahale baskı altında kazandırıyor; kadro tavsiyesinin adı yanlıştı** | **Güncel** |
 | **[43-inceleme-ve-olcum.md](43-inceleme-ve-olcum.md)** | **Beş agentli inceleme: turun 107 kontrolü hiçbir şeyi kıramıyordu; vakumda yeşil kalan kontroller; ölçümün kendi kaynağını tüketmesi** | **Güncel** |
 | **[44-magaza-metinleri.md](44-magaza-metinleri.md)** | **Mağaza kısa/tam açıklaması (iki dil), gizlilik politikası metni ve mağaza çözünürlüğünde ekran görüntüsü üretimi** | **Güncel** |
+| **[45-tasarim-incelemesi.md](45-tasarim-incelemesi.md)** | **Beş agentli tasarım turu: fiyatın talebe kanalı yoktu (tavanda zam bedavaydı), müdahale salona da bağlandı, kombo ekseninin doygunluğu semptom çıktı** | **Güncel** |
+| **[46-gonderilen-ikili.md](46-gonderilen-ikili.md)** | **Emülatör neden işe yaramıyor (ARM64-only APK) ve `link.xml`: hiç koşturulmamış budama koruması mutasyonla ölçüldü — kaldırılınca oyun açılışta ölüyor** | **Güncel** |
 | `../unity/` | Unity 6.3 LTS projesi, Android hedefli. Ayarlar `ProjectSetup.cs` ile kodla uygulanıyor | Kuruldu |
 | `../src/Lokanta.Harness/` | Denge aracı: beş strateji, çok tohumlu altmış günlük kampanya | Çalışıyor |
 

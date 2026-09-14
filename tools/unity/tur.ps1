@@ -30,17 +30,21 @@ param(
     [switch]$Magaza,
     [int]$Runs = 1,
     [int]$TimeoutSec = 900,
+    # HANGI YAPI. "windows" Mono (hizli, gunluk tur);
+    # "windows-il2cpp" Android'in derleyici + budayicisi.
+    [string]$Yapi = "windows",
     [string]$Root = "D:\ClaudeCodeProjects\MobilOyun"
 )
 
 $ErrorActionPreference = "Stop"
 
-$exe = Join-Path $Root "build\windows\Lokanta.exe"
+$exe = Join-Path $Root ("build\" + $Yapi + "\Lokanta.exe")
 
 if (-not $SkipBuild) {
     Write-Output "=== Windows yapisi kuruluyor ==="
+    $metot = if ($Yapi -eq "windows-il2cpp") { "WindowsIl2cpp" } else { "Windows" }
     & (Join-Path $Root "tools\unity\run.ps1") `
-        -Method "Lokanta.EditorTools.BuildPlayer.Windows" -TimeoutSec $TimeoutSec
+        -Method "Lokanta.EditorTools.BuildPlayer.$metot" -TimeoutSec $TimeoutSec
     if ($LASTEXITCODE -ne 0) {
         Write-Output "HATA: yapi kurulamadi (kod $LASTEXITCODE)"
         exit 2

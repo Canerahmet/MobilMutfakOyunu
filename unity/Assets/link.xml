@@ -8,19 +8,40 @@
 
         ContentLoader.cs -> JsonConvert.DeserializeObject<T>(text, Settings)
 
-    Silinen sey bir metot degil, DTO'larin ozellik yazicilari. Sonuc
-    cokme degil, SESSIZ VARSAYILAN: butun alanlar sifir/null doner,
-    ContentSetLoader'in dogrulamasi reddeder, oyun acilista hata
-    ekranina duser. Editorde ve Windows yapisinda (Mono, budama yok)
-    hicbir sey gorunmez - yani bu dosyanin korudugu hata, projedeki
-    HICBIR testin ulasamadigi tek yapilandirmada yasiyor.
-
-    Dto.cs:7 bu dosyanin var oldugunu soyluyordu ve dosya YOKTU.
-    Yorum bir korumayi anlatiyordu; koruma simdi gercekten burada.
-
     Kapsam dar tutuldu: yalnizca yansimayla okunan iki derleme.
     `preserve="all"` butun tipleri ve uyeleri koruyor; bu derlemeler
     kucuk (POCO + Newtonsoft), yani boyut bedeli ihmal edilebilir.
+
+    ===================================================================
+    BU KORUMA 14 EYLUL'DE OLCULDU - ONCESINDE KOSTURULMAMISTI.
+
+    Bu yorumun eski hali "editorde ve Windows yapisinda hicbir sey
+    gorunmez, yani bu hata projedeki HICBIR testin ulasamadigi tek
+    yapilandirmada yasiyor" diyordu. Dogruydu, ve tam da bu yuzden
+    sorunluydu: koruma akil yurutmeyle yazilmisti, hic KOSMAMISTI.
+    Kosmayan bir kontrol, gecen bir kontrolle ayni gorunuyor.
+
+    Artik kosuyor. docs/46, ve cihaz gerekmiyor:
+
+        .\tools\unity\tur.ps1 -Yapi windows-il2cpp
+
+    Windows'u Android'in derleyici ve budayicisiyla (IL2CPP + High)
+    kurup turun kontrollerini ona kosturuyor. Bu dosya yerindeyken
+    129 kontrol geciyor; KALDIRILDIGINDA oyun acilista oluyor.
+
+    OLCUM YORUMU DUZELTTI. Beklenen belirti "sessiz varsayilan: butun
+    alanlar sifir/null doner" idi. Gercek belirti daha sert ve daha
+    erken:
+
+        Icerik yuklenemedi: JsonSerializationException: Unable to find
+        a constructor to use for type Lokanta.Content.EconomyDto
+
+    Budanan sey ozellik YAZICILARI degil, DTO'larin KURUCULARI -
+    Newtonsoft nesneyi hic kuramiyor. ContentSetLoader yukleyemiyor,
+    oyun yarim bir durumda devam ediyor ve sekiz kontrol sonra
+    NullReferenceException ile oluyor; hata ekranina bile varamiyor.
+
+    Yani tehlike dogru tarif edilmisti, mekanizma yanlis.
 -->
 <linker>
   <assembly fullname="Lokanta.Content" preserve="all" />

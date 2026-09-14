@@ -182,6 +182,27 @@ Yenisinde kütüphaneler pakette ham duruyor ve yerinden okunuyor: kurulum
 4. Gizlilik politikası, Veri Güvenliği, IARC (toplam yarım gün)
 5. Mağaza görselleri ve metinleri
 
+### Her yayından önce koşacak iki şey
+
+Günlük denetime (`tools/check.py`) girmiyorlar — biri dakikalar sürüyor,
+öteki cihaz istiyor. Ama yayınlanan ikili ikisinden de geçmeden çıkmamalı:
+
+```
+.\tools\unity\tur.ps1 -Yapi windows-il2cpp   # budama sinavi, cihaz gerekmez
+.\tools\android\cihaz.ps1                    # gercek telefon, ARM64
+```
+
+**Birincisi neden zorunlu:** Android `ManagedStrippingLevel.High` ile
+derleniyor ve içerik yükleme yansımayla. `unity/Assets/link.xml` bunu
+koruyor; koruma yetersiz kalırsa oyun **açılışta ölüyor** ve başka hiçbir
+test bunu göremiyor — günlük tur Mono koşuyor, orada budama yok.
+Yansıma kullanan **yeni** bir derleme eklendiğinde `link.xml` onu bilmez;
+bu koşu o anı yakalayan tek şey. Ölçüldü: [46](46-gonderilen-ikili.md) §4.
+
+**İkincisi neden zorunlu:** gönderilen ikili ARM64 ve o kod hiçbir masaüstü
+koşusunda üretilmiyor. Emülatör bunun yerine geçmiyor — APK yalnızca
+`arm64-v8a` taşıdığı için emülatöre kurulamaz bile.
+
 ---
 
 ## Karar bekleyen ayrıntılar

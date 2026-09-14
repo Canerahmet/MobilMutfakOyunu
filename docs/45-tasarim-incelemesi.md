@@ -527,5 +527,11 @@ kalanlar, sırasıyla değeri yüksek olanlar:
 
 ~~Talep tamamen belirlenimci~~ — **KAPANDI** (§15).
 
-**Kalan:** kombo ekseni (§10) ve mağaza metninin güncellenmesi — müdahale
-cümlesi iki yerden eskidi (hak sayısı masayla büyüyor, çay salona gidiyor).
+~~**Kalan:** kombo ekseni ve mağaza metni~~ — **ikisi de kapandı.** Mağaza
+metni [44](44-magaza-metinleri.md)'te güncellendi (müdahale cümlesi üç yerden
+eskimişti). Kombo ekseni §18'de ölçüldü: hedef **bilerek** değişmedi, çünkü
+ölçüm sorunun eksende değil dengede olduğunu gösterdi.
+
+**Kalan tek şey bir zorluk kararı:** kombonun mutfak yükünü gerçekten
+acıtmak. O olmadan eksen beceriyi ölçemiyor — ölçülecek bir beceri farkı
+yok. Kullanıcıya ait.
