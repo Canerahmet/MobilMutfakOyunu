@@ -118,6 +118,15 @@ namespace Lokanta.Harness
                 // Secici kol yalnizca 5+ ziyaretli musteriye yaziyor.
                 SignaturePlayer.MinVisits = proto is PickyCreditor ? 5 : 0;
 
+                // Zirvede kapatan kol: salon YARISI dolunca kombo kapaniyor.
+                //
+                // Ilk denemem %75 idi ve HIC TETIKLENMEDI: doluluk o
+                // seviyeye pratikte cikmiyor (14 masanin 8-10'u dolu =
+                // %57-71). Kol imzaci ile birebir ayni sonucu verdi, yani
+                // olcum hicbir sey olcmuyordu ve bunu ancak iki satirin
+                // ayni cikmasi soyledi.
+                SignaturePlayer.CloseAtOccupancyBp = proto is PeakCloser ? 5000 : 0;
+
                 for (int s = 0; s < seeds; s++)
                 {
                     ulong seed = 20260910UL + (ulong)s * 7919UL;
@@ -168,6 +177,7 @@ namespace Lokanta.Harness
             yield return new PatientInterventionist();
             yield return new SignaturePlayer();
             yield return new PickyCreditor();
+            yield return new PeakCloser();
             yield return new ComboGouger();
             yield return new OneDishPlayer();
             yield return new WideMenuPlayer();
@@ -203,6 +213,7 @@ namespace Lokanta.Harness
                 case "sabirli_mudahale": return new PatientInterventionist();
                 case "imzaci": return new SignaturePlayer();
                 case "secici_veresiye": return new PickyCreditor();
+                case "zirvede_kapat": return new PeakCloser();
                 case "kombo_sismesi": return new ComboGouger();
                 case "tek_yemek": return new OneDishPlayer();
                 case "genis_menu": return new WideMenuPlayer();
@@ -280,6 +291,7 @@ namespace Lokanta.Harness
                     {
                         if (strategy is SignaturePlayer sp) sp.DuringService(sim);
                         else if (strategy is PickyCreditor pc) pc.DuringService(sim);
+                        else if (strategy is PeakCloser pk) pk.DuringService(sim);
                     }
 
                     if (sim.PlatesClean < plateMinClean) plateMinClean = sim.PlatesClean;

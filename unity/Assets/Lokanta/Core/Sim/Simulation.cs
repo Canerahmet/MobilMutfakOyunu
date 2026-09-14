@@ -4529,7 +4529,14 @@ namespace Lokanta.Core.Sim
             // vadediyor. Gruba baglamak, imza mekanigini gercekten
             // hissedilir yapiyor.
             _pCombo[slot] = false;
-            if (IsMain(_pDishMain[slot])) _mainOrders++;
+            // PAYDA YALNIZCA MEKANIK ACIKKEN SAYIYOR.
+            //
+            // Kosulsuz sayiyordu, oysa kombo 16. gunde aciliyor: payda
+            // payin YAPISAL OLARAK SIFIR oldugu on bes gunu de
+            // iceriyordu ve eksen gercek kullanimi ucte bir oraninda
+            // eksik gosteriyordu. Olcum adiyla soylemeli: "komboya
+            // donebilecek siparislerin yuzde kaci komboya dondu".
+            if (HasCombo && IsMain(_pDishMain[slot])) _mainOrders++;
             if (ComboSellable() && IsMain(_pDishMain[slot]))
             {
                 _comboOrders++;

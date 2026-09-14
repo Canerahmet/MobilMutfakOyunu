@@ -443,7 +443,68 @@ değil salona gidiyor.
 
 ---
 
-## 17. Kapatılmayanlar
+## 18. Kombo ekseni: doygunluk semptom, sebep başka
+
+§10'da eksene dokunmamıştım çünkü hedefin gerekçesi yazılıydı. Bu kez ölçtüm
+ve **sebep çıktı**.
+
+### Önce bir ölçüm hatası düzeldi
+
+`_mainOrders` koşulsuz sayıyordu, oysa kombo **16. günde** açılıyor: payda,
+payın yapısal olarak sıfır olduğu on beş günü de içeriyordu. Eksen gerçek
+kullanımı üçte bir oranında eksik gösteriyordu.
+
+Payda artık yalnızca mekanik açıkken sayıyor. Ölçü adıyla doğruyu söylüyor:
+*komboya dönebilecek siparişlerin yüzde kaçı komboya döndü.* Hep-açık botun
+payı **%17,0 → %20,8**.
+
+### Sonra hedefi ölçmeye çalıştım ve mekaniği buldum
+
+Hedefi koymak için tasarımın **meşru** dediği oyunu ölçmek gerekiyordu
+("zirvede kapatmak meşru bir oyun ve eksen onu cezalandırmamalı"). O oyunu
+oynayan bot yoktu, yani hedef ancak uydurulabilirdi — ve kodun kendi uyarısı
+bunu yasaklıyor.
+
+`zirvede_kapat` kolu yazıldı: salon yarısı dolunca kombo kapanıyor, düşünce
+açılıyor.
+
+| strateji | kombo payı | son kasa | ağırlanan grup |
+|---|---:|---:|---:|
+| imzacı (hep açık) | %20,8 | 21.157 | 2016 |
+| zirvede_kapat | %20,0 | 20.836 | **2016** |
+
+**İkisi aynı oyun.** Pay 0,8 puan düşüyor, ağırlanan grup **birebir aynı**,
+kasa biraz azalıyor.
+
+### Sebep: kombonun mutfak yükü ısırmıyor
+
+Kombo sipariş başına üç iş üretiyor (tek ana yemekte beklenen 1,7) ve her işi
+`kitchenLoadBp = 13500` ile %35 uzatıyor. Kâğıt üzerinde aşçının bağlı kaldığı
+süre ~2,4 kat. Ama **servis edilen grup sayısı iki kolda da 2016** — yani
+mutfakta boşluk var ve ek yük soğuruluyor. Darboğaz salonda (§16'daki müdahale
+düzeltmesinin kazandığı yer de orası).
+
+Bu yüzden hedefe **dokunulmadı**: ölçülen aralık 20,0–20,8 ve hangi hedef
+konursa konsun iki meşru oyun da aynı puanı alır. **Eksen beceriyi ölçemiyor
+çünkü ortada ölçülecek bir beceri farkı yok.**
+
+Düzeltmesi hedefi değil dengeyi değiştirmeyi gerektiriyor — kombonun mutfak
+yükünü gerçekten acıtmak (ör. `kitchenLoadBp` yükseltmek ya da kombo işlerini
+tek istasyonda yığmak). Bu bir **zorluk kararı**, kullanıcıya ait.
+
+### Bu turda ikinci kez aynı tuzağa düştüm
+
+İlk `zirvede_kapat` eşiğim **%75 doluluk** idi ve hiç tetiklenmedi — doluluk o
+seviyeye pratikte çıkmıyor (14 masanın 8-10'u dolu = %57-71). Kol `imzaci` ile
+**birebir aynı** sonucu verdi ve bunu ancak iki satırın aynı olması söyledi.
+
+*Bir ölçüm kolunun çalışmaması ile "çalıştı, fark etmedi" dışarıdan aynı
+görünüyor.* Eşik %50'ye indirilince fark belirdi (20,0 / 20,8) — ve o fark
+asıl cevabı verdi.
+
+---
+
+## 19. Kapatılmayanlar
 
 Beş agent ~40 bulgu verdi; bu belge en taşıyıcı olanları kapatıyor. Açık
 kalanlar, sırasıyla değeri yüksek olanlar:
@@ -455,7 +516,10 @@ kalanlar, sırasıyla değeri yüksek olanlar:
    (*beklersen* / *şimdi kovalarsan* ödeme şansı). Şans simülasyonun kullandığı
    sayının ta kendisi (`TabChanceBp` tek yerde). `CollectCredit` ilk kez oyunda.
    Turda ölçülüyor.
-3. **Kombo ekseni katılım rozeti** — ölçülen şeyi değiştirmek gerekiyor (§10).
+3. **Kombo ekseni** — ölçüm hatası düzeldi (§18: payda artık mekanik açıkken
+   sayıyor, %17,0 → %20,8). Doygunluk ise semptom: ölçüldü ki "zirvede kapat"
+   ile "hep açık tut" **aynı oyun** (2016 grup, ikisinde de) çünkü kombonun
+   mutfak yükü ısırmıyor. Düzeltmesi hedef değil DENGE — bir zorluk kararı.
 4. ~~İtibar tavanı taşma kabı~~ — **KAPANDI** (§12).
 5. ~~Mevsimin talebe etkisi~~ — **DAYANAKSIZ**, bulgu belgeyi yanlış okumuş (§13).
 6. ~~`model.py`'de ekipman kalemi~~ — **BİLİNÇLİ KARAR**, denenmiş ve battığı

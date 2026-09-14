@@ -895,9 +895,32 @@ namespace Lokanta.Harness
             _inner.OnEvening(sim, report);
         }
 
+        /// <summary>
+        /// ZIRVEDE KOMBOYU KAPATAN KOL. 0 = hic kapatma.
+        ///
+        /// Tasarimin yazili niyeti: "kombo mutfak yukunu de artirdigi
+        /// icin zirvede kapatmak MESRU bir oyun ve eksen onu
+        /// cezalandirmamali". Ama o oyunu oynayan bir bot yoktu, yani
+        /// eksenin hedefi ancak UYDURULARAK konabilirdi. Bu kol onu
+        /// olcuyor: salon doluluk esigini gecince kombo kapaniyor,
+        /// dusunce yeniden aciliyor.
+        ///
+        /// STATIK: her strateji basinda yeniden yaziliyor.
+        /// </summary>
+        public static int CloseAtOccupancyBp;
+
         /// <summary>Veresiye ISTEYENE veriyor. Servis sirasinda cagriliyor.</summary>
         public void DuringService(Simulation sim)
         {
+            // Zirvede kombo kapaniyor: mutfagi rahatlatmak icin.
+            if (CloseAtOccupancyBp > 0 && sim.HasCombo && sim.TableCount > 0)
+            {
+                int dolulukBp = sim.OccupiedTables * 10000 / sim.TableCount;
+                bool olmali = dolulukBp < CloseAtOccupancyBp;
+                if (sim.ComboEnabled != olmali)
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.SetCombo, olmali ? 1 : 0));
+            }
+
             if (!sim.HasCredit || _grantedToday >= 4) return;
 
             // Acik hesap bir haftalik sabit gideri gecerse dur: veresiye
@@ -967,6 +990,31 @@ namespace Lokanta.Harness
 
         public string Name => "secici_veresiye";
         public string Question => "Veresiyeyi yalnizca TANIDIGA acmak kazandiriyor mu";
+
+        public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
+        public void OnEvening(Simulation sim, in DayReport report)
+        {
+            _inner.OnEvening(sim, report);
+        }
+        public void DuringService(Simulation sim) { _inner.DuringService(sim); }
+    }
+
+    /// <summary>
+    /// ZIRVEDE KAPATAN IMZACI.
+    ///
+    /// "imzaci" ile tek farki: salon dolulugu %75'i gecince komboyu
+    /// kapatiyor, dusunce aciyor. Tasarimin MESRU dedigi oyun bu.
+    ///
+    /// Neden gerekli: imza ekseninin hedefi bu oyunun ulastigi paya gore
+    /// konmali, yoksa hedef uydurulmus olur - ve kodun kendi uyarisi
+    /// "uydurulmus bir hedef ekseni ya doygun ya erisilmez yapar" diyor.
+    /// </summary>
+    public sealed class PeakCloser : IStrategy
+    {
+        private readonly SignaturePlayer _inner = new SignaturePlayer();
+
+        public string Name => "zirvede_kapat";
+        public string Question => "Zirvede komboyu kapatmak kazandiriyor mu";
 
         public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
         public void OnEvening(Simulation sim, in DayReport report)

@@ -44,9 +44,10 @@ yetişmek. Yemekleri aşçın yapıyor — iyi ya da kötü, tuttuğun kişiye g
   kadro herkese yetişir ama parayı yer; bir kişi eksik çalışmak kazandırır
   ve karşılığında masadan kızgın kalkan müşteriler bırakır.
 
-• SERVİS SIRASINDA SEN VARSIN. Günde dört müdahale hakkın var: mutfağı
-  hızlandır, sabrı biten masaya çay ikram et, ya da kendin ilgilen.
-  Hepsi aynı keseden çıkıyor ve harcanmayan hak gece yanıyor.
+• SERVİS SIRASINDA SEN VARSIN. Sayılı müdahale hakkın var — dükkân
+  büyüdükçe artıyor. Mutfağı hızlandır, salona çay çıkar, ya da bir
+  masayla kendin ilgilen: ilgilendiğin masa daha çabuk dönüyor. Hepsi
+  aynı keseden çıkıyor ve harcanmayan hak gece yanıyor.
 
 • MUTFAĞININ BİR İMZASI VAR. Fast food'da kombo: ortalama fişi yükseltir
   ama mutfağı yorar, zirvede kapatmak akıllıca olabilir. Türk mutfağında
@@ -83,9 +84,10 @@ you hired.
   week. A full crew serves everyone but eats the cash; running one short
   earns more and leaves guests walking out angry.
 
-• SERVICE IS WHERE YOU ARE. Four interventions a day: rush the kitchen,
-  send tea to a table that is running out of patience, or attend to it
-  yourself. They share one budget, and unspent ones burn at midnight.
+• SERVICE IS WHERE YOU ARE. You get a handful of interventions a day, and
+  more as the place grows: rush the kitchen, send tea out to the room, or
+  attend a table yourself — the table you attend turns over faster. They
+  share one budget, and unspent ones burn at midnight.
 
 • YOUR CUISINE HAS A SIGNATURE. Fast food has the combo: it raises the
   average ticket but loads the kitchen, so closing it at the peak can be
@@ -103,6 +105,12 @@ app does not even ask for internet permission.
 
 Turkish and English.
 ```
+
+**Müdahale cümlesi 14 Eylül'de güncellendi.** Üç yerden eskimişti: hak
+sayısı artık sabit dört değil masayla büyüyor, çay tek masaya değil salona
+gidiyor, ve ilgilenilen masanın salon işi yarıya iniyor — yani müdahale
+yalnızca krizi savuşturmakla kalmıyor, masa devir hızını da artırıyor
+(docs/45 §16). Metin ölçülene uydu, tersi değil.
 
 **Neden bu yapı.** Play listesinde ilk üç satır kesilmeden görünüyor, gerisi
 "devamını oku" ardında. O yüzden ilk paragraf oyunun kendisini anlatıyor ve
