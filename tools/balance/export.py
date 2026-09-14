@@ -274,6 +274,13 @@ def economy():
         # yoktu ve itibar tavanindaki oyuncu icin zam bedavaydi;
         # olculdu, %10 zamlayan bot her stratejiyi geciyordu.
         "priceElasticityBp": 9000,
+        # GUNLUK TALEP OYNAKLIGI. 1000 = -%10 ile +%10.
+        #
+        # Talep tamamen belirlenimciydi: ayni itibar ve masadaki her sali
+        # birebir ayni musteriyi getiriyordu, yani hal onerisi HER ZAMAN
+        # tam dogruydu ve sabah stok karari bir yargi degil bir dugmeydi.
+        # Sapma YALNIZCA gerceklesende; tahmin beklentiyi gosteriyor.
+        "demandVarianceBp": 1000,
         # Fiyat TAVANI: memnuniyet cezasi sifirda doyuyor ve talep
         # fiyati hic gormuyor, yani tavan olmadan kar sinirsiz.
         # 25000 = piyasanin 2,5 kati.

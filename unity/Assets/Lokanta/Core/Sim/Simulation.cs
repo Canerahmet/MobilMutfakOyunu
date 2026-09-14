@@ -4280,6 +4280,17 @@ namespace Lokanta.Core.Sim
             }
         }
 
+        private int _plannedPeople;
+
+        /// <summary>
+        /// Bugun GERCEKTEN gelmesi planlanan kisi sayisi.
+        ///
+        /// ExpectedPeopleToday BEKLENTIYI veriyor; ikisinin farki gunun
+        /// sapmasi. Oyuncu bunu goremiyor (gormemeli - gorebilseydi
+        /// oynaklik yine dekor olurdu); testler ve tur icin var.
+        /// </summary>
+        public int PlannedPeopleToday { get { return _plannedPeople; } }
+
         public int InterventionsLeft { get { return _interventionsLeft; } }
 
         /// <summary>
@@ -5876,6 +5887,39 @@ namespace Lokanta.Core.Sim
                                           _economy.PriceElasticityBp);
         }
 
+        /// <summary>
+        /// Bugun GERCEKTEN gelecek musteri sayisi.
+        ///
+        /// ExpectedCustomers BEKLENTI; bu onun uzerine gunun sapmasini
+        /// koyuyor. AYRIM KASITLI ve mekanigin tamami bu ayrimda:
+        ///
+        ///   tahmin  -> kadro onerisi, hal onerisi, beklenen kisi
+        ///   gercek  -> yalnizca gelis plani
+        ///
+        /// Sapma tahmine de yansisaydi oyuncu yine kesin bilgiye
+        /// sahip olurdu ve oynaklik dekor kalirdi. Asil kazanc
+        /// burada: sabah stok karari artik bir YARGI - fazla alirsan
+        /// coper, az alirsan musteri kapidan doner.
+        ///
+        /// Cekilis GUNDE BIR ve _rngEvent akisindan: o akis zaten
+        /// vardi, kayda giriyordu ve hic kullanilmiyordu. Tekrar
+        /// oynatma birebir ayni kaliyor.
+        /// </summary>
+        private int ActualCustomers(int dayFactorBp)
+        {
+            int beklenen = ExpectedCustomers(dayFactorBp);
+            int varyans = _economy.DemandVarianceBp;
+            if (varyans <= 0 || beklenen <= 0) return beklenen;
+
+            // [-varyans, +varyans] araliginda tek cekilis. Tamsayi:
+            // kayan nokta cekirdekte yasak (docs/23 2.5).
+            int aralik = 2 * varyans + 1;
+            int sapma = (int)(_rngEvent.Next() % (uint)aralik) - varyans;
+
+            int gercek = (int)Fx.MulDiv(beklenen, Fx.One + sapma, Fx.One);
+            return gercek < 0 ? 0 : gercek;
+        }
+
         private long DishPriceDiffBp(int dish)
         {
             if (dish < 0) return 0;
@@ -6099,7 +6143,10 @@ namespace Lokanta.Core.Sim
                 ? _economy.WeekendMultiplierBp
                 : _economy.WeekdayMultiplierBp;
 
-            int people = ExpectedCustomers(dayFactorBp);
+            // GERCEK sayi: tahmin degil. Fark oyuncunun sabah verdigi
+            // stok kararinin karsiligi.
+            int people = ActualCustomers(dayFactorBp);
+            _plannedPeople = people;
 
             _arrCount = 0;
             _arrNext = 0;

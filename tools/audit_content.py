@@ -121,6 +121,7 @@ SCHEMA_RENAMED = {
     "satisfactionNeutral": "satisfactionNeutralCenti",
     "underpriceFloor": "underpriceFloorBp",
     "priceElasticity": "priceElasticityBp",
+    "demandVariance": "demandVarianceBp",
     "overpriceCeiling": "overpriceCeilingBp",
     "loanMultiplier": "loanMultiplierBp",
     "priceVolatility": "priceVolatilityBp",

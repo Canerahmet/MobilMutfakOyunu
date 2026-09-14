@@ -299,5 +299,90 @@ namespace Lokanta.Core.Tests
             Assert.True(sim.ReputationCenti > oncekiTavan,
                 $"birikmis {birikim} santi odenmedi (itibar {sim.ReputationCenti})");
         }
+
+        /// <summary>
+        /// GUNLUK TALEP BEKLENTIDEN SAPIYOR - ama tahmin sapmiyor.
+        ///
+        /// Talep tamamen belirlenimciydi: ayni itibar ve masa sayisindaki
+        /// her sali birebir ayni musteriyi getiriyordu. Sonucu, sabah
+        /// stok kararinin bir YARGI degil bir dugme olmasiydi - hal
+        /// onerisi her zaman tam dogruydu.
+        ///
+        /// Testin olctugu sey AYRIM: gerceklesen sapiyor, tahmin
+        /// sapmiyor. Sapma tahmine de yansisaydi oyuncu yine kesin
+        /// bilgiye sahip olurdu ve oynaklik dekor kalirdi.
+        /// </summary>
+        [Fact]
+        public void Gunluk_talep_beklentiden_sapiyor()
+        {
+            Simulation sim = NewSim();
+            MenuyuAc(sim);
+
+            int sapanGun = 0, olculenGun = 0;
+            long toplamFark = 0;
+
+            for (int g = 0; g < 20; g++)
+            {
+                int beklenen = sim.ExpectedPeopleToday();
+                sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
+                sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+
+                int gercek = sim.PlannedPeopleToday;
+                if (beklenen > 0)
+                {
+                    olculenGun++;
+                    if (gercek != beklenen) sapanGun++;
+                    toplamFark += gercek - beklenen;
+                }
+
+                while (!sim.ServiceComplete) sim.Tick();
+                sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
+            }
+
+            _out.WriteLine($"{olculenGun} gun olculdu, {sapanGun} gun sapti, "
+                           + $"toplam fark {toplamFark} kisi");
+
+            // CANLILIK: hic gun olculmediyse asagisi vakumda yesil kalirdi.
+            Assert.True(olculenGun >= 15, $"yalnizca {olculenGun} gun olculdu");
+
+            // Gunlerin cogu sapmali; hepsi degil (sifir sapma da gecerli bir
+            // cekilis).
+            Assert.True(sapanGun >= olculenGun / 2,
+                $"{olculenGun} gunun yalnizca {sapanGun}'inde sapma var - "
+                + "oynaklik islemiyor olabilir");
+        }
+
+        /// <summary>
+        /// OYNAKLIK BELIRLENIMCILIGI BOZMUYOR.
+        ///
+        /// Ayni tohum ayni sonucu vermeli; yoksa tekrar oynatma ve
+        /// altin veri kirilir (docs/23 2.5). Cekilis _rngEvent akisindan
+        /// geliyor ve o akis kayda giriyor.
+        /// </summary>
+        [Fact]
+        public void Oynaklik_ayni_tohumda_ayni()
+        {
+            int[] Kosu()
+            {
+                Simulation sim = NewSim();
+                MenuyuAc(sim);
+                int[] gunler = new int[10];
+                for (int g = 0; g < gunler.Length; g++)
+                {
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+                    gunler[g] = sim.PlannedPeopleToday;
+                    while (!sim.ServiceComplete) sim.Tick();
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
+                }
+                return gunler;
+            }
+
+            int[] a = Kosu();
+            int[] b = Kosu();
+
+            Assert.True(a[0] > 0, "ilk gun sifir kisi - olcum kosmamis");
+            Assert.Equal(a, b);
+        }
     }
 }
