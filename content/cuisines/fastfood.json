@@ -1,0 +1,43 @@
+{
+  "id": "fastfood",
+  "nameKey": "cuisine.fastfood",
+  "_comment": "URETILEN DOSYA. tools/balance/export.py",
+  "slotDurationsBp": [
+    2000,
+    3000,
+    2000,
+    3000
+  ],
+  "eatMs": 38000,
+  "menuRoles": {
+    "main": [
+      "ana"
+    ],
+    "side": [
+      "yan"
+    ],
+    "drink": [
+      "icecek"
+    ],
+    "dessert": [
+      "tatli"
+    ]
+  },
+  "signature": {
+    "kind": "combo",
+    "combo": {
+      "items": [
+        "hamburger",
+        "patates_kizartma",
+        "kola"
+      ],
+      "priceBp": 8750,
+      "kitchenLoadBp": 13500
+    }
+  },
+  "scoreAxis": {
+    "kind": "comboShare",
+    "nameKey": "score.axis.combo",
+    "target": 1500
+  }
+}

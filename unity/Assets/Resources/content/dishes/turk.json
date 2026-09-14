@@ -1,0 +1,1492 @@
+[
+  {
+    "id": "kuru_fasulye",
+    "nameKey": "dish.kuru_fasulye",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 5100,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "kuru_fasulye_tane",
+        "grams": 130
+      },
+      {
+        "id": "dana_kusbasi",
+        "grams": 70
+      },
+      {
+        "id": "salca",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 35
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 18
+      },
+      {
+        "id": "tuz",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "nohut",
+    "nameKey": "dish.nohut",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 4550,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 1,
+    "unlockDay": 3,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 180,
+    "ingredients": [
+      {
+        "id": "nohut_tane",
+        "grams": 130
+      },
+      {
+        "id": "dana_kusbasi",
+        "grams": 60
+      },
+      {
+        "id": "salca",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 35
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 18
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "etli_turlu",
+    "nameKey": "dish.etli_turlu",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 5700,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 2,
+    "unlockDay": 16,
+    "requiresStationTier": 2,
+    "unlockReputationCenti": 1350,
+    "ingredients": [
+      {
+        "id": "dana_kusbasi",
+        "grams": 90
+      },
+      {
+        "id": "patlican",
+        "grams": 50
+      },
+      {
+        "id": "kabak",
+        "grams": 50
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 30
+      },
+      {
+        "id": "domates",
+        "grams": 60
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "karniyarik",
+    "nameKey": "dish.karniyarik",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 4550,
+    "prepMs": 13000,
+    "station": "tas_firin",
+    "complexity": 3,
+    "unlockSeason": 2,
+    "unlockDay": 18,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 1530,
+    "ingredients": [
+      {
+        "id": "patlican",
+        "grams": 180
+      },
+      {
+        "id": "kiyma",
+        "grams": 80
+      },
+      {
+        "id": "domates",
+        "grams": 50
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 20
+      },
+      {
+        "id": "maydanoz",
+        "grams": 5
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "slice",
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "taze_fasulye",
+    "nameKey": "dish.taze_fasulye",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 3400,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 2,
+    "unlockDay": 20,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 1710,
+    "ingredients": [
+      {
+        "id": "taze_fasulye",
+        "grams": 200
+      },
+      {
+        "id": "domates",
+        "grams": 50
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 25
+      },
+      {
+        "id": "tuz",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "strip",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "imambayildi",
+    "nameKey": "dish.imambayildi",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 3800,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 3,
+    "unlockDay": 32,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2790,
+    "ingredients": [
+      {
+        "id": "patlican",
+        "grams": 180
+      },
+      {
+        "id": "sogan",
+        "grams": 60
+      },
+      {
+        "id": "domates",
+        "grams": 60
+      },
+      {
+        "id": "sarimsak",
+        "grams": 8
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 35
+      },
+      {
+        "id": "maydanoz",
+        "grams": 5
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "slice",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "musakka",
+    "nameKey": "dish.musakka",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 5050,
+    "prepMs": 13000,
+    "station": "tas_firin",
+    "complexity": 3,
+    "unlockSeason": 3,
+    "unlockDay": 34,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2970,
+    "ingredients": [
+      {
+        "id": "patlican",
+        "grams": 150
+      },
+      {
+        "id": "kiyma",
+        "grams": 90
+      },
+      {
+        "id": "domates",
+        "grams": 50
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 20
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "sut",
+        "grams": 40
+      },
+      {
+        "id": "un",
+        "grams": 10
+      },
+      {
+        "id": "tereyagi",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "slice",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "etli_bamya",
+    "nameKey": "dish.etli_bamya",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 6750,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 3,
+    "unlockDay": 36,
+    "requiresStationTier": 2,
+    "unlockReputationCenti": 3150,
+    "ingredients": [
+      {
+        "id": "bamya",
+        "grams": 140
+      },
+      {
+        "id": "kuzu_kusbasi",
+        "grams": 70
+      },
+      {
+        "id": "domates",
+        "grams": 50
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "limon",
+        "grams": 10
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "patlican_kebabi",
+    "nameKey": "dish.patlican_kebabi",
+    "cuisine": "turk",
+    "group": "sulu",
+    "price": 4950,
+    "prepMs": 13000,
+    "station": "tas_firin",
+    "complexity": 3,
+    "unlockSeason": 4,
+    "unlockDay": 47,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 4140,
+    "ingredients": [
+      {
+        "id": "patlican",
+        "grams": 150
+      },
+      {
+        "id": "kiyma",
+        "grams": 110
+      },
+      {
+        "id": "domates",
+        "grams": 50
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 25
+      },
+      {
+        "id": "sarimsak",
+        "grams": 5
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "slice",
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "mercimek_corbasi",
+    "nameKey": "dish.mercimek_corbasi",
+    "cuisine": "turk",
+    "group": "corba",
+    "price": 2250,
+    "prepMs": 8500,
+    "station": "ocak",
+    "complexity": 2,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "mercimek",
+        "grams": 90
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "havuc",
+        "grams": 30
+      },
+      {
+        "id": "patates",
+        "grams": 40
+      },
+      {
+        "id": "tereyagi",
+        "grams": 12
+      },
+      {
+        "id": "un",
+        "grams": 10
+      },
+      {
+        "id": "kirmizi_biber",
+        "grams": 2
+      },
+      {
+        "id": "tuz",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "steam",
+        "slice"
+      ]
+    }
+  },
+  {
+    "id": "ezogelin",
+    "nameKey": "dish.ezogelin",
+    "cuisine": "turk",
+    "group": "corba",
+    "price": 2150,
+    "prepMs": 8500,
+    "station": "ocak",
+    "complexity": 2,
+    "unlockSeason": 1,
+    "unlockDay": 5,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 360,
+    "ingredients": [
+      {
+        "id": "mercimek",
+        "grams": 80
+      },
+      {
+        "id": "bulgur",
+        "grams": 25
+      },
+      {
+        "id": "pirinc",
+        "grams": 15
+      },
+      {
+        "id": "salca",
+        "grams": 15
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "nane",
+        "grams": 3
+      },
+      {
+        "id": "tereyagi",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "steam"
+      ]
+    }
+  },
+  {
+    "id": "yayla_corbasi",
+    "nameKey": "dish.yayla_corbasi",
+    "cuisine": "turk",
+    "group": "corba",
+    "price": 2400,
+    "prepMs": 8500,
+    "station": "ocak",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 21,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 1800,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "grams": 120
+      },
+      {
+        "id": "pirinc",
+        "grams": 30
+      },
+      {
+        "id": "un",
+        "grams": 10
+      },
+      {
+        "id": "yumurta",
+        "grams": 15
+      },
+      {
+        "id": "nane",
+        "grams": 3
+      },
+      {
+        "id": "tereyagi",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "steam",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "iskembe_corbasi",
+    "nameKey": "dish.iskembe_corbasi",
+    "cuisine": "turk",
+    "group": "corba",
+    "price": 3950,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 4,
+    "unlockDay": 50,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 4410,
+    "ingredients": [
+      {
+        "id": "iskembe",
+        "grams": 180
+      },
+      {
+        "id": "un",
+        "grams": 15
+      },
+      {
+        "id": "sarimsak",
+        "grams": 8
+      },
+      {
+        "id": "sirke",
+        "grams": 8
+      },
+      {
+        "id": "tereyagi",
+        "grams": 12
+      },
+      {
+        "id": "limon",
+        "grams": 8
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "steam",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "pirinc_pilavi",
+    "nameKey": "dish.pirinc_pilavi",
+    "cuisine": "turk",
+    "group": "pilav",
+    "price": 1900,
+    "prepMs": 6000,
+    "station": "ocak",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "pirinc",
+        "grams": 90
+      },
+      {
+        "id": "makarna",
+        "grams": 10
+      },
+      {
+        "id": "tereyagi",
+        "grams": 15
+      },
+      {
+        "id": "tuz",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "sphere"
+      ]
+    }
+  },
+  {
+    "id": "bulgur_pilavi",
+    "nameKey": "dish.bulgur_pilavi",
+    "cuisine": "turk",
+    "group": "pilav",
+    "price": 1700,
+    "prepMs": 6000,
+    "station": "ocak",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 7,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 540,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "grams": 90
+      },
+      {
+        "id": "salca",
+        "grams": 10
+      },
+      {
+        "id": "sogan",
+        "grams": 20
+      },
+      {
+        "id": "tereyagi",
+        "grams": 12
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "sphere"
+      ]
+    }
+  },
+  {
+    "id": "borek",
+    "nameKey": "dish.borek",
+    "cuisine": "turk",
+    "group": "pilav",
+    "price": 4900,
+    "prepMs": 13000,
+    "station": "tas_firin",
+    "complexity": 3,
+    "unlockSeason": 2,
+    "unlockDay": 23,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 1980,
+    "ingredients": [
+      {
+        "id": "yufka",
+        "grams": 120
+      },
+      {
+        "id": "beyaz_peynir",
+        "grams": 60
+      },
+      {
+        "id": "maydanoz",
+        "grams": 6
+      },
+      {
+        "id": "yumurta",
+        "grams": 25
+      },
+      {
+        "id": "sut",
+        "grams": 40
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "slice"
+      ]
+    }
+  },
+  {
+    "id": "manti",
+    "nameKey": "dish.manti",
+    "cuisine": "turk",
+    "group": "pilav",
+    "price": 4000,
+    "prepMs": 13000,
+    "station": "ocak",
+    "complexity": 3,
+    "unlockSeason": 4,
+    "unlockDay": 52,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 4590,
+    "ingredients": [
+      {
+        "id": "un",
+        "grams": 90
+      },
+      {
+        "id": "kiyma",
+        "grams": 60
+      },
+      {
+        "id": "sogan",
+        "grams": 20
+      },
+      {
+        "id": "yogurt",
+        "grams": 80
+      },
+      {
+        "id": "tereyagi",
+        "grams": 15
+      },
+      {
+        "id": "kirmizi_biber",
+        "grams": 2
+      },
+      {
+        "id": "nane",
+        "grams": 2
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "kofte",
+    "nameKey": "dish.kofte",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 6300,
+    "prepMs": 8500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "kiyma",
+        "grams": 220
+      },
+      {
+        "id": "sogan",
+        "grams": 25
+      },
+      {
+        "id": "galeta_unu",
+        "grams": 15
+      },
+      {
+        "id": "yumurta",
+        "grams": 10
+      },
+      {
+        "id": "karabiber",
+        "grams": 2
+      },
+      {
+        "id": "kimyon",
+        "grams": 2
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "sphere",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "tavuk_sis",
+    "nameKey": "dish.tavuk_sis",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 3950,
+    "prepMs": 8500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 1,
+    "unlockDay": 9,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 720,
+    "ingredients": [
+      {
+        "id": "tavuk_gogus",
+        "grams": 200
+      },
+      {
+        "id": "yogurt",
+        "grams": 25
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 20
+      },
+      {
+        "id": "baharat_karisimi",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "stick",
+        "sphere",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "adana",
+    "nameKey": "dish.adana",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 6050,
+    "prepMs": 8500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 25,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 2160,
+    "ingredients": [
+      {
+        "id": "kiyma",
+        "grams": 200
+      },
+      {
+        "id": "kirmizi_biber",
+        "grams": 4
+      },
+      {
+        "id": "kimyon",
+        "grams": 3
+      },
+      {
+        "id": "sogan",
+        "grams": 20
+      },
+      {
+        "id": "lavas",
+        "grams": 60
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "strip",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "doner",
+    "nameKey": "dish.doner",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 6100,
+    "prepMs": 8500,
+    "station": "doner_ocagi",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 26,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2250,
+    "ingredients": [
+      {
+        "id": "doner_eti",
+        "grams": 180
+      },
+      {
+        "id": "lavas",
+        "grams": 70
+      },
+      {
+        "id": "domates",
+        "grams": 40
+      },
+      {
+        "id": "sogan",
+        "grams": 25
+      },
+      {
+        "id": "maydanoz",
+        "grams": 5
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 8
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "strip",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "iskender",
+    "nameKey": "dish.iskender",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 8000,
+    "prepMs": 13000,
+    "station": "doner_ocagi",
+    "complexity": 3,
+    "unlockSeason": 4,
+    "unlockDay": 55,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 4860,
+    "ingredients": [
+      {
+        "id": "doner_eti",
+        "grams": 170
+      },
+      {
+        "id": "lavas",
+        "grams": 90
+      },
+      {
+        "id": "salca",
+        "grams": 30
+      },
+      {
+        "id": "yogurt",
+        "grams": 70
+      },
+      {
+        "id": "tereyagi",
+        "grams": 25
+      },
+      {
+        "id": "domates",
+        "grams": 40
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "strip",
+        "sauce",
+        "sphere"
+      ]
+    }
+  },
+  {
+    "id": "kiymali_pide",
+    "nameKey": "dish.kiymali_pide",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 5350,
+    "prepMs": 8500,
+    "station": "pide_firini",
+    "complexity": 2,
+    "unlockSeason": 3,
+    "unlockDay": 38,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 3330,
+    "ingredients": [
+      {
+        "id": "un",
+        "grams": 110
+      },
+      {
+        "id": "kiyma",
+        "grams": 90
+      },
+      {
+        "id": "kasar",
+        "grams": 35
+      },
+      {
+        "id": "domates",
+        "grams": 35
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 20
+      },
+      {
+        "id": "tereyagi",
+        "grams": 12
+      },
+      {
+        "id": "yumurta",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "tray",
+      "toppings": [
+        "strip",
+        "slice",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "lahmacun",
+    "nameKey": "dish.lahmacun",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 2900,
+    "prepMs": 8500,
+    "station": "pide_firini",
+    "complexity": 2,
+    "unlockSeason": 4,
+    "unlockDay": 57,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 5040,
+    "ingredients": [
+      {
+        "id": "un",
+        "grams": 80
+      },
+      {
+        "id": "kiyma",
+        "grams": 60
+      },
+      {
+        "id": "domates",
+        "grams": 45
+      },
+      {
+        "id": "sogan",
+        "grams": 25
+      },
+      {
+        "id": "salca",
+        "grams": 15
+      },
+      {
+        "id": "maydanoz",
+        "grams": 6
+      },
+      {
+        "id": "kirmizi_biber",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "tray",
+      "toppings": [
+        "strip",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "kuzu_pirzola",
+    "nameKey": "dish.kuzu_pirzola",
+    "cuisine": "turk",
+    "group": "izgara",
+    "price": 13250,
+    "prepMs": 8500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 3,
+    "unlockDay": 40,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 3510,
+    "ingredients": [
+      {
+        "id": "kuzu_pirzola_et",
+        "grams": 220
+      },
+      {
+        "id": "tuz",
+        "grams": 3
+      },
+      {
+        "id": "karabiber",
+        "grams": 2
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "slice",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "coban_salata",
+    "nameKey": "dish.coban_salata",
+    "cuisine": "turk",
+    "group": "meze",
+    "price": 2500,
+    "prepMs": 6000,
+    "station": "soguk",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 11,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 900,
+    "ingredients": [
+      {
+        "id": "domates",
+        "grams": 100
+      },
+      {
+        "id": "salatalik",
+        "grams": 80
+      },
+      {
+        "id": "yesil_biber",
+        "grams": 30
+      },
+      {
+        "id": "sogan",
+        "grams": 25
+      },
+      {
+        "id": "maydanoz",
+        "grams": 8
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 12
+      },
+      {
+        "id": "limon",
+        "grams": 8
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "slice",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "cacik",
+    "nameKey": "dish.cacik",
+    "cuisine": "turk",
+    "group": "meze",
+    "price": 2550,
+    "prepMs": 6000,
+    "station": "soguk",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 13,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 1080,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "grams": 150
+      },
+      {
+        "id": "salatalik",
+        "grams": 70
+      },
+      {
+        "id": "sarimsak",
+        "grams": 5
+      },
+      {
+        "id": "nane",
+        "grams": 2
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 8
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "sauce",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "piyaz",
+    "nameKey": "dish.piyaz",
+    "cuisine": "turk",
+    "group": "meze",
+    "price": 2850,
+    "prepMs": 6000,
+    "station": "soguk",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 15,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 1260,
+    "ingredients": [
+      {
+        "id": "kuru_fasulye_tane",
+        "grams": 90
+      },
+      {
+        "id": "sogan",
+        "grams": 30
+      },
+      {
+        "id": "domates",
+        "grams": 40
+      },
+      {
+        "id": "maydanoz",
+        "grams": 6
+      },
+      {
+        "id": "sirke",
+        "grams": 10
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 15
+      },
+      {
+        "id": "yumurta",
+        "grams": 30
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "sphere",
+        "slice",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "sutlac",
+    "nameKey": "dish.sutlac",
+    "cuisine": "turk",
+    "group": "tatli",
+    "price": 3100,
+    "prepMs": 8500,
+    "station": "tatli",
+    "complexity": 2,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "sut",
+        "grams": 250
+      },
+      {
+        "id": "pirinc",
+        "grams": 30
+      },
+      {
+        "id": "seker",
+        "grams": 45
+      },
+      {
+        "id": "misir_nisastasi",
+        "grams": 8
+      },
+      {
+        "id": "tarcin",
+        "grams": 2
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "kadayif",
+    "nameKey": "dish.kadayif",
+    "cuisine": "turk",
+    "group": "tatli",
+    "price": 6550,
+    "prepMs": 13000,
+    "station": "tas_firin",
+    "complexity": 3,
+    "unlockSeason": 2,
+    "unlockDay": 28,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2430,
+    "ingredients": [
+      {
+        "id": "kadayif_tel",
+        "grams": 100
+      },
+      {
+        "id": "ceviz",
+        "grams": 30
+      },
+      {
+        "id": "seker",
+        "grams": 60
+      },
+      {
+        "id": "tereyagi",
+        "grams": 30
+      },
+      {
+        "id": "limon",
+        "grams": 5
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "strip",
+        "sphere"
+      ]
+    }
+  },
+  {
+    "id": "revani",
+    "nameKey": "dish.revani",
+    "cuisine": "turk",
+    "group": "tatli",
+    "price": 2250,
+    "prepMs": 13000,
+    "station": "tas_firin",
+    "complexity": 3,
+    "unlockSeason": 3,
+    "unlockDay": 42,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 3690,
+    "ingredients": [
+      {
+        "id": "irmik",
+        "grams": 80
+      },
+      {
+        "id": "un",
+        "grams": 30
+      },
+      {
+        "id": "seker",
+        "grams": 70
+      },
+      {
+        "id": "yumurta",
+        "grams": 40
+      },
+      {
+        "id": "yogurt",
+        "grams": 40
+      },
+      {
+        "id": "limon",
+        "grams": 5
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "slice",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "ayran",
+    "nameKey": "dish.ayran",
+    "cuisine": "turk",
+    "group": "icecek",
+    "price": 1650,
+    "prepMs": 6000,
+    "station": "icecek",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "grams": 150
+      },
+      {
+        "id": "tuz",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": []
+    }
+  }
+]

@@ -1,0 +1,185 @@
+[
+  {
+    "id": "yalniz_musteri",
+    "nameKey": "archetype.yalniz_musteri",
+    "cuisines": "shared",
+    "tier": "sik",
+    "weight": 800,
+    "patienceMs": 16000,
+    "priceSensitivityBp": 10000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 1,
+    "reputationWeight": 10000,
+    "tipChanceBp": 1200,
+    "arrivalWeightsBp": [
+      1500,
+      3800,
+      2000,
+      2700
+    ],
+    "wardrobe": [
+      "gunluk"
+    ]
+  },
+  {
+    "id": "cift",
+    "nameKey": "archetype.cift",
+    "cuisines": "shared",
+    "tier": "sik",
+    "weight": 650,
+    "patienceMs": 20000,
+    "priceSensitivityBp": 9000,
+    "groupSizeMin": 2,
+    "groupSizeMax": 2,
+    "reputationWeight": 10000,
+    "tipChanceBp": 1800,
+    "arrivalWeightsBp": [
+      600,
+      3200,
+      2200,
+      4000
+    ],
+    "wardrobe": [
+      "sik_gunluk",
+      "gunluk"
+    ]
+  },
+  {
+    "id": "aile",
+    "nameKey": "archetype.aile",
+    "cuisines": "shared",
+    "tier": "sik",
+    "weight": 600,
+    "patienceMs": 30000,
+    "priceSensitivityBp": 11000,
+    "groupSizeMin": 3,
+    "groupSizeMax": 5,
+    "reputationWeight": 14000,
+    "tipChanceBp": 2000,
+    "arrivalWeightsBp": [
+      800,
+      4200,
+      1800,
+      3200
+    ],
+    "wardrobe": [
+      "gunluk",
+      "cocuk"
+    ]
+  },
+  {
+    "id": "kurye",
+    "nameKey": "archetype.kurye",
+    "cuisines": "shared",
+    "tier": "sik",
+    "weight": 550,
+    "patienceMs": 8000,
+    "priceSensitivityBp": 12000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 1,
+    "reputationWeight": 6000,
+    "tipChanceBp": 500,
+    "arrivalWeightsBp": [
+      1100,
+      5200,
+      1500,
+      2200
+    ],
+    "wardrobe": [
+      "kurye_ceket",
+      "kask"
+    ]
+  },
+  {
+    "id": "cocuklu_ebeveyn",
+    "nameKey": "archetype.cocuklu_ebeveyn",
+    "cuisines": "shared",
+    "tier": "orta",
+    "weight": 320,
+    "patienceMs": 13000,
+    "priceSensitivityBp": 11500,
+    "groupSizeMin": 2,
+    "groupSizeMax": 3,
+    "reputationWeight": 12000,
+    "tipChanceBp": 1500,
+    "arrivalWeightsBp": [
+      700,
+      4000,
+      3000,
+      2300
+    ],
+    "wardrobe": [
+      "ebeveyn",
+      "cocuk"
+    ]
+  },
+  {
+    "id": "yolcu",
+    "nameKey": "archetype.yolcu",
+    "cuisines": "shared",
+    "tier": "orta",
+    "weight": 260,
+    "patienceMs": 15000,
+    "priceSensitivityBp": 6000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 2,
+    "reputationWeight": 4000,
+    "tipChanceBp": 800,
+    "arrivalWeightsBp": [
+      3000,
+      3600,
+      2100,
+      1300
+    ],
+    "wardrobe": [
+      "yol_cantasi",
+      "gunluk"
+    ]
+  },
+  {
+    "id": "paylasimci",
+    "nameKey": "archetype.paylasimci",
+    "cuisines": "shared",
+    "tier": "orta",
+    "weight": 220,
+    "patienceMs": 19000,
+    "priceSensitivityBp": 8000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 3,
+    "reputationWeight": 30000,
+    "tipChanceBp": 2500,
+    "arrivalWeightsBp": [
+      900,
+      3800,
+      2300,
+      3000
+    ],
+    "wardrobe": [
+      "sik_gunluk",
+      "telefon"
+    ]
+  },
+  {
+    "id": "yemek_elestirmeni",
+    "nameKey": "archetype.yemek_elestirmeni",
+    "cuisines": "shared",
+    "tier": "nadir",
+    "weight": 110,
+    "patienceMs": 26000,
+    "priceSensitivityBp": 4000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 2,
+    "reputationWeight": 80000,
+    "tipChanceBp": 3000,
+    "arrivalWeightsBp": [
+      600,
+      4200,
+      1700,
+      3500
+    ],
+    "wardrobe": [
+      "ceket",
+      "defter"
+    ]
+  }
+]

@@ -1,0 +1,28 @@
+<!--
+    IL2CPP BUDAMA KORUMASI.
+
+    Android yapisi `managedStrippingLevel: High` ile derleniyor
+    (ProjectSettings). Yuksek budama, YALNIZCA yansimayla cagrilan
+    uyeleri "kullanilmiyor" sayip siliyor - ve icerik yukleme
+    tamamen yansima:
+
+        ContentLoader.cs -> JsonConvert.DeserializeObject<T>(text, Settings)
+
+    Silinen sey bir metot degil, DTO'larin ozellik yazicilari. Sonuc
+    cokme degil, SESSIZ VARSAYILAN: butun alanlar sifir/null doner,
+    ContentSetLoader'in dogrulamasi reddeder, oyun acilista hata
+    ekranina duser. Editorde ve Windows yapisinda (Mono, budama yok)
+    hicbir sey gorunmez - yani bu dosyanin korudugu hata, projedeki
+    HICBIR testin ulasamadigi tek yapilandirmada yasiyor.
+
+    Dto.cs:7 bu dosyanin var oldugunu soyluyordu ve dosya YOKTU.
+    Yorum bir korumayi anlatiyordu; koruma simdi gercekten burada.
+
+    Kapsam dar tutuldu: yalnizca yansimayla okunan iki derleme.
+    `preserve="all"` butun tipleri ve uyeleri koruyor; bu derlemeler
+    kucuk (POCO + Newtonsoft), yani boyut bedeli ihmal edilebilir.
+-->
+<linker>
+  <assembly fullname="Lokanta.Content" preserve="all" />
+  <assembly fullname="Newtonsoft.Json" preserve="all" />
+</linker>

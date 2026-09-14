@@ -1,0 +1,24 @@
+# SATIR SONU HER YERDE LF.
+#
+# Icerik URETILIYOR ve uretecler acikca LF yaziyor
+# (tools/balance/export.py, tools/content/gen_loc.py: newline="\n").
+# Git for Windows varsayilani calisma kopyasini CRLF'e cevirir; o zaman
+# `python tools/balance/export.py` her kosuda BUTUN icerik dosyalarini
+# degismis gosterirdi - gercek bir degisiklik olmadan. Uretilen ile
+# depodaki ayni olmali, yoksa "icerik guncel mi" sorusu okunamaz hale
+# gelir.
+* text=auto eol=lf
+
+# Ikili dosyalar dokunulmasin.
+*.png binary
+*.jpg binary
+*.zip binary
+*.ttf binary
+*.otf binary
+*.wav binary
+*.mp3 binary
+*.fbx binary
+*.blend binary
+*.asset -text
+*.prefab -text
+*.unity -text

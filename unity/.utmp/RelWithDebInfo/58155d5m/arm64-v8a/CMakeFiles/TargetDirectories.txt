@@ -1,0 +1,8 @@
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/CMakeFiles/rebuild_cache.dir
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/GameActivity/CMakeFiles/game.dir
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/FramePacing/CMakeFiles/swappywrapper.dir
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/FramePacing/CMakeFiles/edit_cache.dir
+D:/ClaudeCodeProjects/MobilOyun/unity/.utmp/RelWithDebInfo/58155d5m/arm64-v8a/FramePacing/CMakeFiles/rebuild_cache.dir

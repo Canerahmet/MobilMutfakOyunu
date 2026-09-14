@@ -1,0 +1,1353 @@
+[
+  {
+    "id": "hamburger",
+    "nameKey": "dish.hamburger",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 4650,
+    "prepMs": 8000,
+    "station": "izgara",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "kiyma",
+        "grams": 120
+      },
+      {
+        "id": "burger_ekmek",
+        "grams": 80
+      },
+      {
+        "id": "marul",
+        "grams": 15
+      },
+      {
+        "id": "domates",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      },
+      {
+        "id": "tursu",
+        "grams": 10
+      },
+      {
+        "id": "burger_sos",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "patty",
+        "leaf",
+        "slice"
+      ]
+    }
+  },
+  {
+    "id": "hot_dog",
+    "nameKey": "dish.hot_dog",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 2850,
+    "prepMs": 8000,
+    "station": "izgara",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "sosis",
+        "grams": 90
+      },
+      {
+        "id": "hotdog_ekmek",
+        "grams": 70
+      },
+      {
+        "id": "ketcap",
+        "grams": 15
+      },
+      {
+        "id": "mayonez",
+        "grams": 15
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "strip",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "cizburger",
+    "nameKey": "dish.cizburger",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 5450,
+    "prepMs": 8000,
+    "station": "izgara",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 3,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 180,
+    "ingredients": [
+      {
+        "id": "kiyma",
+        "grams": 120
+      },
+      {
+        "id": "burger_ekmek",
+        "grams": 80
+      },
+      {
+        "id": "kasar",
+        "grams": 25
+      },
+      {
+        "id": "marul",
+        "grams": 15
+      },
+      {
+        "id": "domates",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      },
+      {
+        "id": "burger_sos",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "patty",
+        "slice",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "kasarli_tost",
+    "nameKey": "dish.kasarli_tost",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 3550,
+    "prepMs": 8000,
+    "station": "izgara",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 5,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 360,
+    "ingredients": [
+      {
+        "id": "tost_ekmegi",
+        "grams": 110
+      },
+      {
+        "id": "kasar",
+        "grams": 60
+      },
+      {
+        "id": "tereyagi",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "slice"
+      ]
+    }
+  },
+  {
+    "id": "tavuk_burger",
+    "nameKey": "dish.tavuk_burger",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 3500,
+    "prepMs": 11500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 1,
+    "unlockDay": 7,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 540,
+    "ingredients": [
+      {
+        "id": "tavuk_gogus",
+        "grams": 130
+      },
+      {
+        "id": "burger_ekmek",
+        "grams": 80
+      },
+      {
+        "id": "marul",
+        "grams": 20
+      },
+      {
+        "id": "mayonez",
+        "grams": 25
+      },
+      {
+        "id": "tursu",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "patty",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "duble_burger",
+    "nameKey": "dish.duble_burger",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 8200,
+    "prepMs": 11500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 16,
+    "requiresStationTier": 2,
+    "unlockReputationCenti": 1350,
+    "ingredients": [
+      {
+        "id": "kiyma",
+        "grams": 220
+      },
+      {
+        "id": "burger_ekmek",
+        "grams": 90
+      },
+      {
+        "id": "kasar",
+        "grams": 25
+      },
+      {
+        "id": "marul",
+        "grams": 15
+      },
+      {
+        "id": "domates",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      },
+      {
+        "id": "burger_sos",
+        "grams": 25
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "patty",
+        "slice",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "acili_burger",
+    "nameKey": "dish.acili_burger",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 5550,
+    "prepMs": 11500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 18,
+    "requiresStationTier": 2,
+    "unlockReputationCenti": 1530,
+    "ingredients": [
+      {
+        "id": "kiyma",
+        "grams": 120
+      },
+      {
+        "id": "burger_ekmek",
+        "grams": 80
+      },
+      {
+        "id": "jalapeno",
+        "grams": 20
+      },
+      {
+        "id": "acili_sos",
+        "grams": 25
+      },
+      {
+        "id": "kasar",
+        "grams": 20
+      },
+      {
+        "id": "marul",
+        "grams": 15
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "patty",
+        "sauce",
+        "leaf"
+      ]
+    }
+  },
+  {
+    "id": "crispy_tavuk",
+    "nameKey": "dish.crispy_tavuk",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 4100,
+    "prepMs": 11500,
+    "station": "ocak",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 20,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 1710,
+    "ingredients": [
+      {
+        "id": "tavuk_gogus",
+        "grams": 160
+      },
+      {
+        "id": "galeta_unu",
+        "grams": 40
+      },
+      {
+        "id": "un",
+        "grams": 20
+      },
+      {
+        "id": "yumurta",
+        "grams": 25
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 30
+      },
+      {
+        "id": "baharat_karisimi",
+        "grams": 5
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "patty",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "tavuk_durum",
+    "nameKey": "dish.tavuk_durum",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 3400,
+    "prepMs": 11500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 21,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 1800,
+    "ingredients": [
+      {
+        "id": "tavuk_gogus",
+        "grams": 120
+      },
+      {
+        "id": "lavas",
+        "grams": 90
+      },
+      {
+        "id": "marul",
+        "grams": 20
+      },
+      {
+        "id": "domates",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      },
+      {
+        "id": "mayonez",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "strip",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "balik_burger",
+    "nameKey": "dish.balik_burger",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 4650,
+    "prepMs": 11500,
+    "station": "ocak",
+    "complexity": 2,
+    "unlockSeason": 3,
+    "unlockDay": 32,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2790,
+    "ingredients": [
+      {
+        "id": "balik_filetosu",
+        "grams": 130
+      },
+      {
+        "id": "burger_ekmek",
+        "grams": 80
+      },
+      {
+        "id": "galeta_unu",
+        "grams": 25
+      },
+      {
+        "id": "marul",
+        "grams": 15
+      },
+      {
+        "id": "mayonez",
+        "grams": 20
+      },
+      {
+        "id": "limon",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "patty",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "vejetaryen_burger",
+    "nameKey": "dish.vejetaryen_burger",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 3550,
+    "prepMs": 11500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 3,
+    "unlockDay": 34,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2970,
+    "ingredients": [
+      {
+        "id": "vejetaryen_kofte",
+        "grams": 130
+      },
+      {
+        "id": "burger_ekmek",
+        "grams": 80
+      },
+      {
+        "id": "marul",
+        "grams": 20
+      },
+      {
+        "id": "domates",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      },
+      {
+        "id": "burger_sos",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "bun",
+      "toppings": [
+        "patty",
+        "leaf",
+        "slice"
+      ]
+    }
+  },
+  {
+    "id": "et_durum",
+    "nameKey": "dish.et_durum",
+    "cuisine": "fastfood",
+    "group": "ana",
+    "price": 4750,
+    "prepMs": 11500,
+    "station": "izgara",
+    "complexity": 2,
+    "unlockSeason": 3,
+    "unlockDay": 36,
+    "requiresStationTier": 2,
+    "unlockReputationCenti": 3150,
+    "ingredients": [
+      {
+        "id": "kiyma",
+        "grams": 130
+      },
+      {
+        "id": "lavas",
+        "grams": 90
+      },
+      {
+        "id": "marul",
+        "grams": 20
+      },
+      {
+        "id": "domates",
+        "grams": 25
+      },
+      {
+        "id": "sogan",
+        "grams": 10
+      },
+      {
+        "id": "acili_sos",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "strip",
+        "leaf",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "patates_kizartma",
+    "nameKey": "dish.patates_kizartma",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 1700,
+    "prepMs": 8000,
+    "station": "ocak",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "patates",
+        "grams": 200
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 25
+      },
+      {
+        "id": "tuz",
+        "grams": 2
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "strip"
+      ]
+    }
+  },
+  {
+    "id": "nugget",
+    "nameKey": "dish.nugget",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 2850,
+    "prepMs": 8000,
+    "station": "ocak",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "tavuk_gogus",
+        "grams": 110
+      },
+      {
+        "id": "galeta_unu",
+        "grams": 30
+      },
+      {
+        "id": "un",
+        "grams": 15
+      },
+      {
+        "id": "yumurta",
+        "grams": 15
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "baharatli_patates",
+    "nameKey": "dish.baharatli_patates",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 2000,
+    "prepMs": 8000,
+    "station": "ocak",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 9,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 720,
+    "ingredients": [
+      {
+        "id": "patates",
+        "grams": 200
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 25
+      },
+      {
+        "id": "baharat_karisimi",
+        "grams": 6
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "strip",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "yesil_salata",
+    "nameKey": "dish.yesil_salata",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 1950,
+    "prepMs": 8000,
+    "station": "soguk",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 11,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 900,
+    "ingredients": [
+      {
+        "id": "marul",
+        "grams": 90
+      },
+      {
+        "id": "domates",
+        "grams": 50
+      },
+      {
+        "id": "havuc",
+        "grams": 30
+      },
+      {
+        "id": "zeytinyagi",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "leaf",
+        "slice"
+      ]
+    }
+  },
+  {
+    "id": "sogan_halkasi",
+    "nameKey": "dish.sogan_halkasi",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 1750,
+    "prepMs": 8000,
+    "station": "ocak",
+    "complexity": 1,
+    "unlockSeason": 2,
+    "unlockDay": 23,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 1980,
+    "ingredients": [
+      {
+        "id": "sogan",
+        "grams": 140
+      },
+      {
+        "id": "un",
+        "grams": 30
+      },
+      {
+        "id": "galeta_unu",
+        "grams": 25
+      },
+      {
+        "id": "yumurta",
+        "grams": 20
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 25
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "sphere"
+      ]
+    }
+  },
+  {
+    "id": "acili_kanat",
+    "nameKey": "dish.acili_kanat",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 3700,
+    "prepMs": 11500,
+    "station": "ocak",
+    "complexity": 2,
+    "unlockSeason": 2,
+    "unlockDay": 25,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2160,
+    "ingredients": [
+      {
+        "id": "tavuk_kanat",
+        "grams": 180
+      },
+      {
+        "id": "acili_sos",
+        "grams": 30
+      },
+      {
+        "id": "baharat_karisimi",
+        "grams": 4
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "sphere",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "mozzarella_cubuk",
+    "nameKey": "dish.mozzarella_cubuk",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 5500,
+    "prepMs": 8000,
+    "station": "ocak",
+    "complexity": 1,
+    "unlockSeason": 3,
+    "unlockDay": 38,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 3330,
+    "ingredients": [
+      {
+        "id": "mozzarella",
+        "grams": 100
+      },
+      {
+        "id": "galeta_unu",
+        "grams": 30
+      },
+      {
+        "id": "un",
+        "grams": 15
+      },
+      {
+        "id": "yumurta",
+        "grams": 15
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "stick",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "coleslaw",
+    "nameKey": "dish.coleslaw",
+    "cuisine": "fastfood",
+    "group": "yan",
+    "price": 1500,
+    "prepMs": 8000,
+    "station": "soguk",
+    "complexity": 1,
+    "unlockSeason": 3,
+    "unlockDay": 40,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 3510,
+    "ingredients": [
+      {
+        "id": "lahana",
+        "grams": 120
+      },
+      {
+        "id": "havuc",
+        "grams": 40
+      },
+      {
+        "id": "mayonez",
+        "grams": 35
+      },
+      {
+        "id": "seker",
+        "grams": 5
+      },
+      {
+        "id": "limon",
+        "grams": 5
+      }
+    ],
+    "plating": {
+      "base": "bowl",
+      "toppings": [
+        "strip"
+      ]
+    }
+  },
+  {
+    "id": "gazoz",
+    "nameKey": "dish.gazoz",
+    "cuisine": "fastfood",
+    "group": "icecek",
+    "price": 1350,
+    "prepMs": 8000,
+    "station": "icecek",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "gazoz_surubu",
+        "grams": 60
+      },
+      {
+        "id": "seker",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": [
+        "stick"
+      ]
+    }
+  },
+  {
+    "id": "kola",
+    "nameKey": "dish.kola",
+    "cuisine": "fastfood",
+    "group": "icecek",
+    "price": 1500,
+    "prepMs": 8000,
+    "station": "icecek",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 13,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 1080,
+    "ingredients": [
+      {
+        "id": "kola_surubu",
+        "grams": 60
+      },
+      {
+        "id": "seker",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": [
+        "stick"
+      ]
+    }
+  },
+  {
+    "id": "limonata",
+    "nameKey": "dish.limonata",
+    "cuisine": "fastfood",
+    "group": "icecek",
+    "price": 1700,
+    "prepMs": 8000,
+    "station": "icecek",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 15,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 1260,
+    "ingredients": [
+      {
+        "id": "limon",
+        "grams": 150
+      },
+      {
+        "id": "seker",
+        "grams": 40
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": [
+        "slice",
+        "stick"
+      ]
+    }
+  },
+  {
+    "id": "milkshake",
+    "nameKey": "dish.milkshake",
+    "cuisine": "fastfood",
+    "group": "icecek",
+    "price": 4050,
+    "prepMs": 8000,
+    "station": "milkshake_makinesi",
+    "complexity": 1,
+    "unlockSeason": 2,
+    "unlockDay": 26,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2250,
+    "ingredients": [
+      {
+        "id": "sut",
+        "grams": 200
+      },
+      {
+        "id": "dondurma_karisimi",
+        "grams": 90
+      },
+      {
+        "id": "seker",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": [
+        "sphere",
+        "stick"
+      ]
+    }
+  },
+  {
+    "id": "ayran",
+    "nameKey": "dish.ayran",
+    "cuisine": "fastfood",
+    "group": "icecek",
+    "price": 1650,
+    "prepMs": 8000,
+    "station": "icecek",
+    "complexity": 1,
+    "unlockSeason": 4,
+    "unlockDay": 47,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 4140,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "grams": 150
+      },
+      {
+        "id": "tuz",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": []
+    }
+  },
+  {
+    "id": "buzlu_cay",
+    "nameKey": "dish.buzlu_cay",
+    "cuisine": "fastfood",
+    "group": "icecek",
+    "price": 1050,
+    "prepMs": 8000,
+    "station": "icecek",
+    "complexity": 1,
+    "unlockSeason": 4,
+    "unlockDay": 50,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 4410,
+    "ingredients": [
+      {
+        "id": "cay",
+        "grams": 8
+      },
+      {
+        "id": "seker",
+        "grams": 30
+      },
+      {
+        "id": "limon",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": [
+        "slice",
+        "stick"
+      ]
+    }
+  },
+  {
+    "id": "dondurma",
+    "nameKey": "dish.dondurma",
+    "cuisine": "fastfood",
+    "group": "tatli",
+    "price": 2000,
+    "prepMs": 8000,
+    "station": "tatli",
+    "complexity": 1,
+    "unlockSeason": 1,
+    "unlockDay": 1,
+    "requiresStationTier": 0,
+    "unlockReputationCenti": 0,
+    "ingredients": [
+      {
+        "id": "dondurma_karisimi",
+        "grams": 80
+      },
+      {
+        "id": "sut",
+        "grams": 30
+      },
+      {
+        "id": "seker",
+        "grams": 10
+      }
+    ],
+    "plating": {
+      "base": "cup",
+      "toppings": [
+        "sphere"
+      ]
+    }
+  },
+  {
+    "id": "elmali_turta",
+    "nameKey": "dish.elmali_turta",
+    "cuisine": "fastfood",
+    "group": "tatli",
+    "price": 4050,
+    "prepMs": 17500,
+    "station": "firin",
+    "complexity": 3,
+    "unlockSeason": 2,
+    "unlockDay": 28,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 2430,
+    "ingredients": [
+      {
+        "id": "elma",
+        "grams": 120
+      },
+      {
+        "id": "un",
+        "grams": 80
+      },
+      {
+        "id": "tereyagi",
+        "grams": 40
+      },
+      {
+        "id": "seker",
+        "grams": 30
+      },
+      {
+        "id": "tarcin",
+        "grams": 3
+      },
+      {
+        "id": "yumurta",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "slice",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "cikolatali_kek",
+    "nameKey": "dish.cikolatali_kek",
+    "cuisine": "fastfood",
+    "group": "tatli",
+    "price": 6250,
+    "prepMs": 17500,
+    "station": "firin",
+    "complexity": 3,
+    "unlockSeason": 3,
+    "unlockDay": 42,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 3690,
+    "ingredients": [
+      {
+        "id": "un",
+        "grams": 80
+      },
+      {
+        "id": "cikolata",
+        "grams": 50
+      },
+      {
+        "id": "seker",
+        "grams": 40
+      },
+      {
+        "id": "yumurta",
+        "grams": 40
+      },
+      {
+        "id": "tereyagi",
+        "grams": 30
+      },
+      {
+        "id": "kakao",
+        "grams": 10
+      },
+      {
+        "id": "kabartma_tozu",
+        "grams": 3
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "slice",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "donut",
+    "nameKey": "dish.donut",
+    "cuisine": "fastfood",
+    "group": "tatli",
+    "price": 2800,
+    "prepMs": 11500,
+    "station": "firin",
+    "complexity": 2,
+    "unlockSeason": 4,
+    "unlockDay": 52,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 4590,
+    "ingredients": [
+      {
+        "id": "un",
+        "grams": 90
+      },
+      {
+        "id": "seker",
+        "grams": 35
+      },
+      {
+        "id": "maya",
+        "grams": 4
+      },
+      {
+        "id": "sut",
+        "grams": 40
+      },
+      {
+        "id": "yumurta",
+        "grams": 20
+      },
+      {
+        "id": "aycicek_yagi",
+        "grams": 30
+      },
+      {
+        "id": "cikolata",
+        "grams": 15
+      }
+    ],
+    "plating": {
+      "base": "paper",
+      "toppings": [
+        "slice"
+      ]
+    }
+  },
+  {
+    "id": "brownie",
+    "nameKey": "dish.brownie",
+    "cuisine": "fastfood",
+    "group": "tatli",
+    "price": 4950,
+    "prepMs": 11500,
+    "station": "firin",
+    "complexity": 2,
+    "unlockSeason": 4,
+    "unlockDay": 55,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 4860,
+    "ingredients": [
+      {
+        "id": "un",
+        "grams": 55
+      },
+      {
+        "id": "cikolata",
+        "grams": 35
+      },
+      {
+        "id": "kakao",
+        "grams": 10
+      },
+      {
+        "id": "seker",
+        "grams": 35
+      },
+      {
+        "id": "tereyagi",
+        "grams": 30
+      },
+      {
+        "id": "yumurta",
+        "grams": 25
+      }
+    ],
+    "plating": {
+      "base": "plate_round",
+      "toppings": [
+        "slice",
+        "sauce"
+      ]
+    }
+  },
+  {
+    "id": "waffle",
+    "nameKey": "dish.waffle",
+    "cuisine": "fastfood",
+    "group": "tatli",
+    "price": 3500,
+    "prepMs": 11500,
+    "station": "waffle_makinesi",
+    "complexity": 2,
+    "unlockSeason": 4,
+    "unlockDay": 57,
+    "requiresStationTier": 1,
+    "unlockReputationCenti": 5040,
+    "ingredients": [
+      {
+        "id": "un",
+        "grams": 70
+      },
+      {
+        "id": "sut",
+        "grams": 60
+      },
+      {
+        "id": "yumurta",
+        "grams": 25
+      },
+      {
+        "id": "seker",
+        "grams": 20
+      },
+      {
+        "id": "tereyagi",
+        "grams": 20
+      },
+      {
+        "id": "cikolata",
+        "grams": 20
+      }
+    ],
+    "plating": {
+      "base": "plate_oval",
+      "toppings": [
+        "slice",
+        "sphere",
+        "sauce"
+      ]
+    }
+  }
+]

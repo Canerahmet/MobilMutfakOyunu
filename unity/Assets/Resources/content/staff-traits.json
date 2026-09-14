@@ -1,0 +1,128 @@
+[
+  {
+    "id": "hizli_ama_daginik",
+    "nameKey": "trait.hizli_ama_daginik",
+    "effects": {
+      "speedBp": 1800,
+      "cleanlinessBp": -1500
+    },
+    "conflictsWith": [
+      "yavas_ama_titiz"
+    ]
+  },
+  {
+    "id": "yavas_ama_titiz",
+    "nameKey": "trait.yavas_ama_titiz",
+    "effects": {
+      "speedBp": -1200,
+      "qualityBp": 2000
+    },
+    "conflictsWith": [
+      "hizli_ama_daginik"
+    ]
+  },
+  {
+    "id": "kalabalikta_panikleyen",
+    "nameKey": "trait.kalabalikta_panikleyen",
+    "effects": {
+      "peakPenaltyBp": 2500
+    },
+    "conflictsWith": [
+      "sakin"
+    ]
+  },
+  {
+    "id": "sakin",
+    "nameKey": "trait.sakin",
+    "effects": {
+      "peakImmune": 1
+    },
+    "conflictsWith": [
+      "kalabalikta_panikleyen"
+    ]
+  },
+  {
+    "id": "musteriyle_iyi_anlasan",
+    "nameKey": "trait.musteriyle_iyi_anlasan",
+    "effects": {
+      "satisfactionCenti": 800
+    },
+    "conflictsWith": [
+      "suratsiz"
+    ]
+  },
+  {
+    "id": "suratsiz",
+    "nameKey": "trait.suratsiz",
+    "effects": {
+      "satisfactionCenti": -600
+    },
+    "conflictsWith": [
+      "musteriyle_iyi_anlasan"
+    ]
+  },
+  {
+    "id": "cabuk_yorulan",
+    "nameKey": "trait.cabuk_yorulan",
+    "effects": {
+      "fatiguePenaltyBp": 2000
+    },
+    "conflictsWith": [
+      "dayanikli"
+    ]
+  },
+  {
+    "id": "dayanikli",
+    "nameKey": "trait.dayanikli",
+    "effects": {
+      "fatigueImmune": 1
+    },
+    "conflictsWith": [
+      "cabuk_yorulan"
+    ]
+  },
+  {
+    "id": "ekip_moralini_yukselten",
+    "nameKey": "trait.ekip_moralini_yukselten",
+    "effects": {
+      "moraleAura": 10
+    },
+    "conflictsWith": [
+      "huysuz"
+    ]
+  },
+  {
+    "id": "huysuz",
+    "nameKey": "trait.huysuz",
+    "effects": {
+      "moraleAura": -8
+    },
+    "conflictsWith": [
+      "ekip_moralini_yukselten"
+    ]
+  },
+  {
+    "id": "cirak",
+    "nameKey": "trait.cirak",
+    "effects": {
+      "wageBp": -2500,
+      "speedBp": -1500,
+      "xpBp": 20000
+    },
+    "conflictsWith": [
+      "tecrubeli"
+    ]
+  },
+  {
+    "id": "tecrubeli",
+    "nameKey": "trait.tecrubeli",
+    "effects": {
+      "wageBp": 3000,
+      "speedBp": 1500,
+      "xpBp": 0
+    },
+    "conflictsWith": [
+      "cirak"
+    ]
+  }
+]

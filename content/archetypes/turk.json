@@ -1,0 +1,302 @@
+[
+  {
+    "id": "esnaf_komsu",
+    "nameKey": "archetype.esnaf_komsu",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "sik",
+    "weight": 1200,
+    "patienceMs": 22000,
+    "priceSensitivityBp": 9000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 2,
+    "reputationWeight": 18000,
+    "tipChanceBp": 2600,
+    "arrivalWeightsBp": [
+      1000,
+      7000,
+      1500,
+      500
+    ],
+    "wardrobe": [
+      "onluk",
+      "esnaf_yelegi"
+    ]
+  },
+  {
+    "id": "ogle_molasi_calisani",
+    "nameKey": "archetype.ogle_molasi_calisani",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "sik",
+    "weight": 1250,
+    "patienceMs": 12000,
+    "priceSensitivityBp": 14000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 3,
+    "reputationWeight": 12000,
+    "tipChanceBp": 900,
+    "arrivalWeightsBp": [
+      500,
+      8500,
+      1000,
+      0
+    ],
+    "wardrobe": [
+      "ofis_gomlek",
+      "yaka_karti"
+    ]
+  },
+  {
+    "id": "insaat_iscisi",
+    "nameKey": "archetype.insaat_iscisi",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "sik",
+    "weight": 1050,
+    "patienceMs": 20000,
+    "priceSensitivityBp": 15000,
+    "groupSizeMin": 2,
+    "groupSizeMax": 4,
+    "reputationWeight": 11000,
+    "tipChanceBp": 1400,
+    "arrivalWeightsBp": [
+      1500,
+      7500,
+      1000,
+      0
+    ],
+    "wardrobe": [
+      "baret",
+      "is_tulumu"
+    ]
+  },
+  {
+    "id": "memur",
+    "nameKey": "archetype.memur",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "sik",
+    "weight": 900,
+    "patienceMs": 29000,
+    "priceSensitivityBp": 12000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 3,
+    "reputationWeight": 14000,
+    "tipChanceBp": 1700,
+    "arrivalWeightsBp": [
+      500,
+      8000,
+      1500,
+      0
+    ],
+    "wardrobe": [
+      "memur_ceket",
+      "evrak_cantasi"
+    ]
+  },
+  {
+    "id": "emekli",
+    "nameKey": "archetype.emekli",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "orta",
+    "weight": 400,
+    "patienceMs": 40000,
+    "priceSensitivityBp": 21000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 2,
+    "reputationWeight": 13000,
+    "tipChanceBp": 600,
+    "arrivalWeightsBp": [
+      2000,
+      4000,
+      3500,
+      500
+    ],
+    "wardrobe": [
+      "kasket",
+      "hirka"
+    ]
+  },
+  {
+    "id": "ogrenci",
+    "nameKey": "archetype.ogrenci",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "orta",
+    "weight": 380,
+    "patienceMs": 23000,
+    "priceSensitivityBp": 23000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 3,
+    "reputationWeight": 9000,
+    "tipChanceBp": 300,
+    "arrivalWeightsBp": [
+      500,
+      6000,
+      3000,
+      500
+    ],
+    "wardrobe": [
+      "okul_cantasi",
+      "kapusonlu"
+    ]
+  },
+  {
+    "id": "hafta_sonu_ailesi",
+    "nameKey": "archetype.hafta_sonu_ailesi",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "orta",
+    "weight": 340,
+    "patienceMs": 36000,
+    "priceSensitivityBp": 8000,
+    "groupSizeMin": 3,
+    "groupSizeMax": 6,
+    "reputationWeight": 17000,
+    "tipChanceBp": 2400,
+    "arrivalWeightsBp": [
+      500,
+      6000,
+      2000,
+      1500
+    ],
+    "wardrobe": [
+      "sik_gunluk",
+      "cocuk"
+    ]
+  },
+  {
+    "id": "uzun_yol_soforu",
+    "nameKey": "archetype.uzun_yol_soforu",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "orta",
+    "weight": 300,
+    "patienceMs": 11000,
+    "priceSensitivityBp": 10000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 2,
+    "reputationWeight": 5000,
+    "tipChanceBp": 1000,
+    "arrivalWeightsBp": [
+      3000,
+      4000,
+      2000,
+      1000
+    ],
+    "wardrobe": [
+      "sofor_yelegi",
+      "kasket"
+    ]
+  },
+  {
+    "id": "titiz_musteri",
+    "nameKey": "archetype.titiz_musteri",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "orta",
+    "weight": 280,
+    "patienceMs": 16000,
+    "priceSensitivityBp": 13000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 2,
+    "reputationWeight": 25000,
+    "tipChanceBp": 1300,
+    "arrivalWeightsBp": [
+      500,
+      6500,
+      2000,
+      1000
+    ],
+    "wardrobe": [
+      "ceket",
+      "gozluk"
+    ]
+  },
+  {
+    "id": "mahalle_toplu_yemegi",
+    "nameKey": "archetype.mahalle_toplu_yemegi",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "nadir",
+    "weight": 140,
+    "patienceMs": 34000,
+    "priceSensitivityBp": 16000,
+    "groupSizeMin": 6,
+    "groupSizeMax": 10,
+    "reputationWeight": 28000,
+    "tipChanceBp": 3200,
+    "arrivalWeightsBp": [
+      0,
+      7000,
+      2000,
+      1000
+    ],
+    "wardrobe": [
+      "gunluk",
+      "esarp"
+    ]
+  },
+  {
+    "id": "denetim_gorevlisi",
+    "nameKey": "archetype.denetim_gorevlisi",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "nadir",
+    "weight": 130,
+    "patienceMs": 30000,
+    "priceSensitivityBp": 5000,
+    "groupSizeMin": 1,
+    "groupSizeMax": 1,
+    "reputationWeight": 60000,
+    "tipChanceBp": 0,
+    "arrivalWeightsBp": [
+      3500,
+      5000,
+      1500,
+      0
+    ],
+    "wardrobe": [
+      "resmi_ceket",
+      "pano"
+    ]
+  },
+  {
+    "id": "eski_musteri",
+    "nameKey": "archetype.eski_musteri",
+    "cuisines": [
+      "turk"
+    ],
+    "tier": "nadir",
+    "weight": 120,
+    "patienceMs": 31000,
+    "priceSensitivityBp": 7500,
+    "groupSizeMin": 1,
+    "groupSizeMax": 2,
+    "reputationWeight": 24000,
+    "tipChanceBp": 2900,
+    "arrivalWeightsBp": [
+      1000,
+      5000,
+      3000,
+      1000
+    ],
+    "wardrobe": [
+      "mont",
+      "gunluk"
+    ]
+  }
+]

@@ -1,0 +1,302 @@
+[
+  {
+    "id": "hasan_usta",
+    "cuisine": "turk",
+    "nameKey": "regular.hasan_usta.name",
+    "jobKey": "regular.hasan_usta.job",
+    "archetypeBase": "esnaf_komsu",
+    "favouriteDish": "kuru_fasulye",
+    "arrivesFromDay": 3,
+    "veresiyeEligible": true,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.hasan_usta.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.hasan_usta.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.hasan_usta.beat3"
+      }
+    ]
+  },
+  {
+    "id": "nazife_teyze",
+    "cuisine": "turk",
+    "nameKey": "regular.nazife_teyze.name",
+    "jobKey": "regular.nazife_teyze.job",
+    "archetypeBase": "emekli",
+    "favouriteDish": "mercimek_corbasi",
+    "arrivesFromDay": 5,
+    "veresiyeEligible": true,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.nazife_teyze.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.nazife_teyze.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.nazife_teyze.beat3"
+      }
+    ]
+  },
+  {
+    "id": "selim_bey",
+    "cuisine": "turk",
+    "nameKey": "regular.selim_bey.name",
+    "jobKey": "regular.selim_bey.job",
+    "archetypeBase": "memur",
+    "favouriteDish": "kofte",
+    "arrivesFromDay": 8,
+    "veresiyeEligible": true,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.selim_bey.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.selim_bey.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.selim_bey.beat3"
+      }
+    ]
+  },
+  {
+    "id": "rasim_amca",
+    "cuisine": "turk",
+    "nameKey": "regular.rasim_amca.name",
+    "jobKey": "regular.rasim_amca.job",
+    "archetypeBase": "insaat_iscisi",
+    "favouriteDish": "kuru_fasulye",
+    "arrivesFromDay": 11,
+    "veresiyeEligible": true,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.rasim_amca.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.rasim_amca.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.rasim_amca.beat3"
+      }
+    ]
+  },
+  {
+    "id": "guler_hanim",
+    "cuisine": "turk",
+    "nameKey": "regular.guler_hanim.name",
+    "jobKey": "regular.guler_hanim.job",
+    "archetypeBase": "esnaf_komsu",
+    "favouriteDish": "pirinc_pilavi",
+    "arrivesFromDay": 14,
+    "veresiyeEligible": true,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.guler_hanim.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.guler_hanim.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.guler_hanim.beat3"
+      }
+    ]
+  },
+  {
+    "id": "okan",
+    "cuisine": "turk",
+    "nameKey": "regular.okan.name",
+    "jobKey": "regular.okan.job",
+    "archetypeBase": "ogrenci",
+    "favouriteDish": "bulgur_pilavi",
+    "arrivesFromDay": 18,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.okan.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.okan.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.okan.beat3"
+      }
+    ]
+  },
+  {
+    "id": "nurten_abla",
+    "cuisine": "turk",
+    "nameKey": "regular.nurten_abla.name",
+    "jobKey": "regular.nurten_abla.job",
+    "archetypeBase": "ogle_molasi_calisani",
+    "favouriteDish": "cacik",
+    "arrivesFromDay": 23,
+    "veresiyeEligible": true,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.nurten_abla.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.nurten_abla.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.nurten_abla.beat3"
+      }
+    ]
+  },
+  {
+    "id": "ismail_sofor",
+    "cuisine": "turk",
+    "nameKey": "regular.ismail_sofor.name",
+    "jobKey": "regular.ismail_sofor.job",
+    "archetypeBase": "uzun_yol_soforu",
+    "favouriteDish": "tavuk_sis",
+    "arrivesFromDay": 29,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.ismail_sofor.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.ismail_sofor.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.ismail_sofor.beat3"
+      }
+    ]
+  },
+  {
+    "id": "perihan_hanim",
+    "cuisine": "turk",
+    "nameKey": "regular.perihan_hanim.name",
+    "jobKey": "regular.perihan_hanim.job",
+    "archetypeBase": "titiz_musteri",
+    "favouriteDish": "coban_salata",
+    "arrivesFromDay": 36,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.perihan_hanim.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.perihan_hanim.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.perihan_hanim.beat3"
+      }
+    ]
+  },
+  {
+    "id": "mehmet_dede",
+    "cuisine": "turk",
+    "nameKey": "regular.mehmet_dede.name",
+    "jobKey": "regular.mehmet_dede.job",
+    "archetypeBase": "eski_musteri",
+    "favouriteDish": "nohut",
+    "arrivesFromDay": 44,
+    "veresiyeEligible": true,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.mehmet_dede.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.mehmet_dede.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.mehmet_dede.beat3"
+      }
+    ]
+  }
+]

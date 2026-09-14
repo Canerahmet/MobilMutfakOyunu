@@ -1,0 +1,72 @@
+[
+  {
+    "id": "asci",
+    "nameKey": "role.asci",
+    "pool": "kitchen",
+    "capacityPerDay": 30,
+    "workPerCustomerMicro": 33333,
+    "dailyWage": 14000,
+    "stations": [
+      "ocak",
+      "izgara",
+      "firin"
+    ],
+    "xpSpeedBp": [
+      10000,
+      11000,
+      12000,
+      13000
+    ]
+  },
+  {
+    "id": "garson",
+    "nameKey": "role.garson",
+    "pool": "salon",
+    "capacityPerDay": 26,
+    "workPerCustomerMicro": 38462,
+    "dailyWage": 11000,
+    "stations": [
+      "salon"
+    ],
+    "xpSpeedBp": [
+      10000,
+      11000,
+      12000,
+      13000
+    ]
+  },
+  {
+    "id": "bulasikci",
+    "nameKey": "role.bulasikci",
+    "pool": "salon",
+    "capacityPerDay": 48,
+    "workPerCustomerMicro": 20833,
+    "dailyWage": 9000,
+    "stations": [
+      "bulasik"
+    ],
+    "xpSpeedBp": [
+      10000,
+      11000,
+      12000,
+      13000
+    ]
+  },
+  {
+    "id": "kasiyer",
+    "nameKey": "role.kasiyer",
+    "pool": "salon",
+    "capacityPerDay": 70,
+    "workPerCustomerMicro": 14286,
+    "dailyWage": 10000,
+    "stations": [
+      "kasa"
+    ],
+    "xpSpeedBp": [
+      10000,
+      11000,
+      12000,
+      13000
+    ]
+  }
+]

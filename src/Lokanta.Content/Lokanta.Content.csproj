@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Icerik yukleme katmani, .NET tarafi.
+    Kaynak unity/Assets/Lokanta/Content altinda; buradan baglaniyor.
+
+    docs/23-cekirdek-sozlesmesi.md 6.1: Newtonsoft SADECE bu derlemede.
+    Unity tarafinda karsiligi com.unity.nuget.newtonsoft-json paketi ve
+    asmdef'teki precompiledReferences girdisi.
+  -->
+
+  <!--
+    IKI HEDEF, TEK KAYNAK.
+
+      netstandard2.1  KORUMA. Unity'nin API yuzeyi bu; cekirdek onun
+                      disina cikarsa derleme burada kirilir. Hicbir
+                      zaman YUKLENMIYOR, yalnizca derleniyor.
+      net10.0         TESTLERIN VE DENGE ARACININ yukledigi derleme.
+
+    Neden ikisi: bu makinede Smart App Control ZORUNLU modda (Windows
+    11, CI politikasi {0283ac0f-...}) ve imzasiz bir netstandard2.1
+    derlemesinin YUKLENMESINI engelliyor - net10.0 olani ayni klasorde,
+    ayni sekilde imzasiz, sorunsuz yukleniyor. Olculdu: cekirdek her
+    degistiginde 213 testin 206'si FileLoadException veriyordu
+    (0x800711C7) ve denge araci hic calismiyordu. Kod hatasi degildi;
+    yalniz hedef cercevesi.
+
+    Tek hedefe donmek cazip ama ikisi de gerekli: net10.0'a gecmek
+    korumayi kaldirir ve cekirdek sessizce Unity'de olmayan bir API
+    kullanmaya baslar; netstandard2.1'de kalmak bu makinede hicbir seyi
+    kosturamamak demek.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Lokanta.Content</AssemblyName>
+    <RootNamespace>Lokanta.Content</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\unity\Assets\Lokanta\Content\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lokanta.Core\Lokanta.Core.csproj" />
+  </ItemGroup>
+
+</Project>

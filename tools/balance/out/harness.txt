@@ -1,0 +1,47 @@
+﻿=== Lokanta denge araci ===
+mutfak      : fastfood
+yemek       : 32
+arketip     : 20
+gun         : 60
+tohum       : 10
+servis gunu : 480 sn sim, 4800 tick
+
+| strateji      | son kasa | itibar | masa | kadro | servis | kayip | ilk borc | onemsiz |
+|---------------|---------:|-------:|-----:|------:|-------:|------:|---------:|--------:|
+| pasif         |   16,900 |   41.1 |  4.0 |   1.0 |    824 |    67 |        - |       - |
+| makul         |   12,788 |   97.1 | 11.2 |   8.2 |   2414 |    71 |       46 |       - |
+| genislemeyen  |    9,275 |   50.6 |  4.0 |   3.0 |    907 |    64 |        - |       - |
+| yuksek_fiyat  |    7,367 |    1.4 |  4.0 |   2.6 |    570 |    17 |        - |       - |
+| fazla_kadro   |    8,196 |   49.7 |  4.0 |   3.0 |    910 |    65 |        - |       - |
+
+=== 60 gunun gelir tablosu (ortalama, sikke) ===
+| strateji      |    ciro | malzeme |    maas |    kira |     net | fis/kisi |
+|---------------|--------:|--------:|--------:|--------:|--------:|---------:|
+| pasif         |  48,419 |  15,448 |   8,471 |  15,600 |   8,900 |     58.7 |
+| makul         | 145,738 |  46,401 |  38,589 |  43,740 |  17,008 |     60.4 |
+| genislemeyen  |  53,711 |  17,131 |  19,705 |  15,600 |   1,275 |     59.2 |
+| yuksek_fiyat  |  42,852 |  10,614 |  17,270 |  15,600 |    -633 |     75.2 |
+| fazla_kadro   |  53,809 |  17,153 |  20,860 |  15,600 |     196 |     59.2 |
+
+=== docs/12 8: aracin cevapladigi sorular ===
+
+Hic mudahale etmeyen oyuncu kacinci gunde batar
+  -> son kasa 16,900, itibar 41.1, 824 kisi agirlandi, 67 grup kaybedildi
+
+Iyi oynayan oyuncu yili hangi net varlikla bitirir
+  -> kosularin %100'i borca dustu, ortalama 46. gunde; son kasa 12,788
+
+Hic genislemeyen oyuncu ne kadar kazaniyor
+  -> son kasa 9,275, itibar 50.6, 907 kisi agirlandi, 64 grup kaybedildi
+
+Fiyati surekli piyasa ustunde tutan strateji kazaniyor mu
+  -> son kasa 7,367, itibar 1.4, 570 kisi agirlandi, 17 grup kaybedildi
+
+Kadroyu tavana dayamak kazandiriyor mu
+  -> son kasa 8,196, itibar 49.7, 910 kisi agirlandi, 65 grup kaybedildi
+
+=== Uyarilar ===
+  ! pasif oyuncu batmiyor; mudahale etmemenin bedeli yok
+  ! makul oyuncu kosularin %100'inde borca dusuyor; ekonomi fazla sert
+
+CSV yazildi: tools\balance\out\campaign.csv

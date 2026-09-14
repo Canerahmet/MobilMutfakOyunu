@@ -1,0 +1,40 @@
+# --- Unity ----------------------------------------------------------------
+# Library 7,3 GB ve TAMAMEN turetilmis: Unity onu Assets + ProjectSettings'ten
+# yeniden kuruyor. Temp/Logs/UserSettings de oyle.
+unity/Library/
+unity/Temp/
+unity/Logs/
+unity/UserSettings/
+unity/Build/
+unity/obj/
+unity/.utmp/
+unity/.gradle/
+unity/.vs/
+unity/*.csproj
+unity/*.sln
+*.unityproxy
+
+# --- Yapi ciktilari --------------------------------------------------------
+# build/ 757 MB ve icinde 90 MB'lik APK var; GitHub'in dosya siniri 100 MB.
+# Ikisi de yeniden uretilebilir.
+build/
+aab/
+
+# --- .NET ------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.pyc
+
+# --- Render ----------------------------------------------------------------
+# Calisma renderleri turetilmis ve her turda yeniden uretiliyor.
+# MAGAZA goruntuleri haric: onlar yayin varligi (docs/44).
+render/*
+!render/magaza/
+
+# --- Isletim sistemi -------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store

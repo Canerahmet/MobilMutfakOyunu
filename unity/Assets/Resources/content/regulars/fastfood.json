@@ -1,0 +1,302 @@
+[
+  {
+    "id": "deniz",
+    "cuisine": "fastfood",
+    "nameKey": "regular.deniz.name",
+    "jobKey": "regular.deniz.job",
+    "archetypeBase": "aceleci_ogrenci",
+    "favouriteDish": "hamburger",
+    "arrivesFromDay": 3,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.deniz.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.deniz.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.deniz.beat3"
+      }
+    ]
+  },
+  {
+    "id": "burak",
+    "cuisine": "fastfood",
+    "nameKey": "regular.burak.name",
+    "jobKey": "regular.burak.job",
+    "archetypeBase": "ofis_grubu",
+    "favouriteDish": "cizburger",
+    "arrivesFromDay": 6,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.burak.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.burak.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.burak.beat3"
+      }
+    ]
+  },
+  {
+    "id": "elif",
+    "cuisine": "fastfood",
+    "nameKey": "regular.elif.name",
+    "jobKey": "regular.elif.job",
+    "archetypeBase": "alisveris_molasi",
+    "favouriteDish": "patates_kizartma",
+    "arrivesFromDay": 9,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.elif.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.elif.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.elif.beat3"
+      }
+    ]
+  },
+  {
+    "id": "kaan_hoca",
+    "cuisine": "fastfood",
+    "nameKey": "regular.kaan_hoca.name",
+    "jobKey": "regular.kaan_hoca.job",
+    "archetypeBase": "antrenman_sonrasi",
+    "favouriteDish": "tavuk_burger",
+    "arrivesFromDay": 12,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.kaan_hoca.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.kaan_hoca.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.kaan_hoca.beat3"
+      }
+    ]
+  },
+  {
+    "id": "sevda",
+    "cuisine": "fastfood",
+    "nameKey": "regular.sevda.name",
+    "jobKey": "regular.sevda.job",
+    "archetypeBase": "diyet_yapan",
+    "favouriteDish": "yesil_salata",
+    "arrivesFromDay": 16,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.sevda.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.sevda.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.sevda.beat3"
+      }
+    ]
+  },
+  {
+    "id": "tolga",
+    "cuisine": "fastfood",
+    "nameKey": "regular.tolga.name",
+    "jobKey": "regular.tolga.job",
+    "archetypeBase": "gece_vardiyasi",
+    "favouriteDish": "hot_dog",
+    "arrivesFromDay": 21,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.tolga.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.tolga.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.tolga.beat3"
+      }
+    ]
+  },
+  {
+    "id": "melis",
+    "cuisine": "fastfood",
+    "nameKey": "regular.melis.name",
+    "jobKey": "regular.melis.job",
+    "archetypeBase": "pazarlikci",
+    "favouriteDish": "nugget",
+    "arrivesFromDay": 26,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.melis.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.melis.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.melis.beat3"
+      }
+    ]
+  },
+  {
+    "id": "ozan",
+    "cuisine": "fastfood",
+    "nameKey": "regular.ozan.name",
+    "jobKey": "regular.ozan.job",
+    "archetypeBase": "mac_grubu",
+    "favouriteDish": "duble_burger",
+    "arrivesFromDay": 32,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.ozan.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.ozan.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.ozan.beat3"
+      }
+    ]
+  },
+  {
+    "id": "yagmur",
+    "cuisine": "fastfood",
+    "nameKey": "regular.yagmur.name",
+    "jobKey": "regular.yagmur.job",
+    "archetypeBase": "gec_saat_musterisi",
+    "favouriteDish": "dondurma",
+    "arrivesFromDay": 39,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.yagmur.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.yagmur.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.yagmur.beat3"
+      }
+    ]
+  },
+  {
+    "id": "cem_abi",
+    "cuisine": "fastfood",
+    "nameKey": "regular.cem_abi.name",
+    "jobKey": "regular.cem_abi.job",
+    "archetypeBase": "kurye",
+    "favouriteDish": "baharatli_patates",
+    "arrivesFromDay": 47,
+    "veresiyeEligible": false,
+    "story": [
+      {
+        "beat": 1,
+        "requiresVisits": 3,
+        "requiresSatisfaction": 7000,
+        "textKey": "regular.cem_abi.beat1"
+      },
+      {
+        "beat": 2,
+        "requiresVisits": 8,
+        "requiresSatisfaction": 7500,
+        "textKey": "regular.cem_abi.beat2"
+      },
+      {
+        "beat": 3,
+        "requiresVisits": 15,
+        "requiresSatisfaction": 8000,
+        "textKey": "regular.cem_abi.beat3"
+      }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Basssiz denge araci. docs/04-mimari.md: Faz 0'in urunu.
+    Unity'siz calisir; 60 gunluk kampanyayi saniyeler icinde kosar.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Lokanta.Harness</AssemblyName>
+    <RootNamespace>Lokanta.Harness</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lokanta.Core\Lokanta.Core.csproj" />
+    <ProjectReference Include="..\Lokanta.Content\Lokanta.Content.csproj" />
+  </ItemGroup>
+
+</Project>

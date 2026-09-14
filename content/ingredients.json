@@ -1,0 +1,2182 @@
+[
+  {
+    "id": "tuz",
+    "nameKey": "ingredient.tuz",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 900,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "karabiber",
+    "nameKey": "ingredient.karabiber",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 24000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "zeytinyagi",
+    "nameKey": "ingredient.zeytinyagi",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 14000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "aycicek_yagi",
+    "nameKey": "ingredient.aycicek_yagi",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 5200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "un",
+    "nameKey": "ingredient.un",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 1800,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "sogan",
+    "nameKey": "ingredient.sogan",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 1400,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 20,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "sarimsak",
+    "nameKey": "ingredient.sarimsak",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 6000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 30,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "domates",
+    "nameKey": "ingredient.domates",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 2600,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 4,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "seker",
+    "nameKey": "ingredient.seker",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 2000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "sut",
+    "nameKey": "ingredient.sut",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 2800,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 3,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "yumurta",
+    "nameKey": "ingredient.yumurta",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 4200,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 18,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "tereyagi",
+    "nameKey": "ingredient.tereyagi",
+    "shared": true,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 15000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 25,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "kiyma",
+    "nameKey": "ingredient.kiyma",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 8500,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 1,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 7500,
+      "standart": 10000,
+      "yuksek": 13500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -2000,
+      "standart": 0,
+      "yuksek": 1500
+    }
+  },
+  {
+    "id": "tavuk_gogus",
+    "nameKey": "ingredient.tavuk_gogus",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 5400,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 2,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 7500,
+      "standart": 10000,
+      "yuksek": 13500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -2000,
+      "standart": 0,
+      "yuksek": 1500
+    }
+  },
+  {
+    "id": "tavuk_kanat",
+    "nameKey": "ingredient.tavuk_kanat",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 4200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "doner_eti",
+    "nameKey": "ingredient.doner_eti",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 9200,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 1,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 7500,
+      "standart": 10000,
+      "yuksek": 13500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -2000,
+      "standart": 0,
+      "yuksek": 1500
+    }
+  },
+  {
+    "id": "balik_filetosu",
+    "nameKey": "ingredient.balik_filetosu",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 8200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 7500,
+      "standart": 10000,
+      "yuksek": 13500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -2000,
+      "standart": 0,
+      "yuksek": 1500
+    }
+  },
+  {
+    "id": "sosis",
+    "nameKey": "ingredient.sosis",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 6400,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "dana_kusbasi",
+    "nameKey": "ingredient.dana_kusbasi",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 13000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 2,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 7500,
+      "standart": 10000,
+      "yuksek": 13500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -2000,
+      "standart": 0,
+      "yuksek": 1500
+    }
+  },
+  {
+    "id": "kuzu_kusbasi",
+    "nameKey": "ingredient.kuzu_kusbasi",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 17000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 2,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 7500,
+      "standart": 10000,
+      "yuksek": 13500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -2000,
+      "standart": 0,
+      "yuksek": 1500
+    }
+  },
+  {
+    "id": "kuzu_pirzola_et",
+    "nameKey": "ingredient.kuzu_pirzola_et",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 19000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 2,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 7500,
+      "standart": 10000,
+      "yuksek": 13500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -2000,
+      "standart": 0,
+      "yuksek": 1500
+    }
+  },
+  {
+    "id": "iskembe",
+    "nameKey": "ingredient.iskembe",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 5000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 1,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10500,
+      "sonbahar": 9500,
+      "kis": 11500
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "burger_ekmek",
+    "nameKey": "ingredient.burger_ekmek",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 2600,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 3,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "hotdog_ekmek",
+    "nameKey": "ingredient.hotdog_ekmek",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 2800,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 3,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "tost_ekmegi",
+    "nameKey": "ingredient.tost_ekmegi",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 2800,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 3,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "lavas",
+    "nameKey": "ingredient.lavas",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 2400,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 4,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "yufka",
+    "nameKey": "ingredient.yufka",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3200,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 5,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "makarna",
+    "nameKey": "ingredient.makarna",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 2600,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "galeta_unu",
+    "nameKey": "ingredient.galeta_unu",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 2800,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "misir_nisastasi",
+    "nameKey": "ingredient.misir_nisastasi",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "kabartma_tozu",
+    "nameKey": "ingredient.kabartma_tozu",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 9500,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "maya",
+    "nameKey": "ingredient.maya",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 8500,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "irmik",
+    "nameKey": "ingredient.irmik",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 2600,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "kasar",
+    "nameKey": "ingredient.kasar",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 12000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 12,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "mozzarella",
+    "nameKey": "ingredient.mozzarella",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 14000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "yogurt",
+    "nameKey": "ingredient.yogurt",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 3200,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 6,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "beyaz_peynir",
+    "nameKey": "ingredient.beyaz_peynir",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 13000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 12,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "dondurma_karisimi",
+    "nameKey": "ingredient.dondurma_karisimi",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 6600,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 9400,
+      "yaz": 10200,
+      "sonbahar": 10000,
+      "kis": 11200
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "patates",
+    "nameKey": "ingredient.patates",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 1900,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 25,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "marul",
+    "nameKey": "ingredient.marul",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 3000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 3,
+    "seasonModifierBp": {
+      "ilkbahar": 9200,
+      "yaz": 9600,
+      "sonbahar": 10400,
+      "kis": 12400
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "lahana",
+    "nameKey": "ingredient.lahana",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 1400,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 12,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "havuc",
+    "nameKey": "ingredient.havuc",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 1600,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 18,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "jalapeno",
+    "nameKey": "ingredient.jalapeno",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 5600,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "tursu",
+    "nameKey": "ingredient.tursu",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 3400,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "patlican",
+    "nameKey": "ingredient.patlican",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 2600,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 6,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "yesil_biber",
+    "nameKey": "ingredient.yesil_biber",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 2800,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 5,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "kabak",
+    "nameKey": "ingredient.kabak",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 1900,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 7,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "bamya",
+    "nameKey": "ingredient.bamya",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 5400,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 4,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "taze_fasulye",
+    "nameKey": "ingredient.taze_fasulye",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3000,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 4,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "salatalik",
+    "nameKey": "ingredient.salatalik",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 2200,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 6,
+    "seasonModifierBp": {
+      "ilkbahar": 10200,
+      "yaz": 8600,
+      "sonbahar": 9000,
+      "kis": 12000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "maydanoz",
+    "nameKey": "ingredient.maydanoz",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 2400,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 3,
+    "seasonModifierBp": {
+      "ilkbahar": 9200,
+      "yaz": 9600,
+      "sonbahar": 10400,
+      "kis": 12400
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "kuru_fasulye_tane",
+    "nameKey": "ingredient.kuru_fasulye_tane",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3800,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "nohut_tane",
+    "nameKey": "ingredient.nohut_tane",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3400,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "mercimek",
+    "nameKey": "ingredient.mercimek",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "bulgur",
+    "nameKey": "ingredient.bulgur",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 2400,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "pirinc",
+    "nameKey": "ingredient.pirinc",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3600,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "burger_sos",
+    "nameKey": "ingredient.burger_sos",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 7200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "acili_sos",
+    "nameKey": "ingredient.acili_sos",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 7600,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "ketcap",
+    "nameKey": "ingredient.ketcap",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 4400,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "mayonez",
+    "nameKey": "ingredient.mayonez",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 5800,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "salca",
+    "nameKey": "ingredient.salca",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 5200,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 30,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "sirke",
+    "nameKey": "ingredient.sirke",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "baharat_karisimi",
+    "nameKey": "ingredient.baharat_karisimi",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 16000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "kirmizi_biber",
+    "nameKey": "ingredient.kirmizi_biber",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 18000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "kimyon",
+    "nameKey": "ingredient.kimyon",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 20000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "nane",
+    "nameKey": "ingredient.nane",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 3400,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "tarcin",
+    "nameKey": "ingredient.tarcin",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 26000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "gazoz_surubu",
+    "nameKey": "ingredient.gazoz_surubu",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 6000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "kola_surubu",
+    "nameKey": "ingredient.kola_surubu",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 6600,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "cay",
+    "nameKey": "ingredient.cay",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 24000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "limon",
+    "nameKey": "ingredient.limon",
+    "shared": false,
+    "cuisines": [
+      "fastfood",
+      "turk"
+    ],
+    "basePrice": 2800,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 15,
+    "seasonModifierBp": {
+      "ilkbahar": 10600,
+      "yaz": 9000,
+      "sonbahar": 8800,
+      "kis": 11600
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "elma",
+    "nameKey": "ingredient.elma",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 2600,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 20,
+    "seasonModifierBp": {
+      "ilkbahar": 10600,
+      "yaz": 9000,
+      "sonbahar": 8800,
+      "kis": 11600
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8500,
+      "standart": 10000,
+      "yuksek": 11500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -500,
+      "standart": 0,
+      "yuksek": 300
+    }
+  },
+  {
+    "id": "cikolata",
+    "nameKey": "ingredient.cikolata",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 18000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "kakao",
+    "nameKey": "ingredient.kakao",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 20000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "ceviz",
+    "nameKey": "ingredient.ceviz",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 34000,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "kadayif_tel",
+    "nameKey": "ingredient.kadayif_tel",
+    "shared": false,
+    "cuisines": [
+      "turk"
+    ],
+    "basePrice": 4600,
+    "unit": "kg",
+    "perishable": true,
+    "spoilDays": 8,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  },
+  {
+    "id": "vejetaryen_kofte",
+    "nameKey": "ingredient.vejetaryen_kofte",
+    "shared": false,
+    "cuisines": [
+      "fastfood"
+    ],
+    "basePrice": 5200,
+    "unit": "kg",
+    "perishable": false,
+    "spoilDays": 0,
+    "seasonModifierBp": {
+      "ilkbahar": 10000,
+      "yaz": 10000,
+      "sonbahar": 10000,
+      "kis": 10000
+    },
+    "qualityPriceMultiplierBp": {
+      "dusuk": 8000,
+      "standart": 10000,
+      "yuksek": 12500
+    },
+    "qualitySatisfactionCenti": {
+      "dusuk": -1200,
+      "standart": 0,
+      "yuksek": 800
+    }
+  }
+]

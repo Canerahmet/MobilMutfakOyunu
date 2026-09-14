@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "_comment": "URETILEN DOSYA. Elle degistirmeyin; tools/balance/export.py calistirin.",
+  "stations": [
+    {
+      "id": "ocak",
+      "nameKey": "station.ocak",
+      "tiers": [
+        {
+          "tier": 0,
+          "slots": 1,
+          "attendBp": 3500,
+          "price": 0,
+          "neededAtTables": 4
+        },
+        {
+          "tier": 1,
+          "slots": 2,
+          "attendBp": 3500,
+          "price": 234000,
+          "neededAtTables": 7
+        },
+        {
+          "tier": 2,
+          "slots": 3,
+          "attendBp": 3500,
+          "price": 348000,
+          "neededAtTables": 10
+        },
+        {
+          "tier": 3,
+          "slots": 4,
+          "attendBp": 2800,
+          "price": 1000000,
+          "neededAtTables": 14
+        }
+      ]
+    },
+    {
+      "id": "izgara",
+      "nameKey": "station.izgara",
+      "tiers": [
+        {
+          "tier": 0,
+          "slots": 1,
+          "attendBp": 5600,
+          "price": 0,
+          "neededAtTables": 4
+        },
+        {
+          "tier": 1,
+          "slots": 2,
+          "attendBp": 5600,
+          "price": 234000,
+          "neededAtTables": 7
+        },
+        {
+          "tier": 2,
+          "slots": 3,
+          "attendBp": 5600,
+          "price": 348000,
+          "neededAtTables": 10
+        },
+        {
+          "tier": 3,
+          "slots": 4,
+          "attendBp": 3500,
+          "price": 1000000,
+          "neededAtTables": 14
+        }
+      ]
+    },
+    {
+      "id": "firin",
+      "nameKey": "station.firin",
+      "tiers": [
+        {
+          "tier": 0,
+          "slots": 1,
+          "attendBp": 2000,
+          "price": 0,
+          "neededAtTables": 4
+        },
+        {
+          "tier": 1,
+          "slots": 2,
+          "attendBp": 2000,
+          "price": 600000,
+          "neededAtTables": 14
+        }
+      ]
+    },
+    {
+      "id": "soguk",
+      "nameKey": "station.soguk",
+      "tiers": [
+        {
+          "tier": 0,
+          "slots": 1,
+          "attendBp": 10000,
+          "price": 0,
+          "neededAtTables": 4
+        },
+        {
+          "tier": 1,
+          "slots": 1,
+          "attendBp": 8000,
+          "price": 348000,
+          "neededAtTables": 0
+        }
+      ]
+    },
+    {
+      "id": "icecek",
+      "nameKey": "station.icecek",
+      "tiers": [
+        {
+          "tier": 0,
+          "slots": 1,
+          "attendBp": 10000,
+          "price": 0,
+          "neededAtTables": 4
+        },
+        {
+          "tier": 1,
+          "slots": 1,
+          "attendBp": 6500,
+          "price": 348000,
+          "neededAtTables": 0
+        }
+      ]
+    },
+    {
+      "id": "tatli",
+      "nameKey": "station.tatli",
+      "tiers": [
+        {
+          "tier": 0,
+          "slots": 1,
+          "attendBp": 8000,
+          "price": 0,
+          "neededAtTables": 4
+        },
+        {
+          "tier": 1,
+          "slots": 1,
+          "attendBp": 6000,
+          "price": 348000,
+          "neededAtTables": 0
+        }
+      ]
+    }
+  ],
+  "cuisineStations": {
+    "fastfood": [
+      {
+        "id": "milkshake_makinesi",
+        "nameKey": "station.milkshake_makinesi",
+        "tiers": [
+          {
+            "tier": 0,
+            "slots": 1,
+            "attendBp": 3000,
+            "price": 0,
+            "neededAtTables": 0
+          },
+          {
+            "tier": 1,
+            "slots": 2,
+            "attendBp": 3000,
+            "price": 234000,
+            "neededAtTables": 0
+          }
+        ],
+        "opens": [
+          "milkshake"
+        ]
+      },
+      {
+        "id": "waffle_makinesi",
+        "nameKey": "station.waffle_makinesi",
+        "tiers": [
+          {
+            "tier": 0,
+            "slots": 1,
+            "attendBp": 6000,
+            "price": 0,
+            "neededAtTables": 0
+          },
+          {
+            "tier": 1,
+            "slots": 2,
+            "attendBp": 6000,
+            "price": 348000,
+            "neededAtTables": 0
+          }
+        ],
+        "opens": [
+          "waffle"
+        ]
+      }
+    ],
+    "turk": [
+      {
+        "id": "tas_firin",
+        "nameKey": "station.tas_firin",
+        "tiers": [
+          {
+            "tier": 0,
+            "slots": 1,
+            "attendBp": 2000,
+            "price": 0,
+            "neededAtTables": 0
+          },
+          {
+            "tier": 1,
+            "slots": 2,
+            "attendBp": 2000,
+            "price": 348000,
+            "neededAtTables": 0
+          }
+        ],
+        "opens": [
+          "karniyarik",
+          "musakka",
+          "patlican_kebabi",
+          "borek",
+          "kadayif",
+          "revani"
+        ]
+      },
+      {
+        "id": "doner_ocagi",
+        "nameKey": "station.doner_ocagi",
+        "tiers": [
+          {
+            "tier": 0,
+            "slots": 1,
+            "attendBp": 1500,
+            "price": 0,
+            "neededAtTables": 0
+          },
+          {
+            "tier": 1,
+            "slots": 2,
+            "attendBp": 1500,
+            "price": 234000,
+            "neededAtTables": 0
+          }
+        ],
+        "opens": [
+          "doner",
+          "iskender"
+        ]
+      },
+      {
+        "id": "pide_firini",
+        "nameKey": "station.pide_firini",
+        "tiers": [
+          {
+            "tier": 0,
+            "slots": 1,
+            "attendBp": 2000,
+            "price": 0,
+            "neededAtTables": 0
+          },
+          {
+            "tier": 1,
+            "slots": 2,
+            "attendBp": 2000,
+            "price": 600000,
+            "neededAtTables": 0
+          }
+        ],
+        "opens": [
+          "kiymali_pide",
+          "lahmacun"
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "nameKey": "storage.soguk_hava",
+    "tiers": [
+      {
+        "tier": 0,
+        "keepBp": 0,
+        "price": 0
+      },
+      {
+        "tier": 1,
+        "keepBp": 2500,
+        "price": 234000
+      },
+      {
+        "tier": 2,
+        "keepBp": 10000,
+        "price": 348000
+      }
+    ]
+  }
+}

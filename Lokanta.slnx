@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Lokanta.Content/Lokanta.Content.csproj" />
+    <Project Path="src/Lokanta.Core/Lokanta.Core.csproj" />
+    <Project Path="src/Lokanta.Harness/Lokanta.Harness.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Lokanta.Core.Tests/Lokanta.Core.Tests.csproj" />
+  </Folder>
+</Solution>

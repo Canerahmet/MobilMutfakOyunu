@@ -1,0 +1,54 @@
+{
+  "id": "turk",
+  "nameKey": "cuisine.turk",
+  "_comment": "URETILEN DOSYA. tools/balance/export.py",
+  "slotDurationsBp": [
+    1200,
+    4800,
+    2500,
+    1500
+  ],
+  "eatMs": 38000,
+  "menuRoles": {
+    "main": [
+      "sulu",
+      "izgara"
+    ],
+    "side": [
+      "corba",
+      "pilav",
+      "meze"
+    ],
+    "drink": [
+      "icecek"
+    ],
+    "dessert": [
+      "tatli"
+    ]
+  },
+  "signature": {
+    "kind": "credit",
+    "credit": {
+      "maxPerRegular": 300000,
+      "dueDays": 7,
+      "collectChanceBp": 6000,
+      "teaCollectBonusBp": 1000,
+      "defaultRepPenaltyCenti": 300,
+      "loyaltyBonusCenti": 800,
+      "teaCostCenti": 200,
+      "loyaltyDemandBp": 60,
+      "loyaltyCapBp": 1500,
+      "askChanceBp": 4000,
+      "refusedPenaltyCenti": 1200,
+      "repayBonusBp": 800,
+      "trustPerVisitBp": 400,
+      "trustCapBp": 3000,
+      "chanceCapBp": 9500
+    }
+  },
+  "scoreAxis": {
+    "kind": "creditCollected",
+    "nameKey": "score.axis.credit",
+    "target": 9000
+  }
+}

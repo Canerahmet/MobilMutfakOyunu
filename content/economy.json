@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "_comment": "URETILEN DOSYA. Elle degistirmeyin; tools/balance/export.py calistirin.",
+  "startingCash": 800000,
+  "startingReputationCenti": 3000,
+  "campaignDays": 60,
+  "seasonDays": 15,
+  "rentDayInterval": 7,
+  "weekendDaysPerWeek": 2,
+  "reputationDecayPerDayCenti": 30,
+  "satisfactionNeutralCenti": 6000,
+  "customerBasePerTable": 4,
+  "weekdayMultiplierBp": 10000,
+  "weekendMultiplierBp": 12500,
+  "ingredientRateBp": 3200,
+  "serviceMs": 480000,
+  "interventionsPerDay": 4,
+  "loanMultiplierBp": 13500,
+  "loanWeeks": 8,
+  "loanOptions": [
+    500000,
+    1000000,
+    2000000
+  ],
+  "order": {
+    "sideChanceBp": 3000,
+    "drinkChanceBp": 4000,
+    "dessertChanceBp": 1800,
+    "askChanceBp": 2500,
+    "askMissCenti": 1500,
+    "kitchenMsPerPerson": 17142
+  },
+  "morale": {
+    "starting": 70,
+    "lowThreshold": 30,
+    "quitThreshold": 15,
+    "quitChanceBp": 1000,
+    "slowPenaltyBp": 2000,
+    "paidDelta": 5,
+    "lateDelta": -25,
+    "busyDelta": -3,
+    "recoveryDelta": 2
+  },
+  "intervention": {
+    "attentionSatisfactionCenti": 2400,
+    "treatSatisfactionCenti": 900,
+    "rushCutBp": 4000,
+    "attentionPatienceMult": 2,
+    "treatPatienceMult": 1
+  },
+  "regulars": {
+    "visitChanceBp": 4500,
+    "missedFavouriteCenti": 900,
+    "upsetCenti": 5000,
+    "awayDays": 3
+  },
+  "realisationBp": 7000,
+  "priceVolatilityBp": 2500,
+  "underpriceFloorBp": 8500,
+  "priceElasticityBp": 9000,
+  "overpriceCeilingBp": 25000,
+  "staffing": {
+    "ownerPool": "salon",
+    "ownerWorkMicro": 1300000,
+    "weeklyXpWageGrowthBp": 220,
+    "weeklyWageMultiplierBp": [
+      10000,
+      10220,
+      10445,
+      10675,
+      10909,
+      11149,
+      11395,
+      11645,
+      11902,
+      12163
+    ],
+    "tiers": [
+      {
+        "tables": 4,
+        "rent": 85000,
+        "upgrade": 0,
+        "staffCap": 3,
+        "reputationCapCenti": 5500,
+        "plates": 14
+      },
+      {
+        "tables": 7,
+        "rent": 195000,
+        "upgrade": 250000,
+        "staffCap": 5,
+        "reputationCapCenti": 7500,
+        "plates": 20
+      },
+      {
+        "tables": 10,
+        "rent": 290000,
+        "upgrade": 450000,
+        "staffCap": 8,
+        "reputationCapCenti": 9000,
+        "plates": 26
+      },
+      {
+        "tables": 14,
+        "rent": 500000,
+        "upgrade": 800000,
+        "staffCap": 12,
+        "reputationCapCenti": 10000,
+        "plates": 34
+      }
+    ]
+  }
+}
