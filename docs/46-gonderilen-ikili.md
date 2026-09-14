@@ -8,10 +8,24 @@ emülatörün kapatacağından daha büyüktü.
 
 ## 1. Emülatör neden işe yaramıyor
 
-Bugünkü APK bir emülatöre **kurulamaz**. [BuildPlayer.cs](../unity/Assets/Lokanta/Editor/BuildPlayer.cs)
-`AndroidArchitecture.ARM64` diyor — Play Store 64 bit şart koşuyor ve yapı
-yalnızca `arm64-v8a` taşıyor. Emülatör sistem görüntüleri ise x86_64.
-Kurulum `INSTALL_FAILED_NO_MATCHING_ABIS` ile düşer.
+Bugünkü APK bir emülatöre **kurulamaz**. Emülatör sistem görüntüleri x86_64;
+kurulum `INSTALL_FAILED_NO_MATCHING_ABIS` ile düşer.
+
+Bu, yapı betiğinin ne yazdığından değil **paketin kendisinden** okundu —
+niyet ile çıktı bu projede daha önce ayrışmıştı:
+
+```
+$ aapt2 dump badging build/android/Lokanta.apk
+package: name='com.ahmetakar.lokanta' versionCode='1' versionName='0.1.0'
+minSdkVersion:'29'  targetSdkVersion:'36'
+native-code: 'arm64-v8a'
+```
+
+`lib/` altında tek ABI var: `arm64-v8a`. Aynı döküm iki şeyi daha
+doğruluyor: minSdk 29 ([19](19-teknik-kurulum.md)'un yazdığı taban) ve
+izin listesinde **INTERNET yok** — yani [44](44-magaza-metinleri.md)'teki
+gizlilik metninin "internet izni bile istemiyor" cümlesi bugünkü paket için
+de doğru.
 
 Yani emülatör kullanmak, **yayınlamadığımız ikinci bir yapıyı** derleyip onu
 test etmek demek. Bu projenin tekrar eden dersinin tam da yasakladığı şey:
@@ -58,9 +72,12 @@ yorumu şunu yazıyordu:
 
 Koruduğu şey şu: Android `ManagedStrippingLevel.High` ile derleniyor, içerik
 yükleme ise tamamen yansıma (`JsonConvert.DeserializeObject<T>`). Yüksek budama,
-yalnızca yansımayla çağrılan DTO yazıcılarını "kullanılmıyor" sayıp silebilir.
-Belirti çökme değil **sessiz varsayılan**: bütün alanlar sıfır/null döner,
-doğrulama reddeder, oyun açılışta hata ekranına düşer.
+yalnızca yansımayla çağrılan üyeleri "kullanılmıyor" sayıp silebilir.
+
+Yorumun **tahmini** şuydu: budanan şey DTO yazıcıları olur, belirti de çökme
+değil sessiz varsayılan — bütün alanlar sıfır/null döner, doğrulama reddeder,
+oyun açılışta hata ekranına düşer. (§4'te ölçüldü ve ikisi de yanlış çıktı;
+tehlike gerçekti ama mekanizma başkaydı.)
 
 Yorum doğruydu ve tam da bu yüzden sorunluydu: koruma **akıl yürütmeyle
 yazılmış, hiç koşturulmamıştı.** Üstelik 13 Eylül'de alınan APK'yı da o güne
