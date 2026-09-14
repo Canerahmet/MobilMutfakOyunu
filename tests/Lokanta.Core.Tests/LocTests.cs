@@ -85,14 +85,19 @@ namespace Lokanta.Core.Tests
             // "score." yil sonu eksenleri, ".desc" aciklamalar.
             //
             // AYNI LISTE tools/content/gen_loc.py:SCREEN_KEY icinde de
-            // duruyor ve ikisi AYRISABILIR - nitekim ayristi: ".desc"
-            // uretecte eklendi, burada eklenmedi ve on iki metin
-            // "fazlalik" sayildi. Birini degistiren otekini de
-            // degistirmeli.
+            // duruyor ve ikisi AYRISABILIR - IKI KEZ AYRISTI: once
+            // ".desc" uretecte eklendi burada eklenmedi (on iki metin
+            // "fazlalik" sayildi), sonra "badge." ayni sekilde.
+            //
+            // Ucuncusu icin beklemedik: gen_loc.py artik bu dosyayi
+            // OKUYUP iki listeyi karsilastiriyor ve ayrisirsa uretimi
+            // reddediyor. Yani bu yorumun "birini degistiren otekini de
+            // degistirmeli" uyarisi artik bir dilek degil, bir kontrol.
             List<string> orphan = table.Keys
                 .Where(k => !k.StartsWith("ui.")
                             && !k.StartsWith("notice.")
                             && !k.StartsWith("score.")
+                            && !k.StartsWith("badge.")
                             && !k.EndsWith(".desc")
                             && !needed.Contains(k))
                 .OrderBy(k => k).ToList();

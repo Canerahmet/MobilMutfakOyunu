@@ -33,6 +33,7 @@ from __future__ import print_function
 import io
 import json
 import os
+import re
 import sys
 
 import loc_tarama
@@ -668,6 +669,39 @@ UI = {
     "ui.end.plaque3": "Şehrin konuştuğu lokanta",
     "ui.end.lede": "{0} gün işlettin. Yıl sonu değerlendirmen: {1} / 100.",
 
+    # --- haftalik karne ve nisanlar ---
+    #
+    # Bosluk sundu: oyun yedi eksende puan veriyor ve oyuncu onlari TAM
+    # BIR KEZ goruyordu, altmisinci gunde. Goremedigin bir seyde ilerleme
+    # hissedemezsin.
+    #
+    # Nisanlar GOREV DEGIL TANIMA: metinler bu yuzden gecmis zamanda ve
+    # emir kipi YOK. "Zirveyi eksik kadroyla gec" bir gorevdir ve oyuncuyu
+    # gorunmez bir patronun calisani yapar; "Zirveyi eksik kadroyla
+    # gectin" onun kendi kararini goruyor.
+    "ui.week.title": "{0}. hafta",
+    "ui.week.note": "Geçen haftaya göre",
+    "ui.badge.earned": "Yeni nişan",
+    "ui.badge.title": "Nişanlar",
+    "ui.badge.progress": "{0} / {1}",
+    "ui.badge.have": "kazanıldı",
+    "ui.badge.open": "henüz yok",
+
+    "badge.full_house": "Kimse aç dönmedi",
+    "badge.full_house.note": "Zirve gününde ne kapıdan dönen oldu ne masadan kızgın kalkan.",
+    "badge.short_peak": "Zirveyi eksik kadroyla geçtin",
+    "badge.short_peak.note": "Gerekenden az kişiyle çalıştın ve kimse masadan kızgın kalkmadı.",
+    "badge.book_closed": "Defter kapandı",
+    "badge.book_closed.note": "Verdiğin bütün veresiyeyi tahsil ettin.",
+    "badge.first_beat": "Seni tanıdılar",
+    "badge.first_beat.note": "Bir müdavimin hikâyesi ilk kez açıldı.",
+    "badge.first_expand": "Dükkânı büyüttün",
+    "badge.first_expand.note": "İlk kez bir kademe genişledin — daha çok masa, daha çok kira.",
+    "badge.renowned": "Semtin konuştuğu lokanta",
+    "badge.renowned.note": "İtibar 90'a çıktı.",
+    "badge.first_ten_k": "Kasada on bin",
+    "badge.first_ten_k.note": "Kasa ilk kez on bini gördü.",
+
     "score.wealth": "Varlık",
     "score.reputation": "İtibar",
     "score.regulars": "Düzenli müşteriler",
@@ -782,9 +816,13 @@ UI = {
 def SCREEN_KEY(k):
     """Icerigin istemedigi ama EKRANIN kullandigi anahtar mi.
 
-    Dort aile: "ui." arayuz metinleri, "notice." olay bildirimleri,
-    "score." yil sonu degerlendirme eksenleri, ve ".desc" ile biten
-    ACIKLAMA metinleri. Bunlari icerik dosyalari istemiyor - kod
+    Bes aile: "ui." arayuz metinleri, "notice." olay bildirimleri,
+    "score." yil sonu degerlendirme eksenleri, "badge." nisan adlari,
+    ve ".desc" ile biten ACIKLAMA metinleri.
+
+    "badge.": nisanlarin sahibi Badges.cs - icerik dosyalari onlari
+    istemiyor ve ISTEMEMELI. Bir nisan icerige tasinsaydi, kosulu kodda
+    metni icerikte olurdu ve ikisi birbirinden sessizce ayrilabilirdi. Bunlari icerik dosyalari istemiyor - kod
     istiyor. Denetci ikisini ayirmazsa ya bildirimleri "fazlalik"
     sayip siliyor ya da kod hicbir metin bulamiyor.
 
@@ -793,7 +831,60 @@ def SCREEN_KEY(k):
     iki adayi ayirt edebilmesinin TEK yolu.
     """
     return (k.startswith("ui.") or k.startswith("notice.")
-            or k.startswith("score.") or k.endswith(".desc"))
+            or k.startswith("score.") or k.startswith("badge.")
+            or k.endswith(".desc"))
+
+
+def _ekran_aileleri_ayrismasin():
+    """SCREEN_KEY ile LocTests.cs ayni aileleri mi taniyor.
+
+    Bu liste IKI DILDE duruyor - burada Python, testte C# - ve iki kez
+    AYRISTI: once ".desc" uretecte eklendi testte eklenmedi (on iki metin
+    "fazlalik" sayildi), sonra "badge." ayni sekilde. Iki kez ayni sekilde
+    olan sey ucuncu kez de olur.
+
+    Bu yuzden artik C# dosyasi OKUNUYOR ve iki liste karsilastiriliyor.
+    Tek kaynak yapmak (ornegin listeyi uretilen dosyaya yazmak) daha
+    temiz olurdu ama testin uretime bagimli olmasi demek - test o zaman
+    urettigimiz seyi dogrulamak yerine ona UYARDI.
+    """
+    tests = os.path.join(ROOT, "tests", "Lokanta.Core.Tests", "LocTests.cs")
+    if not os.path.exists(tests):
+        return                                   # test yoksa kontrol de yok
+
+    src = io.open(tests, encoding="utf-8").read()
+
+    # YALNIZCA o blok taraniyor. Butun dosyayi taramak yanlisti: testin
+    # baska bir yerindeki EndsWith("Key") de aile sanildi ve kontrol
+    # kendi kendini kirmizi yakti.
+    bas = src.find("List<string> orphan")
+    son = src.find(".OrderBy", bas)
+    if bas < 0 or son < 0:
+        print("LocTests.cs'de orphan blogu bulunamadi - kontrol kosamiyor")
+        sys.exit(1)
+    blok = src[bas:son]
+
+    csharp = set(re.findall(r'StartsWith\("([^"]+)"\)', blok))
+    csharp |= set(re.findall(r'EndsWith\("([^"]+)"\)', blok))
+
+    burada = set()
+    for aile in ("ui.", "notice.", "score.", "badge."):
+        if SCREEN_KEY(aile + "x"):
+            burada.add(aile)
+    if SCREEN_KEY("x.desc"):
+        burada.add(".desc")
+
+    if csharp != burada:
+        eksik = burada - csharp
+        fazla = csharp - burada
+        print("")
+        print("--- EKRAN AILELERI AYRISTI ---")
+        if eksik:
+            print("  LocTests.cs'de YOK :", ", ".join(sorted(eksik)))
+        if fazla:
+            print("  gen_loc.py'de YOK  :", ", ".join(sorted(fazla)))
+        print("  Ikisi ayni olmali; biri degisirse oteki de degismeli.")
+        sys.exit(1)
 
 
 def required_keys():
@@ -937,6 +1028,8 @@ def compare(tr, en):
 
 
 def build():
+    _ekran_aileleri_ayrismasin()
+
     dup = _no_duplicates()
     if dup:
         print("YINELENEN ANAHTAR (metin sessizce kayboluyor):")

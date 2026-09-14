@@ -1,4 +1,4 @@
-// DIKKAT: BU DOSYANIN YORUMLARI KAYIP.
+﻿// DIKKAT: BU DOSYANIN YORUMLARI KAYIP.
 //
 // 13 Eylul 2026: dosyaya yazan bir betik kesildi ve dosya sistemi
 // 130.716 baytin tamamini NUL ile doldurdu - kaynak tamamen yok oldu.
@@ -757,6 +757,8 @@ namespace Lokanta.Game
             bool magazaAlindi = false;
             bool veresiyeYazildi = false;
             bool defterOlculdu = false;
+            bool karneOlculdu = false;
+            bool nisanOlculdu = false;
             int started = _app.Sim.Day;
             string trouble = null;
             for (int d = 0; d < days; d++)
@@ -940,6 +942,49 @@ namespace Lokanta.Game
                     yield return Settle();
                 }
 
+                // HAFTALIK KARNE VE NISANLAR.
+                //
+                // Ikisi de AKSAM ekraninda, "Gun raporu" dugmesinin
+                // ardinda - yani gun kapandiktan sonra, ertesi gune
+                // gecmeden once. Defter kontrolunun dort kez yanlis yere
+                // konmasindan ogrenilen ders: kontrolun kosabilecegi TEK
+                // an burasi.
+                //
+                // "Bugun kazanildi" isareti AdvanceToNextDay'de
+                // siliniyor, yani ertesi gun bakmak hep sifir gorurdu ve
+                // kontrol sessizce hic kosmazdi.
+                bool karneVar = _app.Sim.WeekReportReady;
+                bool nisanVar = false;
+                for (int b = 0; b < _app.Sim.BadgeCount; b++)
+                    if (_app.Sim.BadgeEarnedToday(b)) { nisanVar = true; break; }
+
+                if ((karneVar && !karneOlculdu) || (nisanVar && !nisanOlculdu))
+                {
+                    if (Click(Loc.T("ui.evening.title")))
+                    {
+                        yield return Settle();
+                        if (karneVar && !karneOlculdu)
+                        {
+                            Note(HasText(Loc.T("ui.week.note")),
+                                 "Haftalik karne aksam raporunda (" 
+                                 + _app.Sim.WeekNumber + ". hafta)");
+                            // Eksenin ADI da gorunmeli: yalnizca basligin
+                            // olmasi karnenin BOS cikmasini yakalamaz.
+                            Note(HasText(Loc.T(SeasonScore.AxisKey(1))),
+                                 "Karnede itibar ekseni yaziyor");
+                            karneOlculdu = true;
+                        }
+                        if (nisanVar && !nisanOlculdu)
+                        {
+                            Note(HasText(Loc.T("ui.badge.earned")),
+                                 "Kazanilan nisan aksam raporunda");
+                            nisanOlculdu = true;
+                        }
+                        Back();
+                        yield return Settle();
+                    }
+                }
+
                 if (!Click(Loc.T("ui.evening.next")))
                 {
                     trouble = "ertesi gune gecilmedi, gun " + _app.Sim.Day;
@@ -956,6 +1001,20 @@ namespace Lokanta.Game
             Note(stokBasarisiz == 0, "Her sabah stok tazelendi (" + stokBasarisiz + " gun alinamadi)");
             Note(gunlukServis > 0, "Altmis gunde musteri agirlandi (" + gunlukServis + " grup)");
             Note(_app.Sim.TableCount > 4, "Kampanya boyunca genisledi (" + baslangicMasa + " -> " + _app.Sim.TableCount + " masa)");
+
+            // KARNE VE NISAN HIC OLCULMEDIYSE BUNU SOYLE.
+            //
+            // Bayrak false kalirsa dongu icindeki blok hic kosmamis
+            // demektir - ve kosmayan bir kontrol, gecen bir kontrolle
+            // disaridan AYNI gorunuyor. Sessiz kalmak, ozelligin
+            // sinandigini sanmak olurdu.
+            NoteIf(karneOlculdu, karneOlculdu,
+                   "Haftalik karne goruldu (60 gunde en az bir hafta)");
+            NoteIf(nisanOlculdu, nisanOlculdu,
+                   "Kazanilan nisan aksam raporunda goruldu");
+            Note(_app.Sim.BadgesEarned > 0,
+                 "Kampanyada nisan kazanildi (" + _app.Sim.BadgesEarned
+                 + " / " + _app.Sim.BadgeCount + ")");
             int num2 = 0;
             long num3 = 0L;
             Renderer[] array = UnityEngine.Object.FindObjectsByType<Renderer>((FindObjectsSortMode)0);

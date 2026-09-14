@@ -443,5 +443,80 @@ namespace Lokanta.Game.Ui
         {
             return centi < 0 ? Bad : Ink;
         }
+
+        /// <summary>
+        /// Tek eksen: ad, dolu cubuk, sayi - ve istege bagli olarak
+        /// gecen haftaya gore fark.
+        ///
+        /// Cubuk RENK DEGIL UZUNLUK tasiyor. Renk koru bir oyuncu icin
+        /// yesil-kirmizi ayrimi yok; uzunluk herkeste ayni.
+        ///
+        /// BURADA DURUYOR CUNKU IKI EKRAN KULLANIYOR: yil sonu karnesi
+        /// ve haftalik karne. Ikinci bir kopya yazmak, bu projede defalarca
+        /// olan seye davetiye olurdu - iki hesap bir gun birbirinden
+        /// ayrilir ve hangisinin dogru oldugu anlasilmaz.
+        /// </summary>
+        /// <param name="delta">
+        /// int.MinValue ise fark GOSTERILMIYOR (yil sonu ekrani boyle
+        /// cagiriyor). Sifir ise "degismedi" yaziliyor - bos birakmak,
+        /// olcumun yapilmadigi izlenimini verirdi.
+        /// </param>
+        public static VisualElement AxisRow(string name, int value,
+                                            int delta = int.MinValue)
+        {
+            VisualElement row = Row(Gap);
+            row.style.alignItems = Align.Center;
+
+            // AD KOLONU DAR, CUBUK GENIS.
+            //
+            // Iki sutuna gecince satir genisligi yariya iniyor ve cubuga
+            // ~40 dp kaliyordu - yani yuz puanlik bir olcek 40 piksele
+            // sikisiyor, puan basina yarim piksel. Cubugun butun gerekcesi
+            // UZUNLUK; okunamayinca yalnizca renk tasiyor ve gerekcesi
+            // ortadan kalkiyor.
+            Label label = Text(name, FontSmall, InkDim);
+            label.style.minWidth = 112;
+            label.style.flexShrink = 0;
+            row.Add(label);
+
+            VisualElement track = new VisualElement();
+            track.style.flexGrow = 1;
+            track.style.minWidth = 90;
+            track.style.height = 10;
+            track.style.backgroundColor = PanelHi;
+            Round(track, 5);
+
+            VisualElement fill = new VisualElement();
+            fill.style.width = Length.Percent(value);
+            fill.style.height = 10;
+            fill.style.backgroundColor = value >= 60 ? Good
+                                       : value >= 35 ? Warn : Bad;
+            Round(fill, 5);
+            track.Add(fill);
+            row.Add(track);
+
+            Label num = Text(value.ToString(), FontSmall, Ink);
+            num.style.minWidth = 32;
+            num.style.flexShrink = 0;
+            num.style.unityTextAlign = TextAnchor.MiddleRight;
+            row.Add(num);
+
+            if (delta != int.MinValue)
+            {
+                // ISARET ACIKCA YAZILIYOR: "+8" ile "8" farkli seyler ve
+                // eksi isareti tek basina yeterli degil - artiyi da
+                // gostermeyen bir sutunda okuyucu her sayiyi mutlak
+                // deger sanabilir.
+                string s = delta > 0 ? "+" + delta
+                         : delta < 0 ? delta.ToString() : "—";
+                Label d = Text(s, FontSmall,
+                               delta > 0 ? Good : delta < 0 ? Bad : InkDim);
+                d.style.minWidth = 36;
+                d.style.flexShrink = 0;
+                d.style.unityTextAlign = TextAnchor.MiddleRight;
+                row.Add(d);
+            }
+            return row;
+        }
     }
 }

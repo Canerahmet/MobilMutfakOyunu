@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Lokanta.Core.Save;
 
 namespace Lokanta.Core.Sim
@@ -36,7 +36,9 @@ namespace Lokanta.Core.Sim
         // 16 -> 17: imza ekseni `peakCovers`'tan `comboShare`'e gecti;
         // "peakCovers" alani yerine "mainOrders" + "comboOrders".
         // Ayrica "teaSpend": veresiye cayinin bedeli artik sayiliyor.
-        public const int SaveVersion = 20;
+        // 20 -> 21: nisanlar (badges/badgesToday/creditEverOpened) ve
+        // haftalik karne (weekAxis/weekAxisPrev/weekReportDay).
+        public const int SaveVersion = 21;
 
         // ---- komut gunlugu okuyuculari --------------------------------------
         public int CommandCount { get { return _commandCount; } }
@@ -81,6 +83,12 @@ namespace Lokanta.Core.Sim
             w.Int("tables", _tableCount);
             w.Int("reputationCenti", _reputationCenti);
             w.Int("reputationOverflow", _reputationOverflowCenti);
+            w.Int("badges", _badges);
+            w.Int("badgesToday", _badgesToday);
+            w.Bool("creditEverOpened", _creditEverOpened);
+            w.Int("weekReportDay", _weekReportDay);
+            w.IntArray("weekAxis", _weekAxis, SeasonScore.AxisCount);
+            w.IntArray("weekAxisPrev", _weekAxisPrev, SeasonScore.AxisCount);
             w.Long("cash", _cash);
             w.Int("cooks", _cooks);
             w.Int("salon", _salon);
@@ -317,6 +325,12 @@ namespace Lokanta.Core.Sim
             _tableCount = r.Int("tables");
             _reputationCenti = r.Int("reputationCenti");
             _reputationOverflowCenti = r.Int("reputationOverflow");
+            _badges = r.Int("badges");
+            _badgesToday = r.Int("badgesToday");
+            _creditEverOpened = r.Bool("creditEverOpened");
+            _weekReportDay = r.Int("weekReportDay");
+            r.IntArray("weekAxis", _weekAxis, SeasonScore.AxisCount);
+            r.IntArray("weekAxisPrev", _weekAxisPrev, SeasonScore.AxisCount);
             _cash = r.Long("cash");
             _cooks = r.Int("cooks");
             _salon = r.Int("salon");

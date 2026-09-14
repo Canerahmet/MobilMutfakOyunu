@@ -1,4 +1,4 @@
-namespace Lokanta.Core.Sim
+﻿namespace Lokanta.Core.Sim
 {
     /// <summary>
     /// Cekirdekten gorunume tek yonlu akan olaylar.
@@ -65,7 +65,15 @@ namespace Lokanta.Core.Sim
         /// kismi ancak soylenirse oluyor.
         /// </summary>
         PlatesOut = 35,
-        Count = 36
+
+        /// <summary>
+        /// NISAN KAZANILDI. A nisan indisi (Badges.*).
+        ///
+        /// Gorev degil TANIMA: olay gun kapanisinda, oyuncu o seyi
+        /// ZATEN yaptiktan sonra cikiyor.
+        /// </summary>
+        BadgeEarned = 36,
+        Count = 37
     }
 
     public readonly struct SimEvent

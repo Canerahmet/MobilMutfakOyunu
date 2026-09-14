@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 
@@ -755,6 +755,19 @@ namespace Lokanta.Core.Sim
             RollMarket();
 
             for (int i = 0; i < MaxTables; i++) _tableParty[i] = -1;
+
+            // SIFIRINCI HAFTANIN FOTOGRAFI.
+            //
+            // Ilk karnenin farki, bu satir olmadan eksenlerin KENDISI
+            // olurdu: gecen hafta sifir sayilir ve oyuncu yedinci gunde
+            // "Mekan +33" gibi, kendisinin yapmadigi bir sicrama gorurdu.
+            // Devraldigi dukkanin puani onun kazanci degil.
+            SeasonScore acilis = Score();
+            for (int i = 0; i < SeasonScore.AxisCount; i++)
+            {
+                _weekAxis[i] = acilis.AxisAt(i);
+                _weekAxisPrev[i] = _weekAxis[i];
+            }
         }
 
         private void ResetStreams()
@@ -953,6 +966,90 @@ namespace Lokanta.Core.Sim
 
         /// <summary>Tavanda biriken itibar. Arayuz ve tur icin.</summary>
         public int ReputationOverflowCenti { get { return _reputationOverflowCenti; } }
+
+        // =====================================================================
+        // NISANLAR VE HAFTALIK KARNE
+        //
+        // Ikisi ayni yeri kapatiyor: oyun yedi eksende puan veriyordu ve
+        // oyuncu onlari TAM BIR KEZ goruyordu - altmisinci gunde.
+        // Goremedigin bir seyde ilerleme hissedemezsin. Haftalik karne
+        // tek basari anini dokuza cikariyor; nisanlar da aradaki gunlerde
+        // basarilani ADIYLA soyluyor.
+        //
+        // Neden gunluk degil HAFTALIK: gunluk gurultu olurdu (eksenler
+        // bir gunde kipirdamiyor) ve oyunun kendi ritmi zaten haftalik -
+        // ucret ve kira haftalik odeniyor, zirve haftada iki gun.
+        // =====================================================================
+
+        /// <summary>Kazanilmis nisanlarin bit maskesi.</summary>
+        private int _badges;
+
+        /// <summary>BUGUN kazanilanlar. Aksam ekrani bunu vurguluyor.</summary>
+        private int _badgesToday;
+
+        /// <summary>
+        /// Defter bir kez acildi mi. "Defter kapandi" nisani bunsuz
+        /// SESSIZCE yanlis olurdu: hic veresiye vermemis oyuncunun da
+        /// acik veresiyesi sifirdir, yani nisan ilk gun kendiliginden
+        /// dagitilirdi.
+        /// </summary>
+        private bool _creditEverOpened;
+
+        /// <summary>Bu haftanin eksenleri; hafta sonunda dolduruluyor.</summary>
+        private readonly int[] _weekAxis = new int[SeasonScore.AxisCount];
+
+        /// <summary>Gecen haftanin eksenleri. Fark bu ikisinden cikiyor.</summary>
+        private readonly int[] _weekAxisPrev = new int[SeasonScore.AxisCount];
+
+        /// <summary>Karnenin cikarildigi gun; 0 ise hic cikmadi.</summary>
+        private int _weekReportDay;
+
+        public int BadgeCount { get { return Badges.Count; } }
+
+        /// <summary>Nisan kazanildi mi.</summary>
+        public bool HasBadge(int i)
+        {
+            return i >= 0 && i < Badges.Count && (_badges & (1 << i)) != 0;
+        }
+
+        /// <summary>Nisan BUGUN mu kazanildi.</summary>
+        public bool BadgeEarnedToday(int i)
+        {
+            return i >= 0 && i < Badges.Count && (_badgesToday & (1 << i)) != 0;
+        }
+
+        /// <summary>Kac nisan kazanildi.</summary>
+        public int BadgesEarned
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < Badges.Count; i++) if (HasBadge(i)) n++;
+                return n;
+            }
+        }
+
+        /// <summary>
+        /// Haftalik karne bu gun cikti mi. Aksam ekrani bunu soruyor;
+        /// "Day % 7 == 0" diye sormak YANLIS olurdu, cunku karne gun
+        /// KAPANISINDA cikiyor ve oyuncu onu aksam ekraninda goruyor.
+        /// </summary>
+        public bool WeekReportReady { get { return _weekReportDay > 0 && _weekReportDay == _day; } }
+
+        /// <summary>Karnenin kacinci hafta oldugu.</summary>
+        public int WeekNumber { get { return _weekReportDay / 7; } }
+
+        public int WeekAxis(int i)
+        {
+            return i >= 0 && i < SeasonScore.AxisCount ? _weekAxis[i] : 0;
+        }
+
+        /// <summary>Gecen haftaya gore fark. Karnenin butun anlami bu.</summary>
+        public int WeekAxisDelta(int i)
+        {
+            return i >= 0 && i < SeasonScore.AxisCount
+                ? _weekAxis[i] - _weekAxisPrev[i] : 0;
+        }
 
         public long Cash { get { return _cash; } }
         public int Cooks { get { return _cooks; } }
@@ -1531,8 +1628,104 @@ namespace Lokanta.Core.Sim
             PayWeeklyCostsIfDue();
             UpdateMorale();
 
+            // NISANLAR HER SEY ISLEDIKTEN SONRA bakiliyor.
+            //
+            // Sira onemli: "kasada ilk on bin" ucret ve kira odenmeden
+            // once bakilsaydi, oyuncu haftanin faturasini odemeden once
+            // bir an icin zengin gorunur ve nisani HAK ETMEDEN alirdi.
+            EvaluateBadges();
+            WeeklyReportIfDue();
+
             _phase = DayPhase.Evening;
             Emit(SimEventKind.DayClosed, _day);
+        }
+
+        /// <summary>
+        /// Bugun hangi nisanlar kazanildi.
+        ///
+        /// Hepsi GERIYE DONUK: bakilan sey oyuncunun yaptigi, yapmasi
+        /// istenen degil. Bu yuzden hicbiri oyuncunun planini bozamaz -
+        /// bilerek kadrosu eksik calisan oyuncu bir gorevi kacirirdi,
+        /// burada nisan aliyor.
+        /// </summary>
+        private void EvaluateBadges()
+        {
+            // Defter bir kez acildiysa bunu KALICI hatirliyoruz: nisanin
+            // kosulu "acik veresiye sifir" degil, "defter acildi ve
+            // kapandi". Bayrak olmadan nisan birinci gun dagitilirdi.
+            if (OpenCredit > 0) _creditEverOpened = true;
+
+            bool zirve = IsWeekend(_day);
+            bool kizginYok = _angrySeated == 0;
+
+            // 1. Zirvede kimse ac donmedi.
+            if (zirve && kizginYok && _turnedAwayParties == 0 && _servedParties > 0)
+                Earn(Badges.HerkesDoydu);
+
+            // 2. Zirveyi eksik kadroyla gecti.
+            //
+            // "Eksik" = gereken kadronun ALTINDA. Iki havuzdan biri bile
+            // eksikse sayiliyor: oyunun takasinda bir kisi eksik
+            // calismak bir kisi eksik calismaktir.
+            if (zirve && kizginYok && _servedParties > 0)
+            {
+                Crew gereken = RequiredCrewToday();
+                if (_cooks < gereken.Cooks || _salon < gereken.Salon)
+                    Earn(Badges.ZirveEksikKadro);
+            }
+
+            // 3. Defter kapandi.
+            if (_creditEverOpened && OpenCredit == 0) Earn(Badges.DefterKapandi);
+
+            // 4. Ilk hikaye sahnesi.
+            for (int i = 0; i < RegularCount; i++)
+                if (_regBeat[i] > 0) { Earn(Badges.IlkSahne); break; }
+
+            // 5. Kasada ilk on bin.
+            if (_cash >= Badges.CashMilestone) Earn(Badges.IlkOnBin);
+
+            // 6. Dukkan buyudu.
+            if (_tableCount > _economy.TierAt(0).Tables) Earn(Badges.IlkGenisleme);
+
+            // 7. Itibar 90. Once genislemeyi gerektiriyor - itibar masa
+            // kademesinin tavanina kirpiliyor.
+            if (_reputationCenti >= Badges.ReputationMilestoneCenti)
+                Earn(Badges.SemtinKonustugu);
+        }
+
+        /// <summary>
+        /// Nisani ver - YALNIZCA ilk kez. Ikinci kez "bugun kazanildi"
+        /// diye isaretlemek, oyuncuya her hafta ayni seyi yeni gibi
+        /// gostermek olurdu ve nisanin degerini sifirlardi.
+        /// </summary>
+        private void Earn(int badge)
+        {
+            int bit = 1 << badge;
+            if ((_badges & bit) != 0) return;
+            _badges |= bit;
+            _badgesToday |= bit;
+            Emit(SimEventKind.BadgeEarned, badge);
+        }
+
+        /// <summary>
+        /// Hafta dolduysa yedi ekseni fotografliyor.
+        ///
+        /// Score() mevcut durumun SAF bir fonksiyonu - kampanyanin
+        /// herhangi bir gununde calisiyor, yani karne icin yeni bir
+        /// hesap yazmak gerekmedi. Iki ayri hesap bir gun birbirinden
+        /// ayrilirdi ve hangisinin dogru oldugu anlasilmazdi.
+        /// </summary>
+        private void WeeklyReportIfDue()
+        {
+            if (_day % 7 != 0) return;
+
+            SeasonScore s = Score();
+            for (int i = 0; i < SeasonScore.AxisCount; i++)
+            {
+                _weekAxisPrev[i] = _weekAxis[i];
+                _weekAxis[i] = s.AxisAt(i);
+            }
+            _weekReportDay = _day;
         }
 
         /// <summary>
@@ -2086,6 +2279,9 @@ namespace Lokanta.Core.Sim
             _arrNext = 0;
             _turnedAwayParties = 0;
             _commandCount = 0;
+            // BUGUN kazanilanlar sifirlaniyor; kazanilmis nisanlar
+            // (_badges) elbette duruyor.
+            _badgesToday = 0;
             for (int i = 0; i < MaxTables; i++)
             {
                 _tableParty[i] = -1;

@@ -1,4 +1,4 @@
-using Lokanta.Core.Content;
+﻿using Lokanta.Core.Content;
 using Lokanta.Core.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -24,6 +24,22 @@ namespace Lokanta.Game.Ui
         {
             Simulation sim = App.Sim;
             DayReport r = sim.BuildDayReport();
+
+            // --- nisanlar ve karne EN USTTE -----------------------------------
+            //
+            // Sira bilinerek boyle: bunlar gunun ODULU. Rakamlarin altina
+            // konsaydi, ayni ekranda asagi kaydirmayan oyuncu onlari hic
+            // gormezdi - ve gorulmeyen bir tanima tanima degildir.
+            //
+            // Ikisi de SEYREK: karne yedi gunde bir, nisan kampanyada en
+            // fazla bes kez. Her aksam tepede duran bir kutu olsalardi
+            // gurultu olurlardi; burada yoklar demek, bugun kazanilacak
+            // bir sey olmadi demek.
+            VisualElement badges = TodaysBadges();
+            if (badges != null) list.Add(badges);
+
+            VisualElement week = WeekReport();
+            if (week != null) list.Add(week);
 
             // --- para --------------------------------------------------------
             VisualElement money = Theme.PanelBox();
@@ -166,6 +182,82 @@ namespace Lokanta.Game.Ui
                 crew.Add(Theme.Text(Loc.T("ui.evening.low_morale", lowMorale),
                                     Theme.FontSmall, Theme.Bad));
             list.Add(crew);
+        }
+
+        /// <summary>
+        /// BUGUN kazanilan nisanlar; yoksa null.
+        ///
+        /// Yalnizca bugun kazanilanlar - kazanilmis hepsini her aksam
+        /// listelemek, tanimayi bir envantere cevirirdi. Bir nisan bir
+        /// kez gorulur, sonra duraganlasir.
+        /// </summary>
+        private VisualElement TodaysBadges()
+        {
+            Simulation sim = App.Sim;
+            VisualElement box = null;
+
+            for (int i = 0; i < sim.BadgeCount; i++)
+            {
+                if (!sim.BadgeEarnedToday(i)) continue;
+
+                if (box == null)
+                {
+                    box = Theme.PanelBox();
+                    box.Add(Theme.Head(Loc.T("ui.badge.earned")));
+                }
+
+                VisualElement row = Theme.Column(2);
+                Label ad = Theme.Text(Loc.T(Badges.NameKey(i)), Theme.FontBody,
+                                      Theme.Accent);
+                ad.style.unityFontStyleAndWeight = FontStyle.Bold;
+                row.Add(ad);
+
+                Label not = Theme.Text(Loc.T(Badges.NoteKey(i)), Theme.FontSmall,
+                                       Theme.InkDim);
+                not.style.whiteSpace = WhiteSpace.Normal;
+                row.Add(not);
+                box.Add(row);
+            }
+
+            if (box != null)
+                box.Add(Theme.Text(
+                    Loc.T("ui.badge.progress", sim.BadgesEarned, sim.BadgeCount),
+                    Theme.FontSmall, Theme.InkDim));
+            return box;
+        }
+
+        /// <summary>
+        /// Haftalik karne: yedi eksen ve GECEN HAFTAYA GORE FARK.
+        ///
+        /// Farkin kendisi karnenin butun anlami. Yalnizca degerleri
+        /// gostermek, oyuncuya "su an buradasin" der; fark "bu hafta ne
+        /// yaptin" der - ve altmis gunluk oyunda hissedilen sey ikincisi.
+        ///
+        /// Bu ekran olmadan oyuncu yedi ekseni TAM BIR KEZ goruyordu,
+        /// altmisinci gunde. Goremedigin bir seyde ilerleme
+        /// hissedemezsin, ve gec ogrenilen bir olcute gore oynanamaz.
+        /// </summary>
+        private VisualElement WeekReport()
+        {
+            Simulation sim = App.Sim;
+            if (!sim.WeekReportReady) return null;
+
+            VisualElement box = Theme.PanelBox();
+            box.Add(Theme.Head(Loc.T("ui.week.title", sim.WeekNumber)));
+            box.Add(Theme.Text(Loc.T("ui.week.note"), Theme.FontSmall,
+                               Theme.InkDim));
+
+            // Yil sonu karnesiyle AYNI satir bicimi (Theme.AxisRow):
+            // oyuncu altmisinci gunde yeni bir tablo ogrenmiyor, dokuz
+            // hafta boyunca gordugu tabloyu goruyor.
+            for (int i = 0; i < SeasonScore.AxisCount; i++)
+            {
+                string ad = i == SeasonScore.AxisCount - 1
+                    ? Loc.T(App.Content.ScoreAxis.NameKey)
+                    : Loc.T(SeasonScore.AxisKey(i));
+                box.Add(Theme.AxisRow(ad, sim.WeekAxis(i), sim.WeekAxisDelta(i)));
+            }
+            return box;
         }
 
         /// <summary>
@@ -331,6 +423,18 @@ namespace Lokanta.Game.Ui
                 col.Add(Theme.Btn(Loc.T("ui.pause.season"),
                                   () => Ui.Push(new EndScreen())));
 
+            // NISANLAR: kazanilmis olanlar kadar KAZANILMAMIS olanlar da.
+            //
+            // Aksam ekrani yalnizca o gun kazanilani gosteriyor; burasi
+            // hedefin durdugu yer. Kazanilmamis olani da adiyla gostermek
+            // bilincli: oyuncunun kendi hedefini secebilmesi icin neyin
+            // mumkun oldugunu gormesi gerekiyor - ama bu bir GOREV LISTESI
+            // degil, cunku hicbiri "bugun sunu yap" demiyor ve hicbirinin
+            // suresi yok.
+            if (App.Sim != null)
+                col.Add(Theme.Btn(Loc.T("ui.badge.title"),
+                                  () => Ui.Push(new BadgeScreen())));
+
             col.Add(Theme.Btn(Loc.T("ui.menu.settings"),
                               () => Ui.Push(new SettingsScreen())));
             col.Add(Theme.Btn(Loc.T("ui.pause.save_quit"), () =>
@@ -443,7 +547,7 @@ namespace Lokanta.Game.Ui
                 string name = i == SeasonScore.AxisCount - 1
                     ? Loc.T(App.Content.ScoreAxis.NameKey)
                     : Loc.T(SeasonScore.AxisKey(i));
-                (i < half ? left : right).Add(AxisRow(name, score.AxisAt(i)));
+                (i < half ? left : right).Add(Theme.AxisRow(name, score.AxisAt(i)));
             }
             cols.Add(left);
             cols.Add(right);
@@ -462,53 +566,5 @@ namespace Lokanta.Game.Ui
             return root;
         }
 
-        /// <summary>
-        /// Tek eksen: ad, dolu cubuk, sayi.
-        ///
-        /// Cubuk RENK DEGIL UZUNLUK tasiyor. Renk korü bir oyuncu icin
-        /// yesil-kirmizi ayrimi yok; uzunluk herkeste ayni.
-        /// </summary>
-        private static VisualElement AxisRow(string name, int value)
-        {
-            VisualElement row = Theme.Row(Theme.Gap);
-            row.style.alignItems = Align.Center;
-
-            // AD KOLONU DARALDI, CUBUK GENISLEDI.
-            //
-            // Tek sutunda 150 dp makuldu; iki sutuna gecince satir
-            // genisligi yariya indi ve cubuga ~40 dp kaldi - yani yuz
-            // puanlik bir olcek 40 piksele sikisti, puan basina yarim
-            // piksel. Oysa bu cubugun tasarim gerekcesi tam olarak
-            // UZUNLUK: renk koru bir oyuncu icin yesil-kirmizi ayrimi
-            // yok, uzunluk herkeste ayni. Uzunluk okunamayinca cubuk
-            // yalnizca renk tasiyor ve gerekcesi ortadan kalkiyor.
-            Label label = Theme.Text(name, Theme.FontSmall, Theme.InkDim);
-            label.style.minWidth = 112;
-            label.style.flexShrink = 0;
-            row.Add(label);
-
-            VisualElement track = new VisualElement();
-            track.style.flexGrow = 1;
-            track.style.minWidth = 90;
-            track.style.height = 10;
-            track.style.backgroundColor = Theme.PanelHi;
-            Theme.Round(track, 5);
-
-            VisualElement fill = new VisualElement();
-            fill.style.width = Length.Percent(value);
-            fill.style.height = 10;
-            fill.style.backgroundColor = value >= 60 ? Theme.Good
-                                       : value >= 35 ? Theme.Warn : Theme.Bad;
-            Theme.Round(fill, 5);
-            track.Add(fill);
-            row.Add(track);
-
-            Label num = Theme.Text(value.ToString(), Theme.FontSmall, Theme.Ink);
-            num.style.minWidth = 32;
-            num.style.flexShrink = 0;
-            num.style.unityTextAlign = TextAnchor.MiddleRight;
-            row.Add(num);
-            return row;
-        }
     }
 }
