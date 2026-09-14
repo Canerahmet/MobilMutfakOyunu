@@ -551,7 +551,20 @@ namespace Lokanta.Game
             }
             else
             {
-                Note(ok: false, "Servis sirasinda dolu masa bulunamadi");
+                // "BULUNAMADI" IKI AYRI SEY OLABILIR.
+                //
+                // Gun daha gencken hicbir masa dolmadiysa bu bir HATA:
+                // servis calismiyor demektir. Ama bekleme gunun %70'ine
+                // dayandigi icin bittiyse olculememis demektir - gun
+                // zaten kapanmak uzere ve son misafirler kalkmis.
+                //
+                // Ikisini tek kirmiziya katlamak yaniltiyordu: talebe
+                // gunluk oynaklik eklenince sakin bir 1. gun bu kontrolu
+                // duserdi ve sebebi "servis bozuk" diye okunurdu.
+                NoteIf(_app.Sim.ServiceProgressBp < 7000, false,
+                       "Servis sirasinda dolu masa bulunamadi (servis %"
+                       + (_app.Sim.ServiceProgressBp / 100) + ", bugun "
+                       + _app.Sim.PlannedPeopleToday + " kisi bekleniyordu)");
             }
             _app.TimeScale = turHiz;
             if (_app.Rig != null)

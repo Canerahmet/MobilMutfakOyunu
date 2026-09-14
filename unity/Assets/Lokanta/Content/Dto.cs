@@ -116,6 +116,7 @@ namespace Lokanta.Content
         [JsonProperty("overpriceCeilingBp")] public int OverpriceCeilingBp { get; set; }
         [JsonProperty("priceElasticityBp")] public int PriceElasticityBp { get; set; }
         [JsonProperty("demandVarianceBp")] public int DemandVarianceBp { get; set; }
+        [JsonProperty("attendWorkCutBp")] public int AttendWorkCutBp { get; set; }
 
         [JsonProperty("order")] public OrderDto Order { get; set; }
         [JsonProperty("staffing")] public StaffingDto Staffing { get; set; }

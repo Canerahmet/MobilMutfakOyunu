@@ -173,7 +173,8 @@ namespace Lokanta.Content
                 economy.RealisationBp > 0 ? economy.RealisationBp : 10000,
                 economy.OverpriceCeilingBp > 0 ? economy.OverpriceCeilingBp : 25000,
                 economy.PriceElasticityBp > 0 ? economy.PriceElasticityBp : 9000,
-                economy.DemandVarianceBp)
+                economy.DemandVarianceBp,
+                economy.AttendWorkCutBp)
                 .WithXpSpeed(Ladder(cook.XpSpeedBp),
                              Ladder(salonLead != null ? salonLead.XpSpeedBp : null),
                              XpDaysPerLevel, MaxXpLevel)

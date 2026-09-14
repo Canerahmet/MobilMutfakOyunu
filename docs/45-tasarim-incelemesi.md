@@ -373,12 +373,83 @@ sikke ve bu defterde yok.
 
 ---
 
-## 14. Kapatılmayanlar
+## 15. Talep artık oynuyor — ama yalnızca gerçekleşen
+
+Talep tamamen belirlenimciydi: aynı itibar ve masa sayısındaki her salı
+**birebir aynı** sayıda müşteri getiriyordu. Sonucu, sabah stok kararının bir
+yargı değil bir düğme olmasıydı — hal önerisi her zaman tam doğruydu ve yeni
+eklenen "Stok 8 / 13 kişiye yetiyor" satırı hiçbir zaman kırmızıya dönmüyordu.
+
+Mekaniğin tamamı **ayrımda**:
+
+| | ne veriyor | kim kullanıyor |
+|---|---|---|
+| `ExpectedCustomers` | beklenti | kadro önerisi, hal önerisi, beklenen kişi |
+| `ActualCustomers` | gerçek | **yalnızca** geliş planı |
+
+Sapma tahmine de yansısaydı oyuncu yine kesin bilgiye sahip olurdu ve oynaklık
+dekor kalırdı.
+
+Üç şey korundu: çekiliş `_rngEvent` akışından (zaten vardı, kayda giriyordu,
+hiç kullanılmıyordu) olduğu için **tekrar oynatma birebir aynı**; altın hafta
+testi `WeeklyPlanner`'ı ölçtüğü için etkilenmedi; sapma tamsayı aritmetiğiyle
+çekiliyor (çekirdekte kayan nokta yasak).
+
+**Ölçüm dürüst okunmalı.** ±%10 sapma, hal önerisinin **%20 emniyet payının**
+içinde kalıyor — `makul` 18.820 → 19.085, zayiat 4.960 → 4.829, yani fark
+gürültü içinde. Yarattığı karar "önerileni al" oyuncusu için değil, stoktan
+**kısan** oyuncu için: eskiden kısmak hesaplanabilir bir bahisti, artık gerçek
+bir bahis. Daha sert ısırması istenirse kaldıraç oynaklık değil emniyet payı.
+
+Küçük bir yan not: `RecommendedRestock`'un yorumu zaten *"talep dalgalanıyor"*
+diyordu — o cümle bugüne kadar **doğru değildi**.
+
+---
+
+## 16. Müdahale artık salonda da çalışıyor
+
+§3'ün açık bıraktığı karar buydu: ölçüm mekaniğin bir emniyet ağı olduğunu
+söylüyordu (kadrosu düzgün lokantada günde 0,8 müdahale), mağaza metni ise onu
+ana mekanik diye satıyor. Üç yoldan **"müdahaleye kriz dışında bir iş ver"**
+seçildi, çünkü tek başına zorluk eğrisine dokunmuyor ve vaadi koruyor.
+
+Eksik olan **salon tarafıydı**. İlgi sabrı uzatıyor ve *mutfağı* hızlandırıyordu
+(`HurryPartyJob`) ama salona hiç dokunmuyordu — oysa darboğaz çoğu zaman orada.
+"Patron kendi ilgileniyor" tam olarak siparişi/hesabı onun alması demek.
+
+Artık ilgilenilen masanın **sıradaki salon işi yarıya iniyor**
+(`attendWorkCutBp = 5000`) ve işaret kullanılınca tükeniyor: ilgi bir **adım**,
+sürekli bir hâl değil — yoksa bir kez ilgilenilen masa gün boyu ayrıcalıklı
+olurdu.
+
+**Ölçüm (24 tohum, 60 gün, fast food):**
+
+| strateji | önce | sonra | ağırlanan grup |
+|---|---:|---:|---:|
+| baskılı (kadro eksik, müdahale yok) | 21.665 | 21.612 | 1955 |
+| **baskılı + müdahale** | 21.685 | **22.195** | 1978 |
+| **fark** | **+20** | **+583** | **+23** |
+
+Kadrosu eksik oyuncu için müdahalenin 60 günlük getirisi +20'den +583'e çıktı.
+
+**Rahat kadroyla oynayan için hâlâ ödemiyor** (`makul` 19.085, `mudahaleci`
+18.979) ve bu doğru: parayla kadro alıp ihtiyacı satın almışsın. Ortaya gerçek
+bir takas çıktı — *bir kişi eksik çalış, serviste sen koş* — ve
+`baskili_mudahale` artık plancıdan sonraki en iyi strateji.
+
+**Mağaza metni güncellenmeli** (docs/44): "günde dört müdahale hakkın var"
+cümlesi artık iki yerden yanlış — hak sayısı masayla büyüyor ve çay tek masaya
+değil salona gidiyor.
+
+---
+
+## 17. Kapatılmayanlar
 
 Beş agent ~40 bulgu verdi; bu belge en taşıyıcı olanları kapatıyor. Açık
 kalanlar, sırasıyla değeri yüksek olanlar:
 
-1. **Müdahalenin vaadi** (§3) — karar gerektiriyor.
+1. ~~Müdahalenin vaadi~~ — **KAPANDI** (§16): salon işini de üstleniyor,
+   kadrosu eksik oyuncu için getirisi +20'den +583'e çıktı.
 2. ~~Veresiye defteri ekranda yok~~ — **KAPANDI.** `LedgerScreen` yazıldı:
    her hesap için kim, tutar, vade ve kararın kendisi olan iki sayı
    (*beklersen* / *şimdi kovalarsan* ödeme şansı). Şans simülasyonun kullandığı
@@ -390,8 +461,7 @@ kalanlar, sırasıyla değeri yüksek olanlar:
 6. ~~`model.py`'de ekipman kalemi~~ — **BİLİNÇLİ KARAR**, denenmiş ve battığı
    yazılı (§13). İçindeki iki gerçek madde kapatıldı.
 
-**Kalan tek teknik madde:** talep tamamen belirlenimci — aynı itibar ve masa
-sayısındaki her salı birebir aynı sayıda müşteri getiriyor. Sabah stok kararını
-kolaylaştırıyor (`OrderRecommended` her zaman tam doğru). Günlük ±%10 oynaklık
-planlamayı gerçek bir yargıya çevirir ama oyunun zorluğunu değiştirir — bu
-yüzden karar listesinde, iş listesinde değil.
+~~Talep tamamen belirlenimci~~ — **KAPANDI** (§15).
+
+**Kalan:** kombo ekseni (§10) ve mağaza metninin güncellenmesi — müdahale
+cümlesi iki yerden eskidi (hak sayısı masayla büyüyor, çay salona gidiyor).

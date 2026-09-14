@@ -36,7 +36,7 @@ namespace Lokanta.Core.Sim
         // 16 -> 17: imza ekseni `peakCovers`'tan `comboShare`'e gecti;
         // "peakCovers" alani yerine "mainOrders" + "comboOrders".
         // Ayrica "teaSpend": veresiye cayinin bedeli artik sayiliyor.
-        public const int SaveVersion = 19;
+        public const int SaveVersion = 20;
 
         // ---- komut gunlugu okuyuculari --------------------------------------
         public int CommandCount { get { return _commandCount; } }
@@ -140,6 +140,7 @@ namespace Lokanta.Core.Sim
             w.IntArray("tablePlates", _tablePlates, MaxTables);
             w.IntArray("pPlates", _pPlates, MaxParties);
             w.BoolArray("pCooked", _pCooked, MaxParties);
+            w.BoolArray("pAttended", _pAttended, MaxParties);
             w.IntArray("regVisits", _regVisits, MaxRegulars);
             w.LongArray("regSatSum", _regSatSum, MaxRegulars);
             w.IntArray("regBeat", _regBeat, MaxRegulars);
@@ -378,6 +379,7 @@ namespace Lokanta.Core.Sim
                 r.IntArray("tablePlates", _tablePlates, MaxTables);
                 r.IntArray("pPlates", _pPlates, MaxParties);
                 r.BoolArray("pCooked", _pCooked, MaxParties);
+            r.BoolArray("pAttended", _pAttended, MaxParties);
             }
             else
             {

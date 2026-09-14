@@ -360,6 +360,13 @@ namespace Lokanta.Core.Sim
         private readonly int[] _pAskedDish;
         private readonly int[] _pSize;
         private readonly CustomerStage[] _pStage;
+
+        /// <summary>
+        /// Patron bu masayla BIZZAT ilgilendi mi - siradaki salon isi
+        /// icin. Is yapilinca temizleniyor: ilgi bir ADIM, surekli bir
+        /// hal degil.
+        /// </summary>
+        private readonly bool[] _pAttended;
         private readonly int[] _pTable;
         private readonly int[] _pPatienceLeftMs;
         private readonly int[] _pPatienceTotalMs;
@@ -584,6 +591,7 @@ namespace Lokanta.Core.Sim
             _pAskedDish = new int[MaxParties];
             _pSize = new int[MaxParties];
             _pStage = new CustomerStage[MaxParties];
+            _pAttended = new bool[MaxParties];
             _pTable = new int[MaxParties];
             _pPatienceLeftMs = new int[MaxParties];
             _pPatienceTotalMs = new int[MaxParties];
@@ -4133,6 +4141,19 @@ namespace Lokanta.Core.Sim
             // Yemegi bekleyen bir masaya ilgi gostermek, mutfaktaki
             // isini de one aliyor: patron yolu aciyor, pisirmiyor.
             HurryPartyJob(party);
+
+            // VE SALON ISINI DE PATRON USTLENIYOR.
+            //
+            // Ilgi eskiden yalnizca sabri uzatiyor ve MUTFAGI one
+            // aliyordu; salon tarafina hic dokunmuyordu, oysa darbogaz
+            // cogu zaman orada. Olculdu: mudahale eden bot etmeyenle
+            // ayni yerde bitiyordu (18.869 / 18.670), cunku mekanik
+            // yalnizca KRIZ aninda ise yariyordu ve kriz neredeyse hic
+            // olmuyor.
+            //
+            // Siradaki salon isi kisaliyor: masa daha cabuk donuyor,
+            // yani ayni gunde daha cok musteri.
+            _pAttended[party] = true;
         }
 
         /// <summary>
@@ -5323,6 +5344,16 @@ namespace Lokanta.Core.Sim
                     kind = TaskKind.Serve; ms = _timing.ServeMs * size; break;
                 default:
                     kind = TaskKind.Pay; ms = _timing.PayMs * size; break;
+            }
+
+            // PATRONUN ILGILENDIGI MASA: is kisaliyor ve isaret TUKENIYOR.
+            // Ilgi bir ADIM, surekli bir hal degil - yoksa bir kez
+            // ilgilenilen masa gun boyu ayricalikli olurdu.
+            if (_pAttended[best] && _economy.AttendWorkCutBp > 0)
+            {
+                ms = (int)Fx.Bp(ms, Fx.One - _economy.AttendWorkCutBp);
+                if (ms < 1) ms = 1;
+                _pAttended[best] = false;
             }
             return best;
         }

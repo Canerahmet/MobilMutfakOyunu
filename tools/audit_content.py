@@ -122,6 +122,7 @@ SCHEMA_RENAMED = {
     "underpriceFloor": "underpriceFloorBp",
     "priceElasticity": "priceElasticityBp",
     "demandVariance": "demandVarianceBp",
+    "attendWorkCut": "attendWorkCutBp",
     "overpriceCeiling": "overpriceCeilingBp",
     "loanMultiplier": "loanMultiplierBp",
     "priceVolatility": "priceVolatilityBp",

@@ -281,6 +281,14 @@ def economy():
         # tam dogruydu ve sabah stok karari bir yargi degil bir dugmeydi.
         # Sapma YALNIZCA gerceklesende; tahmin beklentiyi gosteriyor.
         "demandVarianceBp": 1000,
+        # PATRON ILGILENINCE SIRADAKI SALON ISI YARIYA INIYOR.
+        #
+        # Mudahale olculdugunde NOTR cikti: kadrosu duzgun lokantada
+        # kriz neredeyse hic olmuyor (gunde 0,8 mudahale), yani mekanik
+        # bir emniyet agiydi - oysa magaza metni onu ana mekanik diye
+        # satiyor. Eksik olan salon tarafiydi: ilgi sabri uzatip MUTFAGI
+        # hizlandiriyordu ama darbogaz cogu zaman salonda.
+        "attendWorkCutBp": 5000,
         # Fiyat TAVANI: memnuniyet cezasi sifirda doyuyor ve talep
         # fiyati hic gormuyor, yani tavan olmadan kar sinirsiz.
         # 25000 = piyasanin 2,5 kati.

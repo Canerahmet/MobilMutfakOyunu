@@ -59,6 +59,7 @@
   "underpriceFloorBp": 8500,
   "priceElasticityBp": 9000,
   "demandVarianceBp": 1000,
+  "attendWorkCutBp": 5000,
   "overpriceCeilingBp": 25000,
   "staffing": {
     "ownerPool": "salon",

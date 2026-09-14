@@ -219,6 +219,24 @@ namespace Lokanta.Core.Economy
         public int DemandVarianceBp { get; private set; }
 
         /// <summary>
+        /// Patron ilgilendiginde o masanin SIRADAKI salon isi ne kadar
+        /// kisaliyor, baz puan. 5000 = yarisi.
+        ///
+        /// Mudahale olculdugunde NOTR cikmisti: kadrosu duzgun bir
+        /// lokantada kriz neredeyse hic olmuyor (gunde 0,8 mudahale),
+        /// yani mekanik bir emniyet agiydi - oysa magaza metni onu ana
+        /// mekanik diye satiyor.
+        ///
+        /// Eksik olan sey salon tarafiydi: ilgi sabri uzatiyor ve
+        /// MUTFAGI hizlandiriyordu, ama darbogaz cogu zaman salonda.
+        /// "Patron kendi ilgileniyor" tam olarak siparisi/hesabi onun
+        /// almasi demek - masa daha cabuk donuyor, yani ayni gunde
+        /// daha cok musteri. Boylece mudahale krizi beklemeden de
+        /// deger uretiyor.
+        /// </summary>
+        public int AttendWorkCutBp { get; private set; }
+
+        /// <summary>
         /// Fiyatin piyasaya gore TAVANI, baz puan. 25000 = piyasanin
         /// 2,5 katindan pahaliya satilamaz.
         ///
@@ -523,7 +541,8 @@ namespace Lokanta.Core.Economy
             int askMissCenti = 1500, int realisationBp = 10000,
             int overpriceCeilingBp = 25000,
             int priceElasticityBp = 9000,
-            int demandVarianceBp = 0)
+            int demandVarianceBp = 0,
+            int attendWorkCutBp = 0)
         {
             if (tiers == null || tiers.Length == 0)
                 throw new ArgumentException("En az bir kademe gerekli", nameof(tiers));
@@ -548,6 +567,7 @@ namespace Lokanta.Core.Economy
             UnderpriceFloorBp = underpriceFloorBp > 0 ? underpriceFloorBp : 8500;
             PriceElasticityBp = priceElasticityBp > 0 ? priceElasticityBp : 9000;
             DemandVarianceBp = demandVarianceBp < 0 ? 0 : demandVarianceBp;
+            AttendWorkCutBp = attendWorkCutBp < 0 ? 0 : attendWorkCutBp;
             OverpriceCeilingBp =
                 overpriceCeilingBp > Fx.One ? overpriceCeilingBp : 25000;
             LoanMultiplierBp = loanMultiplierBp > 0 ? loanMultiplierBp : 13500;
