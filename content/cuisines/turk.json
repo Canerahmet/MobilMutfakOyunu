@@ -4,8 +4,8 @@
   "_comment": "URETILEN DOSYA. tools/balance/export.py",
   "slotDurationsBp": [
     1200,
-    4800,
-    2500,
+    2800,
+    4500,
     1500
   ],
   "eatMs": 38000,

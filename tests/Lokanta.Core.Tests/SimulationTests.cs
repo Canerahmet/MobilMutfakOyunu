@@ -444,10 +444,28 @@ namespace Lokanta.Core.Tests
 
             for (int day = 1; day <= 7; day++)
             {
+                // STOK TAZELENIYOR - yoksa olculen sey hafta sonu degil
+                // ACLIK oluyor.
+                //
+                // Once tazelenmiyordu ve test, gunun sivriltilmesiyle
+                // birlikte kirildi: uzayan bekleme memnuniyeti dusurdu,
+                // itibar yedi gunde 33'ten 11'e indi ve dusen talep hafta
+                // sonu carpanini yuttu (6. gun 9 grup, 7. gun 4). Yani
+                // test "hafta sonu kalabalik mi" diye sorarken aslinda
+                // "itibar spirali carpandan hizli mi" diye soruyordu.
+                for (int i = 0; i < sim.IngredientCount; i++)
+                {
+                    int need = sim.RecommendedRestock(i);
+                    if (need > 0)
+                        sim.Apply(new Command(sim.TickIndex,
+                                              CommandKind.OrderIngredient, i, need));
+                }
+
                 DayReport r = RunOneDay(sim);
                 // TALEBI olcuyoruz, servisi degil: stok kisiti devreye girince
                 // hafta sonunun fazlasi kapidan donebiliyor ve servis edilen
                 // sayi talebi yansitmiyor.
+                _out.WriteLine($"gun {day}: plan {r.PlannedParties} grup, itibar {r.ReputationCenti / 100}, kizgin {r.AngrySeatedParties}");
                 if (day <= 5) weekdayPeople += r.PlannedParties;
                 else weekendPeople += r.PlannedParties;
                 sim.AdvanceToNextDay();
@@ -455,7 +473,8 @@ namespace Lokanta.Core.Tests
 
             int weekdayAvg = weekdayPeople / 5;
             int weekendAvg = weekendPeople / 2;
-            _out.WriteLine($"hafta ici ort {weekdayAvg}, hafta sonu ort {weekendAvg}");
+            _out.WriteLine($"hafta ici toplam {weekdayPeople} (ort {weekdayAvg}), "
+                           + $"hafta sonu toplam {weekendPeople} (ort {weekendAvg})");
             Assert.True(weekendAvg > weekdayAvg,
                 $"hafta sonu kalabalik degil: {weekendAvg} <= {weekdayAvg}");
         }

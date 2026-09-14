@@ -356,9 +356,21 @@ namespace Lokanta.Game
             int gunBasi = _app.Sim.ServiceProgressBp;
             float sure = 0f;
             basildi = false;
+            // PENCERE GUNUN YARISINDA BIRAKIYOR.
+            //
+            // Tavan once %80 idi ve gun DUZ oldugu surece sorun yoktu:
+            // masalar gun boyu dolu kaldigi icin sonraki masa kontrolleri
+            // her an calisabiliyordu. Gun sivriltilince (docs/48) bu
+            // varsayim coktu - zirve %12-40 arasinda yasaniyor ve pencere
+            // %80'e kadar kosunca masa avi bos bir salona yetisiyordu:
+            // "servis %70, bugun 12 kisi bekleniyordu".
+            //
+            // Tur artik zirveyi SONRAKI kontrollere birakiyor. Gercek
+            // zaman butcesi (40 sn) degismedi; yalnizca gunun neresinde
+            // durdugu degisti.
             while (sure < 40f && cv != null)
             {
-                if (_app.Sim.ServiceProgressBp > 8000)
+                if (_app.Sim.ServiceProgressBp > 5000)
                 {
                     basildi = true;
                     break;
@@ -510,7 +522,7 @@ namespace Lokanta.Game
             Note(text5 == "Universal Render Pipeline/Unlit", "Rozet malzemesi isiksiz (" + (text5 ?? "yok") + ")");
             int num13 = (HalaDolu(_secilenMasa) ? _secilenMasa : DoluMasa());
             float bekleme = 0f;
-            while (num13 < 0 && bekleme < 8f && _app.Sim.ServiceProgressBp < 7000)
+            while (num13 < 0 && bekleme < 12f && _app.Sim.ServiceProgressBp < 7000)
             {
                 bekleme += Time.deltaTime;
                 yield return null;
@@ -643,8 +655,23 @@ namespace Lokanta.Game
             int angrySeatedParties = _app.Sim.AngrySeatedParties;
             int crisisBuilds = GameScreen.CrisisBuilds;
             Debug.Log((object)("  TANI kriz seridi: " + angrySeatedParties + " masadan kizgin, " + _app.Sim.AngryParties + " toplam kizgin, serit " + crisisBuilds + " kez kuruldu, " + _krizGorulen + " kritik masa goruldu"));
-            NoteIf(angrySeatedParties > 0, crisisBuilds > 0, "Masadan kizgin ayrilan varsa kriz seridi kuruldu (" + angrySeatedParties + " kizgin, serit " + crisisBuilds + " kez)");
-            NoteIf(_krizGorulen > 0, crisisBuilds > 0, "Kritik masa goruldugunde serit kurulmus (" + _krizGorulen + " kritik masa, serit " + crisisBuilds + " kez)");
+            // BURADAKI IKI KONTROL SILINDI - YAPISAL OLARAK KOSAMAZLARDI.
+            //
+            // Birinci gun dort masa ve ~12 kisi: kriz imkansiz. Ikisi de
+            // her kosuda "0 kizgin, 0 kritik masa" deyip OLCULEMEDI
+            // donuyordu ve bu, aylarca kapsama YANILSAMASI uretti - kriz
+            // seridinin arayuzu sinaniyor sanildi, hic sinanmiyordu.
+            //
+            // Hicbir zaman kosamayan bir kontrol, hic olmayan bir
+            // kontrolden KOTUDUR: ikincisi eksik oldugunu soyler.
+            //
+            // Yerine kampanya boyu olcen tek bir kontrol kondu (asagida,
+            // dongunun sonunda): 60 gunu ve 20-21. gunlerde bilerek eksik
+            // calisilan hafta sonunu goruyor. Ilk kosusunda 30 kizgin ve
+            // serit 186 kez buldu.
+            //
+            // Tani satiri duruyor: birinci gunun sakinligi de bir bilgi.
+            _ = angrySeatedParties;
             Note(Click(Loc.T("ui.service.close")), "Gunu kapat");
             int platesDirtiedToday = _app.Sim.PlatesDirtiedToday;
             int platesWashedToday = _app.Sim.PlatesWashedToday;
@@ -757,6 +784,7 @@ namespace Lokanta.Game
             bool magazaAlindi = false;
             bool veresiyeYazildi = false;
             bool defterOlculdu = false;
+            int kizginToplam = 0;
             bool karneOlculdu = false;
             bool nisanOlculdu = false;
             int started = _app.Sim.Day;
@@ -778,7 +806,29 @@ namespace Lokanta.Game
                     yield return Settle();
                     yield return ToGameScreen();
                 }
-                Buyu();
+                // KRIZ YOLUNU BILEREK KOSTURUYORUZ.
+                //
+                // Tur hep gereken kadroyu kuruyor ve tam kadro krizi
+                // soguruyor - o yuzden "masadan kizgin ayrilan varsa kriz
+                // seridi kuruldu" ve "kritik masa goruldugunde serit
+                // kurulmus" kontrolleri AYLARDIR "0 kizgin, 0 kritik masa"
+                // diyip olculemeden geciyordu. Kriz seridinin arayuzu hic
+                // sinanmamisti.
+                //
+                // 20. ve 21. gunler hafta sonu (haftanin son iki gunu) ve
+                // dukkan o zamana kadar buyumus oluyor: bir garson eksik
+                // calismak gercek bir kuyruk uretiyor. Bu ayni zamanda
+                // oyunun odullendirdigi oyun - "Zirveyi eksik kadroyla
+                // gectin" nisani (docs/47) tam da bunu taniyor.
+                //
+                // Kadro 22. gunde Buyu() tarafindan kendiliginden geri
+                // kuruluyor; ayrica bir sey yapmak gerekmiyor.
+                bool kriziKostur = _app.Sim.Day == 20 || _app.Sim.Day == 21;
+                if (kriziKostur && _app.Sim.SalonStaff > 1)
+                    _app.Send(CommandKind.Fire, 1, _app.Sim.SalonStaff - 1);
+                else
+                    Buyu();
+
                 if (Click(Loc.T("ui.morning.market")))
                 {
                     yield return Settle();
@@ -953,6 +1003,12 @@ namespace Lokanta.Game
                 // "Bugun kazanildi" isareti AdvanceToNextDay'de
                 // siliniyor, yani ertesi gun bakmak hep sifir gorurdu ve
                 // kontrol sessizce hic kosmazdi.
+                // GUN KAPANDIKTAN SONRA sayiliyor. Ilk yazdigimda sabaha
+                // koymustum ve AdvanceToNextDay sayaci yeni sifirladigi
+                // icin toplam hep 0 kaliyordu - kontrol kosar ama hicbir
+                // sey olcmezdi.
+                kizginToplam += _app.Sim.AngrySeatedParties;
+
                 bool karneVar = _app.Sim.WeekReportReady;
                 bool nisanVar = false;
                 for (int b = 0; b < _app.Sim.BadgeCount; b++)
@@ -1015,6 +1071,24 @@ namespace Lokanta.Game
             Note(_app.Sim.BadgesEarned > 0,
                  "Kampanyada nisan kazanildi (" + _app.Sim.BadgesEarned
                  + " / " + _app.Sim.BadgeCount + ")");
+
+            // KRIZ SERIDI KAMPANYA BOYUNCA OLCULUYOR.
+            //
+            // Ayni kontrol 1. gunun teftis blogunda da var ama orada ASLA
+            // kosamiyor: birinci gun dort masa ve ~12 kisi, yani kriz
+            // yapisal olarak imkansiz. Aylardir "0 kizgin, 0 kritik masa"
+            // deyip olculemeden geciyordu - kriz seridinin arayuzu hic
+            // sinanmamisti.
+            //
+            // Burasi 60 gunu goruyor, 20-21. gunlerde bilerek eksik
+            // calisilan hafta sonu dahil. CrisisBuilds birikimli bir
+            // sayac oldugu icin kampanyanin tamamini kapsiyor.
+            Debug.Log("  TANI kampanya krizi: " + kizginToplam
+                      + " masadan kizgin, serit " + GameScreen.CrisisBuilds + " kez");
+            NoteIf(kizginToplam > 0, GameScreen.CrisisBuilds > 0,
+                   "Kampanyada kizgin olunca kriz seridi kuruldu ("
+                   + kizginToplam + " kizgin, serit "
+                   + GameScreen.CrisisBuilds + " kez)");
             int num2 = 0;
             long num3 = 0L;
             Renderer[] array = UnityEngine.Object.FindObjectsByType<Renderer>((FindObjectsSortMode)0);

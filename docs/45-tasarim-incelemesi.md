@@ -283,6 +283,19 @@ Düzeltmesi hedefi değil **ölçülen şeyi** değiştirmeyi gerektiriyor (örn
 kızgın müşteri başına kombo cirosu). Bu bir tasarım kararı, bir sayı ayarı
 değil; yazılı bir gerekçeyi kendi zevkimle bozmamak için dokunulmadı.
 
+> **14 Eylül eki — gerekçe çürüdü.** Bu bölüm yazılı bir gerekçeyi koruyordu:
+> "zirvede kapatmak meşru bir oyun". §18 o oyunu ölçtü ve `zirvede_kapat` ile
+> `imzaci` **birebir aynı 2016 grubu** ağırladı. [48](48-gunun-sivriligi.md)
+> günü sivrilttikten sonra ikinci kez ölçüldü: 19.048'e 19.268, servis 1923'e
+> 1919 — yine aynı oyun.
+>
+> İki farklı gün şeklinde, iki ayrı ölçüm: **korunacak alternatif strateji
+> yok.** Eksen, var olmayan bir oyunu korumak için düz bırakılmış.
+>
+> Aynı ölçüm kombonun kendisinin sağlam olduğunu da söyledi: fastfood'da
+> `makul` 17.909, `imzaci` 19.268 — kombo **+1.359 değerinde**. Mekanik
+> çalışıyor; kusur yalnızca eksenin neyi ölçtüğünde.
+
 Veresiye ekseni ise **kendiliğinden düzeldi**: tahsilat artık güvene bağlı
 olduğu için herkese yazan bot 100 değil **72** alıyor. Eksen "kullandın mı"
 değil "iyi kullandın mı" diye soruyor.

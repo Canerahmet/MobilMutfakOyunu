@@ -323,14 +323,41 @@ def economy():
 # Bu eslesme yazilana kadar simulasyon fast food sozlugunu sabit
 # kodluyordu ve Turk mutfaginda HICBIR musteri ana yemek bulamiyordu:
 # sekiz stratejinin hepsi sifir musteriyle batiyordu.
+# DILIM SURELERI: GUNUN SIVRILIGI.
+#
+# Bunlar pay degil SURE (docs/28 Karar G). Gelis agirliklari
+# arketiplerde duruyor; bir dilimin YOGUNLUGU = gelis payi / sure payi.
+#
+# Olculdu ve ikisi de neredeyse DUZDU: gunun en yogun ani ortalamanin
+# yalnizca 1,24-1,25 katiydi. Kadro gunluk TOPLAM ise gore kuruluyor
+# (StaffingModel.Required), dolayisiyla 1,25x'lik bir tepe rahatca
+# soguruluyordu - ve turun her kosusunda "0 kizgin, 0 kritik masa,
+# 0 bekleyen masa" cikiyordu. Mudahale, cay, kriz seridi ve imza
+# mekanikleri hep bu baskinin ustune kurulu; baski yoksa hepsi dekor.
+#
+# Turk icin ustelik icerik TASARIMLA CELISIYORDU: mutfagin kendi
+# tanimi "Sert ogle zirvesi" diyor, ama ogle gunun %48'ini kaplayan
+# EN UZUN dilimdi - yani zirve, yarim gune yayilmis bir duzluktu.
+#
+# SURE degistiriliyor, AGIRLIK degil: gunluk musteri toplami aynen
+# kaliyor, yalnizca ayni musteriler daha dar bir pencereye siginiyor.
+# Bu onemli - kira ve marj kalibrasyonu (solve.py) gunluk TOPLAM
+# uzerinden cozuluyor ve boylece gecerli kaliyor.
+#
+# Yeni yogunluklar (gelis payi / sure payi):
+#   fastfood  0,52 / 2,09 / 0,46 / 1,50   iki tepe: ogle ve aksam
+#   turk      0,88 / 2,12 / 0,40 / 0,82   tek sert ogle zirvesi
+#
+# Iki mutfak artik RITIM olarak da ayrisiyor: fast food gun boyu iki
+# kez kalabaliklaniyor, Turk ogle patlayip ogleden sonra oluyor.
 CUISINES = [
-    ("fastfood", [2000, 3000, 2000, 3000], {
+    ("fastfood", [2500, 1800, 3500, 2200], {
         "main":    ["ana"],
         "side":    ["yan"],
         "drink":   ["icecek"],
         "dessert": ["tatli"],
     }),
-    ("turk", [1200, 4800, 2500, 1500], {
+    ("turk", [1200, 2800, 4500, 1500], {
         "main":    ["sulu", "izgara"],
         "side":    ["corba", "pilav", "meze"],
         "drink":   ["icecek"],

@@ -3,10 +3,10 @@
   "nameKey": "cuisine.fastfood",
   "_comment": "URETILEN DOSYA. tools/balance/export.py",
   "slotDurationsBp": [
-    2000,
-    3000,
-    2000,
-    3000
+    2500,
+    1800,
+    3500,
+    2200
   ],
   "eatMs": 38000,
   "menuRoles": {
