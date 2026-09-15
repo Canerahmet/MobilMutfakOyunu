@@ -2343,6 +2343,7 @@ namespace Lokanta.Core.Sim
             _platesDirty = 0;
             _platesInUse = 0;
             _plateBlockedTicks = 0;
+            _plateStalled = false;
             _washedToday = 0;
             _dirtiedToday = 0;
             _washing = false;
@@ -5428,6 +5429,18 @@ namespace Lokanta.Core.Sim
                     // ADANMIS BULASIKCI: yalnizca yikiyor, masaya gitmiyor.
                     // Kullanicinin cumlesi: "bulasikci alinca herkes kendi
                     // isini yapar" - karsiligi tam olarak bu satir.
+                    //
+                    // BU SATIR IKI KEZ ZAYIFLATILMAYA CALISILDI, OLCUM
+                    // IKISINI DE REDDETTI (32 tohum, docs/53):
+                    //
+                    //   yigin bir esigi gecmeden yikamasin  229 -> 293
+                    //   yikayacak sey yokken salona donsun  197 -> 216
+                    //
+                    // Ikisi de makul geliyordu ve ikisi de ayni seyi
+                    // bozuyor: uzmanin butun degeri ARALIKSIZ ve HEMEN
+                    // yikamasinda. Salona donen bulasikci, tabak
+                    // kirlendiginde bir musteri isine bagli kaliyor ve
+                    // lavaboya GEC donuyor.
                     if (_platesDirty > 0)
                     {
                         _salonTaskKind[s] = TaskKind.Wash;
@@ -5439,6 +5452,43 @@ namespace Lokanta.Core.Sim
                         _salonTaskLeftMs[s] =
                             XpAdjusted(1, s - 1, _timing.DishwasherWashMs);
                     }
+                    continue;
+                }
+
+                // ============================================================
+                // KRIZ: MUTFAK DURDU. Bu dal MUSTERI ISINDEN ONCE geliyor.
+                //
+                // Neden istisna mesru: temiz tabak bitince tabak dolum
+                // dongusu KOMPLE duruyor (bkz. `_plateStalled`), yani
+                // pismis yemek tezgahta bekliyor. O anda bir garsonun
+                // yeni siparis almasi degersiz is - servis edilecek bir
+                // sey zaten cikmiyor. Lavaboya gitmek dukkani ACIYOR.
+                //
+                // NEDEN ONCEKI DENEME TUTMADI (docs/49 §6, 351 -> 351):
+                // istisna musteri isinden SONRA yazilmisti ve "bos kisi"
+                // ariyordu; zirvede salon zaten dolu oldugu icin hic
+                // ateslenmedi. Bos kisi aramak yanlis soruydu - dogru
+                // soru "su an yapilan is degerli mi".
+                //
+                // NEDEN BULASIKCIYI OLDURMUYOR: bu dal yalnizca mutfak
+                // GERCEKTEN durduysa aciliyor. Adanmis bulasikci varken
+                // kriz zaten olusmuyor, yani kullanicinin kurali
+                // ("bulasikci alinca herkes kendi isini yapar") normal
+                // gunde birebir duruyor - `WashNeeded` hala bulasikci
+                // varsa salona rutin yikama vermiyor.
+                //
+                // Arastirma (docs/53): sevk edilmis hicbir oyunda uzman
+                // almak genel havuzu sessizce kapatmiyor. RimWorld'un
+                // YANGIN davranisi tam bu kalip - nadir, agir, kapsamli
+                // bir kosul normal onceligi geciyor.
+                if (!(s == 0 && _salon > 0) && _plateStalled && _platesDirty > 0)
+                {
+                    _salonTaskKind[s] = TaskKind.Wash;
+                    _salonTaskTarget[s] = -1;
+                    _salonTaskLeftMs[s] =
+                        OwnerAdjusted(s, XpAdjusted(1, s - 1, _timing.WashMs));
+                    _washing = true;
+                    _salonRushWashes++;
                     continue;
                 }
 
@@ -5688,6 +5738,16 @@ namespace Lokanta.Core.Sim
         /// </summary>
         private bool _plateWarned;
 
+        /// <summary>
+        /// MUTFAK SU AN TABAK YOKLUGUNDAN DURDU MU.
+        ///
+        /// `_plateWarned` ile ayni omurde ama isi ayri: o BILDIRIM
+        /// bayragi, bu KARAR girdisi. Ikisini tek alana bindirmek,
+        /// bildirimi susturan bir degisikligin sessizce salonun kriz
+        /// davranisini de kapatmasi demekti.
+        /// </summary>
+        private bool _plateStalled;
+
         private int FirstDirtyTable()
         {
             for (int t = 0; t < _tableCount; t++)
@@ -5881,6 +5941,7 @@ namespace Lokanta.Core.Sim
                     // daha az tabak isteyen kucuk bir grubu araya sokmak,
                     // sabri en az olani beklemeye birakmak olurdu.
                     _plateBlockedTicks++;
+                    _plateStalled = true;
 
                     // OYUNCUYA BIR KEZ SOYLENIYOR.
                     //
@@ -5898,6 +5959,7 @@ namespace Lokanta.Core.Sim
                 }
 
                 _plateWarned = false;
+                _plateStalled = false;
                 _platesClean -= need;
                 _platesInUse += need;
                 _pPlates[best] += need;

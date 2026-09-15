@@ -1011,6 +1011,28 @@ namespace Lokanta.Game.Ui
             // "normal / normal" diye goruunuyordu - yani oyuncu
             // hesabi alirken musteriyi +8 puan memnun eden biriyle
             // hicbir sey yapmayanini ayirt edemiyordu.
+            // HUYUN SESI: kartin en ustunde, bir cumle.
+            //
+            // Yirmi muMdavimin ucer sahnesi vardi; personelin SIFIR
+            // satiri vardi (docs/53). Aday karti oyuncunun bir personeli
+            // DIKKATLE okudugu tek an - bir cumlenin en cok is yaptigi
+            // yer orasi.
+            //
+            // Cumle BIRINCI huydan geliyor, ikisinden degil: iki ses
+            // ust uste binince kisi degil liste okunuyor.
+            {
+                int ilk = sim.CandidateTrait(pool, slot, 0);
+                if (ilk >= 0)
+                {
+                    Label ses = Theme.Text(
+                        Loc.T(App.Economy.TraitAt(ilk).NameKey + ".voice"),
+                        Theme.FontSmall, Theme.InkFaint);
+                    ses.style.whiteSpace = WhiteSpace.Normal;
+                    ses.style.marginBottom = 6;
+                    card.Add(ses);
+                }
+            }
+
             for (int w = 0; w < 2; w++)
             {
                 int t = sim.CandidateTrait(pool, slot, w);

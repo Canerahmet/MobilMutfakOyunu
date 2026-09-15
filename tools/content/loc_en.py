@@ -163,6 +163,28 @@ TRAIT_DESC = {
     "tecrubeli": "Expensive, fast, won't improve further.",
 }
 
+# The trait's VOICE. Same two-string split as the Turkish table:
+# TRAIT_DESC translates a number, TRAIT_VOICE describes a person.
+#
+# Written as English, not translated from Turkish - the register is the
+# same (third person, present, observational, withholding) but the
+# sentences are their own. Genderless throughout: the game's staff have
+# no gender and the Turkish original has no pronouns to translate.
+TRAIT_VOICE = {
+    "hizli_ama_daginik": "Gets the food out fast. Don't look at the bench.",
+    "yavas_ama_titiz": "Checks the plate once more before letting it go.",
+    "kalabalikta_panikleyen": "When the room fills up, the hands get tangled.",
+    "sakin": "The crowd doesn't reach them. Same step throughout.",
+    "musteriyle_iyi_anlasan": "Tables leave laughing when they carry the bill.",
+    "suratsiz": "Does the work, says nothing. Some tables take it personally.",
+    "cabuk_yorulan": "By evening the feet start talking.",
+    "dayanikli": "Closes the day with the step they opened it with.",
+    "ekip_moralini_yukselten": "Nobody stays sulking while they're in the kitchen.",
+    "huysuz": "Has a problem with everyone. Right about most of them.",
+    "cirak": "New to this. Show it once and it stays.",
+    "tecrubeli": "Thirty years of this. Nothing left to teach.",
+}
+
 ROLES = {
     "asci": "Cook", "garson": "Waiter",
     "bulasikci": "Dishwasher", "kasiyer": "Cashier",

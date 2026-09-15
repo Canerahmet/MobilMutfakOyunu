@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Lokanta.Content;
@@ -99,6 +99,7 @@ namespace Lokanta.Core.Tests
                             && !k.StartsWith("score.")
                             && !k.StartsWith("badge.")
                             && !k.EndsWith(".desc")
+                            && !k.EndsWith(".voice")
                             && !needed.Contains(k))
                 .OrderBy(k => k).ToList();
 

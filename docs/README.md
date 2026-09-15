@@ -68,6 +68,7 @@ Mobil (iOS/Android) ve ileride Steam. 2.5D, yumuşak low-poly. Unity. Tek kişil
 | **[50-mutfak-dokusu.md](50-mutfak-dokusu.md)** | **Mutfaga gore duvar yuzeyi (ahsap lambri / celik bant), zemin ve disarinin tonu; tur artik fast food da oynuyor ve kirpilma olcumu var olmayan bir hatayi ariyordu** | **Güncel** |
 | **[51-self-servis.md](51-self-servis.md)** | **Fast food self servis: garson yerine temizlikçi, salon rolleri mutfağa bağlandı, hacim +%43 fiş −%22; hacim toplam kasa için bir kol değil** | **Güncel** |
 | **[52-ayrim-ve-kira.md](52-ayrim-ve-kira.md)** | **Fast food kirası ×1,15 (kirayı artırmak botun kasasını *artırıyor* — ölçüldü); görüntü aracı self servisi hiç çizmiyordu, asılı menü panelleri arkasını kapatıyordu, mobilya laminata döndü** | **Güncel** |
+| **[53-bekleyen-kararlar.md](53-bekleyen-kararlar.md)** | **Bulaşıkçı açık kararı ölçümle kapandı (iki "düzeltme" denendi, ikisi de bozdu); kombo cevabı self servisle tersine döndü ve düğmesine tur hiç basmıyormuş; personele ilk kez ses verildi (`trait.*.voice`)** | **Güncel** |
 | `../unity/` | Unity 6.3 LTS projesi, Android hedefli. Ayarlar `ProjectSetup.cs` ile kodla uygulanıyor | Kuruldu |
 | `../src/Lokanta.Harness/` | Denge aracı: beş strateji, çok tohumlu altmış günlük kampanya | Çalışıyor |
 

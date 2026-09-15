@@ -293,6 +293,24 @@ namespace Lokanta.Game
                     string yanlis = self ? Loc.T("role.garson") : Loc.T("ui.staff.busser");
                     Note(HasText(dogru) && !HasText(yanlis),
                          "Salon rolunun adi mutfaga uygun (" + dogru + ")");
+
+                    // HUYUN SESI EKRANDA MI.
+                    //
+                    // Metin yazildi, uretildi, karta baglandi - ve
+                    // GORULMEDI. Bu oturumda tam olarak ayni sirayla
+                    // "ekranda Temizlikci yaziyor" dedim ve yaziyordu
+                    // sanmistim; yazmiyordu, cunku kart adi gosteriyordu.
+                    //
+                    // Olcut metnin KENDISI: aday havuzundaki ilk kisinin
+                    // birinci huyunun ses cumlesi ekranda geciyor mu.
+                    // Aday yoksa OLCULEMEDI - kirmizi degil.
+                    int aday = _app.Sim.CandidateTrait(0, 0, 0);
+                    string sesi = aday >= 0
+                        ? Loc.T(_app.Economy.TraitAt(aday).NameKey + ".voice")
+                        : null;
+                    NoteIf(!string.IsNullOrEmpty(sesi),
+                           !string.IsNullOrEmpty(sesi) && HasText(sesi),
+                           "Aday kartinda huyun sesi goruunuyor");
                 }
                 yield return Shot("05-" + Slug(s));
                 Back();
@@ -876,6 +894,7 @@ namespace Lokanta.Game
             int baslangicMasa = _app.Sim.TableCount;
             bool magazaAlindi = false;
             bool veresiyeYazildi = false;
+            bool komboCevrildi = false;
             bool defterOlculdu = false;
             int kizginToplam = 0;
             bool kaliteOlculdu = false;
@@ -1036,6 +1055,47 @@ namespace Lokanta.Game
                     //
                     // Dogru yer gunun ICI: musteri oturuyor, istiyor,
                     // ve tur o ani yakaliyor.
+                    // KOMBO DUGMESI: OLCUT KOMUTUN GECMESI.
+                    //
+                    // Dugme GameScreen'de vardi ve TUR ONA HIC BASMIYORDU.
+                    // Bu projede tam olarak ayni bos kapsam iki kez cikti
+                    // (SetQuality, CollectCredit): mekanik cekirdekte
+                    // eksiksiz, ekranda dugmesi var, ve komutun gercekten
+                    // gectigini kimse olcmuyor. Varlik testi o hatayi
+                    // goremez.
+                    //
+                    // Kombo artik OLCULMESI GEREKEN bir karar: self servis
+                    // salonu bosalttiktan sonra darbogaz mutfaga gecti ve
+                    // zirvede komboyu kapatmak hep acik tutmayi 22.163'e
+                    // 23.474 geciyor (docs/53). Yani bu dugme oyunun en
+                    // iyi oyununun tek kapisi - komut gecmezse o oyun
+                    // oynanamaz ve hicbir sey bunu soylemezdi.
+                    //
+                    // Iki yonlu: cevirip geri aliyor. Tek yon "dugme bir
+                    // sey yapiyor" derdi; iki yon "tam olarak istedigini
+                    // yapiyor" diyor. Ve kampanyanin geri kalani ayni
+                    // durumla devam ediyor, yani sonraki sayilar kaymiyor.
+                    if (!komboCevrildi && _app.Sim.HasCombo)
+                    {
+                        bool basta = _app.Sim.ComboEnabled;
+                        if (Click(Loc.T(basta ? "ui.service.combo_on"
+                                              : "ui.service.combo_off")))
+                        {
+                            yield return Settle();
+                            Note(_app.Sim.ComboEnabled != basta,
+                                 "Kombo dugmesi simulasyona geciyor ("
+                                 + basta + " -> " + _app.Sim.ComboEnabled + ")");
+
+                            Click(Loc.T(_app.Sim.ComboEnabled
+                                        ? "ui.service.combo_on"
+                                        : "ui.service.combo_off"));
+                            yield return Settle();
+                            Note(_app.Sim.ComboEnabled == basta,
+                                 "Kombo geri alinabiliyor");
+                            komboCevrildi = true;
+                        }
+                    }
+
                     if (!veresiyeYazildi && _app.Sim.HasCredit
                         && _app.Sim.FirstCreditAsker() >= 0)
                     {
@@ -1225,6 +1285,10 @@ namespace Lokanta.Game
             // sinandigini sanmak olurdu.
             NoteIf(kaliteOlculdu, kaliteOlculdu,
                    "Hal'de kalite secicisi goruldu");
+            // Turk mutfaginda kombo yok, yani bu kontrol orada
+            // OLCULEMEDI demeli - kirmizi degil. NoteIf tam bunun icin.
+            NoteIf(komboCevrildi, komboCevrildi,
+                   "Servis sirasinda kombo dugmesine basildi");
             NoteIf(karneOlculdu, karneOlculdu,
                    "Haftalik karne goruldu (60 gunde en az bir hafta)");
             NoteIf(nisanOlculdu, nisanOlculdu,

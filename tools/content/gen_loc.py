@@ -183,6 +183,40 @@ TRAIT_DESC = {
     "tecrubeli": "Pahalıdır, hızlıdır, daha fazla gelişmez.",
 }
 
+# HUYUN SESI: kisiyi kisi yapan cumle.
+#
+# TRAIT_DESC mekanigi anlatiyor ("gunun son ceyreginde yavaslar") ve
+# bir SAYININ cevirisi. Bu tablo ayni huyu bir INSAN olarak anlatiyor.
+# Ikisi ayri dize, cunku ayri isler yapiyorlar - Two Point Hospital'in
+# `Cheap` mekanigi ile "Will work for peanuts" metni gibi.
+#
+# NEDEN GEREKLIYDI: yirmi muMdavimin ucer sahnesi var, personelin SIFIR
+# satiri vardi. Oyunun butun yari-anlatili personel metni
+# `ui.staff.inherited` idi.
+#
+# SESIN KURALLARI (mudavim repliklerinden ve arastirmadan, docs/53):
+#   - Ucuncu sahis, genis zaman, gozlem. Mudavimlerle ayni kanal.
+#   - DAVRANISI adlandir, KISIYI degil. "Huysuz"un satiri onu kotu
+#     ilan etmiyor; RimWorld'un "finds obligations confining" kalibi.
+#   - Aciklamayi esirge. Bir seyi soylememek kisiyi kurduran sey.
+#   - Simulasyonun yalanlayabilecegi hicbir sey soyleme.
+#   - Duz ve kisa. Sirinlige uzanan replik yirminci gunde katlanilmaz
+#     olur; sevk edilmis bark yazisinin tek ortak uyarisi bu.
+TRAIT_VOICE = {
+    "hizli_ama_daginik": "Siparişi çabuk çıkarır. Tezgâhın hâline bakma.",
+    "yavas_ama_titiz": "Tabağı bırakmadan bir kere daha bakar.",
+    "kalabalikta_panikleyen": "Salon dolunca elleri birbirine dolanıyor.",
+    "sakin": "Kalabalık ona ulaşmıyor. Aynı adım.",
+    "musteriyle_iyi_anlasan": "Hesabı o götürünce masa gülerek kalkıyor.",
+    "suratsiz": "İşini yapar, konuşmaz. Bazı masalar üstüne alınıyor.",
+    "cabuk_yorulan": "Akşama doğru ayakları konuşmaya başlıyor.",
+    "dayanikli": "Kapanışta da açılıştaki adımıyla yürüyor.",
+    "ekip_moralini_yukselten": "O mutfaktayken kimse küs kalmıyor.",
+    "huysuz": "Herkesle bir derdi var. Çoğunda da haklı.",
+    "cirak": "Daha yeni. Bir kere gösterince aklında kalıyor.",
+    "tecrubeli": "Otuz yıldır bu iş. Öğretilecek bir şey kalmamış.",
+}
+
 ROLES = {
     "asci": "Aşçı", "garson": "Garson",
     "bulasikci": "Bulaşıkçı", "kasiyer": "Kasiyer",
@@ -837,10 +871,14 @@ def SCREEN_KEY(k):
     ".desc": icerik bir huyun ADINI istiyor (nameKey), ne yaptigini
     degil. Aciklama yalnizca ise alim kartinda goruunuyor ve oyuncunun
     iki adayi ayirt edebilmesinin TEK yolu.
+
+    ".voice": ayni sebep, farkli is. ".desc" mekanigi anlatiyor,
+    ".voice" kisiyi. Ikisi de kodun istedigi metin - icerik dosyalari
+    ikisini de istemiyor.
     """
     return (k.startswith("ui.") or k.startswith("notice.")
             or k.startswith("score.") or k.startswith("badge.")
-            or k.endswith(".desc"))
+            or k.endswith(".desc") or k.endswith(".voice"))
 
 
 def _ekran_aileleri_ayrismasin():
@@ -875,12 +913,23 @@ def _ekran_aileleri_ayrismasin():
     csharp = set(re.findall(r'StartsWith\("([^"]+)"\)', blok))
     csharp |= set(re.findall(r'EndsWith\("([^"]+)"\)', blok))
 
-    burada = set()
-    for aile in ("ui.", "notice.", "score.", "badge."):
-        if SCREEN_KEY(aile + "x"):
-            burada.add(aile)
-    if SCREEN_KEY("x.desc"):
-        burada.add(".desc")
+    # PYTHON TARAFI DA KAYNAKTAN OKUNUYOR.
+    #
+    # Burada elle yazilmis bir aile listesi vardi ("ui.", "notice.",
+    # ...) ve o, ailenin UCUNCU kopyasiydi: SCREEN_KEY'e ".voice"
+    # eklendiginde kontrol "LocTests.cs'de YOK" diye yanlis alarm verdi -
+    # oysa eksik olan kendi prob listesiydi.
+    #
+    # Iki kopyayi karsilastiran bir kontrol, ucuncu bir kopya uzerine
+    # kurulamaz. Iki taraf da artik KAYNAKTAN okunuyor.
+    kendi = io.open(os.path.abspath(__file__), encoding="utf-8").read()
+    kbas = kendi.find("def SCREEN_KEY")
+    kson = kendi.find(chr(10) + "def ", kbas + 1)
+    kblok = kendi[kbas:kson if kson > 0 else len(kendi)]
+    kblok = kblok[kblok.find("return ("):]
+
+    burada = set(re.findall(r'startswith\("([^"]+)"\)', kblok))
+    burada |= set(re.findall(r'endswith\("([^"]+)"\)', kblok))
 
     if csharp != burada:
         eksik = burada - csharp
@@ -970,6 +1019,8 @@ def build_en():
         table["trait." + k] = v
     for k, v in loc_en.TRAIT_DESC.items():
         table["trait." + k + ".desc"] = v
+    for k, v in loc_en.TRAIT_VOICE.items():
+        table["trait." + k + ".voice"] = v
     for k, v in loc_en.ROLES.items():
         table["role." + k] = v
     for k, v in loc_en.STATIONS.items():
@@ -1056,6 +1107,8 @@ def build():
         table["trait." + k] = v
     for k, v in TRAIT_DESC.items():
         table["trait." + k + ".desc"] = v
+    for k, v in TRAIT_VOICE.items():
+        table["trait." + k + ".voice"] = v
     for k, v in ROLES.items():
         table["role." + k] = v
     for k, v in STATIONS.items():

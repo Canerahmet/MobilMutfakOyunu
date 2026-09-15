@@ -485,11 +485,22 @@ def cuisines():
 # Olculdu: herkese yazan bot 72 aliyor, yani hedef gercekten zor ve
 # eksen "kullandin mi" degil "IYI kullandin mi" diye soruyor.
 #
-# FAST FOOD tarafinda ayni sorun DURUYOR ve bilinerek duruyor: eksen
-# kombo PAYINA bakiyor, ama "acik tut" ile "zirvede kapat" zit yonler.
-# Hedefi yukseltmek, yukaridaki yorumun mesru dedigi oyunu cezalandirir.
-# Duzeltmesi hedefi degil OLCULEN SEYI degistirmeyi gerektiriyor
-# (ornegin kizgin musteri basina kombo cirosu) - acik madde, docs/45.
+# FAST FOOD tarafinda eksen DUZ kaliyor ve bu artik bir eksiklik degil,
+# OLCULMUS bir sonuc (docs/53):
+#
+#   makul (kombo yok)   22.492 kasa | 2617 grup | kombo %0,0  | tabaksiz 846
+#   imzaci (hep acik)   22.163 kasa | 2559 grup | kombo %18,1 | tabaksiz 1018
+#   zirvede_kapat       23.474 kasa | 2564 grup | kombo %16,8 | tabaksiz 792
+#
+# Self servis salonu bosalttiktan sonra darbogaz mutfaga gecti ve kombonun
+# mutfak yuku ILK KEZ isiriyor: kombo 58 grup kaybettiriyor ve zirvede
+# kapatmak hep acik tutmayi +1.311 geciyor. Yani yukaridaki yorumun
+# "mesru" dedigi oyun artik EN IYI oyun.
+#
+# Ve tam bu yuzden ORAN TABANLI hicbir hedef bu ekseni duzeltemez:
+# IYI OYUNUN PAYI DAHA DUSUK (%16,8 < %18,1). Hedefi yukseltmek daha kotu
+# oynayani odullendirirdi. Eksen bir katilim rozeti olarak BILEREK
+# kaliyor; beceri farki varlik ekseninde zaten goruluyor (74'e 71).
 SCORE_AXIS = {
     "fastfood": {"kind": "comboShare", "nameKey": "score.axis.combo", "target": 1500},
     "turk": {"kind": "creditCollected", "nameKey": "score.axis.credit", "target": 9000},
