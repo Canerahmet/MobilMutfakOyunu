@@ -170,7 +170,8 @@ namespace Lokanta.Content
                                   staffNames,
                                   cuisineDto != null && cuisineDto.SelfService,
                                   salonWork, salonWage,
-                                  cuisineDto != null ? cuisineDto.CustomerMultiplierBp : 0);
+                                  cuisineDto != null ? cuisineDto.CustomerMultiplierBp : 0,
+                                  cuisineDto != null ? cuisineDto.RentMultiplierBp : 0);
         }
 
         /// <summary>

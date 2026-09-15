@@ -8,7 +8,8 @@ tek kişilik geliştirme.
 
 ![Kırkıncı gün](render/magaza/20-magaza-servis.png)
 
-*Kırkıncı gün: on dört masa, yedisi dolu, memnuniyet 92,7.*
+*Kırkıncı gün, fast food: tezgâhın üstünde ışıklı menü panosu, ortada sıcak hat,
+uçlarda kasa — garson yok, müşteri tepsisini kendi taşıyor.*
 
 ---
 
@@ -87,9 +88,15 @@ Başlangıçta seçiyorsun ve kayıt boyunca kilitli.
 
 | | Fast food | Türk lokantası |
 |---|---|---|
+| servis | **self servis** — garson yok, temizlikçi masaları toplar | masa servisi — garson siparişi alır, yemeği getirir, hesabı kapatır |
 | ritim | öğle + akşam, iki tepe | sert öğle zirvesi |
-| fiş | düşük, hacim oyunu | yüksek, mahalle müşterisi |
+| fiş | düşük, hacim oyunu (+%30 müşteri) | yüksek, mahalle müşterisi |
 | imza | **kombo** — ortalama fişi yükseltir, mutfağı yorar | **veresiye** — müdavime defterden yazarsın, tahsilat güvene bağlı |
+| mekân | koyu fayans, laminat masa, çelik tezgâh, ışıklı menü panosu | ahşap lambri, kilim, bakır kuşak, sıcak ışık |
+
+Self servis yalnızca bir etiket değil: müşteri tepsisini kendi taşıyor ve
+hesabını tezgâhta ödüyor, yani salon işinin yarısı ortadan kalkıyor. Karşılığı
+kalabalık — ve masada biriken tepsiler.
 
 ---
 

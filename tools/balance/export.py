@@ -424,6 +424,25 @@ def cuisines():
             # bir denge kolu DEGIL - sekli degistiriyor. 13000 en ayrismis
             # sekli veriyor: +%43 grup, 5 kisi kadro, 16 kayip.
             "customerMultiplierBp": 13000 if cid == "fastfood" else 10000,
+            # KIRA: hacmin bedeli, ve kucuk bir zorluk artisi.
+            #
+            # Gercekci: zincirler yuksek trafikli pahali yerlerde oturur.
+            #
+            # SUPURULDU (makul botu, Turk 17.351'e karsi):
+            #   carpansiz   22.473   fark +%29,5
+            #   x1,15       22.263   fark +%28,3   <- secilen
+            #   x1,25       23.493   fark +%35,4
+            #
+            # Yani kirayi ARTIRMAK kasayi ARTIRIYOR: bot maliyete
+            # genislemeyerek cevap veriyor ve genislememek daha karli.
+            # Son kasa bu bot icin bir zorluk olcutu DEGIL; olcut iki
+            # mutfak arasindaki FARK ve o, en dar 11500'de.
+            #
+            # Kalan fark iyi oyuncuda zaten +%13 (planci). Buyuk farklar
+            # TURK'UN zayifliklarindan geliyor: zayiat 14.121'e 5.487 ve
+            # veresiye para kaybettiriyor (docs/51 §7) - onlar ayri bir
+            # is, kirayla kapatilacak seyler degil.
+            "rentMultiplierBp": 11500 if cid == "fastfood" else 10000,
             "menuRoles": roles,
             "signature": SIGNATURE[cid],
             "scoreAxis": SCORE_AXIS[cid],

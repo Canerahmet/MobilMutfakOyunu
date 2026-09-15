@@ -125,7 +125,19 @@ namespace Lokanta.Game
             {
                 Wall = new Color(0.173f, 0.184f, 0.212f),
                 WallTrim = new Color(0.106f, 0.114f, 0.133f),
-                Wood = new Color(0.361f, 0.251f, 0.180f),
+                // MOBILYA: LAMINAT, AHSAP DEGIL.
+                //
+                // Iki salonu YAN YANA koyunca (render/salon_*_oda.png)
+                // zemin ve duvar ayrismisti ama MASALAR BIREBIR AYNIYDI
+                // - ikisi de ayni kahverengi ahsap. Salonun en cok yer
+                // kaplayan yuzeyi masa tablasi, yani ayrimin yarisi
+                // hala eksikti.
+                //
+                // Hizli yemek mobilyasi silinir laminat: acik, soguga
+                // yakin bir bej. Koyu zemin + acik tabla + kirmizi
+                // minder kullanicinin getirdigi uc karenin de duzeni.
+                // Turk tarafi kahverengi ahsap olarak KALIYOR.
+                Wood = new Color(0.686f, 0.612f, 0.510f),
                 Metal = new Color(0.616f, 0.651f, 0.702f),
                 Accent = new Color(0.847f, 0.239f, 0.196f),
                 Sign = new Color(1.000f, 0.314f, 0.251f),
@@ -337,6 +349,7 @@ namespace Lokanta.Game
             Planters(m, p, sol, sag);
             KitchenHood(m, p, tables);
             ServiceCounter(m, isik, p, tables);
+            TrayStation(m, isik, p, tables);
             Shelves(m, p, tables);
             Booths(m, p, tables);
             Boards(m, isik, p, sol, sag, arka, tables);
@@ -615,6 +628,65 @@ namespace Lokanta.Game
                                   2.02f, -0.10f),
                       new Vector3(0.06f, 0.24f, 0.06f), p.Accent);
 
+            // --- SELF SERVIS MENU PANOSU: MUTFAGIN ARKA DUVARINDA ----
+            //
+            // ILK DENEMESI YANLISTI ve karede goruldu: paneller
+            // tezgahin USTUNE, y = 2,0'ye asilmisti ve 34 derecelik
+            // bakista asciların tam onune dusuyorlardi - ekranda dev,
+            // bos, parlayan levhalar. Bu, sarkit lambalarda iki kez
+            // ogrenilen seyin aynisi (bkz. yukarisi): TAVANSIZ bir
+            // binaya yukaridan bakarken asili her sey ARKASINI KAPATIR
+            // ve kullanici iki kez "tavandaki isiklar gozukmesin"
+            // demisti.
+            //
+            // Cozum yeri degistirmek: pano MUTFAGIN ARKA DUVARINDA.
+            // Bu kamerada arka duvar tezgahin tam USTUNDE duruyor, yani
+            // oyuncu zaten "tezgahin ustundeki menu" olarak okuyor -
+            // ama hicbir seyi kapatmiyor.
+            //
+            // Panonun kendisi de bos bir levha degil: koyu yuz, isikli
+            // satirlar, sagda fiyat sutunu. Salonun menu tahtasi ayni
+            // dili konusuyor - uzaktan bir menu tam olarak boyle okunur.
+            if (SelfServis)
+            {
+                for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+                {
+                    RoomPlan.Room r = RoomPlan.Rooms[i];
+                    if (r.Name != "Mutfak") continue;
+                    if (!RoomPlan.RoomOpen(in r, tables)) break;
+
+                    float pz = r.Z0 + r.D - 0.10f;
+                    float pw = Mathf.Min(r.W - 1.4f, 3.60f);
+                    const int pano = 3;
+                    float bw = pw / pano;
+
+                    for (int k = 0; k < pano; k++)
+                    {
+                        float px = r.CenterX - pw * 0.5f + bw * (k + 0.5f);
+
+                        m.Box(new Vector3(px, 2.08f, pz),
+                              new Vector3(bw - 0.05f, 0.66f, 0.05f), p.WallTrim);
+                        m.Box(new Vector3(px, 2.08f, pz - 0.04f),
+                              new Vector3(bw - 0.13f, 0.56f, 0.02f),
+                              new Color(0.09f, 0.10f, 0.11f));
+
+                        // Ust serit BASLIK (kimligin rengi), altindakiler
+                        // satir; en sagda dar bir fiyat sutunu.
+                        isik.Box(new Vector3(px - 0.04f, 2.30f, pz - 0.055f),
+                                 new Vector3(bw - 0.24f, 0.05f, 0.02f), p.Sign);
+                        for (int j = 0; j < 3; j++)
+                        {
+                            float y = 2.14f - j * 0.11f;
+                            isik.Box(new Vector3(px - 0.10f, y, pz - 0.055f),
+                                     new Vector3(bw - 0.36f, 0.035f, 0.02f), p.Lamp);
+                            isik.Box(new Vector3(px + bw * 0.5f - 0.20f, y, pz - 0.055f),
+                                     new Vector3(0.13f, 0.035f, 0.02f), p.Accent);
+                        }
+                    }
+                    break;
+                }
+            }
+
             // --- MENU TAHTASI: salonun arka duvarinda ----------------
             float menuX = float.NaN;
             for (int i = 0; i < RoomPlan.Rooms.Length; i++)
@@ -736,6 +808,34 @@ namespace Lokanta.Game
         /// simulasyona bagli degil. Bagli olsaydi her karede yeniden
         /// kurulmasi gerekirdi.
         /// </summary>
+        /// <summary>
+        /// GORUNTU ARACI ICIN ICERIK.
+        ///
+        /// PreviewCuisine paleti tasiyor ama self servis bayragi
+        /// PALETTE DEGIL ICERIKTE (cuisines/*.json: selfService), yani
+        /// arac icin ayri bir kaynak gerekiyordu. Olmadigi surece arac
+        /// oyunun gosterdiginden BASKA bir sey gosteriyordu: menu
+        /// panelleri, kasalar ve icecek makinesi karede hic yoktu ve
+        /// "eklendi" diye yazilmisti.
+        ///
+        /// Bayragi burada "fastfood ise self servis" diye yazmak kolaydi
+        /// ve yanlis olurdu: o bilgi icerigin, gorunumun degil.
+        /// </summary>
+        [System.NonSerialized] public Lokanta.Core.Content.ContentSet PreviewContent;
+
+        /// <summary>
+        /// Bu mutfak self servis mi. Icerikten geliyor (docs/51).
+        /// Zincir CuisineId ile ayni: once oyun, sonra arac.
+        /// </summary>
+        private bool SelfServis
+        {
+            get
+            {
+                if (App != null && App.Content != null) return App.Content.SelfService;
+                return PreviewContent != null && PreviewContent.SelfService;
+            }
+        }
+
         private void ServiceCounter(Modeler m, Modeler isik, Palette p, int tables)
         {
             for (int i = 0; i < RoomPlan.Rooms.Length; i++)
@@ -776,12 +876,128 @@ namespace Lokanta.Game
                 // malzeme YAPIDA opak cizilebiliyor (docs/37), o yuzden
                 // cam yerine SOLUK ISIKLI bir levha - ayni siluet,
                 // sifir risk.
+                //
+                // SELF SERVISTE SIPER DAR. Kasalar tezgahin uclarinda
+                // duruyor ve boydan boya bir siper onlari ORTUYORDU:
+                // ilk karede kasalardan geriye tezgahin uzerinde iki
+                // beyaz leke kalmisti. Gercek bir hizli yemek tezgahi
+                // da boyle bolunur - ortada sicak hat, uclarda kasa.
+                float sw = SelfServis ? w * 0.60f : w;
                 for (int k = 0; k < 2; k++)
-                    m.Box(new Vector3(x + (k == 0 ? -1f : 1f) * (w * 0.5f - 0.05f),
+                    m.Box(new Vector3(x + (k == 0 ? -1f : 1f) * (sw * 0.5f - 0.05f),
                                       1.12f, z - 0.24f),
                           new Vector3(0.05f, 0.46f, 0.05f), celik);
                 m.Box(new Vector3(x, 1.34f, z - 0.10f),
-                      new Vector3(w, 0.05f, 0.34f), celik);
+                      new Vector3(sw, 0.05f, 0.34f), celik);
+
+                // --- SELF SERVIS TEZGAHI ------------------------------
+                //
+                // Referans karelerin ucunde de ayni yapi var ve hepsi
+                // AYNI SEYI soyluyor: burada sıra tezgaha giriyor.
+                //   1. ust menu panelleri - isikli, sirali
+                //   2. kasa noktalari - tezgahin uzerinde
+                //   3. icecek makinesi - ucta, kendi kendine
+                //
+                // Masa servisli mutfakta bunlarin hicbiri yok: orada
+                // siparis masada aliniyor, menu elde.
+                if (SelfServis)
+                {
+                    // Kasa noktalari: tezgahin uzerinde iki blok.
+                    // Referansta da ikiser ucer sirali duruyorlar.
+                    // Govde CELIK, koyu degil: koyu govde koyu zeminin
+                    // ustunde kayboluyordu ve ekranda yalnizca havada
+                    // duran isikli bir dikdortgen kaliyordu.
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float kx = x + (k == 0 ? -1f : 1f) * (w * 0.5f - 0.40f);
+                        // Govde tezgahin uzerinde, MUSTERI TARAFINA
+                        // bakiyor (z kucuk = salon yonu).
+                        m.Box(new Vector3(kx, 1.01f, z - 0.06f),
+                              new Vector3(0.36f, 0.24f, 0.30f), p.WallTrim);
+                        // Ekran: kasayi kasa yapan sey. Hafif geriye
+                        // yatik degil - bu kamerada dik daha iyi okunuyor.
+                        m.Box(new Vector3(kx, 1.30f, z + 0.02f),
+                              new Vector3(0.30f, 0.34f, 0.05f), p.WallTrim);
+                        isik.Box(new Vector3(kx, 1.31f, z - 0.02f),
+                                 new Vector3(0.24f, 0.26f, 0.02f), p.Lamp);
+                    }
+
+                    // Icecek makinesi: tezgahin ucunda, boydan boya bir
+                    // dolap. Self servisin en tanidik parcasi.
+                    //
+                    // Govdesi de CELIK (ayni sebep: koyu govde koyu
+                    // zeminde yok oluyor - ilk karede makine "havada
+                    // duran kirmizi bir levha" olarak okunuyordu).
+                    float mx = x + w * 0.5f + 0.34f;
+                    m.Box(new Vector3(mx, 0.84f, z), new Vector3(0.52f, 1.68f, 0.56f),
+                          celik);
+                    m.Box(new Vector3(mx, 1.30f, z - 0.29f),
+                          new Vector3(0.44f, 0.66f, 0.03f), p.Accent);
+                    // Musluklar: uc kucuk cikinti.
+                    for (int k = 0; k < 3; k++)
+                        m.Box(new Vector3(mx - 0.16f + 0.16f * k, 0.90f, z - 0.31f),
+                              new Vector3(0.05f, 0.09f, 0.07f), p.WallTrim);
+                    // Bardak cikisi: koyu bir oyuk.
+                    m.Box(new Vector3(mx, 0.68f, z - 0.30f),
+                          new Vector3(0.30f, 0.34f, 0.05f), p.Wall);
+                }
+                return;
+            }
+        }
+
+        /// <summary>
+        /// TEPSI BIRAKMA ISTASYONU: self servisin gorunen SONU.
+        ///
+        /// Self serviste musteri tepsisini kendi tasiyor ve masada
+        /// birakiyor; temizlikci onlari topluyor (docs/51). Ama
+        /// TOPLADIKTAN SONRA NEREYE gotururdu - salonda oyle bir yer
+        /// yoktu. Kullanicinin getirdigi uc karenin ucunde de var:
+        /// bel hizasinda bir dolap, ustunde tepsi yigini, onunde koyu
+        /// bir agiz.
+        ///
+        /// Ayni sebepten SIRA BANDI EKLENMEDI: referansta tezgahin
+        /// onunde bant var ama bu simulasyonda kimse tezgahta
+        /// siraya girmiyor - musteri kapidan masaya yuruyor. Bos bir
+        /// sira bandi, olmayan bir mekanigi vaat ederdi.
+        ///
+        /// Giris odasinda, SOL duvarda: on koridor (Paths.LaneZ = 0,55)
+        /// ve arkadaki tezgah + saksilar (z = 3,2 / 3,3) disinda kalan
+        /// tek bos serit orasi.
+        /// </summary>
+        private void TrayStation(Modeler m, Modeler isik, Palette p, int tables)
+        {
+            if (!SelfServis) return;
+
+            for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+            {
+                RoomPlan.Room r = RoomPlan.Rooms[i];
+                if (r.Name != "Giris") continue;
+                if (!RoomPlan.RoomOpen(in r, tables)) return;
+
+                float x = r.X0 + 0.46f;
+                float z = r.Z0 + 1.90f;
+
+                // Govde ve tabla.
+                m.Box(new Vector3(x, 0.44f, z), new Vector3(0.62f, 0.88f, 1.20f),
+                      p.WallTrim);
+                m.Box(new Vector3(x, 0.90f, z), new Vector3(0.68f, 0.06f, 1.26f),
+                      p.Metal);
+
+                // Atik agzi: one bakan koyu bir oyuk. Istasyonu bir
+                // dolaptan ayiran tek sey bu.
+                m.Box(new Vector3(x + 0.30f, 0.60f, z),
+                      new Vector3(0.06f, 0.34f, 0.74f), p.Wall);
+
+                // Ustunde tepsi yigini: uc ince levha, hafif kaymis.
+                for (int k = 0; k < 3; k++)
+                    m.Box(new Vector3(x - 0.02f * k, 0.95f + 0.045f * k, z - 0.34f),
+                          new Vector3(0.46f, 0.035f, 0.40f), p.Accent);
+
+                // Isikli kucuk levha: "tepsini buraya birak".
+                m.Box(new Vector3(x, 1.42f, z), new Vector3(0.08f, 0.98f, 0.08f),
+                      p.WallTrim);
+                isik.Box(new Vector3(x - 0.04f, 1.78f, z),
+                         new Vector3(0.03f, 0.30f, 0.56f), p.Sign);
                 return;
             }
         }

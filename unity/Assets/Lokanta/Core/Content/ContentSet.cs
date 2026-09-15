@@ -557,6 +557,9 @@ namespace Lokanta.Core.Content
         /// </summary>
         public int CustomerMultiplierBp { get; }
 
+        /// <summary>Kira carpani, baz puan. 0 ya da 10000 ise degisiklik yok.</summary>
+        public int RentMultiplierBp { get; }
+
         /// <summary>
         /// Musterinin yemek yeme suresi, milisaniye. Mutfaga gore degisiyor:
         /// fast food'da kisa, lokantada uzun. Masa devir hizini dogrudan
@@ -648,9 +651,11 @@ namespace Lokanta.Core.Content
                           bool selfService = false,
                           int salonWorkPerCustomerMicro = 0,
                           long salonWageNumerator = 0,
-                          int customerMultiplierBp = 0)
+                          int customerMultiplierBp = 0,
+                          int rentMultiplierBp = 0)
         {
             CustomerMultiplierBp = customerMultiplierBp;
+            RentMultiplierBp = rentMultiplierBp;
             SelfService = selfService;
             SalonWorkPerCustomerMicro = salonWorkPerCustomerMicro;
             SalonWageNumerator = salonWageNumerator;

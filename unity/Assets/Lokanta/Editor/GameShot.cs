@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Lokanta.Content;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
@@ -51,6 +51,9 @@ namespace Lokanta.EditorTools
                 // renk aliyor ve arac oyunun gostereceginin aynisini
                 // gostermeli.
                 view.PreviewCuisine = cuisine;
+                // Self servis bayragi palette degil ICERIKTE; arac
+                // onu vermezse kare oyunun gosterdiginden farkli olur.
+                view.PreviewContent = content;
                 Invoke(view, "Awake");
                 view.Rebuild();
 

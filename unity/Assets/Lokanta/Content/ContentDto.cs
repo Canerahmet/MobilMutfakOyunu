@@ -147,6 +147,19 @@ namespace Lokanta.Content
         /// neredeyse ayni sayida grup agirliyordu (1945'e 1819).
         /// </summary>
         [JsonProperty("customerMultiplierBp")] public int CustomerMultiplierBp { get; set; }
+
+        /// <summary>
+        /// Bu mutfagin kira carpani, baz puan. 10000 = degisiklik yok.
+        ///
+        /// Gercekte de zincirler YUKSEK TRAFIKLI, pahali yerlerde oturur -
+        /// hacmin bedeli kira.
+        ///
+        /// Ama etkisi sezgisel degil: kirayi artirmak denge botunun bitis
+        /// kasasini ARTIRIYOR, cunku bot maliyete genislemeyerek cevap
+        /// veriyor (docs/52 §1). Bu kolun olcutu toplam kasa degil, iki
+        /// mutfak arasindaki FARK.
+        /// </summary>
+        [JsonProperty("rentMultiplierBp")] public int RentMultiplierBp { get; set; }
         /// <summary>Hangi yemek gruplari hangi rolu oynuyor. docs/13.</summary>
         [JsonProperty("menuRoles")] public MenuRolesDto MenuRoles { get; set; }
     }

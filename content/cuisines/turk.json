@@ -16,6 +16,7 @@
     "kasiyer"
   ],
   "customerMultiplierBp": 10000,
+  "rentMultiplierBp": 10000,
   "menuRoles": {
     "main": [
       "sulu",

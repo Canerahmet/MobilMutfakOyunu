@@ -414,7 +414,33 @@ namespace Lokanta.Game
             // Tur artik zirveyi SONRAKI kontrollere birakiyor. Gercek
             // zaman butcesi (40 sn) degismedi; yalnizca gunun neresinde
             // durdugu degisti.
-            while (sure < 40f && cv != null)
+            //
+            // UZATMA: OLCUM HENUZ YAPILAMADIYSA.
+            //
+            // 40 sn tek basina sessizce olcumun TANIMI olmustu. Turk
+            // mutfaginin zirvesi bir onceki islemede 1. dilimden 2.
+            // dilime tasindi (export.py: [1200,4800,2500,1500] ->
+            // [1200,2800,4500,1500]) ve Turkce tur o islemeden sonra hic
+            // kosturulmadi. Kosunca:
+            //
+            //   TANI canlilik penceresi: 37,7 sn, servis %30 -> %61
+            //   HATA: Mutfakta is yapiliyor (0 kisi; simulasyon is verdi
+            //         156 kez)
+            //
+            // Ayni yapi ikinci kosuda GECTI. Yani kirmizi da yesil de
+            // olcumun degil ORNEKLEME SANSININ sonucuydu: tek asci
+            // zamanin cogunu istasyona YURUYEREK geciriyor (simulasyon
+            // gorev veriyor, durus Walk), pencere de kapanmadan once o
+            // dar araliga denk gelebiliyor ya da gelmiyor.
+            //
+            // Cozum pencereyi herkes icin uzatmak DEGIL - o, %80'e kadar
+            // kosup zirveyi yiyen eski davranisi geri getirirdi. Uzatma
+            // yalnizca olculecek sey HENUZ GORULMEDIYSE ve simulasyon
+            // gercekten is veriyorsa devreye giriyor. Kontrol zaten
+            // saglandiysa pencere eskisi gibi 40 sn'de kapaniyor, yani
+            // sonraki kontroller zirveyi aynen buluyor.
+            while ((sure < 40f || (calisan == 0 && simGorev > 0 && sure < 75f))
+                   && cv != null)
             {
                 // PENCERE KOSULA BAKIYOR, SABIT BIR DILIME DEGIL.
                 //

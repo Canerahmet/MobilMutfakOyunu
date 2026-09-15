@@ -582,6 +582,40 @@ namespace Lokanta.Core.Sim
             if (content != null && content.SalonWorkPerCustomerMicro > 0)
                 _economy = _economy.WithSalonPool(
                     content.SalonWorkPerCustomerMicro, content.SalonWageNumerator);
+
+            // MUTFAGIN KIRASI.
+            //
+            // Gerekce gercekci: zincirler yuksek trafikli, pahali
+            // yerlerde oturur - hacmin bedeli kira.
+            //
+            // AMA YON SEZGISEL DEGIL, OLCULDU (docs/52):
+            //
+            //   kira x1,15  makul 22.263  planci 25.094  imzaci 22.433
+            //   kira x1,25  makul 23.493  planci 26.548  imzaci 22.578
+            //
+            // Kirayi ARTIRMAK botun kasasini ARTIRIYOR. Sebep hacim
+            // carpaninda gorulen sebebin aynisi (docs/51 §5): bot
+            // maliyete genislemeyerek cevap veriyor ve genislememek
+            // zaten daha karli. Yani BITIS KASASI BU BOT ICIN BIR
+            // ZORLUK OLCUSU DEGIL; olcu, iki mutfak ARASINDAKI FARK.
+            //
+            // 11500 secildi cunku farki daraltan deger o:
+            //   carpansiz  %29,5  |  x1,15  %28,3  |  x1,25  %35,4
+            // (Turk makul 17.351'e karsi.)
+            if (content != null && content.RentMultiplierBp > 0
+                && content.RentMultiplierBp != Fx.One)
+            {
+                TierConfig[] k = new TierConfig[_economy.TierCount];
+                for (int i = 0; i < k.Length; i++)
+                {
+                    TierConfig t = _economy.TierAt(i);
+                    k[i] = new TierConfig(
+                        t.Tables,
+                        Fx.Bp(t.Rent, content.RentMultiplierBp),
+                        t.Upgrade, t.StaffCap, t.ReputationCapCenti, t.Plates);
+                }
+                _economy = _economy.WithTiers(k);
+            }
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _timing = timing ?? throw new ArgumentNullException(nameof(timing));
             _masterSeed = masterSeed;

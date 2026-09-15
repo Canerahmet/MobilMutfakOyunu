@@ -15,6 +15,7 @@
     "bulasikci"
   ],
   "customerMultiplierBp": 13000,
+  "rentMultiplierBp": 11500,
   "menuRoles": {
     "main": [
       "ana"
