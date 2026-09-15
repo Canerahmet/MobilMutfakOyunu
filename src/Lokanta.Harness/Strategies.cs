@@ -1016,6 +1016,61 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
+    /// BULASIKCI AYIRAN: bir salon calisanini lavaboya adiyor.
+    ///
+    /// Neden gerekli: `CommandKind.SetDishwashers` arayuzde ve testlerde
+    /// vardi ama HICBIR BOT kullanmiyordu - yani tabak darbogazinin
+    /// karari olculmemisti. Aracin kendi ciktisi darbogazin GERCEK
+    /// oldugunu soyluyor ("tabaksiz bekleme" makul icin 206 kez), ama
+    /// "bir kisiyi lavaboya ayirmak kazandiriyor mu" sorusunu hicbir
+    /// sey cevaplayamiyordu.
+    ///
+    /// Takas net: lavaboya ayrilan kisi salonda YOK. Yani tabak
+    /// darbogazini acmak, servis darbogazini daraltiyor.
+    /// </summary>
+    public sealed class DishDuty : IStrategy
+    {
+        // PLANCI'NIN USTUNE kuruldu, makul'un degil.
+        //
+        // Ilk hali ReasonablePlayer'i sariyordu ve o oyuncu dort salon
+        // calisanina HIC ulasmiyor (kadrosu 4'te, salonu ~3'te kaliyor).
+        // Sonuc `makul` ile BAYT BAYT ayni cikti - esik hic tetiklenmedi
+        // ve bunu yalnizca iki satirin ayni olmasi soyledi. Adanmis
+        // bulasikci zaten BUYUK dukkanin sorusu.
+        private readonly PlannerSchedule _inner = new PlannerSchedule();
+
+        /// <summary>
+        /// Kac salon calisanindan sonra biri lavaboya adaniyor.
+        ///
+        /// Esik OLCULEREK secildi. Ilk deneme 2 idi ve kucuk dukkanda da
+        /// ayiriyordu; olculen sey "bulasikci kazandiriyor mu" degil
+        /// "erken ayirmak kaybettiriyor mu" oluyordu. Ayni tuzaga gecen
+        /// tur PeakCloser'da dusulmustu.
+        /// </summary>
+        private const int DedicateFrom = 4;
+
+        public string Name => "bulasikci";
+        public string Question => "Bir kisiyi lavaboya ayirmak kazandiriyor mu";
+
+        public void OnMorning(Simulation sim)
+        {
+            _inner.OnMorning(sim);
+
+            // Salon iki kisiyi bulunca biri lavaboya. Tek garsonken
+            // ayirmak salonu BOSALTIR - o zaman olculen sey bulasik
+            // karari degil, garsonsuz kalmak olurdu.
+            int hedef = sim.SalonStaff >= DedicateFrom ? 1 : 0;
+            if (sim.Dishwashers != hedef)
+                sim.Apply(new Command(sim.TickIndex, CommandKind.SetDishwashers, hedef));
+        }
+
+        public void OnEvening(Simulation sim, in DayReport report)
+        {
+            _inner.OnEvening(sim, report);
+        }
+    }
+
+    /// <summary>
     /// ERKEN TAHSILATCI: defteri vadesinden once kovaliyor.
     ///
     /// Neden gerekli: `CommandKind.CollectCredit` simulasyonda eksiksiz

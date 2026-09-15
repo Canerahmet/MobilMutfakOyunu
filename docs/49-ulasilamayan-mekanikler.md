@@ -109,8 +109,48 @@ tamamlanmış sayılmaz.*
 
 ---
 
-## 5. Kalan: `SetDishwashers`
+## 5. `SetDishwashers`: soru artık sorulabiliyor, cevap karışık
 
-Bulaşıkçı ataması arayüzde ve testlerde var, ama **hiçbir denge botu
-kullanmıyor** — yani tabak darboğazının kararı ölçülmemiş durumda. Bu
-belgede kapatılmadı; kuyruğa yazıldı.
+Bulaşıkçı ataması arayüzde ve testlerde vardı ama **hiçbir denge botu
+kullanmıyordu** — tabak darboğazının kararı ölçülmemişti. `bulasikci` botu
+yazıldı.
+
+**İki kez yanlış ölçtüm, ikisini de aynı imza yakaladı.**
+
+İlk eşik "salon ≥ 2" idi ve küçük dükkânda da ayırıyordu; ölçülen şey
+"bulaşıkçı kazandırıyor mu" değil "erken ayırmak kaybettiriyor mu" oluyordu.
+Eşiği 4'e çıkardım — bu kez sonuç `makul` ile **bayt bayt aynı** çıktı,
+çünkü `ReasonablePlayer` dört salon çalışanına hiç ulaşmıyor. Eşik hiç
+tetiklenmedi ve bunu yalnızca iki satırın aynı olması söyledi (geçen tur
+`PeakCloser`'da tıpatıp aynısı olmuştu).
+
+Bot `PlannerSchedule`'ın üstüne taşındı — adanmış bulaşıkçı zaten **büyük
+dükkânın** sorusu.
+
+| | son kasa | net | masa | tabaksız bekleme | en çok kirli |
+|---|---:|---:|---:|---:|---:|
+| `planci` | 23.375 | 15.375 | 12,0 | 263 | 14,6 |
+| `bulasikci` | **24.850** | **16.850** | 11,5 | **349** | 13,6 |
+
+**Kasa lehte ama ölçüm temiz değil ve asıl ölçüt ters yönde.** Bulaşıkçı
+ayıran kol daha küçük bir dükkânla bitiriyor (11,5 masa) ve daha az yatırım
+yapıyor — kasadaki fark oradan da gelebilir. Üstelik tabaksız bekleme
+**artıyor** (263 → 349), yani mekanik kendi amacını gerçekleştirmiyor.
+
+### Sebep kodda ve bir tasarım sorusu
+
+```csharp
+private bool WashNeeded()
+{
+    if (_platesDirty <= 0) return false;
+    if (_dishwashers > 0) return false;      // bulasikci varsa salon karismaz
+```
+
+Adanmış bir bulaşıkçı, salonun geri kalanının **gerektiğinde yıkamasını
+kapatıyor** — yani kapasiteye eklenmiyor, onun *yerine geçiyor*. Bir kişi,
+"herkes gerektiğinde koşar" davranışından daha az yıkıyor.
+
+Kuralın yorumu bunun bilinçli olduğunu yazıyor ("bulaşıkçı alınca herkes
+kendi işini yapar" — kullanıcının kendi cümlesi). O yüzden **değiştirilmedi**:
+bu bir ölçüm sonucu değil, bir tasarım kararı. Soru artık sorulabilir ve
+sayıları var; kararı kullanıcının.

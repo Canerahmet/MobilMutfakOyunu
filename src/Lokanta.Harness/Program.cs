@@ -178,6 +178,7 @@ namespace Lokanta.Harness
             yield return new SignaturePlayer();
             yield return new PickyCreditor();
             yield return new EagerCollector();
+            yield return new DishDuty();
             yield return new PeakCloser();
             yield return new ComboGouger();
             yield return new OneDishPlayer();
@@ -215,6 +216,7 @@ namespace Lokanta.Harness
                 case "imzaci": return new SignaturePlayer();
                 case "secici_veresiye": return new PickyCreditor();
                 case "erken_tahsilat": return new EagerCollector();
+                case "bulasikci": return new DishDuty();
                 case "zirvede_kapat": return new PeakCloser();
                 case "kombo_sismesi": return new ComboGouger();
                 case "tek_yemek": return new OneDishPlayer();
