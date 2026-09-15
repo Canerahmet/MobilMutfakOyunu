@@ -399,6 +399,31 @@ def cuisines():
             "_comment": "URETILEN DOSYA. tools/balance/export.py",
             "slotDurationsBp": slots,
             "eatMs": 38_000,
+            # SELF SERVIS: hizli yemekte masaya garson gelmiyor.
+            #
+            # Mutfaklari ayiran en buyuk YAPISAL fark. Gercekte de oyle:
+            # tezgahta siparis verilip orada odeniyor, tepsiyi musteri
+            # tasiyor, masasini kendi buluyor. Salonda kalan is tezgah +
+            # toplama + bulasik - yani garson degil TEMIZLIKCI.
+            "selfService": cid == "fastfood",
+            # SALON ROLLERI MUTFAGA GORE.
+            #
+            # Hizli yemekte garson YOK - kasiyer tezgahta, temizlikci
+            # masalari topluyor. Turk lokantasinda ucu de var.
+            #
+            # Bu yalnizca gorunus degil SAYI: garson musteri basina
+            # 38.462 mikro is demek, yani salon yukunun yarisindan
+            # fazlasi. Listeden cikinca kadro modeli de ucret de dusuyor.
+            "salonRoles": (["kasiyer", "bulasikci"] if cid == "fastfood"
+                           else ["garson", "bulasikci", "kasiyer"]),
+            # HACIM: fast food ayni masaya daha cok insan getiriyor.
+            # %30 OLCUMLE secildi. 11500 ve 12000 da denendi ve ikisi de
+            # fast food'u DAHA zengin yapti (23.386 / 24.318 / 22.473):
+            # dusuk hacimde dukkan yalin kaliyor, yuksek hacimde
+            # genisleyip kira ve maas oduyor. Yani hacim toplam kasa icin
+            # bir denge kolu DEGIL - sekli degistiriyor. 13000 en ayrismis
+            # sekli veriyor: +%43 grup, 5 kisi kadro, 16 kayip.
+            "customerMultiplierBp": 13000 if cid == "fastfood" else 10000,
             "menuRoles": roles,
             "signature": SIGNATURE[cid],
             "scoreAxis": SCORE_AXIS[cid],

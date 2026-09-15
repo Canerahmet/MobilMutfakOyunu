@@ -30,6 +30,21 @@ namespace Lokanta.Core.Tests
         private static EconomyConfig Economy() => ContentLoader.LoadEconomy(Paths.Content);
         private static ContentSet Content() => ContentSetLoader.Load(Paths.Content, "fastfood");
 
+        /// <summary>
+        /// MASA SERVISLI mutfak. Salonun gercekten mesgul oldugu yer.
+        ///
+        /// Hizli yemek SELF SERVIS oldu (docs/51): masaya garson
+        /// gelmiyor, salon kasiyer + bulasikci ve musteri basina is
+        /// yarisindan az. O yuzden orada tabak darbogazi olusmuyor ve
+        /// "bulasikci salonu kurtariyor mu" sorusu SORULAMIYOR - iki kol
+        /// birebir ayni cikiyor (32/32, tabaksiz bekleme 0).
+        ///
+        /// Soru masa servisli mutfakta anlamli: garson hem masaya kosuyor
+        /// hem lavaboya, yani ikisi gercekten YARISIYOR.
+        /// </summary>
+        private static ContentSet TableServiceContent() =>
+            ContentSetLoader.Load(Paths.Content, "turk");
+
         private static TimingConfig Timing()
         {
             ContentSet c = Content();
@@ -162,8 +177,10 @@ namespace Lokanta.Core.Tests
         public void Bulasikci_salonu_lavabodan_kurtariyor()
         {
             const int Gun = 25;
-            Simulation yok = new Simulation(Economy(), Content(), Timing(), Seed);
-            Simulation var = new Simulation(Economy(), Content(), Timing(), Seed);
+            Simulation yok = new Simulation(Economy(), TableServiceContent(),
+                                             Timing(), Seed);
+            Simulation var = new Simulation(Economy(), TableServiceContent(),
+                                            Timing(), Seed);
 
             int yokYikama = 0, varYikama = 0;
             int yokBekleme = 0, varBekleme = 0;

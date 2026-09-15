@@ -73,11 +73,32 @@ RATIO_MAX = 3600
 
 # Grup basina hedef malzeme orani. Ana yemek doyurucu ve pahali malzemeli,
 # icecek en yuksek marjli. Hepsi banda rahat sigar.
+# MALZEME ORANI HEDEFI: MUTFAK + GRUP.
+#
+# Olculdu ve vaat sayilarda YOKTU: fast food'un brut marji %64, Turk'un
+# %56 idi. Yani "ucuz ve kalabalik" diye satilan mutfak DAHA KARLI
+# olani. Gercekte tersi - zincirler birim basina az kazanip hacimle
+# yasar.
+#
+# Fast food bandin UST ucuna cekildi (malzeme orani yuksek = marj dar).
+# Turk DEGISMEDI: istenen sey fast food'un birim kazancinin dusmesiydi.
+#
+# ANAHTAR MUTFAK + GRUP, yalnizca grup DEGIL. Ilk denemede grup basina
+# yazmistim ve Turk'un marji da dustu (17.351 -> 16.009): iki mutfak
+# "icecek" ve "tatli" gruplarini PAYLASIYOR, yani grup basina bir hedef
+# ikisini birden kaydiriyor. Paylasilan grubun hedefi mutfaga gore
+# ayrilmadan bu ayrim yapilamaz.
+#
+# Ikisi de docs/12'nin %28-36 bandinin icinde.
 GROUP_TARGET_BP = {
-    "ana": 3300, "yan": 3050, "icecek": 2950, "tatli": 3150,
-    "sulu": 3300, "izgara": 3300, "corba": 3050, "pilav": 3050, "meze": 3050,
-}
-# Denetim icin kaba rol eslemesi: acilis menusunde ana, yan ve icecek sart
+    "fastfood": {
+        "ana": 3550, "yan": 3400, "icecek": 3250, "tatli": 3450,
+    },
+    "turk": {
+        "sulu": 3300, "izgara": 3300, "corba": 3050,
+        "pilav": 3050, "meze": 3050, "icecek": 2950, "tatli": 3150,
+    },
+}# Denetim icin kaba rol eslemesi: acilis menusunde ana, yan ve icecek sart
 GROUP_ROLE = {
     "ana": "ana", "sulu": "ana", "izgara": "ana",
     "yan": "yan", "pilav": "yan", "meze": "yan", "corba": "yan",
@@ -658,7 +679,7 @@ def build_dishes(rows, cuisine, prices):
     out = []
     for did, group, station, cx, prep, _season, base, tops, recipe in rows:
         cm = cost_milli(recipe, prices)
-        target = GROUP_TARGET_BP[group]
+        target = GROUP_TARGET_BP[cuisine][group]
         price = round50(cm * 10 // target)
         season, day = days[did]
         out.append({

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace Lokanta.Content
@@ -120,6 +120,33 @@ namespace Lokanta.Content
         /// <summary>Dort dilimin suresi, baz puan, toplami 10000.</summary>
         [JsonProperty("slotDurationsBp")] public List<int> SlotDurationsBp { get; set; }
         [JsonProperty("eatMs")] public int EatMs { get; set; }
+
+        /// <summary>
+        /// SELF SERVIS MI. Fast food'da masaya garson gelmiyor.
+        ///
+        /// Mutfaklari ayiran en buyuk yapisal fark bu: hizli yemekte
+        /// musteri tezgahta siparis verip PARASINI ORADA odiyor, tepsisini
+        /// kendi tasiyor, masasini kendi buluyor. Salonda garson yok -
+        /// olan kisi TEMIZLIKCI: birakilan tepsileri topluyor.
+        /// </summary>
+        [JsonProperty("selfService")] public bool SelfService { get; set; }
+
+        /// <summary>
+        /// Bu mutfakta salon havuzunda HANGI roller var.
+        ///
+        /// Bos ya da yoksa economy.json'daki butun salon rolleri gecerli
+        /// (eski davranis). Hizli yemekte garson YOK: kasiyer + temizlik.
+        /// </summary>
+        [JsonProperty("salonRoles")] public List<string> SalonRoles { get; set; }
+
+        /// <summary>
+        /// Bu mutfagin talep carpani, baz puan. 10000 = degisiklik yok.
+        ///
+        /// Fast food HACIM oyunu: ayni masa sayisina daha cok insan
+        /// geliyor. Olculdu ki bu vaat sayilarda YOKTU - iki mutfak
+        /// neredeyse ayni sayida grup agirliyordu (1945'e 1819).
+        /// </summary>
+        [JsonProperty("customerMultiplierBp")] public int CustomerMultiplierBp { get; set; }
         /// <summary>Hangi yemek gruplari hangi rolu oynuyor. docs/13.</summary>
         [JsonProperty("menuRoles")] public MenuRolesDto MenuRoles { get; set; }
     }

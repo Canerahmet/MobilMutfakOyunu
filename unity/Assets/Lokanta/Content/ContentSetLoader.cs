@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Lokanta.Core.Content;
@@ -82,9 +82,12 @@ namespace Lokanta.Content
                 if (eco != null && eco.SeasonDays > 0) seasonDays = eco.SeasonDays;
             }
 
+            List<StaffRoleDto> staffRoles =
+                ContentLoader.ReadJson<List<StaffRoleDto>>(src, "staff-roles.json");
+
             return Build(cuisine, ingredientDtos, dishDtos, archetypeDtos,
                          equipmentDto, cuisineDto, seasonDays, regularDtos,
-                         LoadStaffNames(src));
+                         LoadStaffNames(src), staffRoles);
         }
 
         public static ContentSet Build(string cuisine,
@@ -95,7 +98,8 @@ namespace Lokanta.Content
                                        CuisineDto cuisineDto = null,
                                        int seasonDays = DefaultSeasonDays,
                                        List<RegularDto> regularDtos = null,
-                                       string[] staffNames = null)
+                                       string[] staffNames = null,
+                                       List<StaffRoleDto> staffRoles = null)
         {
             IngredientDef[] ingredients = BuildIngredients(ingredientDtos, out var index);
             // Istasyonlar YEMEKLERDEN once: yemegin station alani artik
@@ -116,6 +120,46 @@ namespace Lokanta.Content
 
             int eatMs = cuisineDto != null ? cuisineDto.EatMs : 0;
 
+            // MUTFAGIN SALON HAVUZU.
+            //
+            // economy.json'daki salon rollerinin TOPLAMI kullaniliyordu -
+            // garson + bulasikci + kasiyer. Hizli yemek SELF SERVIS
+            // oldugu icin bu yanlisti: oyuncu calismayan bir garsonun
+            // ucretini oduyor, kadro modeli de ona gore kisi istiyordu.
+            //
+            // Mutfak kendi listesini veriyorsa (salonRoles) yalnizca o
+            // roller toplaniyor. Vermiyorsa sifir donuyor ve eski
+            // davranis aynen kaliyor.
+            int salonWork = 0;
+            long salonWage = 0;
+            // ROLLER VERILMEDIYSE OVERRIDE DE YOK.
+            //
+            // `Build` saf bir DTO kurucusu; cagiran rolleri vermek
+            // zorunda degil (testler vermiyor). Ilk yazdigimda bunu
+            // hata sayiyordum ve SignatureTests kirildi - kendi
+            // iddiasina varamadan "salonRoles hicbir role denk gelmedi"
+            // diye patladi. "Verilmedi" ile "verildi ama tutmadi" ayri
+            // seyler; yalnizca ikincisi hata.
+            if (staffRoles != null && staffRoles.Count > 0
+                && cuisineDto != null && cuisineDto.SalonRoles != null
+                && cuisineDto.SalonRoles.Count > 0)
+            {
+                // ROLLER PARAMETREDEN GELIYOR, dosyadan degil: `Build`
+                // DTO alip ContentSet doner - kaynak okumasi cagiranin
+                // isi. Bu ayrimi bozmak, saf bir kurucuyu dosya
+                // sistemine baglardi.
+                for (int i = 0; staffRoles != null && i < staffRoles.Count; i++)
+                {
+                    StaffRoleDto r = staffRoles[i];
+                    if (!cuisineDto.SalonRoles.Contains(r.Id)) continue;
+                    salonWork += r.WorkPerCustomerMicro;
+                    salonWage += (long)r.WorkPerCustomerMicro * r.DailyWage;
+                }
+                if (salonWork <= 0)
+                    throw new ContentException(
+                        cuisine + ": salonRoles hicbir role denk gelmedi");
+            }
+
             SignatureDef signature = BuildSignature(cuisineDto, cuisine, dishes, seasonDays);
             RegularDef[] regulars = BuildRegulars(regularDtos, cuisine, dishes,
                                                   archetypes, signature);
@@ -123,7 +167,10 @@ namespace Lokanta.Content
             return new ContentSet(cuisine, ingredients, dishes, archetypes, stations,
                                   storage, slots, eatMs, main, side, drink, dessert,
                                   signature, regulars, BuildScoreAxis(cuisineDto),
-                                  staffNames);
+                                  staffNames,
+                                  cuisineDto != null && cuisineDto.SelfService,
+                                  salonWork, salonWage,
+                                  cuisineDto != null ? cuisineDto.CustomerMultiplierBp : 0);
         }
 
         /// <summary>

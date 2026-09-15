@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Lokanta.Core.Economy
 {
@@ -379,6 +379,28 @@ namespace Lokanta.Core.Economy
         /// Tavani ICERIKTEN dusurmek dogru cozum: kural ayni kural,
         /// yalnizca gorunur oldugu esik yaklastiriliyor.
         /// </summary>
+        /// <summary>
+        /// SALON HAVUZUNU MUTFAGA GORE DEGISTIRIR.
+        ///
+        /// Salon yuku ve ucreti economy.json'daki BUTUN salon
+        /// rollerinin toplamiydi - garson + bulasikci + kasiyer.
+        /// Ama hizli yemek SELF SERVIS: masaya garson gelmiyor, yani
+        /// oyuncu calismayan bir garsonun ucretini oduyordu ve kadro
+        /// modeli ona gore kisi istiyordu.
+        ///
+        /// Mutfagin kendi rol listesi (cuisines/*.json: salonRoles)
+        /// buradan uygulaniyor. Liste yoksa hicbir sey degismiyor.
+        /// </summary>
+        public EconomyConfig WithSalonPool(int workPerCustomerMicro,
+                                           long wageNumerator)
+        {
+            if (workPerCustomerMicro <= 0) return this;
+            EconomyConfig c = (EconomyConfig)MemberwiseClone();
+            c.SalonWorkPerCustomerMicro = workPerCustomerMicro;
+            c.SalonWageNumerator = wageNumerator;
+            return c;
+        }
+
         public EconomyConfig WithTiers(TierConfig[] tiers)
         {
             if (tiers == null || tiers.Length == 0) return this;

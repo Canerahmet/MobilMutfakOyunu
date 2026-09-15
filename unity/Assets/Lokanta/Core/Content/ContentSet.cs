@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Lokanta.Core.Content
 {
@@ -537,6 +537,27 @@ namespace Lokanta.Core.Content
         public int[] SlotDurationsBp { get; }
 
         /// <summary>
+        /// Masaya garson gelmiyor: siparis ve odeme TEZGAHTA, tepsiyi
+        /// musteri tasiyor. Salonun isi tezgah + toplama + bulasik.
+        /// </summary>
+        public bool SelfService { get; }
+
+        /// <summary>
+        /// Bu mutfagin salon yuku, mikro/musteri. 0 ise economy.json
+        /// toplami gecerli.
+        /// </summary>
+        public int SalonWorkPerCustomerMicro { get; }
+
+        /// <summary>Ucret payi: sum(work x gunluk ucret). 0 ise degismez.</summary>
+        public long SalonWageNumerator { get; }
+
+        /// <summary>
+        /// Talep carpani, baz puan. 0 ya da 10000 ise degisiklik yok.
+        /// Fast food hacim, Turk fis oyunu.
+        /// </summary>
+        public int CustomerMultiplierBp { get; }
+
+        /// <summary>
         /// Musterinin yemek yeme suresi, milisaniye. Mutfaga gore degisiyor:
         /// fast food'da kisa, lokantada uzun. Masa devir hizini dogrudan
         /// belirliyor.
@@ -623,8 +644,16 @@ namespace Lokanta.Core.Content
                           SignatureDef signature = null,
                           RegularDef[] regulars = null,
                           ScoreAxisDef scoreAxis = null,
-                          string[] staffNames = null)
+                          string[] staffNames = null,
+                          bool selfService = false,
+                          int salonWorkPerCustomerMicro = 0,
+                          long salonWageNumerator = 0,
+                          int customerMultiplierBp = 0)
         {
+            CustomerMultiplierBp = customerMultiplierBp;
+            SelfService = selfService;
+            SalonWorkPerCustomerMicro = salonWorkPerCustomerMicro;
+            SalonWageNumerator = salonWageNumerator;
             StaffNames = staffNames ?? new string[0];
             Signature = signature ?? new SignatureDef(SignatureKind.None);
             ScoreAxis = scoreAxis ?? new ScoreAxisDef("none", "score.signature", 1);

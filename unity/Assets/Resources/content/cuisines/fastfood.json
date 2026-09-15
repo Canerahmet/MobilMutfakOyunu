@@ -9,6 +9,12 @@
     2200
   ],
   "eatMs": 38000,
+  "selfService": true,
+  "salonRoles": [
+    "kasiyer",
+    "bulasikci"
+  ],
+  "customerMultiplierBp": 13000,
   "menuRoles": {
     "main": [
       "ana"

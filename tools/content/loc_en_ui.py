@@ -166,7 +166,7 @@ UI = {
     "ui.staff.to_serve_all": "To serve everyone",
     "ui.staff.weekend": "weekend",
     "ui.staff.sink": "Sink duty",
-    "ui.staff.sink_none": "Nobody at the sink — a waiter steps in when the "
+    "ui.staff.sink_none": "Nobody at the sink — someone from the floor steps in when the "
                           "plates pile up",
     "ui.staff.sink_n": "{0} on the sink",
     "ui.staff.sink_add": "Put on sink",
@@ -265,6 +265,7 @@ UI = {
     "badge.renowned.note": "Reputation reached 90.",
     "badge.first_ten_k": "Ten thousand in the till",
     "badge.first_ten_k.note": "The till passed ten thousand for the first time.",
+    "ui.staff.busser": "Busser",
     "score.wealth": "Wealth",
     "score.reputation": "Reputation",
     "score.regulars": "Regulars",

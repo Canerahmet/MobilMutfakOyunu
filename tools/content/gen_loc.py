@@ -523,7 +523,7 @@ UI = {
     # bulasikci ayri bir kadro degil, lavaboya AYRILMIS bir salon
     # calisani. Metin de oyle konusuyor.
     "ui.staff.sink": "Bulaşık nöbeti",
-    "ui.staff.sink_none": "Kimse lavaboda değil — bulaşık birikince garson geçer",
+    "ui.staff.sink_none": "Kimse lavaboda değil — bulaşık birikince salondan biri geçer",
     "ui.staff.sink_n": "{0} kişi lavaboda",
     "ui.staff.sink_add": "Lavaboya ver",
     "ui.staff.sink_remove": "Salona al",
@@ -702,6 +702,7 @@ UI = {
     "badge.first_ten_k": "Kasada on bin",
     "badge.first_ten_k.note": "Kasa ilk kez on bini gördü.",
 
+    "ui.staff.busser": "Temizlikçi",
     "score.wealth": "Varlık",
     "score.reputation": "İtibar",
     "score.regulars": "Düzenli müşteriler",

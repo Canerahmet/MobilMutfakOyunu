@@ -795,10 +795,36 @@ namespace Lokanta.Game.Ui
             }
         }
 
+        /// <summary>
+        /// Salon calisaninin ADI mutfaga gore degisiyor.
+        ///
+        /// Hizli yemek SELF SERVIS: masaya garson gelmiyor, siparis ve
+        /// odeme tezgahta. Salonda kalan is tepsileri toplamak - yani o
+        /// kisi garson degil TEMIZLIKCI. Ad da oyle olmali, cunku
+        /// oyuncunun ise aldigi kisinin NE YAPTIGINI bilmesi gerekiyor.
+        ///
+        /// Anahtarlar duz yaziliyor: metin ureteci ekranlari tarayip
+        /// kullanilmayan metni reddediyor ve hesaplanan anahtari
+        /// goremiyor (bkz. Badges.NameKey, QualityKey).
+        ///
+        /// Temizlikcinin anahtari "role." degil "ui." ailesinde:
+        /// "role.*" adlari ICERIKTEN geliyor (staff-roles.json nameKey)
+        /// ve staff-roles'ta temizlikci diye bir rol yok - fast food'un
+        /// salonu kasiyer + bulasikci. Burada secilen sey rolun kendisi
+        /// degil, oyuncuya GOSTERILEN ad.
+        /// </summary>
+        // STATIC DEGIL: `App` UiScreen'in ORNEK uyesi.
+        private string SalonRoleKey()
+        {
+            return App.Content != null && App.Content.SelfService
+                ? "ui.staff.busser" : "role.garson";
+        }
+
         protected override void Fill(VisualElement list)
         {
             list.Add(Theme.Head(Loc.T("ui.staff.cook")));
             for (int i = 0; i < App.Sim.Cooks; i++) list.Add(Person(0, i));
+
 
             list.Add(Theme.Head(Loc.T("ui.staff.salon")));
             for (int i = 0; i < App.Sim.SalonStaff; i++) list.Add(Person(1, i));
@@ -904,7 +930,7 @@ namespace Lokanta.Game.Ui
             string name = sim.StaffName(pool, index);
             head.Add(Theme.Text(
                 string.IsNullOrEmpty(name)
-                    ? Loc.T(pool == 0 ? "role.asci" : "role.garson") + " " + (index + 1)
+                    ? Loc.T(pool == 0 ? "role.asci" : SalonRoleKey()) + " " + (index + 1)
                     : name,
                 Theme.FontBody));
 
@@ -913,7 +939,21 @@ namespace Lokanta.Game.Ui
                                 Theme.FontSmall, MoraleColor(morale)));
             card.Add(head);
 
-            card.Add(Theme.Text(TraitText(pool, index), Theme.FontSmall, Theme.InkDim));
+            // ROL ADI HUYUN YANINDA.
+            //
+            // Kart ADI yaziyor ve rol adi yalnizca ad yoksa yedek olarak
+            // cikiyordu - personelin adi oldugu icin "Temizlikci" HIC
+            // gorunmuyordu. Yani hizli yemekte salondaki kisinin garson
+            // DEGIL temizlikci oldugunu oyuncu ogrenemiyordu; self
+            // servis degisikliginin (docs/51) gorunur yarisi eksikti.
+            //
+            // Tur bunu yakaladi: etiket kontrolu Turk'te gecti, hizli
+            // yemekte KALDI. Ilk yazdigimda "ekranda Temizlikci yaziyor"
+            // demistim ve gormemistim.
+            card.Add(Theme.Text(
+                Loc.T(pool == 0 ? "role.asci" : SalonRoleKey())
+                    + " · " + TraitText(pool, index),
+                Theme.FontSmall, Theme.InkDim));
             card.Add(Theme.Field(Loc.T("ui.staff.level"),
                                  Loc.T("ui.staff.days",
                                        sim.StaffLevel(pool, index),
@@ -961,7 +1001,7 @@ namespace Lokanta.Game.Ui
             VisualElement card = Theme.PanelBox();
             card.style.backgroundColor = Theme.PanelHi;
 
-            card.Add(Theme.Head(Loc.T(pool == 0 ? "role.asci" : "role.garson")));
+            card.Add(Theme.Head(Loc.T(pool == 0 ? "role.asci" : SalonRoleKey())));
 
             // HUYUN ADI YETMIYOR, NE YAPTIGI LAZIM.
             //

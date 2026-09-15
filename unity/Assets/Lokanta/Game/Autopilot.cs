@@ -277,6 +277,22 @@ namespace Lokanta.Game
                     Click(Loc.T("ui.staff.sink_remove"));
                     yield return Settle();
                     Note(_app.Sim.Dishwashers == once, "Bulasik nobeti geri alindi (" + _app.Sim.Dishwashers + ")");
+
+                    // SALON ROLUNUN ADI MUTFAGA GORE.
+                    //
+                    // Hizli yemek self servis: masaya garson gelmiyor,
+                    // salondaki kisi tepsileri topluyor - yani
+                    // TEMIZLIKCI (docs/51). Ad ekranda degismezse
+                    // oyuncu ise aldigi kisinin ne yaptigini bilemez.
+                    //
+                    // Kontrol MUTFAGA GORE ters yonu de ariyor: yanlis
+                    // etiketin GORUNMEDIGINI de dogruluyor, yoksa iki
+                    // adi birden basan bir ekran yesil gecerdi.
+                    bool self = _app.Content != null && _app.Content.SelfService;
+                    string dogru = self ? Loc.T("ui.staff.busser") : Loc.T("role.garson");
+                    string yanlis = self ? Loc.T("role.garson") : Loc.T("ui.staff.busser");
+                    Note(HasText(dogru) && !HasText(yanlis),
+                         "Salon rolunun adi mutfaga uygun (" + dogru + ")");
                 }
                 yield return Shot("05-" + Slug(s));
                 Back();
@@ -943,8 +959,22 @@ namespace Lokanta.Game
                         _app.Ui.Refresh();
                     }
                     yield return Settle();
+                    // ARAMA SABRI 30 -> 75 SANIYE.
+                    //
+                    // Bar DUSURULMEDI, arama uzatildi. Self servis
+                    // masa devrini hizlandiriyor (servis ve odeme
+                    // beklemesi yok), yani ayni anda dolu masa sayisi
+                    // dusuyor ve "yarisi dolu" ani daha DAR bir pencerede
+                    // yasaniyor. Bir kosu 4/14'te sureye takildi; ayni
+                    // yapida baska kosular 8/14 ve 13/14 gordu, yani esik
+                    // ulasilabilir - eksik olan sabirdi.
+                    //
+                    // Esigi dusurmek yanlis olurdu: magaza goruntusunun
+                    // isi dolu bir lokanta gostermek ve "self serviste
+                    // zaten bos olur" demek, goruntuyu oyunun en sakin
+                    // anina razi etmek olurdu.
                     float bek = 0f;
-                    while (bek < 30f && (_app.Sim.OccupiedTables < _app.Sim.TableCount / 2 || _app.Sim.BuildDayReport().Revenue <= 0 || _app.NoticeCount > 0))
+                    while (bek < 75f && (_app.Sim.OccupiedTables < _app.Sim.TableCount / 2 || _app.Sim.BuildDayReport().Revenue <= 0 || _app.NoticeCount > 0))
                     {
                         bek += Time.deltaTime;
                         yield return null;

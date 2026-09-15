@@ -572,6 +572,16 @@ namespace Lokanta.Core.Sim
                           TimingConfig timing, ulong masterSeed)
         {
             _economy = economy ?? throw new ArgumentNullException(nameof(economy));
+
+            // MUTFAGIN SALON HAVUZU EKONOMIYE UYGULANIYOR.
+            //
+            // Icerik kendi rol listesini verdiyse (cuisines/*.json:
+            // salonRoles) salon yuku ve ucreti ondan geliyor. Vermediyse
+            // WithSalonPool hicbir sey degistirmiyor, yani eski davranis
+            // birebir korunuyor.
+            if (content != null && content.SalonWorkPerCustomerMicro > 0)
+                _economy = _economy.WithSalonPool(
+                    content.SalonWorkPerCustomerMicro, content.SalonWageNumerator);
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _timing = timing ?? throw new ArgumentNullException(nameof(timing));
             _masterSeed = masterSeed;
@@ -5858,7 +5868,25 @@ namespace Lokanta.Core.Sim
                 _platesInUse += need;
                 _pPlates[best] += need;
                 _pCooked[best] = false;
-                _pEatLeftMs[best] = -1;               // tabakta, servis bekliyor
+                // SELF SERVISTE SERVIS ADIMI YOK.
+                //
+                // Tezgahta siparis veren musteri tepsisini KENDI aliyor;
+                // masaya kimse getirmiyor. Bu, iki mutfagi ayiran en
+                // buyuk yapisal fark (docs/51) ve salon yukunun yarisini
+                // bu adim tasiyordu.
+                //
+                // Muhasebeye dokunulmuyor: memnuniyet, itibar ve masanin
+                // kirli birakilmasi hala CompletePayment'ta.
+                if (_content.SelfService)
+                {
+                    _pStage[best] = CustomerStage.Eating;
+                    _pEatLeftMs[best] = _timing.EatMs;
+                    Emit(SimEventKind.FoodServed, best, _pTable[best]);
+                }
+                else
+                {
+                    _pEatLeftMs[best] = -1;           // tabakta, servis bekliyor
+                }
                 Emit(SimEventKind.FoodReady, best, _pDishMain[best]);
             }
         }
@@ -5870,6 +5898,23 @@ namespace Lokanta.Core.Sim
                 if (!_pActive[i] || _pStage[i] != CustomerStage.Eating) continue;
                 _pEatLeftMs[i] -= TimingConfig.TickMs;
                 if (_pEatLeftMs[i] > 0) continue;
+                // SELF SERVISTE ODEME BEKLEME YOK.
+                //
+                // Para tezgahta, siparis aninda odendi. Musteri kalkip
+                // gidiyor - masada tepsisi kaliyor ve onu TEMIZLIKCI
+                // topluyor (CompletePayment masayi kirli birakiyor).
+                //
+                // CompletePayment yine cagriliyor: memnuniyet, itibar,
+                // mudavim kaydi ve ciro orada. Degisen tek sey,
+                // oyuncunun bir garsonu masaya gondermesinin
+                // GEREKMEMESI.
+                if (_content.SelfService)
+                {
+                    _pStage[i] = CustomerStage.WaitingToPay;
+                    CompletePayment(i);
+                    continue;
+                }
+
                 _pStage[i] = CustomerStage.WaitingToPay;
                 // Odeme beklerken sabir yeniden isliyor ama tazelenmis olarak:
                 // yemek yiyen musteri sifirdan sabirli degil, yarisiyla basliyor.
@@ -6139,6 +6184,15 @@ namespace Lokanta.Core.Sim
         {
             int people = DemandModel.CustomersPerDay(
                 _tableCount, _reputationCenti, _economy.CustomerBasePerTable, dayFactorBp);
+
+            // MUTFAGIN HACMI. Fast food ayni masaya daha cok insan
+            // getiriyor - "kalabalik, dusuk fis" vaadinin sayidaki
+            // karsiligi. Carpan TEK KAPIDA uygulaniyor, yani kadro
+            // onerisi, hal onerisi ve gelis plani ayni sayiyi goruyor.
+            int carpan = _content.CustomerMultiplierBp;
+            if (carpan > 0 && carpan != Fx.One)
+                people = (int)Fx.Bp(people, carpan);
+
             return DemandModel.ApplyPrice(people, MenuPriceDiffBp(),
                                           _economy.PriceElasticityBp);
         }

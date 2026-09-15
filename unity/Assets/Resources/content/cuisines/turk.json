@@ -9,6 +9,13 @@
     1500
   ],
   "eatMs": 38000,
+  "selfService": false,
+  "salonRoles": [
+    "garson",
+    "bulasikci",
+    "kasiyer"
+  ],
+  "customerMultiplierBp": 10000,
   "menuRoles": {
     "main": [
       "sulu",
