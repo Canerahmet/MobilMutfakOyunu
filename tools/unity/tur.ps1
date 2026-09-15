@@ -32,6 +32,11 @@ param(
     [int]$TimeoutSec = 900,
     # HANGI YAPI. "windows" Mono (hizli, gunluk tur);
     # "windows-il2cpp" Android'in derleyici + budayicisi.
+    # HANGI MUTFAK: "turk" (varsayilan) ya da "fastfood".
+    # Tur mutfagi sabit seciyordu; hizli yemegin gorunusu hic
+    # olculmuyordu.
+    [ValidateSet("turk","fastfood")]
+    [string]$Mutfak = "turk",
     [string]$Yapi = "windows",
     [string]$Root = "D:\ClaudeCodeProjects\MobilOyun"
 )
@@ -74,6 +79,7 @@ for ($i = 1; $i -le $Runs; $i++) {
         # cerceve telefonda gorunenin BIREBIR aynisi.
         $p = Start-Process -FilePath $exe -PassThru -Wait `
             -ArgumentList @("-lokanta-tur", "-lokanta-cikti", $out,
+                            "-lokanta-mutfak", $Mutfak,
                             "-lokanta-olcek", "2.5",
                             "-screen-width", "2183", "-screen-height", "983",
                             "-screen-fullscreen", "0")
@@ -81,6 +87,7 @@ for ($i = 1; $i -le $Runs; $i++) {
     else {
         $p = Start-Process -FilePath $exe -PassThru -Wait `
             -ArgumentList @("-lokanta-tur", "-lokanta-cikti", $out,
+                            "-lokanta-mutfak", $Mutfak,
                             "-screen-width", "873", "-screen-height", "393",
                             "-screen-fullscreen", "0")
     }

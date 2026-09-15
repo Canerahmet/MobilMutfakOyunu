@@ -112,6 +112,34 @@ namespace Lokanta.Game
             }
         }
 
+        /// <summary>
+        /// HANGI MUTFAK OYNANACAK. 0 hizli yemek, 1 Turk lokantasi.
+        ///
+        /// Tur mutfagi SABIT olarak 1 seciyordu (Turk). Yani hizli
+        /// yemek mutfaginin gorunusu - kendi duvari, paleti, zemin
+        /// deseni, disarisinin rengi - turun HIC gormedigi bir sey oldu.
+        /// Bu projede ayni aileden kac hata ciktigini docs/48-49 sayiyor:
+        /// kosmayan bir kontrol, gecen bir kontrolle ayni gorunuyor.
+        ///
+        /// Varsayilan 1 birakildi: bayrak verilmezse davranis eskisiyle
+        /// birebir ayni, yani mevcut kosular ve goruntuler kaymiyor.
+        /// </summary>
+        private static int MutfakBayragi()
+        {
+            string[] a = Environment.GetCommandLineArgs();
+            for (int i = 0; i < a.Length - 1; i++)
+            {
+                if (a[i] != "-lokanta-mutfak") continue;
+                string v = a[i + 1];
+                if (v == "fastfood") return 0;
+                if (v == "turk") return 1;
+                Debug.LogWarning("Tur: -lokanta-mutfak degeri okunamadi ("
+                                 + v + "), turk kullaniliyor");
+                return 1;
+            }
+            return 1;
+        }
+
         private static float OlcekBayragi()
         {
             string[] commandLineArgs = Environment.GetCommandLineArgs();
@@ -213,7 +241,9 @@ namespace Lokanta.Game
             Note(Click(Loc.T("ui.menu.new")), "Yeni oyun dugmesi");
             yield return Settle();
             yield return Shot("02-mutfak-secimi");
-            Note(Click(Loc.T("ui.cuisine.start"), 1), "Turk lokantasi dugmesi");
+            int mutfak = MutfakBayragi();
+            Note(Click(Loc.T("ui.cuisine.start"), mutfak),
+                 mutfak == 0 ? "Hizli yemek dugmesi" : "Turk lokantasi dugmesi");
             yield return Settle();
             yield return Shot("03-yuva-secimi");
             Note(Click(Loc.T("ui.cuisine.start")), "Birinci yuva");

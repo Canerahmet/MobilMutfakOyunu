@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Lokanta.Game
 {
@@ -41,6 +41,36 @@ namespace Lokanta.Game
             public Color FloorAlt;   // zemin deseninin koyu tonu
             public bool HasRug;      // hali var mi
             public bool Planks;      // zemin deseni: ahsap tahta mi, fayans mi
+
+            // --- DUVARIN YUZEYI ---------------------------------------
+            //
+            // Duvar tek bir duz kutuydu: govde + supurgelik + korniz.
+            // Iki mutfak ayni duvari farkli renkte gosteriyordu, yani
+            // "baska bir yere girdim" hissinin yarisi eksikti.
+            //
+            // Arastirmadan gelen ayrim (kaynaklar docs/50):
+            //   Turk lokantasi - AHSAP LAMBRI. Geleneksel esnaf
+            //   lokantasinin tanimlayici yuzeyi; ustunde sivali duvar.
+            //   Hizli yemek   - PANEL DERZI + CELIK BANT. Sert, silinir
+            //   yuzeyler; yatay celik serit ve duşey panel ekleri.
+            //
+            // Ikisi de Modeler kutusu, yani yeni varlik yok - indirilen
+            // doku da yok (lisans defterine girecek bir sey eklenmiyor).
+
+            /// <summary>Lambri yuksekligi, metre. 0 ise lambri yok.</summary>
+            public float Wainscot;
+
+            /// <summary>Lambri / panel rengi.</summary>
+            public Color WainscotColor;
+
+            /// <summary>Lambrinin ust kenarindaki ince kusak rengi.</summary>
+            public Color WainscotCap;
+
+            /// <summary>Duşey derz araligi, metre. 0 ise derz yok.</summary>
+            public float SeamStep;
+
+            /// <summary>Disarinin tonu; arka plan gokyuzune karisiyor.</summary>
+            public Color Sky;
         }
 
         /// <summary>
@@ -74,6 +104,20 @@ namespace Lokanta.Game
                     FloorAlt = new Color(0.341f, 0.239f, 0.161f),
                     HasRug = true,
                     Planks = true,
+
+                    // AHSAP LAMBRI: geleneksel esnaf lokantasinin
+                    // tanimlayici yuzeyi. Ustu sivali duvar, ust kenarda
+                    // ince bakir kusak.
+                    //
+                    // 1,05 m secildi cunku OTURAN kisinin sirti o
+                    // hizada: lambri gercek hayatta da sandalye
+                    // yuksekligini korumak icin var, sus degil.
+                    Wainscot = 1.05f,
+                    WainscotColor = new Color(0.361f, 0.235f, 0.141f),
+                    WainscotCap = new Color(0.706f, 0.545f, 0.267f),
+                    SeamStep = 0.85f,
+                    // Disarisi da sicak: mahalle, tozlu ogle isigi.
+                    Sky = new Color(0.82f, 0.68f, 0.48f),
                 };
             }
 
@@ -109,6 +153,18 @@ namespace Lokanta.Game
                 FloorAlt = new Color(0.325f, 0.341f, 0.373f),
                 HasRug = false,
                 Planks = false,
+
+                // PANEL DERZI + CELIK BANT.
+                //
+                // Hizli yemek salonunun yuzeyi "silinir" olmali:
+                // laminat panel ekleri ve tezgah hizasinda paslanmaz
+                // bir serit. Lambri YOK - o baska bir mekanin dili.
+                Wainscot = 1.15f,
+                WainscotColor = new Color(0.137f, 0.145f, 0.169f),
+                WainscotCap = new Color(0.616f, 0.651f, 0.702f),
+                SeamStep = 1.15f,
+                // Disarisi soguk ve sehirli: cadde, asfalt, cam.
+                Sky = new Color(0.58f, 0.68f, 0.82f),
             };
         }
 
@@ -265,6 +321,14 @@ namespace Lokanta.Game
             }
             if (sol > sag) return;
 
+            // DISARISI DA MUTFAGA AIT.
+            //
+            // Arka plan gokyuzu yerine geciyor ve iki mutfakta birebir
+            // ayniydi. Burada baglaniyor cunku mutfak CALISMA ZAMANINDA
+            // seciliyor - sahne kurulurken (BuildGameScene) daha bilinmiyor.
+            DayLight gun = FindFirstObjectByType<DayLight>();
+            if (gun != null) gun.SkyTint = p.Sky;
+
             Modeler m = new Modeler();
             Modeler isik = new Modeler();
 
@@ -352,6 +416,45 @@ namespace Lokanta.Game
             m.Box(new Vector3(orta, BackWallHeight - 0.07f, arka + 0.05f),
                   new Vector3(genislik + 0.40f, 0.14f, 0.26f), p.WallTrim);
 
+            // --- YUZEY: LAMBRI / PANEL --------------------------------
+            //
+            // Duvar bu satirlara kadar TEK DUZ KUTUYDU ve iki mutfak
+            // ayni yuzeyi farkli renkte gosteriyordu. Ayrim artik
+            // malzemede: Turk'te ahsap lambri, hizli yemekte panel
+            // derzi + celik bant.
+            //
+            // Hepsi ince kutu; yeni varlik yok, indirilen doku yok.
+            if (p.Wainscot > 0f)
+            {
+                // Govde: duvarin onune 2 cm cikinti - duz bir renk
+                // degisiminden farki bu, kenarinda golge olusuyor.
+                m.Box(new Vector3(orta, p.Wainscot * 0.5f, arka + 0.02f),
+                      new Vector3(genislik + 0.36f, p.Wainscot, 0.06f),
+                      p.WainscotColor);
+
+                // Ust kusak: lambriyi bitiren ince serit (Turk'te bakir,
+                // hizli yemekte paslanmaz). Referansta ikisi de var.
+                m.Box(new Vector3(orta, p.Wainscot + 0.02f, arka + 0.00f),
+                      new Vector3(genislik + 0.38f, 0.05f, 0.10f),
+                      p.WainscotCap);
+            }
+
+            // Duşey derzler: lambriyi tahtalara, paneli levhalara boluyor.
+            // Olcegi okunur yapan sey bu - duz bir yuzeyde goz mesafeyi
+            // tartamiyor.
+            if (p.SeamStep > 0.2f && p.Wainscot > 0f)
+            {
+                int adet = Mathf.FloorToInt(genislik / p.SeamStep);
+                for (int i = 1; i <= adet; i++)
+                {
+                    float x = sol + p.SeamStep * i;
+                    if (x > sag - 0.1f) break;
+                    m.Box(new Vector3(x, p.Wainscot * 0.5f, arka - 0.01f),
+                          new Vector3(0.025f, p.Wainscot - 0.04f, 0.04f),
+                          p.WallTrim);
+                }
+            }
+
             // Yan donusler: mekan iki yandan da kapaniyor.
             for (int i = 0; i < 2; i++)
             {
@@ -360,6 +463,17 @@ namespace Lokanta.Game
                       new Vector3(0.18f, BackWallHeight, 1.9f), p.Wall);
                 m.Box(new Vector3(x, 0.09f, arka - 0.85f),
                       new Vector3(0.24f, 0.18f, 1.9f), p.WallTrim);
+
+                // Yan duvarlarda da ayni yuzey: biri lambrili biri duz
+                // olsaydi mekan yarim kalmis gorunurdu.
+                if (p.Wainscot > 0f)
+                {
+                    float xi = i == 0 ? x + 0.10f : x - 0.10f;
+                    m.Box(new Vector3(xi, p.Wainscot * 0.5f, arka - 0.85f),
+                          new Vector3(0.06f, p.Wainscot, 1.9f), p.WainscotColor);
+                    m.Box(new Vector3(xi, p.Wainscot + 0.02f, arka - 0.85f),
+                          new Vector3(0.10f, 0.05f, 1.9f), p.WainscotCap);
+                }
             }
         }
 

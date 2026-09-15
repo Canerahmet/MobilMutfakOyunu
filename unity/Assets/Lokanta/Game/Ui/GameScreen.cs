@@ -1,4 +1,4 @@
-using Lokanta.Core.Sim;
+﻿using Lokanta.Core.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -248,8 +248,49 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>Bir ogenin yazisi kendi genisligine sigiyor mu.</summary>
+        /// <summary>
+        /// Ogenin kendisi ya da bir atasi tasani kirpiyor mu.
+        ///
+        /// Kirpmiyorsa yazi tasar ama OKUNUR; o zaman sorun kesilme
+        /// degil, komsusuyla cakisma - ve onu ayri bir olcum ariyor.
+        /// </summary>
+        private static bool KirpanKutudaMi(VisualElement v)
+        {
+            // SATIR ICI STILDEN okunuyor: `resolvedStyle` bu Unity
+            // surumunde `overflow` tasimiyor (IResolvedStyle'da yok).
+            // Bu projede stiller zaten C#'ta satir ici veriliyor, yani
+            // kaynak dogru yer.
+            for (VisualElement e = v; e != null; e = e.parent)
+            {
+                StyleEnum<Overflow> o = e.style.overflow;
+                if (o.keyword == StyleKeyword.Undefined
+                    && o.value == Overflow.Hidden) return true;
+            }
+            return false;
+        }
+
         private static bool Clipped(TextElement v, string text)
         {
+            // KESILME ANCAK KIRPAN BIR KUTUDA OLUR.
+            //
+            // UI Toolkit'te `overflow` varsayilani GORUNUR: yazi
+            // kutusunu assa bile cizilmeye devam eder, kesilmez. Bu
+            // olcum ise "asti = kesildi" varsayiyordu ve bu arayuzde
+            // Overflow.Hidden yalnizca IKI yerde var - bir simge kutusu
+            // ve bir ilerleme cubugu; hicbir yazi etiketinde yok.
+            //
+            // Yani olcum, bu arayuzde VAR OLMAYAN bir hata bicimini
+            // ariyordu ve yalnizca yanlis alarm uretebiliyordu. Hizli
+            // yemek turu ilk kez kosturuldugunda uc etiket birden
+            // kirmizi yakti; ucu de ekranda eksiksiz okunuyordu.
+            //
+            // Asil koruma zaten iki komsu olcumde: ust uste binen dugme
+            // (Turk mutfagindaki gercek hatayi O yakaladi) ve ekranin
+            // disina tasan oge. Burasi artik yalnizca GERCEKTEN kirpan
+            // bir kutunun icini olcuyor - bugun sessiz, ama biri yazi
+            // kabina Overflow.Hidden koydugu gun konusur.
+            if (!KirpanKutudaMi(v)) return false;
+
             float have = v.resolvedStyle.width
                          - v.resolvedStyle.paddingLeft
                          - v.resolvedStyle.paddingRight;
@@ -261,7 +302,36 @@ namespace Lokanta.Game.Ui
 
             // Yarim piksel pay: olcum ile yerlesim arasindaki yuvarlama
             // farki kirpilma sayilmamali.
-            return want > have + 0.5f;
+            if (want <= have + 0.5f) return false;
+
+            // GENISLIK ASILDI - AMA SARAN BIR ETIKETTE BU KIRPILMA DEGIL.
+            //
+            // UI Toolkit'te sarma varsayilan olarak ACIK ve bu olcum
+            // yaziyi HER ZAMAN tek satir varsayiyordu. Hizli yemek turu
+            // ilk kez kosturuldugunda yakalandi: "Kombo kapali" iki
+            // satira sariyor, ekranda EKSIKSIZ okunuyor, ve kontrol
+            // "kirpilan yazi: 2" deyip turu dusuruyordu. Turkce
+            // etiketler tesadufen tek satira sigdigi icin yanlis alarm
+            // bugune kadar hic patlamadi.
+            //
+            // Olcut: oge IKI SATIR yuksekliginde mi. Sardiysa yazi
+            // asagi akmis ve okunuyor demektir; sarmadiysa gercekten
+            // kesiliyor.
+            //
+            // Once bunu "saran etiketi yukseklikle olc" diye yazdim ve
+            // DAHA KOTU oldu - varsayilan sarma acik oldugu icin butun
+            // etiketler o dala dustu ve yedi yanlis alarm cikti ("x4",
+            // "8.000" gibi apacik sigan yazilar). Dar cozum dogru cozum.
+            float satirY = v.MeasureTextSize(
+                "X", 0f, VisualElement.MeasureMode.Undefined,
+                0f, VisualElement.MeasureMode.Undefined).y;
+            float ogeY = v.resolvedStyle.height
+                         - v.resolvedStyle.paddingTop
+                         - v.resolvedStyle.paddingBottom;
+            if (satirY > 0f && !float.IsNaN(ogeY) && ogeY >= satirY * 1.8f)
+                return false;
+
+            return true;
         }
 
         public float StripHeight

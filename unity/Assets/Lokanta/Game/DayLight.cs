@@ -1,4 +1,4 @@
-using Lokanta.Core.Sim;
+﻿using Lokanta.Core.Sim;
 using UnityEngine;
 
 namespace Lokanta.Game
@@ -43,6 +43,26 @@ namespace Lokanta.Game
 
         /// <summary>Sokak lambalarinin isikli parcalari.</summary>
         public Renderer[] LampHeads;
+
+        /// <summary>
+        /// MUTFAGIN DISARISI. Arka plan rengine karisan hafif ton.
+        ///
+        /// Arka plan gokyuzu yerine geciyor (asagida) ve iki mutfakta
+        /// BIREBIR AYNIYDI - yani "baska bir yere girdim" hissi salonun
+        /// dort duvarinda bitiyordu. Disarisi da mutfaga ait olmali:
+        /// hizli yemek daha soguk ve sehirli, Turk lokantasi daha sicak.
+        ///
+        /// Ton yalnizca GUNDUZ uc duraga karisiyor; gece dokunulmuyor.
+        /// Gecenin neredeyse siyah olmasi, "acik bir lokanta"
+        /// goruntusunun karsitligini tasiyan sey - onu ton yuzunden
+        /// aydinlatmak bütün geceyi bozardi.
+        ///
+        /// Varsayilan beyaz = karisim yok, yani kimse ayarlamazsa
+        /// davranis eskisiyle birebir ayni.
+        public Color SkyTint = Color.white;
+
+        /// <summary>Tonun gucu, 0-1. Olculerek secildi: 0,22.</summary>
+        public float SkyTintStrength = 0.22f;
 
         /// <summary>Lambalarin yerdeki isik havuzlari.</summary>
         public GameObject[] LampGlow;
@@ -216,10 +236,10 @@ namespace Lokanta.Game
             // mavi, ikindi sicak, aksam gercekten karanlik.
             if (Cam != null)
                 Cam.backgroundColor = Mix(t,
-                    new Color(0.30f, 0.38f, 0.48f),
-                    new Color(0.38f, 0.51f, 0.65f),
-                    new Color(0.44f, 0.34f, 0.31f),
-                    new Color(0.04f, 0.05f, 0.09f));
+                    Tint(new Color(0.30f, 0.38f, 0.48f)),
+                    Tint(new Color(0.38f, 0.51f, 0.65f)),
+                    Tint(new Color(0.44f, 0.34f, 0.31f)),
+                    new Color(0.04f, 0.05f, 0.09f));   // gece: ton YOK
 
             // ICERININ SICAK DOLGUSU: salonun kendi isigi. Disarisi
             // soguyup kararirken icerinin sicak kalmasi, "acik bir
@@ -349,6 +369,12 @@ namespace Lokanta.Game
             if (t < 0.40f) return Mathf.Lerp(a, b, t / 0.40f);
             if (t < 0.72f) return Mathf.Lerp(b, c, (t - 0.40f) / 0.32f);
             return Mathf.Lerp(c, d, Mathf.Clamp01((t - 0.72f) / 0.28f));
+        }
+
+        /// <summary>Gunduz duragini mutfagin tonuna dogru kaydirir.</summary>
+        private Color Tint(Color c)
+        {
+            return Color.Lerp(c, SkyTint, SkyTintStrength);
         }
 
         private static Color Mix(float t, Color a, Color b, Color c, Color d)
