@@ -197,10 +197,31 @@ namespace Lokanta.Game.Ui
         /// </summary>
         private VisualElement QualityPicker(Simulation sim)
         {
-            VisualElement card = Theme.PanelBox();
-            card.Add(Theme.Head(Loc.T("ui.morning.quality")));
+            // KART DAR TUTULUYOR.
+            //
+            // Ilk hali `Theme.Head` ile buyuk baslik kullaniyordu ve
+            // magaza goruntusunde olculdu: kart ekranin ucte birinden
+            // fazlasini yiyip MALZEME LISTESINI ekranin altina itiyordu -
+            // yani hal ekraninin asil icerigi acilista hic gorunmuyordu.
+            // Kalite bir baslik degil bir ayar; boyutu da oyle olmali.
+            // PANEL YOK, ETIKET SATIRIN ICINDE.
+            //
+            // Iki kez olculdu: once buyuk baslikli bir panel ekranin
+            // ucte birinden fazlasini yiyordu, sonra kucultulmus haliyle
+            // bile MALZEME LISTESI ekranin altinda kaliyordu. Hal
+            // ekranini acan kisinin ilk gordugu sey HAL olmali - iki
+            // kontrol degil.
+            //
+            // Kalite sik degisen bir sey degil; yer kaplamasi da oyle.
+            VisualElement card = Theme.Column(2);
 
             VisualElement row = Theme.Row(Theme.Gap);
+            row.style.alignItems = Align.Center;
+            Label etiket = Theme.Text(Loc.T("ui.morning.quality"), Theme.FontSmall,
+                                      Theme.InkDim);
+            etiket.style.minWidth = 96;
+            etiket.style.flexShrink = 0;
+            row.Add(etiket);
             for (int q = 0; q < Simulation.QualityCount; q++)
             {
                 int level = q;
@@ -226,13 +247,24 @@ namespace Lokanta.Game.Ui
             }
             int ort = adet > 0 ? toplam / adet : 0;
 
-            card.Add(Theme.Text(
-                ort == 0 ? Loc.T("ui.morning.quality_none")
-                         : Loc.T(ort > 0 ? "ui.morning.quality_up"
-                                          : "ui.morning.quality_down",
-                                 Loc.Reputation(ort < 0 ? -ort : ort)),
-                Theme.FontSmall,
-                ort > 0 ? Theme.Good : ort < 0 ? Theme.Bad : Theme.InkDim));
+            // METIN UC DURUMU AYIRIYOR.
+            //
+            // Ilk hali ikisini karistiriyordu: standart kademede etki
+            // sifir oldugu icin "Menu bos - etkisi yok" yaziyordu ve
+            // menu bos DEGILDI. Ekran, oyuncuya olmayan bir sey
+            // soyluyordu. Bos menu (adet == 0) ile sifir etki (standart
+            // kademe) ayri seyler.
+            if (adet == 0)
+                card.Add(Theme.Text(Loc.T("ui.morning.quality_none"),
+                                    Theme.FontSmall, Theme.InkFaint));
+            else if (ort != 0)
+                card.Add(Theme.Text(
+                    Loc.T(ort > 0 ? "ui.morning.quality_up"
+                                  : "ui.morning.quality_down",
+                          Loc.Reputation(ort < 0 ? -ort : ort)),
+                    Theme.FontSmall, ort > 0 ? Theme.Good : Theme.Bad));
+            // Standart kademede satir hic yok: olcut odur, soylenecek
+            // bir fark yoktur.
             return card;
         }
 

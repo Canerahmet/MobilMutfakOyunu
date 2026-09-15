@@ -348,7 +348,7 @@ UI = {
     "ui.quality.0": "Low",
     "ui.quality.1": "Standard",
     "ui.quality.2": "High",
-    "ui.morning.quality_none": "Menu is empty - no effect.",
+    "ui.morning.quality_none": "No dishes on the menu.",
     "ui.morning.quality_up": "Dishes on your menu please guests {0} points more.",
     "ui.morning.quality_down": "Dishes on your menu please guests {0} points less.",
     "ui.morning.storage_tier": "Cold storage tier {0}",

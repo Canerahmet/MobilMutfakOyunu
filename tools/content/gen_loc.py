@@ -807,7 +807,7 @@ UI = {
     "ui.quality.0": "Düşük",
     "ui.quality.1": "Standart",
     "ui.quality.2": "Yüksek",
-    "ui.morning.quality_none": "Menü boş — etkisi yok.",
+    "ui.morning.quality_none": "Menüde yemek yok.",
     "ui.morning.quality_up": "Menündeki yemekler {0} puan daha memnun ediyor.",
     "ui.morning.quality_down": "Menündeki yemekler {0} puan daha az memnun ediyor.",
     "ui.morning.storage_tier": "Soğuk hava kademe {0}",

@@ -370,7 +370,28 @@ namespace Lokanta.Game
             // durdugu degisti.
             while (sure < 40f && cv != null)
             {
-                if (_app.Sim.ServiceProgressBp > 5000)
+                // PENCERE KOSULA BAKIYOR, SABIT BIR DILIME DEGIL.
+                //
+                // Once tavan %80 idi ve zirveyi yiyip sonraki masa
+                // kontrollerini bos salona birakiyordu; %50'ye cektim ve
+                // bu kez TERSI oldu - gun sivrildikten sonra birinci gun
+                // dort masa ve on iki kisi demek, yani mutfagin calistigi
+                // an dar bir pencereye denk gelmeyebiliyor. Bir kosuda
+                // "Mutfakta is yapiliyor (0 kisi; simulasyon is verdi 536
+                // kez)" cikti: is vardi, pencere baska yere bakiyordu.
+                //
+                // Dogrusu sabit dilim degil KOSUL: pencere, gormesi
+                // gereken seyi gorunce birakiyor. Gormediyse gunun
+                // %80'ine kadar aramaya devam ediyor - yani eski tavan
+                // yalnizca EN KOTU durumda devreye giriyor ve masa
+                // kontrolleri normalde erken sirasini aliyor.
+                bool gorduk = gorevliAsci > 0 && j > 0 && yiyenMasa > 0;
+                if (gorduk && _app.Sim.ServiceProgressBp > 5000)
+                {
+                    basildi = true;
+                    break;
+                }
+                if (_app.Sim.ServiceProgressBp > 8000)
                 {
                     basildi = true;
                     break;

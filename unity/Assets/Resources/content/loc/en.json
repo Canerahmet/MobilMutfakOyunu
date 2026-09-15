@@ -525,7 +525,7 @@
   "ui.morning.open_sub": "Day {0} begins",
   "ui.morning.quality": "Ingredient quality",
   "ui.morning.quality_down": "Dishes on your menu please guests {0} points less.",
-  "ui.morning.quality_none": "Menu is empty - no effect.",
+  "ui.morning.quality_none": "No dishes on the menu.",
   "ui.morning.quality_up": "Dishes on your menu please guests {0} points more.",
   "ui.morning.ready_cooks": "{0} in the kitchen",
   "ui.morning.ready_menu": "{0} dishes on the menu",

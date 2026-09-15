@@ -525,7 +525,7 @@
   "ui.morning.open_sub": "{0}. gün başlıyor",
   "ui.morning.quality": "Malzeme kalitesi",
   "ui.morning.quality_down": "Menündeki yemekler {0} puan daha az memnun ediyor.",
-  "ui.morning.quality_none": "Menü boş — etkisi yok.",
+  "ui.morning.quality_none": "Menüde yemek yok.",
   "ui.morning.quality_up": "Menündeki yemekler {0} puan daha memnun ediyor.",
   "ui.morning.ready_cooks": "Mutfak {0} kişi",
   "ui.morning.ready_menu": "Menüde {0} yemek",
