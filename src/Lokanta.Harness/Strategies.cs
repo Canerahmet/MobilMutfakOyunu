@@ -1,4 +1,4 @@
-using Lokanta.Core.Economy;
+﻿using Lokanta.Core.Economy;
 using Lokanta.Core.Sim;
 
 namespace Lokanta.Harness
@@ -13,6 +13,22 @@ namespace Lokanta.Harness
         string Question { get; }
         void OnMorning(Simulation sim);
         void OnEvening(Simulation sim, in DayReport report);
+
+        /// <summary>
+        /// Servis sirasinda, elli tikta bir. Imza mekanikleri burada
+        /// isliyor: veresiye odeme aninda aciliyor, kombo siparis aninda.
+        ///
+        /// ARAYUZDE ve varsayilan govdesi BOS. Once boyle degildi:
+        /// Program.cs bir tur kontrolu zinciriyle dagitiyordu
+        /// ("strategy is SignaturePlayer sp") ve zincirde olmayan yeni
+        /// bir strateji SESSIZCE hicbir sey yapmiyordu - bot kosuyor
+        /// gorunup olcumu bos donduruyordu. `erken_tahsilat` eklenirken
+        /// tam bu oldu: sonucu `makul` ile BAYT BAYT ayni cikti.
+        ///
+        /// Varsayilan govde sayesinde yeni bir strateji artik yalnizca
+        /// metodu yazarak katiliyor; unutulabilecek bir kayit yeri yok.
+        /// </summary>
+        void DuringService(Simulation sim) { }
     }
 
     /// <summary>
@@ -996,6 +1012,41 @@ namespace Lokanta.Harness
         {
             _inner.OnEvening(sim, report);
         }
+        public void DuringService(Simulation sim) { _inner.DuringService(sim); }
+    }
+
+    /// <summary>
+    /// ERKEN TAHSILATCI: defteri vadesinden once kovaliyor.
+    ///
+    /// Neden gerekli: `CommandKind.CollectCredit` simulasyonda eksiksiz
+    /// yaziliydi, arayuzu de var ("Simdi kovala") - ama HICBIR BOT ona
+    /// basmiyordu. Yani mekanigin ikinci karari, tasarimin "tahsilat
+    /// guvene baglidir" diye sattigi sey, hic OLCULMEMISTI.
+    ///
+    /// Takas net: kovalamak sansi YARIYA indiriyor ve tutmazsa hesap
+    /// orada kapaniyor - ama parayi yedi gun beklemeden aliyorsun.
+    /// Soru bu yuzden "sabir mi nakit mi".
+    /// </summary>
+    public sealed class EagerCollector : IStrategy
+    {
+        private readonly SignaturePlayer _inner = new SignaturePlayer();
+
+        public string Name => "erken_tahsilat";
+        public string Question => "Defteri vadesinden once kovalamak kazandiriyor mu";
+
+        public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
+
+        public void OnEvening(Simulation sim, in DayReport report)
+        {
+            _inner.OnEvening(sim, report);
+
+            // SONDAN BASA: kovalamak hesabi kapatiyor ve kalanlar
+            // kayiyor. Bastan gidersek her kapanista bir hesap atlanir
+            // ve bot "kovaliyor" gorunup yarisini kovalamamis olur.
+            for (int i = sim.TabCount - 1; i >= 0; i--)
+                sim.Apply(new Command(sim.TickIndex, CommandKind.CollectCredit, i));
+        }
+
         public void DuringService(Simulation sim) { _inner.DuringService(sim); }
     }
 

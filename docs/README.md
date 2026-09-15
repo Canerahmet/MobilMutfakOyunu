@@ -64,6 +64,7 @@ Mobil (iOS/Android) ve ileride Steam. 2.5D, yumuşak low-poly. Unity. Tek kişil
 | **[46-gonderilen-ikili.md](46-gonderilen-ikili.md)** | **Emülatör neden işe yaramıyor (ARM64-only APK) ve `link.xml`: hiç koşturulmamış budama koruması mutasyonla ölçüldü — kaldırılınca oyun açılışta ölüyor** | **Güncel** |
 | **[47-tanima-ve-karne.md](47-tanima-ve-karne.md)** | **Günlük görev değil TANIMA: haftalık karne (tek başarı anı → dokuz) ve yedi nişan; birim hatası nişanı birinci günde dağıtıyordu** | **Güncel** |
 | **[48-gunun-sivriligi.md](48-gunun-sivriligi.md)** | **Baskı neden hiç ateşlenmiyordu: günün en yoğun anı ortalamanın 1,24 katıydı; süre sivriltildi, müdahalenin değeri +505 → +4.953** | **Güncel** |
+| **[49-ulasilamayan-mekanikler.md](49-ulasilamayan-mekanikler.md)** | **Yirmi komutun dort eksende taranmasi: malzeme kalitesi hicbir ekranda yoktu, "kovala" dugmesine kimse basmiyordu, erken tahsilat tuzak cikti** | **Güncel** |
 | `../unity/` | Unity 6.3 LTS projesi, Android hedefli. Ayarlar `ProjectSetup.cs` ile kodla uygulanıyor | Kuruldu |
 | `../src/Lokanta.Harness/` | Denge aracı: beş strateji, çok tohumlu altmış günlük kampanya | Çalışıyor |
 

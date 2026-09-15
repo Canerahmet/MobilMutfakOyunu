@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -177,6 +177,7 @@ namespace Lokanta.Harness
             yield return new PatientInterventionist();
             yield return new SignaturePlayer();
             yield return new PickyCreditor();
+            yield return new EagerCollector();
             yield return new PeakCloser();
             yield return new ComboGouger();
             yield return new OneDishPlayer();
@@ -213,6 +214,7 @@ namespace Lokanta.Harness
                 case "sabirli_mudahale": return new PatientInterventionist();
                 case "imzaci": return new SignaturePlayer();
                 case "secici_veresiye": return new PickyCreditor();
+                case "erken_tahsilat": return new EagerCollector();
                 case "zirvede_kapat": return new PeakCloser();
                 case "kombo_sismesi": return new ComboGouger();
                 case "tek_yemek": return new OneDishPlayer();
@@ -289,9 +291,14 @@ namespace Lokanta.Harness
                     // odeme aninda aciliyor, kombo siparis aninda.
                     if ((t % 50) == 0)
                     {
-                        if (strategy is SignaturePlayer sp) sp.DuringService(sim);
-                        else if (strategy is PickyCreditor pc) pc.DuringService(sim);
-                        else if (strategy is PeakCloser pk) pk.DuringService(sim);
+                        // TUR KONTROLU ZINCIRI YOK ARTIK.
+                        //
+                        // Zincirde olmayan bir strateji sessizce hicbir
+                        // sey yapmiyordu ve bunu hicbir sey soylemiyordu.
+                        // Arayuzun varsayilan bos govdesi sayesinde her
+                        // strateji cagriliyor; katilmak icin metodu
+                        // yazmak yetiyor.
+                        strategy.DuringService(sim);
                     }
 
                     if (sim.PlatesClean < plateMinClean) plateMinClean = sim.PlatesClean;

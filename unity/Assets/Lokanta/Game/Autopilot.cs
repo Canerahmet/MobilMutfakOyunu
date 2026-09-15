@@ -785,6 +785,7 @@ namespace Lokanta.Game
             bool veresiyeYazildi = false;
             bool defterOlculdu = false;
             int kizginToplam = 0;
+            bool kaliteOlculdu = false;
             bool karneOlculdu = false;
             bool nisanOlculdu = false;
             int started = _app.Sim.Day;
@@ -832,6 +833,35 @@ namespace Lokanta.Game
                 if (Click(Loc.T("ui.morning.market")))
                 {
                     yield return Settle();
+
+                    // MALZEME KALITESI: mekanik cekirdekte eksiksizdi ve
+                    // hicbir ekranda dugmesi yoktu (docs/49). Tur artik
+                    // kademeyi GERCEKTEN degistirip simulasyona gectigini
+                    // dogruluyor - dugmenin var olmasi yetmez, ayni hata
+                    // bu projede iki kez "dugme var ama komut gitmiyor"
+                    // seklinde cikti.
+                    if (!kaliteOlculdu)
+                    {
+                        int onceki = _app.Sim.Quality;
+                        int hedef = onceki == 2 ? 1 : 2;
+                        if (Click(Loc.T(hedef == 2 ? "ui.quality.2" : "ui.quality.1")))
+                        {
+                            yield return Settle();
+                            Note(_app.Sim.Quality == hedef,
+                                 "Hal'de kalite kademesi degisiyor (" + onceki
+                                 + " -> " + _app.Sim.Quality + ")");
+                            // Eski kademeye donuluyor: tur kampanyanin
+                            // geri kalanini olcuyor ve kaliteyi kalici
+                            // degistirmek butun sonraki sayilari kaydirirdi.
+                            Click(Loc.T(onceki == 0 ? "ui.quality.0"
+                                      : onceki == 1 ? "ui.quality.1" : "ui.quality.2"));
+                            yield return Settle();
+                            Note(_app.Sim.Quality == onceki,
+                                 "Kalite kademesi geri alinabiliyor");
+                            kaliteOlculdu = true;
+                        }
+                    }
+
                     if (!Click(Loc.T("ui.morning.restock")))
                     {
                         stokBasarisiz++;
@@ -980,6 +1010,28 @@ namespace Lokanta.Game
                              + _app.Sim.TabCount + " hesap)");
                         Note(HasText(Loc.T("ui.ledger.chase")),
                              "Defterde kovalama dugmesi var");
+
+                        // DUGMEYE BASILIYOR - varligini gormek yetmiyor.
+                        //
+                        // Bu kontrol yillardir dugmenin EKRANDA oldugunu
+                        // dogruluyordu ve hicbir sey ona BASMIYORDU. Oysa
+                        // bu projede iki kez "dugme var ama komut
+                        // gitmiyor" cikti; varlik testi o hatayi
+                        // goremezdi.
+                        //
+                        // Kovalamak hesabi KAPATIYOR (SettleTab
+                        // halfChance) - tahsil edilse de edilmese de.
+                        // Olcut bu yuzden hesap sayisi: tutar degisimi
+                        // tahsilatin tutmasina bagli ve kontrolu zara
+                        // baglamak olurdu.
+                        int hesapOnce = _app.Sim.TabCount;
+                        if (Click(Loc.T("ui.ledger.chase")))
+                        {
+                            yield return Settle();
+                            Note(_app.Sim.TabCount < hesapOnce,
+                                 "Kovalama hesabi kapatiyor (" + hesapOnce
+                                 + " -> " + _app.Sim.TabCount + " hesap)");
+                        }
                         // CheckStrips BURADA YANLIS DENETIM: alt SERIDI
                         // olcuyor ve defter bir liste ekrani, seridi yok.
                         // "serit olculemedi" diye kirmizi veriyordu -
@@ -1064,6 +1116,8 @@ namespace Lokanta.Game
             // demektir - ve kosmayan bir kontrol, gecen bir kontrolle
             // disaridan AYNI gorunuyor. Sessiz kalmak, ozelligin
             // sinandigini sanmak olurdu.
+            NoteIf(kaliteOlculdu, kaliteOlculdu,
+                   "Hal'de kalite secicisi goruldu");
             NoteIf(karneOlculdu, karneOlculdu,
                    "Haftalik karne goruldu (60 gunde en az bir hafta)");
             NoteIf(nisanOlculdu, nisanOlculdu,

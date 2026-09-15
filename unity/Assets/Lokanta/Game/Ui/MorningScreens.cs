@@ -1,4 +1,4 @@
-using Lokanta.Core;
+﻿using Lokanta.Core;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 using Lokanta.Core.Sim;
@@ -130,6 +130,20 @@ namespace Lokanta.Game.Ui
         {
             Simulation sim = App.Sim;
 
+            // MALZEME KALITESI - MEKANIK KODDAYDI, OYUNDA YOKTU.
+            //
+            // `CommandKind.SetQuality` cekirdekte eksiksiz yaziliydi,
+            // denge botu onu olcuyordu (`ucuz_malzeme`), testleri vardi -
+            // ve HICBIR EKRANDA dugmesi yoktu. Yani uc kademeli, itibara
+            // mal olan bir karar ekseni oyuncuya kapaliydi. Veresiye
+            // tahsilati da tipatip ayni sekilde bulunmustu (docs/45).
+            //
+            // BURADA duruyor cunku secim bu ekranin KENDISINI degistiriyor:
+            // `IngredientPriceToday` zaten `_quality` ile hesapliyor, yani
+            // kademeye basinca asagidaki butun fiyatlar aninda oynuyor.
+            // Sonucu baska bir ekranda anlatmak gerekmiyor - goruluyor.
+            list.Add(QualityPicker(sim));
+
             list.Add(Theme.Btn(Loc.T("ui.morning.restock"), () =>
             {
                 App.RestockRecommended();
@@ -147,6 +161,79 @@ namespace Lokanta.Game.Ui
 
                 list.Add(Row(i, need, stock));
             }
+        }
+
+        /// <summary>
+        /// Kalite kademesinin metin anahtari.
+        ///
+        /// Anahtar DUZ YAZILIYOR ("ui.quality." + q degil): metin ureteci
+        /// ekranlari tarayip kullanilmayan metni reddediyor ve hesaplanan
+        /// bir anahtari goremiyor. Ayni kural nisanlarda da var
+        /// (Badges.NameKey). Yan faydasi: grep eden insan da buluyor.
+        /// </summary>
+        private static string QualityKey(int q)
+        {
+            switch (q)
+            {
+                case 0: return "ui.quality.0";
+                case 1: return "ui.quality.1";
+                default: return "ui.quality.2";
+            }
+        }
+
+        /// <summary>
+        /// Uc kademeli malzeme kalitesi.
+        ///
+        /// Etki IKI TARAFLI ve ikisi de gosteriliyor:
+        ///   fiyat  - asagidaki butun kartlarda aninda goruluyor
+        ///   memnuniyet - gorunmez, o yuzden BURADA yaziliyor
+        ///
+        /// Memnuniyet sayisi UYDURULMUYOR: malzeme basina etki uc ayri
+        /// kaliba ayriliyor (ucuzda -5,0 / pahalida -20,0) ve tek bir
+        /// ortalama vermek yaniltirdi. Onun yerine OYUNCUNUN MENUSUNDEKI
+        /// yemeklerin gercek etkisi hesaplaniyor - simulasyonun kendi
+        /// `DishQualityCentiOf` olcusuyle, yani ekranin yazdigi sayi
+        /// servisin kullandigi sayinin ta kendisi.
+        /// </summary>
+        private VisualElement QualityPicker(Simulation sim)
+        {
+            VisualElement card = Theme.PanelBox();
+            card.Add(Theme.Head(Loc.T("ui.morning.quality")));
+
+            VisualElement row = Theme.Row(Theme.Gap);
+            for (int q = 0; q < Simulation.QualityCount; q++)
+            {
+                int level = q;
+                Button b = Theme.Btn(Loc.T(QualityKey(q)), () =>
+                {
+                    App.Send(CommandKind.SetQuality, level);
+                    Sfx.Click();
+                    Ui.Refresh();
+                }, primary: q == sim.Quality);
+                b.style.flexGrow = 1;
+                b.style.flexBasis = 0;
+                row.Add(b);
+            }
+            card.Add(row);
+
+            // MENUYE ETKISI, santi-puan ortalamasi.
+            int toplam = 0, adet = 0;
+            for (int d = 0; d < sim.DishCount; d++)
+            {
+                if (!sim.IsOnMenu(d) || !sim.IsUnlocked(d)) continue;
+                toplam += sim.DishQualityCentiOf(d);
+                adet++;
+            }
+            int ort = adet > 0 ? toplam / adet : 0;
+
+            card.Add(Theme.Text(
+                ort == 0 ? Loc.T("ui.morning.quality_none")
+                         : Loc.T(ort > 0 ? "ui.morning.quality_up"
+                                          : "ui.morning.quality_down",
+                                 Loc.Reputation(ort < 0 ? -ort : ort)),
+                Theme.FontSmall,
+                ort > 0 ? Theme.Good : ort < 0 ? Theme.Bad : Theme.InkDim));
+            return card;
         }
 
         private VisualElement Row(int i, int need, int stock)
