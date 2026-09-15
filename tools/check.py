@@ -51,12 +51,56 @@ def run(name, args, cwd=ROOT):
     """
     if args and args[0] == "dotnet":
         r = _once(name, args + ["-c", "Release"], cwd)
-        if r[1] or "0x800711C7" not in r[2]:
+        # ENGEL BUTUN CIKTIDA ARANIYOR, son satirda degil.
+        #
+        # Once yalnizca `tail` bakiliyordu ve xUnit engel mesajini
+        # BASA yaziyor ("Skipping: ... An Application Control policy
+        # has blocked this file"), sonra bilgi satirlariyla bitiyor.
+        # Yani engel goruulmuyor, yeniden deneme hic tetiklenmiyordu.
+        # YENIDEN DENEME SEBEBE DEGIL KANITA BAGLI.
+        #
+        # Once yalnizca 0x800711C7 gorununce deneniyordu. Ama engel her
+        # zaman o kodu yazmiyor: test konagi bazen sessizce SIFIR test
+        # bulup cikis kodu 0 veriyor ("A total of 1 test files matched"
+        # ve hicbir ozet satiri yok). O halde kod aranmiyor, denetim
+        # basarisiz sayiliyor ve yeniden deneme hic tetiklenmiyordu.
+        if r[1]:
             return r
         # Engellendi: KARMAYI DEGISTIREREK **ve yeniden derleyerek**.
         # -p:Deterministic=false tek basina yetmiyor - kaynak
         # degismediyse MSBuild derlemeyi atliyor ve ayni engelli ikili
         # tekrar kullaniliyor.
+        #
+        # `dotnet test` AYRI ELE ALINIYOR: --no-incremental'i kabul
+        # etmiyor (MSB1001 "Unknown switch"), yani eski yol testler icin
+        # HIC calismiyordu. Once ayri bir derleme, sonra --no-build ile
+        # kosu. Ayrica taze bir karma da engellenebiliyor, o yuzden
+        # birkac deneme.
+        if len(args) > 1 and args[1] == "test":
+            proj = args[2]
+            for _ in range(5):
+                # DERLEMENIN SONUCU ONEMSENIYOR.
+                #
+                # Once yok sayiliyordu ve bir sey daha kiriyordu:
+                # --no-incremental once TEMIZLIYOR, yani derleme
+                # basarisiz olunca test derlemesi ORTADAN KALKIYOR ve
+                # sonraki "--no-build" kosusu "test source file ... was
+                # not found" diyordu. Yani gecici bir engel, kalici
+                # gorunen baska bir hataya donusuyordu.
+                b = _once(name, ["dotnet", "build", proj, "-c", "Release",
+                                 "-v", "q", "--nologo", "-p:Deterministic=false",
+                                 "--no-incremental"], cwd)
+                if not b[1]:
+                    continue
+                r = _once(name, args + ["-c", "Release", "--no-build"], cwd)
+                if r[1]:
+                    return r
+
+            # Bes denemede de kosamadi. Son bir kez NORMAL derleyip
+            # birakiyoruz ki depo, testi olmayan bir durumda kalmasin.
+            _once(name, ["dotnet", "build", proj, "-c", "Release",
+                         "-v", "q", "--nologo"], cwd)
+            return r
         return _once(name, args + ["-c", "Release", "-p:Deterministic=false",
                                    "--no-incremental"], cwd)
     return _once(name, args, cwd)
@@ -67,12 +111,29 @@ def _once(name, args, cwd=ROOT):
         p = subprocess.run(args, cwd=cwd, capture_output=True, text=True,
                            encoding="utf-8", errors="replace")
     except OSError as e:
-        return name, False, "calistirilamadi: %s" % e
+        return name, False, "calistirilamadi: %s" % e, ""
 
     out = (p.stdout or "") + (p.stderr or "")
     lines = [l.strip() for l in out.splitlines() if l.strip()]
     tail = lines[-1] if lines else "(cikti yok)"
-    return name, p.returncode == 0, tail
+
+    ok = p.returncode == 0
+
+    # TESTLERIN KOSTUGU KANITLANIYOR.
+    #
+    # `dotnet test`, test derlemesi yuklenemediginde CIKIS KODU 0
+    # veriyor ve yalnizca "Skipping: ... blocked" yaziyor. Denetim bunu
+    # gecti sayiyordu: 239 testin sifiri kosuyor, tablo yesil yaniyordu.
+    # Bu projenin en sik hata sinifinin denetcinin KENDISINDE hali.
+    #
+    # Artik kanit sart: xUnit'in ozet satiri ("Passed!" / "Failed!")
+    # ciktida gecmiyorsa denetim kirmizi.
+    if ok and len(args) > 1 and args[0] == "dotnet" and args[1] == "test":
+        if "Passed!" not in out and "Failed!" not in out:
+            ok = False
+            tail = "TEST KOSMADI (ozet satiri yok): " + tail
+
+    return name, ok, tail, out
 
 
 def main():
@@ -158,7 +219,7 @@ def main():
     print("=" * 70)
     results = []
     for name, args in checks:
-        name, ok, tail = run(name, args)
+        name, ok, tail, _ = run(name, args)
         results.append((name, ok, tail))
         print("%-24s %s  %s" % (name, "TAMAM" if ok else "KIRMIZI", tail[:60]))
 

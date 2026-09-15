@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Lokanta.Core.Sim
 {
@@ -51,6 +51,36 @@ namespace Lokanta.Core.Sim
         /// yapardi.
         /// </summary>
         public int WashMs { get { return ClearMs / 3; } }
+
+        /// <summary>
+        /// ADANMIS BULASIKCININ bir tabagi yikama suresi.
+        ///
+        /// Lavaboya adanmis kisi UZMANDIR ve bu, icerikte zaten yaziyor:
+        /// staff-roles.json'da bulasikci rolunun gunluk kapasitesi 48,
+        /// garsonunki 26 - yani "bu isi yapan kisi" bir buculuk kattan
+        /// fazla verimli. Simulasyon bu farki HIC kullanmiyordu: adanmis
+        /// bulasikci da, imdada kosan garson da ayni WashMs ile yikiyordu.
+        ///
+        /// Sonucu olculmustu: bulasikci ayirmak tabaksiz beklemeyi
+        /// 263'ten 349'a CIKARIYORDU, cunku tek kisi, kriz aninda birden
+        /// lavaboya kosan uc garsondan az yikiyor (docs/49).
+        ///
+        /// Oran ROL TABLOSUNDAN turetiliyor, uydurulmuyor: 26/48.
+        /// </summary>
+        public int DishwasherWashMs
+        {
+            get
+            {
+                int ms = (int)Core.Fx.MulDiv(WashMs, DishwasherSpeedBp, Core.Fx.One);
+                return ms < 1 ? 1 : ms;
+            }
+        }
+
+        /// <summary>
+        /// Adanmis bulasikcinin yikama suresi carpani, baz puan.
+        /// 10000 = fark yok. Rol tablosundaki 26/48 orani ~5400.
+        /// </summary>
+        public int DishwasherSpeedBp { get; }
 
         // --- Mutfak havuzu ---------------------------------------------------
         /// <summary>Kisi basina ortalama tabak sayisi (kombo bunu buyutuyor).</summary>
@@ -110,8 +140,14 @@ namespace Lokanta.Core.Sim
                             // alamadigi sey buydu.
                             int drainWaitingFoodBp = 500,
                             int drainWaitingPayBp = 5_000,
-                            int orderPatienceFactorBp = 20_000)
+                            int orderPatienceFactorBp = 20_000,
+                            // Rol tablosundan: garson 26 / bulasikci 48
+                            // gunluk kapasite -> 26/48 = 5417 bp.
+                            int dishwasherSpeedBp = 5_417)
         {
+            if (dishwasherSpeedBp <= 0)
+                throw new ArgumentOutOfRangeException(nameof(dishwasherSpeedBp));
+            DishwasherSpeedBp = dishwasherSpeedBp;
             DrainWaitingTableBp = drainWaitingTableBp;
             DrainWaitingOrderBp = drainWaitingOrderBp;
             DrainWaitingFoodBp = drainWaitingFoodBp;

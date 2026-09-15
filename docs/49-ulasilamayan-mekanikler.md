@@ -154,3 +154,82 @@ Kuralın yorumu bunun bilinçli olduğunu yazıyor ("bulaşıkçı alınca herke
 kendi işini yapar" — kullanıcının kendi cümlesi). O yüzden **değiştirilmedi**:
 bu bir ölçüm sonucu değil, bir tasarım kararı. Soru artık sorulabilir ve
 sayıları var; kararı kullanıcının.
+
+---
+
+## 6. Uzman gerçekten daha hızlı yıkıyor — ama yetmiyor
+
+Kullanıcının cümlesi: *"bulaşıkçının yıkama hızının diğerlerine göre çok daha
+fazla olması lazım, çünkü o işi yapan kişi o."*
+
+İçerik bunu zaten söylüyordu ve simülasyon kullanmıyordu: `staff-roles.json`'da
+bulaşıkçı rolünün günlük kapasitesi **48**, garsonunki **26**. Adanmış
+bulaşıkçı da, imdada koşan garson da aynı `WashMs` ile yıkıyordu.
+
+Bağlandı ve oran **uydurulmadı, rol tablosundan türetildi** (26/48 = 5417 bp):
+
+```
+garson 2000 ms  →  bulasikci 1083 ms
+```
+
+Bir test bu bağlantıyı tutuyor; çarpan "fark yok"a dönerse kırılır.
+
+**Ama ölçüm hızın tek başına yetmediğini söyledi:** tabaksız bekleme
+349 → **351**. Sebep yapısal, sayısal değil — adanmış bulaşıkçı varken **tam
+bir kişi** yıkıyor, yokken kriz anında salondaki **herkes** koşuyor. Çarpanın
+yetmesi için salon kadrosu kadar olması gerekirdi ve kadro dükkânla birlikte
+büyüyor: **sabit bir çarpan onu takip edemez.**
+
+### Denenen ve geri alınan
+
+"Temiz tabak bitmek üzereyken salon imdada koşsun" istisnası yazıldı:
+**351 → 351**, hiçbir şey değişmedi. Sebep: yıkamaya müşteri işinden *sonra*
+bakılıyor ve zirvede salon zaten dolu — istisnanın ateşleyecek boş kişisi yok.
+
+Ölçüm karşılık vermediği için **geri alındı**. Ölçülmemiş bir gerekçeyle
+kullanıcının tasarım kuralını zayıflatmak, bu belgenin şikâyet ettiği şeyin
+aynısı olurdu.
+
+### Açık karar
+
+Adanmış bulaşıkçı bugün hâlâ dominated bir seçenek. Onu gerçek bir takasa
+çevirmenin yolu hızda değil, **dışlama kuralında**: bulaşıkçı kapasiteye
+*eklenirse* (salon kritik anda yine yıkarsa) düğme anlamlı olur. Kural
+kullanıcının; sayılar burada.
+
+---
+
+## 7. Denetçi, yakaladığı hatanın kendisini yapıyordu
+
+Bu bölüm en pahalısı, çünkü diğer bütün ölçümlerin dayandığı araç.
+
+`check.py` **"çekirdek testleri TAMAM"** diyordu — ve 239 testin **sıfırı**
+koşmuştu. `dotnet test`, test derlemesi yüklenemediğinde çıkış kodu **0**
+veriyor ve yalnızca "Skipping: ... blocked" yazıyor; denetim sadece çıkış
+koduna bakıyordu.
+
+Üç kusur birden:
+
+| kusur | düzeltme |
+|---|---|
+| Çıkış kodu tek ölçüt | Artık **kanıt** şart: `Passed!`/`Failed!` özet satırı yoksa kırmızı |
+| Engel yalnızca son satırda aranıyordu | Bütün çıktıda aranıyor — xUnit engeli **başa** yazıyor |
+| Yeniden deneme `dotnet test`'te hiç çalışmıyordu | `--no-incremental` kabul edilmiyor (MSB1001). Ayrı derleme + `--no-build`, ve deneme **sebebe değil kanıta** bağlandı |
+
+Üçüncüsü ayrıca şunu öğretti: engel her zaman `0x800711C7` yazmıyor — bazen
+test konağı sessizce sıfır test bulup 0 dönüyor. Sebebe bağlı bir yeniden
+deneme o hâli göremezdi.
+
+### SAC için kalıcı çıkış yolu
+
+Harness on denemede de engellendi. Sebep: `dotnet run` taze yazılmış bir
+`.exe` başlatıyor ve SAC imzasız exe'leri DLL'lerden çok daha sert
+engelliyor. Çözüm:
+
+```
+dotnet build ... -p:UseAppHost=false
+dotnet bin/Release/net10.0/Lokanta.Harness.dll --mutfak turk
+```
+
+Exe hiç üretilmiyor, DLL imzalı `dotnet` konağından yükleniyor — **ilk
+denemede geçti.**

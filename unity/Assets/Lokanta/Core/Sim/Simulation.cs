@@ -5388,7 +5388,12 @@ namespace Lokanta.Core.Sim
                     {
                         _salonTaskKind[s] = TaskKind.Wash;
                         _salonTaskTarget[s] = -1;
-                        _salonTaskLeftMs[s] = XpAdjusted(1, s - 1, _timing.WashMs);
+                        // UZMANIN SURESI: adanmis bulasikci daha hizli
+                        // yikiyor. Fark rol tablosunda zaten yaziyordu
+                        // (bulasikci 48 / garson 26 gunluk kapasite) ve
+                        // simulasyon onu hic kullanmiyordu.
+                        _salonTaskLeftMs[s] =
+                            XpAdjusted(1, s - 1, _timing.DishwasherWashMs);
                     }
                     continue;
                 }
@@ -5586,7 +5591,24 @@ namespace Lokanta.Core.Sim
         private bool WashNeeded()
         {
             if (_platesDirty <= 0) return false;
-            if (_dishwashers > 0) return false;      // bulasikci varsa salon karismaz
+
+            // BULASIKCI VARSA SALON KARISMAZ.
+            //
+            // Kuralin gerekcesi kullanicinin cumlesi: "bulasikci alinca
+            // herkes kendi isini yapar".
+            //
+            // BUNU BIR KEZ GEVSETTIM VE GERI ALDIM. Adanmis bulasikci
+            // tabak darbogazini acmiyor, kotulestiriyordu (tabaksiz
+            // bekleme 263 -> 351), ve "temiz tabak bitmek uzereyken salon
+            // imdada kossun" istisnasi hicbir sey degistirmedi: 351 ->
+            // 351. Sebep, istisnanin ateslenecek BOS KISI bulamamasi -
+            // yikamaya musteri isinden SONRA bakiliyor ve zirvede salon
+            // zaten dolu.
+            //
+            // Olculmemis bir gerekceyle kullanicinin tasarim kuralini
+            // zayiflatmak yanlis olurdu; kural duruyor. Asil sebep ve
+            // acik karar docs/49 §5'te.
+            if (_dishwashers > 0) return false;
 
             int toplam = _economy.TierForTables(_tableCount).Plates;
             if (_platesClean * 4 <= toplam) return true;        // temizin dortte biri kaldi
