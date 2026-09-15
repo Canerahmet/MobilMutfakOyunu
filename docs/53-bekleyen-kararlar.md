@@ -61,10 +61,15 @@ yardım etsin"*.
 
 Ben de onu yaptım — ve **ölçüm hayır dedi.** İki deneme, ikisi de makuldü:
 
-| deneme | gerekçe | sonuç |
-|---|---|---:|
-| yığın bir eşiği geçmeden yıkamasın | uzman tek tabak için lavaboya gitmesin | 229 → **293** |
-| yıkayacak şey yokken salona dönsün | de-pooling'i kapat | 197 → **216** |
+| deneme | gerekçe | sonuç | ölçek |
+|---|---|---:|---|
+| yıkayacak şey yokken salona dönsün | de-pooling'i kapat | 197 → **216** | 32 tohum, HEAD'e karşı |
+| yığın bir eşiği geçmeden yıkamasın | uzman tek tabak için lavaboya gitmesin | 229 → **293** | 12 tohum, **aynı ölçekte değil** |
+
+İkinci satır sadece **yönü** gösteriyor; 229 rakamı §1'de çürütülen 12
+tohumluk zincirin ucundan geliyor ve 32 tohumluk tabloyla karşılaştırılamaz.
+Aynı tabloda yan yana koymak, bu belgenin şikâyet ettiği hatanın tekrarıydı —
+ölçek sütunu o yüzden var.
 
 İkisi de aynı şeyi bozuyor: **uzmanın bütün değeri aralıksız ve hemen
 yıkamasında.** Salona dönen bulaşıkçı, tabak kirlendiğinde bir müşteri işine
@@ -91,8 +96,43 @@ işinden *sonra* yazılmış ve "boş kişi" aramıştı; zirvede salon dolu old
 için hiç ateşlenmedi. **Boş kişi aramak yanlış soruydu** — doğru soru "şu an
 yapılan iş değerli mi".
 
-Ölçüldü (32 tohum): `makul` 255 → **240**, `imzaci` 193 → **186**, `planci` ve
-`bulasikci` değişmedi. Kimseye zarar yok.
+### İlk yazımda üç kusur vardı; eleştiri turu buldu
+
+1. **Bayrak mandallanıyordu.** `PlateUp()`'ın "pişmiş grup yok" çıkışı
+   `_plateStalled`'ı temizlemiyordu. Tıkanan grup sabırsızlanıp kalkınca
+   (`LeaveAngry` `_pCooked`'u sıfırlamıyor) bayrak takılı kalıyor, salon kriz
+   dalında kilitleniyor, kimse sipariş almadığı için yeni pişmiş grup da
+   oluşmuyordu — bayrak kendini besliyordu. Beteri: o durumda **raporladığım
+   tek ölçüt düşüyor**, çünkü kalkan müşteri tıkanmayı da götürüyor. Ölçüm
+   kendi en kötü hâline karşı kördü.
+2. **Eşik yoktu.** Tek kirli tabak için beş sunucu birden lavaboya gidiyor,
+   dördü boş dönüyordu.
+3. **Sayaç karışıyordu.** Kriz yıkaması `_salonRushWashes`'e ekleniyordu —
+   `PlateTests`'in bulaşıkçı iddiasını taşıyan sayaç. Kendi yorumunun
+   yasakladığı karışım.
+
+Üçü de düzeltildi; bayrak artık her tick yeniden hesaplanan bir **türev**,
+yani kayda da determinizm karmasına da girmesi gerekmiyor.
+
+### Düzeltmeden sonra, bütün eksenler (32 tohum, Türk mutfağı)
+
+| strateji | tabaksız | ağırlanan grup | son kasa | kızgın |
+|---|---:|---:|---:|---:|
+| makul | 255 → **240** | 1883 → 1883 | 18.439 → 18.442 | 7 → 7 |
+| planci | 179 → **178** | 2567 → 2552 | 23.443 → 23.490 | 16 → 16 |
+| imzaci | 193 → **186** | 1849 → 1849 | 15.074 → 15.075 | 7 → 7 |
+| bulaşıkçı | 198 → **195** | 2547 → 2534 | 23.607 → 23.749 | 15 → 15 |
+
+Artık hiçbir strateji HEAD'in gerisinde değil. Ama dürüst kalan iki şey var:
+
+- **Bedel ağırlanan grupta görünüyor:** `planci` −15, `bulaşıkçı` −13 grup
+  (%0,6). Sunucuyu müşteriden çekmenin karşılığı bu. Kasa yine de yükseldiği
+  için takas kabul edildi, ama takasın olmadığını söylemek yanlış olurdu.
+- **Dağılım ölçülmedi.** Ne stddev ne güven aralığı var; küçük farklar
+  gürültüden ayrılamaz.
+
+Bu tabloyu ilk yazımda tek sütunla vermiştim. *İyileştirdiğim ekseni ölçüp
+tehlikeye attığımı ölçmemek, bu belgenin şikâyet ettiği şeyin kendisi.*
 
 RimWorld'ün **yangın** davranışı da tam bu kalıp: nadir, ağır, kapsamlı bir
 koşul normal önceliği geçer.
@@ -108,15 +148,28 @@ ağırlıyordu, çünkü kombonun mutfak yükü ısırmıyordu.
 O ölçüm **self servisten önceydi.** Fast food'un salon yükü yarıya inince
 darboğaz mutfağa geçti. Yeniden ölçüldü:
 
+**12 tohum, fast food, 60 gün — ve kriz dalı yokken ölçüldü:**
+
 | strateji | son kasa | servis | kombo% | tabaksız |
 |---|---:|---:|---:|---:|
 | makul (kombo yok) | 22.492 | 2617 | %0,0 | 846 |
 | imzacı (hep açık) | 22.163 | 2559 | %18,1 | 1018 |
 | **zirvede_kapat** | **23.474** | 2564 | %16,8 | **792** |
 
+İki uyarı, ikisi de bu belgenin kendi tezinden çıkıyor:
+
+- **12 tohum.** §1 tam da 12 tohumluk bir sonucun 32'de çürüdüğünü anlatıyor.
+  Bu tablo o riske açık ve yeniden ölçülmeden kapanmış sayılmamalı.
+- **Tabaksız sütunu §1'inkiyle kıyaslanamaz** (846 vs 240): farklı mutfak,
+  farklı tohum sayısı, ve kriz dalı henüz yokken.
+
 Kombo artık **58 grup kaybettiriyor** ve zirvede kapatmak hep açık tutmayı
-**+1.311** geçiyor. Tasarımın yazılı vaadi ("ortalama fişi yükseltir ama
-mutfağı yorar") ilk kez doğru.
+**+1.311** geçiyor (bu ölçekte +%5,9 ve −%2,2; dağılım ölçülmedi).
+
+Vaadin **"mutfağı yorar"** yarısı destekleniyor (tabaksız 1018 > 846).
+**"Ortalama fişi yükseltir"** yarısı için tabloda sütun yok — kasadan geri
+hesaplarsan +%0,8 çıkıyor ama son kasa masraf sonrası, yani fiş değil. Yani
+"ilk kez doğru" dediğim şeyin yarısı hâlâ ölçülmemiş durumda.
 
 **Dengeye dokunulmadı** — yazılı bant (`imzaci/makul` %90–130) zaten
 sağlanıyor: %98,5 (hep açık) ve %104,4 (zirvede kapat).
@@ -167,7 +220,8 @@ Tecrübeli       .desc  "Pahalıdır, hızlıdır, daha fazla gelişmez."
                 .voice "Otuz yıldır bu iş. Öğretilecek bir şey kalmamış."
 ```
 
-On iki huy × iki dil. Aday kartının en üstünde, **birinci** huydan geliyor —
+On iki huy × iki dil. Aday kartında, rol başlığının hemen altında ve
+**birinci** huydan geliyor —
 iki ses üst üste binince kişi değil liste okunuyor. Oyuncunun bir personeli
 dikkatle okuduğu tek an orası.
 
@@ -220,3 +274,60 @@ denetleyen bir kontrol, üçüncü bir kopya üzerine kurulamaz.
 
 İki taraf da artık **kaynaktan** okunuyor. Mutasyonla doğrulandı: `.voice`
 testten çıkarılınca üretim reddediyor.
+
+---
+
+## 7. Eleştiri turu: iki agent, yirmi bir bulgu, altı gerçek kusur
+
+Kullanıcı *"sonrasında farklı agentlarla eleştir ve karara bağla"* demişti.
+İki düşman gözü koştu — biri mekaniğe ve ölçüme, biri Türkçe repliklere. İkisi
+de işe yaradı ve **ikisi de bu belgenin ilk hâlinde yalan bulduğu için asıl
+değerini gösterdi.**
+
+### Koda inen kusurlar
+
+**Bayrak mandallanıyordu** (§3'te anlatıldı) — en ciddi olanı, ve ölçümün
+kendisi ona karşı kördü.
+
+**Tur kontrolü totolojiydi.** `Loc.T` eksik anahtarda `[anahtar]` döndürüyor,
+kart da aynı çağrıyı yapıyor. Yani **çeviri hiç yokken iki taraf da aynı
+yanlış dizeyi üretiyor ve kontrol yeşil geçiyordu.** Kendi mutasyonum bunu
+yakalayamazdı çünkü kartın dizesini değiştirmiştim, anahtarı değil. Artık iki
+şart birden aranıyor, ve ayrıca `Her_huyun_sesi_var` testi eklendi: on üçüncü
+bir huy eklense on üç denetimin hiçbiri konuşmazdı.
+
+**Denetimin kendisi vekile dönmüştü.** §6'da aile listesini kaynaktan okumaya
+çevirmiştim — ve o, davranışsal bir probu **metinsel** bir probla değiştirmek
+oldu: "kaynakta yazıyor mu" diye soruyordu, "gerçekten muaf mı" diye değil.
+Şimdi ikisi birden: aileler kaynaktan çıkarılıyor, sonra her biri
+`SCREEN_KEY`'e **soruluyor**. İki yönde de mutasyonla doğrulandı.
+
+**Yorumda ölçülmemiş iddia.** Kriz dalının yorumu "bulaşıkçı varken kriz zaten
+oluşmuyor" diyordu. Ölçüm tersini söylüyor (bulaşıkçı kolu oynuyor, yani dal
+ateşleniyor). Yorum düzeltildi: dal bulaşıkçıdan bağımsız ateşleniyor **ve
+öyle olmalı** — duran bir mutfakta bulaşıkçı zaten geride kalmış demektir.
+
+### Repliklerde: iki satır simülasyonun yalanladığı şeyi söylüyordu
+
+Belgeye *"simülasyonun yalanlayabileceği hiçbir şey söyleme"* diye yazdığım
+kuralı, aynı oturumda iki kez çiğnemişim:
+
+- `CleanlinessBp` **yalnızca** `TraitSum(1, ...)` ile, yani salonda masa
+  toplarken okunuyor. Aşçıya düşen "Hızlı ama Dağınık"ın hiçbir bedeli yok —
+  ama satırım mutfak tezgâhını işaret ediyordu, yani etkinin *kanıtlanabilir
+  şekilde olmadığı* yeri.
+- `MoraleAura` iki havuzdan da toplanıyor, yani bulaşıkçıya da düşüyor — ama
+  satırım "O mutfaktayken" diyordu.
+
+Dokuz satır yeniden yazıldı. İki dil hatası da çıktı: *"elleri birbirine
+dolanıyor"* deyimin yarım hatırlanmış hâliydi (doğrusu **eli ayağına
+dolaşmak**), *"ayakları konuşmaya başlıyor"* ise İngilizce bir deyimin
+kalıbıydı. İngilizce tabloda da sahipsiz iyelik sızmıştı (*"the hands get
+tangled"*) ve iki satırda zamir yanlış öncüle bağlanıyordu.
+
+Üç satır olduğu gibi kaldı — en iyisi `suratsiz`: *"İşini yapar, konuşmaz.
+Bazı masalar üstüne alınıyor."* Kişiyi yargılamıyor, mekaniği birebir
+karşılıyor, ve tepkiyi simülasyonun koyduğu yere — müşteriye — koyuyor.
+
+*Kendi kuralını yazdığın belgede o kuralı çiğnemek, kuralın işe yaradığını
+gösterir: onu bulan şey kuralın kendisiydi.*

@@ -166,24 +166,30 @@ TRAIT_DESC = {
 # The trait's VOICE. Same two-string split as the Turkish table:
 # TRAIT_DESC translates a number, TRAIT_VOICE describes a person.
 #
-# Written as English, not translated from Turkish - the register is the
-# same (third person, present, observational, withholding) but the
-# sentences are their own. Genderless throughout: the game's staff have
-# no gender and the Turkish original has no pronouns to translate.
+# These are written as English rather than rendered from the Turkish, but
+# the first draft was not: three lines carried a definite article on a
+# body part with no possessor ("the hands get tangled", "the feet start
+# talking"), which is Turkish possessive morphology showing through. Two
+# more failed on antecedent - "Tables leave laughing when they carry the
+# bill" parses as the tables carrying their own bill.
+#
+# Genderless throughout: the game's staff have no gender. Where a pronoun
+# would be needed, the sentence is rebuilt so none is.
 TRAIT_VOICE = {
-    "hizli_ama_daginik": "Gets the food out fast. Don't look at the bench.",
+    "hizli_ama_daginik": "Gets the order out fast. The hurry stops when it's time to clear.",
     "yavas_ama_titiz": "Checks the plate once more before letting it go.",
-    "kalabalikta_panikleyen": "When the room fills up, the hands get tangled.",
-    "sakin": "The crowd doesn't reach them. Same step throughout.",
-    "musteriyle_iyi_anlasan": "Tables leave laughing when they carry the bill.",
+    "kalabalikta_panikleyen": "Loses the thread when the room fills up.",
+    "sakin": "The busiest hour goes by without a raised voice.",
+    "musteriyle_iyi_anlasan": "Guests say the name on their way out.",
     "suratsiz": "Does the work, says nothing. Some tables take it personally.",
-    "cabuk_yorulan": "By evening the feet start talking.",
-    "dayanikli": "Closes the day with the step they opened it with.",
-    "ekip_moralini_yukselten": "Nobody stays sulking while they're in the kitchen.",
+    "cabuk_yorulan": "Leans on the counter more as the day goes on.",
+    "dayanikli": "Still at the morning's pace when the shutters come down.",
+    "ekip_moralini_yukselten": "People gather round on the break.",
     "huysuz": "Has a problem with everyone. Right about most of them.",
     "cirak": "New to this. Show it once and it stays.",
-    "tecrubeli": "Thirty years of this. Nothing left to teach.",
+    "tecrubeli": "Thirty years in. Doesn't ask anything new.",
 }
+
 
 ROLES = {
     "asci": "Cook", "garson": "Waiter",

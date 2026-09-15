@@ -305,11 +305,26 @@ namespace Lokanta.Game
                     // birinci huyunun ses cumlesi ekranda geciyor mu.
                     // Aday yoksa OLCULEMEDI - kirmizi degil.
                     int aday = _app.Sim.CandidateTrait(0, 0, 0);
-                    string sesi = aday >= 0
-                        ? Loc.T(_app.Economy.TraitAt(aday).NameKey + ".voice")
+                    string sesAnahtar = aday >= 0
+                        ? _app.Economy.TraitAt(aday).NameKey + ".voice"
                         : null;
-                    NoteIf(!string.IsNullOrEmpty(sesi),
-                           !string.IsNullOrEmpty(sesi) && HasText(sesi),
+                    string sesi = sesAnahtar != null ? Loc.T(sesAnahtar) : null;
+
+                    // EKSIK CEVIRI DE YAKALANMALI.
+                    //
+                    // Ilk yazim `HasText(Loc.T(anahtar))` idi ve bu bir
+                    // TOTOLOJIYDI: Loc.T eksik anahtarda "[anahtar]"
+                    // donduruyor, kart da AYNI cagriyi yapiyor, yani
+                    // ceviri hic yokken iki taraf da "[trait.x.voice]"
+                    // uretiyor ve kontrol YESIL geciyordu. Tam olarak bu
+                    // islemenin uc kez sucladigi bos kapsam.
+                    //
+                    // Iki sart birden: metin ekranda OLACAK ve eksik
+                    // anahtar isareti OLMAYACAK.
+                    bool cevrilmis = !string.IsNullOrEmpty(sesi)
+                                     && !sesi.StartsWith("[");
+                    NoteIf(sesAnahtar != null,
+                           cevrilmis && HasText(sesi),
                            "Aday kartinda huyun sesi goruunuyor");
                 }
                 yield return Shot("05-" + Slug(s));

@@ -1134,6 +1134,9 @@ namespace Lokanta.Core.Sim
         /// </summary>
         public int SalonRushWashes { get { return _salonRushWashes; } }
 
+        /// <summary>Mutfak durdugu icin lavaboya kosulan gorev sayisi.</summary>
+        public int SalonCrisisWashes { get { return _salonCrisisWashes; } }
+
         /// <summary>Bugun kirlenen tabak (birikmeli).</summary>
         public int PlatesDirtiedToday { get { return _dirtiedToday; } }
         public int ActiveParties { get { return _partyCount; } }
@@ -2315,6 +2318,7 @@ namespace Lokanta.Core.Sim
             _angryParties = 0;
             _angrySeated = 0;
             _salonRushWashes = 0;
+            _salonCrisisWashes = 0;
             _revenue = 0;
             _ingredientCost = 0;
             _satisfactionSum = 0;
@@ -5420,9 +5424,17 @@ namespace Lokanta.Core.Sim
             int sinkFrom = servers - _dishwashers;
             if (sinkFrom < 1) sinkFrom = 1;
 
+            // BU TICK'TE KRIZ ICIN LAVABOYA GIDEN SAYISI.
+            int krizYikayan = 0;
+
             for (int s = 0; s < servers; s++)
             {
                 if (_salonTaskKind[s] != TaskKind.None) continue;
+
+                // LAVABO PATRONUN ISI DEGIL - personel varsa.
+                // Tek yerde hesaplaniyor: iki kopya, biri gerekcesiz,
+                // digerini degistiren kisinin haberi olmadan ayrisirdi.
+                bool patron = s == 0 && _salon > 0;
 
                 if (s >= sinkFrom)
                 {
@@ -5431,10 +5443,13 @@ namespace Lokanta.Core.Sim
                     // isini yapar" - karsiligi tam olarak bu satir.
                     //
                     // BU SATIR IKI KEZ ZAYIFLATILMAYA CALISILDI, OLCUM
-                    // IKISINI DE REDDETTI (32 tohum, docs/53):
+                    // IKISINI DE REDDETTI (docs/53):
                     //
-                    //   yigin bir esigi gecmeden yikamasin  229 -> 293
-                    //   yikayacak sey yokken salona donsun  197 -> 216
+                    //   yikayacak sey yokken salona donsun
+                    //       197 -> 216   (32 tohum, HEAD'e gore)
+                    //   yigin bir esigi gecmeden yikamasin
+                    //       229 -> 293   (12 tohum - AYNI OLCEKTE DEGIL,
+                    //       yalnizca yonu gosteriyor)
                     //
                     // Ikisi de makul geliyordu ve ikisi de ayni seyi
                     // bozuyor: uzmanin butun degeri ARALIKSIZ ve HEMEN
@@ -5470,25 +5485,49 @@ namespace Lokanta.Core.Sim
                 // ateslenmedi. Bos kisi aramak yanlis soruydu - dogru
                 // soru "su an yapilan is degerli mi".
                 //
-                // NEDEN BULASIKCIYI OLDURMUYOR: bu dal yalnizca mutfak
-                // GERCEKTEN durduysa aciliyor. Adanmis bulasikci varken
-                // kriz zaten olusmuyor, yani kullanicinin kurali
-                // ("bulasikci alinca herkes kendi isini yapar") normal
-                // gunde birebir duruyor - `WashNeeded` hala bulasikci
-                // varsa salona rutin yikama vermiyor.
+                // BULASIKCI VARKEN DE ATESLENIYOR - VE BILEREK.
+                //
+                // Ilk yorumum "bulasikci varken kriz zaten olusmuyor"
+                // diyordu ve bu OLCULMEMIS bir iddiaydi; olcum tersini
+                // soyluyor (bulasikci kolu HEAD'e gore 198 -> 197
+                // oynuyor, yani dal atesleniyor). Tek bir bulasikci
+                // yeterince buyuk bir salona yetismeyebilir.
+                //
+                // Kullanicinin kurali RUTIN yikama hakkinda ve orada
+                // aynen duruyor: `WashNeeded` bulasikci varsa salona
+                // rutin yikama vermiyor. Burasi rutin degil - mutfak
+                // DURMUS. Duran bir mutfakta bulasikci zaten geride
+                // kalmis demektir; o anda salonu lavabodan uzak tutmak
+                // kurali korumak degil dukkani kilitlemek olurdu.
                 //
                 // Arastirma (docs/53): sevk edilmis hicbir oyunda uzman
                 // almak genel havuzu sessizce kapatmiyor. RimWorld'un
                 // YANGIN davranisi tam bu kalip - nadir, agir, kapsamli
                 // bir kosul normal onceligi geciyor.
-                if (!(s == 0 && _salon > 0) && _plateStalled && _platesDirty > 0)
+                if (!patron && _plateStalled && _platesDirty > krizYikayan)
                 {
                     _salonTaskKind[s] = TaskKind.Wash;
                     _salonTaskTarget[s] = -1;
                     _salonTaskLeftMs[s] =
                         OwnerAdjusted(s, XpAdjusted(1, s - 1, _timing.WashMs));
                     _washing = true;
-                    _salonRushWashes++;
+
+                    // AYRI SAYAC. `_salonRushWashes` bulasikcinin salonu
+                    // lavabodan kurtarip kurtarmadigini olcuyor
+                    // (PlateTests) ve bu dal BULASIKCIDAN BAGIMSIZ
+                    // atesleniyor - ayni sayaca katlarsa testin iki kolu
+                    // da ayni krizi sayar ve fark olculemez hale gelir.
+                    // Tam olarak o sayacin kendi yorumunun yasakladigi
+                    // sey.
+                    _salonCrisisWashes++;
+
+                    // BIR KIRLI TABAK BUTUN SALONU CEKMESIN.
+                    //
+                    // `_platesDirty` gorev BITINCE dusuyor, atanirken
+                    // degil. Esiksiz halde tek kirli tabak icin bes
+                    // sunucu birden lavaboya gidiyordu ve dordu bos
+                    // donuyordu (`_washedToday` de siserek).
+                    krizYikayan++;
                     continue;
                 }
 
@@ -5516,20 +5555,6 @@ namespace Lokanta.Core.Sim
                 // tabak yikayip servise donuyor, bir sonraki karede geri
                 // geliyor - "yikiyor" degil "gidip geliyor" diye
                 // okunuyordu.
-                // LAVABO PATRONUN ISI DEGIL - personel varsa.
-                //
-                // Sifirinci sunucu PATRON ve patron gorunumde CIZILMIYOR
-                // (oyuncunun kendisi). Bulasigi patron yikayinca oyuncu
-                // hicbir sey gormuyor: olculdu, bir kosuda cekirdek on
-                // iki tabak yikadi ve ekranda sifir kare yikama goruldu.
-                //
-                // Kurgusal olarak da dogrusu bu: patron salonu toplar,
-                // musteriyle ilgilenir, bosluk doldurur - lavaboya
-                // baglanan kisi personeldir. Tek basinaysa (salon
-                // kadrosu yok) yine yikiyor, yoksa tabaklar hic
-                // temizlenmez ve dukkan kilitlenirdi.
-                bool patron = s == 0 && _salon > 0;
-
                 if (!patron && WashNeeded())
                 {
                     _salonTaskKind[s] = TaskKind.Wash;
@@ -5748,6 +5773,15 @@ namespace Lokanta.Core.Sim
         /// </summary>
         private bool _plateStalled;
 
+        /// <summary>
+        /// Mutfak durdugu icin lavaboya kosan salon gorevi sayisi.
+        ///
+        /// `_salonRushWashes`ten AYRI: o, bulasikci varken salonun
+        /// lavabodan kurtulup kurtulmadigini olcuyor ve kriz dali
+        /// bulasikcidan bagimsiz atesleniyor.
+        /// </summary>
+        private int _salonCrisisWashes;
+
         private int FirstDirtyTable()
         {
             for (int t = 0; t < _tableCount; t++)
@@ -5932,7 +5966,26 @@ namespace Lokanta.Core.Sim
                     bestPatience = _pPatienceLeftMs[i];
                     best = i;
                 }
-                if (best < 0) return;
+                if (best < 0)
+                {
+                    // MANDALLANMA: BAYRAK BURADA DA DUSMELI.
+                    //
+                    // Once yalnizca `return` vardi ve `_plateStalled`
+                    // TAKILI KALIYORDU: tikanan grup sabirsizlanip
+                    // kalkinca (LeaveAngry `_pCooked`'u temizlemiyor)
+                    // bu cikis her tick sessizce aliniyor, mutfak
+                    // durmuyor ama salon KRIZ dalinda kaliyor - yani
+                    // kimse siparis almiyor, yeni pismis grup olusmuyor,
+                    // ve bayrak kendi kendini besliyor.
+                    //
+                    // Bayragi burada da dusurmek onu TUREV yapiyor:
+                    // degeri her tick PlateUp'ta yeniden hesaplaniyor
+                    // (PlateUp, DispatchSalon'dan ONCE kosuyor). Bu
+                    // yuzden kayda yazilmasi da GEREKMIYOR - yuklemeden
+                    // sonraki ilk tick dogru degeri kuruyor.
+                    _plateStalled = false;
+                    return;
+                }
 
                 int need = _pSize[best];
                 if (_platesClean < need)

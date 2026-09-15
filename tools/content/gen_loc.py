@@ -203,19 +203,37 @@ TRAIT_DESC = {
 #   - Duz ve kisa. Sirinlige uzanan replik yirminci gunde katlanilmaz
 #     olur; sevk edilmis bark yazisinin tek ortak uyarisi bu.
 TRAIT_VOICE = {
-    "hizli_ama_daginik": "Siparişi çabuk çıkarır. Tezgâhın hâline bakma.",
-    "yavas_ama_titiz": "Tabağı bırakmadan bir kere daha bakar.",
-    "kalabalikta_panikleyen": "Salon dolunca elleri birbirine dolanıyor.",
-    "sakin": "Kalabalık ona ulaşmıyor. Aynı adım.",
-    "musteriyle_iyi_anlasan": "Hesabı o götürünce masa gülerek kalkıyor.",
+    # HAVUZ KORLUGU: bu satirlar HEM ASCIYA HEM SALONA dusuyor.
+    #
+    # Ilk yazimda iki satir simulasyonun YALANLADIGI seyi soyluyordu:
+    #   - "Tezgahin haline bakma" mutfagi isaret ediyordu, oysa
+    #     CleanlinessBp yalnizca TraitSum(1, ...) ile, yani SALONDA masa
+    #     toplarken okunuyor. Asciya dusunce huyun bedeli hic yok.
+    #   - "O mutfaktayken" diyordu, oysa MoraleAura iki havuzdan da
+    #     toplaniyor ve bulasikciya da dusuyor.
+    #
+    # Kural (docs/53): simulasyonun yalanlayabilecegi hicbir sey soyleme.
+    # Satirlar artik havuzdan bagimsiz.
+    "hizli_ama_daginik": "Siparişi çabuk çıkarıyor. Toplamaya sıra gelince acelesi bitiyor.",
+    "yavas_ama_titiz": "Tabağı bırakmadan bir kere daha bakıyor.",
+    # Deyim "eli ayagina dolasmak". Ilk yazim "elleri birbirine
+    # dolaniyor" idi - deyimin yarim hatirlanmis hali, yanlis uzuv ve
+    # yanlis fiil. Bir dili bilen ya deyimi kullanir ya hic kullanmaz.
+    "kalabalikta_panikleyen": "Salon dolunca eli ayağına dolaşıyor.",
+    "sakin": "En kalabalık saatte sesi bile yükselmiyor.",
+    "musteriyle_iyi_anlasan": "Masadan kalkarken adıyla teşekkür ediyorlar.",
     "suratsiz": "İşini yapar, konuşmaz. Bazı masalar üstüne alınıyor.",
-    "cabuk_yorulan": "Akşama doğru ayakları konuşmaya başlıyor.",
-    "dayanikli": "Kapanışta da açılıştaki adımıyla yürüyor.",
-    "ekip_moralini_yukselten": "O mutfaktayken kimse küs kalmıyor.",
+    # "Ayaklari konusmaya basliyor" Ingilizce bir deyimin kalibiydi.
+    # "Aksam" da oyunun kendi asama adi; etki servisin son ceyreginde.
+    "cabuk_yorulan": "Gün ilerledikçe tezgâha daha çok yaslanıyor.",
+    "dayanikli": "Kapanışta da sabahki hızında.",
+    "ekip_moralini_yukselten": "Molada etrafına toplanıyorlar.",
     "huysuz": "Herkesle bir derdi var. Çoğunda da haklı.",
     "cirak": "Daha yeni. Bir kere gösterince aklında kalıyor.",
-    "tecrubeli": "Otuz yıldır bu iş. Öğretilecek bir şey kalmamış.",
+    # "Yeni bir sey sormuyor" xpBp 0'in kendisi: ogrenecegi kalmamis.
+    "tecrubeli": "Otuz yıldır bu işte. Yeni bir şey sormuyor.",
 }
+
 
 ROLES = {
     "asci": "Aşçı", "garson": "Garson",
@@ -913,23 +931,45 @@ def _ekran_aileleri_ayrismasin():
     csharp = set(re.findall(r'StartsWith\("([^"]+)"\)', blok))
     csharp |= set(re.findall(r'EndsWith\("([^"]+)"\)', blok))
 
-    # PYTHON TARAFI DA KAYNAKTAN OKUNUYOR.
+    # IKI TARAF DA KAYNAKTAN, AMA PYTHON TARAFI DAVRANISLA DOGRULANIYOR.
     #
-    # Burada elle yazilmis bir aile listesi vardi ("ui.", "notice.",
-    # ...) ve o, ailenin UCUNCU kopyasiydi: SCREEN_KEY'e ".voice"
-    # eklendiginde kontrol "LocTests.cs'de YOK" diye yanlis alarm verdi -
-    # oysa eksik olan kendi prob listesiydi.
+    # Once elle yazilmis bir aile listesi vardi ve o, ailenin UCUNCU
+    # kopyasiydi: ".voice" eklenince kontrol "LocTests.cs'de YOK" diye
+    # YANLIS alarm verdi - eksik olan kendi prob listesiydi.
     #
-    # Iki kopyayi karsilastiran bir kontrol, ucuncu bir kopya uzerine
-    # kurulamaz. Iki taraf da artik KAYNAKTAN okunuyor.
+    # Sonra listeyi kaynaktan okumaya cevirdim ve bu kez METINSEL bir
+    # vekile dondu: "kaynakta endswith(\".voice\") yaziyor mu" diye
+    # soruyordu, "SCREEN_KEY(\"x.voice\") dogru mu" diye degil. Bir
+    # kalibi etkisiz birakan degisiklik (erken return, yer degistiren
+    # kisa devre) metni oldugu yerde birakirdi.
+    #
+    # Simdi ikisi birden: aileler kaynaktan cikariliyor, sonra her biri
+    # SCREEN_KEY'e SORULUYOR. Metin varsa ama davranis yoksa, aile
+    # "burada" kumesine girmiyor ve ayrisma raporlaniyor.
     kendi = io.open(os.path.abspath(__file__), encoding="utf-8").read()
     kbas = kendi.find("def SCREEN_KEY")
     kson = kendi.find(chr(10) + "def ", kbas + 1)
     kblok = kendi[kbas:kson if kson > 0 else len(kendi)]
-    kblok = kblok[kblok.find("return ("):]
+    dbas = kblok.find("return (")
+    if kbas < 0 or dbas < 0:
+        print("gen_loc.py'de SCREEN_KEY govdesi bulunamadi - kontrol kosamiyor")
+        sys.exit(1)
+    kblok = kblok[dbas:]
 
-    burada = set(re.findall(r'startswith\("([^"]+)"\)', kblok))
-    burada |= set(re.findall(r'endswith\("([^"]+)"\)', kblok))
+    metinde = set(re.findall(r'startswith\("([^"]+)"\)', kblok))
+    metinde |= set(re.findall(r'endswith\("([^"]+)"\)', kblok))
+
+    # DAVRANIS SINAMASI: metinde gecen her aile GERCEKTEN muaf mi.
+    burada = set()
+    for aile in metinde:
+        ornek = (aile + "x") if aile.endswith(".") else ("x" + aile)
+        if SCREEN_KEY(ornek):
+            burada.add(aile)
+        else:
+            print("")
+            print("--- SCREEN_KEY METNI ILE DAVRANISI AYRISTI ---")
+            print("  kaynakta yaziyor ama etkisiz:", aile)
+            sys.exit(1)
 
     if csharp != burada:
         eksik = burada - csharp

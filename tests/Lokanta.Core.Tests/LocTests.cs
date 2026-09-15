@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Lokanta.Content;
@@ -105,6 +105,43 @@ namespace Lokanta.Core.Tests
 
             Assert.True(orphan.Count == 0,
                 "Icerikte karsiligi olmayan metin:\n" + string.Join("\n", orphan.Take(20)));
+        }
+
+        /// <summary>
+        /// HER HUYUN SESI VAR MI - IKI DILDE.
+        ///
+        /// `.voice` ailesi hicbir denetimin kapsaminda degildi: icerik
+        /// dosyalari `.voice` istemiyor (nameKey degil), iki oksuz
+        /// kontrolu de aileyi MUAF tutuyor, ve turun kontrolu de
+        /// yakalayamiyordu - `Loc.T` eksik anahtarda "[anahtar]"
+        /// donduruyor, kart da ayni cagriyi yapiyor, yani iki taraf
+        /// birden ayni yanlis dizeyi uretip yesil geciyordu.
+        ///
+        /// Yani on ucuncu bir huy eklense, oyuncuya "[trait.x.voice]"
+        /// gosterilir ve on uc denetimin hicbiri konusmazdi.
+        /// </summary>
+        [Fact]
+        public void Her_huyun_sesi_var()
+        {
+            List<TraitDto> traits = Newtonsoft.Json.JsonConvert
+                .DeserializeObject<List<TraitDto>>(
+                    File.ReadAllText(Path.Combine(Paths.Content,
+                                                  "staff-traits.json")));
+
+            foreach (string dil in new[] { "tr", "en" })
+            {
+                var table = ContentLoader.ReadStringMap(
+                    new DirectoryContentSource(Paths.Content), "loc/" + dil + ".json");
+
+                List<string> eksik = traits
+                    .Select(t => "trait." + t.Id + ".voice")
+                    .Where(k => !table.ContainsKey(k)
+                                || string.IsNullOrWhiteSpace(table[k]))
+                    .ToList();
+
+                Assert.True(eksik.Count == 0,
+                    dil + " dilinde sesi olmayan huy: " + string.Join(", ", eksik));
+            }
         }
 
         [Fact]
