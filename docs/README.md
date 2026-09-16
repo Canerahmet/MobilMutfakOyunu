@@ -6,6 +6,27 @@ Mobil (iOS/Android) ve ileride Steam. 2.5D, yumuşak low-poly. Unity. Tek kişil
 
 **Yaklaşım:** Plan tamamlanmadan uygulamaya geçilmeyecek. Planın mevcut durumu için [06-plan-durumu.md](06-plan-durumu.md).
 
+## Konuya göre
+
+Dosyalar **kronolojik**: her numara bir işin kaydı. Aşağıdaki gruplar
+yalnızca ikinci bir kapı — numaralandırma ve sıra değişmiyor.
+
+**Buradan başla** — [06](06-plan-durumu.md) planın ve işin durumu · [02](02-tasarim-onerisi.md) oyunun ne olduğu · [04](04-mimari.md) katmanlar ve port sınırı · [23](23-cekirdek-sozlesmesi.md) çekirdeğin değişmezleri
+
+**Tasarım** — [07](07-mutfak-sistemi.md) iki mutfak, imza mekanikleri · [08](08-oyun-sonu.md) altmışıncı gün ve yedi eksen · [09](09-icerik-envanteri.md) 32 yemek · [11](11-musteri-sistemi.md) müşteri arketipleri · [34](34-ilerleme-ve-kilit.md) kilit, mevsim, soran müşteri · [47](47-tanima-ve-karne.md) nişanlar ve haftalık karne · [53](53-bekleyen-kararlar.md) bulaşıkçı, kombo, personelin sesi
+
+**Ekonomi ve denge** — [12](12-ekonomi.md) sayılar, kira, maaş, formüller · [27](27-zaman-modeli.md) gün ve tick · [28](28-zirve-karari.md) zirvenin şekli · [29](29-faz0-simulasyon.md) simülasyon ve denge aracı · [32](32-ekipman-ve-yeniden-denge.md) istasyon yuvaları · [42](42-kadro-ve-mudahale.md) kadro tavanı, müdahale bütçesi · [48](48-gunun-sivriligi.md) günü sivriltmek · [52](52-ayrim-ve-kira.md) mutfak ayrımı ve kira
+
+**Çekirdek ve veri** — [03](03-teknik-kararlar.md) motor, platform, sanat tarzı · [13](13-veri-semalari.md) JSON şemaları · [15](15-kayit-sistemi.md) dört yuva, sürüm göçü · [19](19-teknik-kurulum.md) proje kurulumu · [14](14-personel-sistemi.md) roller, huylar, moral · [39](39-tabak-dongusu.md) sayılı tabak, bulaşık nöbeti · [51](51-self-servis.md) fast food'un servis modeli · [33](33-ikinci-mutfak.md) Türk mutfağı
+
+**Arayüz, sanat ve mekân** — [16](16-ekranlar-ve-ogretici.md) ekran akışı ve ilk on dakika · [41](41-arayuz-ve-mekan.md) kartlı HUD, renk rolleri · [24](24-sanat-hatti.md) model hattı · [10](10-mutfak-kimligi.md) giydirme ve ortam kimliği · [30](30-mekan-yerlesimi.md) kat planı · [31](31-oda-ve-kamera.md) oda görünümü, kamera, URP · [35](35-canlandirma-ve-kamera.md) canlandırma katmanı · [36](36-sokak-gun-ve-mutfak.md) sokak ve günün saati · [38](38-sokak-ve-ic-isik.md) gece ışığı · [50](50-mutfak-dokusu.md) doku üretimi · [17](17-ses-tasarimi.md) ses katmanları
+
+**Metin ve dil** — [18](18-hikaye-ve-metin.md) hikâye yayları ve kelime bütçesi · [40](40-iki-dil.md) tek üreteçten iki dil · [54](54-bes-dil.md) beş dil, Arapça birleştirme, aynalama · [55](55-ceviri-incelemesi.md) dört agentli çeviri denetimi
+
+**İnceleme ve ölçüm** — [22](22-cevaplar-ve-yon.md) sorular ve yön · [37](37-dort-agent-incelemesi.md) dört agentli inceleme · [43](43-inceleme-ve-olcum.md) ölçümün yanılttığı yerler · [45](45-tasarim-incelemesi.md) beş agentli tasarım turu · [49](49-ulasilamayan-mekanikler.md) oyuncuya ulaşmayan mekanikler · [46](46-gonderilen-ikili.md) gönderilen ikili, link.xml
+
+**Yayın** — [05](05-uretim-plani.md) araçlar, lisanslar, maliyet · [20](20-uretim-kararlari.md) üretim kararları · [21](21-is-ve-yayin.md) yayın denetimi ve kalan işler · [44](44-magaza-metinleri.md) mağaza metinleri, gizlilik politikası · [25](25-oyun-adi.md) ad kararı — AÇIK
+
 ## Dokümanlar
 
 | Dosya | İçerik | Durum |
@@ -18,19 +39,19 @@ Mobil (iOS/Android) ve ileride Steam. 2.5D, yumuşak low-poly. Unity. Tek kişil
 | [06-plan-durumu.md](06-plan-durumu.md) | **37 plan kaleminin durumu ve kalan işin beş partisi** | Güncel |
 | [07-mutfak-sistemi.md](07-mutfak-sistemi.md) | Mutfak seçimi, imza mekanikleri, gelir modeli ve üç şart | Güncel |
 | [08-oyun-sonu.md](08-oyun-sonu.md) | Oyunun sonu: puanlanan yıl sonu değerlendirmesi | Onaylandı |
-| [09-icerik-envanteri.md](09-icerik-envanteri.md) | İçerik envanteri (v2, 32 yemek), paylaşılan taban ve altmış günlük ilerleme eğrisi | Karar bekliyor |
-| [10-mutfak-kimligi.md](10-mutfak-kimligi.md) | Karakter giydirme sistemi, mutfağa özel ortam ve karakter sayımı | Karar bekliyor |
-| [11-musteri-sistemi.md](11-musteri-sistemi.md) | Müşteri arketipleri (v2, 20 adet), sıklık kademeleri ve sekiz parametre | Karar bekliyor |
-| [12-ekonomi.md](12-ekonomi.md) | Ekonomi sayıları, kira, maaş, marj, kredi ve müşteri formülleri | Dengelenmedi |
-| [13-veri-semalari.md](13-veri-semalari.md) | On bir JSON şeması, dosya düzeni ve açılış doğrulaması | Karar bekliyor |
-| [14-personel-sistemi.md](14-personel-sistemi.md) | Dört rol, on iki huy, moral, deneyim ve işe alım | Karar bekliyor |
-| [15-kayit-sistemi.md](15-kayit-sistemi.md) | Dört yuva, bozulma koruması, sürüm göçü, bulut kaydı | Karar bekliyor |
-| [16-ekranlar-ve-ogretici.md](16-ekranlar-ve-ogretici.md) | On sekiz ekran, akış kuralları ve ilk on dakika planı | Karar bekliyor |
-| [17-ses-tasarimi.md](17-ses-tasarimi.md) | Beş ses katmanı, katmanlı servis müziği, üretim yükü | Karar bekliyor |
-| [18-hikaye-ve-metin.md](18-hikaye-ve-metin.md) | Hikaye yayları, şablonlu yorumlar, kelime bütçesi, yerelleştirme | Karar bekliyor |
-| [19-teknik-kurulum.md](19-teknik-kurulum.md) | Unity sürümü, URP ayarları, performans bütçeleri, kayıt formatı, girdi haritası | Karar bekliyor |
-| [20-uretim-kararlari.md](20-uretim-kararlari.md) | Model yolu, karakter hattı, ses kaynağı, yazı tipi, test planı | Karar bekliyor |
-| [21-is-ve-yayin.md](21-is-ve-yayin.md) | Fiyat, lansman aşamaları, ölçülecek metrikler, hukuki zorunlular | Karar bekliyor |
+| [09-icerik-envanteri.md](09-icerik-envanteri.md) | İçerik envanteri (v2, 32 yemek), paylaşılan taban ve altmış günlük ilerleme eğrisi | Güncel |
+| [10-mutfak-kimligi.md](10-mutfak-kimligi.md) | Karakter giydirme sistemi, mutfağa özel ortam ve karakter sayımı | Güncel |
+| [11-musteri-sistemi.md](11-musteri-sistemi.md) | Müşteri arketipleri (v2, 20 adet), sıklık kademeleri ve sekiz parametre | Güncel |
+| [12-ekonomi.md](12-ekonomi.md) | Ekonomi sayıları, kira, maaş, marj, kredi ve müşteri formülleri | Güncel |
+| [13-veri-semalari.md](13-veri-semalari.md) | On bir JSON şeması, dosya düzeni ve açılış doğrulaması | Güncel |
+| [14-personel-sistemi.md](14-personel-sistemi.md) | Dört rol, on iki huy, moral, deneyim ve işe alım | Güncel |
+| [15-kayit-sistemi.md](15-kayit-sistemi.md) | Dört yuva, bozulma koruması, sürüm göçü, bulut kaydı | Güncel |
+| [16-ekranlar-ve-ogretici.md](16-ekranlar-ve-ogretici.md) | On sekiz ekran, akış kuralları ve ilk on dakika planı | Güncel |
+| [17-ses-tasarimi.md](17-ses-tasarimi.md) | Beş ses katmanı, katmanlı servis müziği, üretim yükü | Güncel |
+| [18-hikaye-ve-metin.md](18-hikaye-ve-metin.md) | Hikaye yayları, şablonlu yorumlar, kelime bütçesi, yerelleştirme | Güncel |
+| [19-teknik-kurulum.md](19-teknik-kurulum.md) | Unity sürümü, URP ayarları, performans bütçeleri, kayıt formatı, girdi haritası | Güncel |
+| [20-uretim-kararlari.md](20-uretim-kararlari.md) | Model yolu, karakter hattı, ses kaynağı, yazı tipi, test planı | Güncel |
+| [21-is-ve-yayin.md](21-is-ve-yayin.md) | Fiyat, lansman aşamaları, ölçülecek metrikler, hukuki zorunlular | Güncel |
 | **[review/00-sentez.md](review/00-sentez.md)** | **Beş ajanlı değerlendirmenin sentezi: 3 onay, 21 düzelt, yedi partilik düzeltme planı, dokuz açık soru** | **Güncel** |
 | [review/01-05](review/) | Beş ham değerlendirme raporu: tasarım, mimari, kapsam, pazar, oyuncu deneyimi | Güncel |
 | **[22-cevaplar-ve-yon.md](22-cevaplar-ve-yon.md)** | **Dokuz soruya cevaplar, makine taraması, sıfır bütçe planı, açık iki karar için öneri** | **Güncel** |
@@ -70,8 +91,18 @@ Mobil (iOS/Android) ve ileride Steam. 2.5D, yumuşak low-poly. Unity. Tek kişil
 | **[52-ayrim-ve-kira.md](52-ayrim-ve-kira.md)** | **Fast food kirası ×1,15 (kirayı artırmak botun kasasını *artırıyor* — ölçüldü); görüntü aracı self servisi hiç çizmiyordu, asılı menü panelleri arkasını kapatıyordu, mobilya laminata döndü** | **Güncel** |
 | **[53-bekleyen-kararlar.md](53-bekleyen-kararlar.md)** | **Bulaşıkçı açık kararı ölçümle kapandı (iki "düzeltme" denendi, ikisi de bozdu); kombo cevabı self servisle tersine döndü ve düğmesine tur hiç basmıyormuş; personele ilk kez ses verildi (`trait.*.voice`)** | **Güncel** |
 | **[54-bes-dil.md](54-bes-dil.md)** | **Beş dil (tr/en/es/zh/ar), varsayılan İngilizce; Arapça harf birleşmesi Gelişmiş Metin Üreticisi'yle çözüldü ve genişlik farkıyla ölçüldü (60 → 40 dp); yerleşim aynalandı; şerit bütçesi beş dilde ölçülüyor — en uzunu İspanyolca** | **Güncel** |
+| **[55-ceviri-incelemesi.md](55-ceviri-incelemesi.md)** | **Dört agentli çeviri denetimi: müdavim kadrosu es/zh/ar'da başka bir kadroydu; Çince yapı üç yerden bozukken yazı tipi denetimi yeşildi (isim havuzu + gömülü simgeler); yedi metin simülasyonu yalanlıyordu** | **Güncel** |
 | `../unity/` | Unity 6.3 LTS projesi, Android hedefli. Ayarlar `ProjectSetup.cs` ile kodla uygulanıyor | Kuruldu |
 | `../src/Lokanta.Harness/` | Denge aracı: beş strateji, çok tohumlu altmış günlük kampanya | Çalışıyor |
+
+**Durum sütunu 16 Eylül 2026'da düzeltildi.** On üç satırda hâlâ "Karar
+bekliyor" yazıyordu; bu belgenin *kendi* alt bölümü ("Plan kütüğü — kapandı")
+aynı kalemlerin 9 Eylül'de kapandığını ve uygulamanın ondan sonra başladığını
+söylüyor. Yani tablo, altındaki bölümü yalanlıyordu. Tek istisna
+[25-oyun-adi.md](25-oyun-adi.md): ad ve marka taraması gerçekten açık.
+
+*Sütun belgenin durumunu söylüyor, işin durumunu değil. Yayın öncesi kalan
+işler [21-is-ve-yayin.md](21-is-ve-yayin.md)'de.*
 
 ## Yayınlanmış okunabilir sürümler
 

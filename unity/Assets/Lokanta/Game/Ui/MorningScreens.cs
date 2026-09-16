@@ -927,7 +927,7 @@ namespace Lokanta.Game.Ui
             // "Asci 2 istifa etti" cumlesi "kapasite -28" ile ayni sey;
             // "Nurten Abla birakti" degil. Personel sisteminin butun
             // duygusal agirligi bu tek satirda.
-            string name = sim.StaffName(pool, index);
+            string name = Loc.PersonName(sim.StaffName(pool, index));
             head.Add(Theme.Text(
                 string.IsNullOrEmpty(name)
                     ? Loc.T(pool == 0 ? "role.asci" : SalonRoleKey()) + " " + (index + 1)
@@ -1074,7 +1074,14 @@ namespace Lokanta.Game.Ui
         {
             string a = TraitName(App.Sim.StaffTrait(pool, index, 0));
             string b = TraitName(App.Sim.StaffTrait(pool, index, 1));
-            if (a == null && b == null) return Loc.T("ui.staff.inherited");
+            // HUYU OLMAYAN = DEVRALINAN. Ama devralinan IKI kisi var:
+            // asci ve salondaki (Simulation.cs, ikisinin de huyu -1).
+            // Tek metin kullanilinca garsonun kartinda "devraldigin
+            // asci" yaziyordu - bes dilde birden.
+            if (a == null && b == null)
+                return Loc.T(pool == 0
+                    ? "ui.staff.inherited"
+                    : "ui.staff.inherited_salon");
             if (b == null) return a;
             return a + " · " + b;
         }

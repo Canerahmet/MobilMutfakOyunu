@@ -157,6 +157,10 @@ def main():
          [PY, os.path.join("tools", "audit_content.py")]),
         ("yazi tipi kapsamasi",
          [PY, os.path.join("tools", "art", "check_font.py")]),
+        ("magaza metinleri",
+         [PY, os.path.join("tools", "content", "check_magaza.py")]),
+        ("belge baglantilari",
+         [PY, os.path.join("tools", "check_belgeler.py")]),
         ("urp ayarlari",
          [PY, os.path.join("tools", "check_urp.py")]),
         # LISANS: ticari yayin kapisi. Bir varlik klasoru lisanssiz ya da

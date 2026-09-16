@@ -68,6 +68,20 @@ def _is_cjk(ch):
             or 0xFF00 <= cp <= 0xFFEF)  # tam genislik bicimler
 
 
+# Loc.PersonName ile AYNI tablo. Degistiren iki yeri birden
+# degistirmeli; denetim bunu zaten gosteriyor (alt kume eksik cikar).
+KATLAMA = {
+    u"ğ": u"g", u"Ğ": u"G",
+    u"ı": u"i", u"İ": u"I",
+    u"ş": u"s", u"Ş": u"S",
+}
+
+
+def _is_arabic(ch):
+    cp = ord(ch)
+    return 0x0600 <= cp <= 0x06FF or 0x0750 <= cp <= 0x077F         or 0xFB50 <= cp <= 0xFDFF or 0xFE70 <= cp <= 0xFEFF
+
+
 def _font_for(path):
     return CJK_FONT if os.path.basename(path) == "zh.json" else None
 
@@ -193,6 +207,66 @@ def scan_json(path, seen):
 
 
 # ---------------------------------------------------------------------------
+# DIL CINCE IKEN EKRANDA NE CIKABILIR.
+#
+# Once soru "Cince tablosunda hangi karakter var" diye soruluyordu ve
+# denetim yesildi. Oysa UiRoot.FontForLanguage dil Cince oldugunda
+# BUTUN AGACI bu yazi tipiyle ciziyor - yalnizca Cince metni degil.
+# Uc sey bu yuzden bos kutu olarak gidiyordu:
+#
+#   - Personel isimleri: content/names.json yerellestirme tablosunda
+#     degil, doksan alti ismin on altisi (Ayse, Ibrahim, Yagmur, Sila...)
+#     alt kumede hic yoktu.
+#   - Aksam raporundaki eksi isareti U+2212 ve menudeki madde imi
+#     U+2022: ikisi de dogrudan C# icinde, hicbir tabloda degil.
+#   - Dil secicideki Arapca dugmesi: o ayri bir sorun ve KODDA cozuldu
+#     (Rubik yerel olarak veriliyor), cunku Noto Sans SC Arapca
+#     tasimiyor - alt kumeye eklenemez.
+#
+# Kume BURADA tek yerde tanimli: subset_font.py alt kumeyi bundan
+# uretiyor, bu denetci ayni kumeyi ariyor. Iki ayri liste olsaydi
+# ayrisirlardi ve ayrisma yine bos kutu demekti.
+def cjk_characters():
+    seen = {}
+    zh = os.path.join(ROOT, "content", "loc", "zh.json")
+    if os.path.exists(zh):
+        scan_json(zh, seen)
+    isimler = os.path.join(ROOT, "content", "names.json")
+    if os.path.exists(isimler):
+        scan_json(isimler, seen)
+    game = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Game")
+    for base, _dirs, files in os.walk(game):
+        for name in sorted(files):
+            if name.endswith(".cs"):
+                scan_csharp(os.path.join(base, name), seen)
+    # ARAP HARFLERI BU HAVUZDA ARANMIYOR.
+    #
+    # Havuza yalnizca tek bir yerden giriyorlar: Loc.LanguageNames
+    # icindeki Arapca dil adi, yani dil secicideki dugme. O dugme
+    # MenuScreens'te YEREL OLARAK Rubik ile ciziliyor, cunku Noto Sans
+    # SC Arapca tasimiyor ve alt kumeye eklenemez - olmayan bir glifin
+    # alt kumesi cikarilamaz.
+    #
+    # Yani bu bir mazeret degil, kodda karsiligi olan bir istisna:
+    # istisna kalkarsa dugme bos kutu olur ve turdaki dil secici
+    # kontrolu bunu gorur.
+    # KOD NE YAPIYORSA DENETIM DE ONU YAPAR.
+    #
+    # Loc.PersonName dil Cince'yken Latin Extended-A'daki bu bes harfi
+    # katliyor, cunku Noto Sans SC'de yoklar ve KAYNAK fontta da yoklar
+    # - alt kumeye eklenerek cozulemezler. Katlamayi burada da
+    # uygulamazsak, denetim cozulemeyecek bir eksigi sonsuza kadar
+    # rapor eder.
+    #
+    # Havuzun TAMAMINA uygulaniyor: bu harfler havuza iki yerden
+    # giriyor - personel isimleri (katlaniyorlar) ve turun dosya adi
+    # yardimcisindaki tek harflik dizeler (ekrana hic cikmiyorlar).
+    # Ikisi de katlandiktan sonra ayni yere varir.
+    return sorted({KATLAMA.get(ch, ch) for ch in seen
+                   if not _control(ch) and not _is_arabic(ch)})
+
+
+# ---------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--font", default=DEFAULT_FONT)
@@ -246,6 +320,14 @@ def main():
     # olmasi onu CJK fontuna tasimaz.
     for ch in [c for c in seen if _is_cjk(c)]:
         seen_cjk.setdefault(ch, seen.pop(ch))
+
+    # CINCE HAVUZU DILDEN BAGIMSIZ METNI DE ICERIYOR.
+    #
+    # Personel isimleri ve koda gomulu simgeler dil ne olursa olsun
+    # ekrana ciktigi icin, dil Cince'yken onlari da bu yazi tipi
+    # ciziyor. Tek kaynak: cjk_characters().
+    for ch in cjk_characters():
+        seen_cjk.setdefault(ch, "dilden bagimsiz")
 
     missing = []
     for ch, where in sorted(seen.items()):

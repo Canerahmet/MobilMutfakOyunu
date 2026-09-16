@@ -6,7 +6,7 @@
 > değiştirilebilsin. Ona göre de kullanılan kelimeler vs. ortak anlaşılır olsun.
 > Default olarak oyun İngilizce başlasın."*
 
-Oyun iki dilliydi ([44](44-iki-dil.md)). Beş oldu. **Asıl iş çeviri değildi** —
+Oyun iki dilliydi ([44](40-iki-dil.md)). Beş oldu. **Asıl iş çeviri değildi** —
 çeviri, üretecin zaten çözdüğü bir şeydi. Asıl iş iki yazı sisteminin
 kendisiydi: Çince binlerce glif istiyor, Arapça harfleri birleştiriyor ve
 sağdan sola akıyor. İkisi de "metni çevir" işinin dışında.

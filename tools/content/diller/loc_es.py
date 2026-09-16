@@ -138,12 +138,12 @@ ARCHETYPES = {
 # Personel huylari, roller, istasyonlar
 # ---------------------------------------------------------------------------
 TRAITS = {
-    "hizli_ama_daginik": "Rápido pero Desordenado",
-    "yavas_ama_titiz": "Lento pero Cuidadoso",
+    "hizli_ama_daginik": "Prisa y Desorden",
+    "yavas_ama_titiz": "Despacio y con Cuidado",
     "kalabalikta_panikleyen": "Se Bloquea en el Apuro",
     "sakin": "Imperturbable",
-    "musteriyle_iyi_anlasan": "Bueno con la Gente",
-    "suratsiz": "Seco",
+    "musteriyle_iyi_anlasan": "Don de Gentes",
+    "suratsiz": "Trato Seco",
     "cabuk_yorulan": "Se Cansa Pronto",
     "dayanikli": "Incansable",
     "ekip_moralini_yukselten": "Levanta al Equipo",
@@ -157,8 +157,8 @@ TRAIT_DESC = {
     "yavas_ama_titiz": "Emplata mejor, pero tarda más.",
     "kalabalikta_panikleyen": "Baja el ritmo en la hora más cargada.",
     "sakin": "El apuro no le llega.",
-    "musteriyle_iyi_anlasan": "Los clientes se van más contentos si él cobra.",
-    "suratsiz": "Los clientes se van menos contentos si él cobra.",
+    "musteriyle_iyi_anlasan": "Los clientes se van más contentos cuando cobra esta persona.",
+    "suratsiz": "Los clientes se van menos contentos cuando cobra esta persona.",
     "cabuk_yorulan": "Baja el ritmo en el último cuarto del día.",
     "dayanikli": "Trabaja al mismo ritmo hasta el cierre.",
     "ekip_moralini_yukselten": "Sube el ánimo del equipo.",
@@ -180,7 +180,7 @@ TRAIT_VOICE = {
     "dayanikli": "Cierra el día con el mismo paso con que lo abrió.",
     "ekip_moralini_yukselten": "En el descanso la gente se junta a su lado.",
     "huysuz": "Tiene algo contra todos. En casi todo lleva razón.",
-    "cirak": "Recién llegado. Se lo enseñas una vez y se le queda.",
+    "cirak": "Acaba de llegar. Se lo enseñas una vez y se le queda.",
     "tecrubeli": "Treinta años en esto. Ya no pregunta nada nuevo.",
 }
 
@@ -212,105 +212,105 @@ STORAGE = {"soguk_hava": "Cámara Frigorífica"}
 REGULARS = {
     # --- turk ---
     "hasan_usta": ("Hasan Usta", "Tornero de la calle de enfrente", [
-        "Nada más entrar mira a la cocina. “¿Hay frijoles?”",
-        "Ya no dice lo que quiere. Se sienta, y tú lo sabes.",
-        "“Mi hijo volvió del servicio, mañana lo traigo.”",
+        "Nada más entrar mira a la cocina. “¿Hay guiso de frijoles?”",
+        "Ya no pide nada. Se sienta, y tú lo sabes.",
+        "“Mi hijo volvió del servicio militar. Esta noche lo traigo.”",
     ]),
-    "nazife_teyze": ("Nazife Teyze", "Vecina del edificio de al lado", [
-        "Viene temprano, se sienta junto a la ventana.",
-        "“Antes cocinaba yo. Ahora vengo aquí.”",
-        "“A mi nuera le dije que aprendiera de tu sopa.”",
+    "nazife_teyze": ("Nazife Teyze", "Vecina del piso de arriba", [
+        "Prueba la sopa y no dice nada. Mañana vuelve.",
+        "“La mía sabía así. Hace años.”",
+        "Se detiene en la puerta: “Este lugar ahora es la cara de la calle.”",
     ]),
-    "selim_bey": ("Selim Bey", "Contador del piso de arriba", [
-        "Entra con la carpeta bajo el brazo, mira el reloj.",
-        "“Aquí se come en media hora. Por eso vengo.”",
-        "“Traje a un cliente. Que vea dónde como yo.”",
+    "selim_bey": ("Selim Bey", "Funcionario de la oficina de impuestos", [
+        "La misma mesa, la misma hora. No se pasa ni un minuto.",
+        "“Cuarenta minutos para comer. Acá salgo a los treinta y cinco.”",
+        "Habla de jubilarse. “Entonces voy a venir más seguido.”",
     ]),
-    "rasim_amca": ("Rasim Amca", "Taxista de la parada", [
-        "Deja el coche en doble fila, entra deprisa.",
-        "“Los de la parada me preguntan dónde como.”",
-        "“Cuando cierras, no sé adónde ir.”",
+    "rasim_amca": ("Rasim Amca", "Maestro de obra", [
+        "Las manos llenas de cal. Se sacude la chaqueta antes de sentarse.",
+        "“A los muchachos también les dije: de ahora en adelante, el almuerzo acá.”",
+        "La obra está por terminar. “Igual me voy a seguir pasando, no te preocupes.”",
     ]),
     "guler_hanim": ("Güler Hanım", "Peluquera de la esquina", [
-        "Viene de pie, pide el arroz para llevar.",
-        "“A mis clientas les digo que crucen la calle.”",
-        "Amplía su local. “Crecimos juntos, digamos.”",
+        "Entra y sale de pie, se lleva el arroz consigo.",
+        "“A mis clientas les digo que crucen la calle y vayan contigo.”",
+        "Está ampliando su local. “Crecimos juntos, tú y yo.”",
     ]),
-    "okan": ("Okan", "Estudiante de instituto", [
-        "Entra con la mochila al hombro, cuenta las monedas.",
-        "“Aquí alcanza para comer con lo que tengo.”",
-        "“Aprobé el examen. Vine a contártelo primero.”",
+    "okan": ("Okan", "Estudiante universitario", [
+        "Pregunta qué es lo más barato del menú.",
+        "“Me salió la beca.” Hoy también pide postre.",
+        "Empieza sus prácticas. “Con el primer sueldo, invito yo acá.”",
     ]),
-    "nurten_abla": ("Nurten Abla", "Costurera del taller", [
-        "Llega a la hora del almuerzo, siempre con el mismo grupo.",
-        "“En el taller somos ocho. Todas preguntan por ti.”",
-        "“Abrimos nuestro propio taller. Empezamos aquí.”",
+    "nurten_abla": ("Nurten Abla", "Encargada de un taller textil", [
+        "Descanso corto. Siempre se lleva el cacık.",
+        "“Vienen tres más del taller — guárdanos una mesa.”",
+        "El taller cierra. “El lugar nuevo queda lejos, pero voy a venir.”",
     ]),
     "ismail_sofor": ("İsmail Şoför", "Camionero de larga distancia", [
-        "Aparca el camión atrás, entra con las manos aún sucias.",
-        "“Paro aquí en cada viaje. Ya es costumbre.”",
-        "“Les dije a los del gremio que este es el sitio.”",
+        "Estaciona el camión en la esquina, come rápido y se va.",
+        "“Volviendo de Ankara, ahora siempre paro acá.”",
+        "Lo dijo por la radio: “Otros dos choferes van a preguntar por ti.”",
     ]),
     "perihan_hanim": ("Perihan Hanım", "Maestra jubilada", [
-        "Se sienta sola, saca el periódico.",
-        "“Comer en casa sola no es comer.”",
-        "“Mis antiguos alumnos vienen. Aquí quedamos.”",
+        "Levanta el tenedor a contraluz. No dice nada, pero mira.",
+        "“Hoy el mantel está limpio. Me di cuenta.”",
+        "“No soy fácil de contentar. Este lugar me gusta.”",
     ]),
-    "mehmet_dede": ("Mehmet Dede", "El mayor del barrio", [
-        "Entra despacio, se apoya en el bastón.",
-        "“Este local lleva aquí más que yo.”",
-        "“Que Dios te dé abundancia. Yo ya vi de todo.”",
+    "mehmet_dede": ("Mehmet Dede", "Cliente del restaurante de antes", [
+        "Duda en la puerta. “Esto antes era de otro.”",
+        "“Los garbanzos sabían así en aquel entonces. Idénticos.”",
+        "Ahora viene todos los días. Todos saben cuál es su silla.",
     ]),
-    # --- fast food ---
-    "deniz": ("Deniz", "Estudiante de instituto", [
-        "Sale de clase, mochila al hombro, con prisa.",
-        "“Este es el punto de encuentro con los amigos.”",
-        "Aprobó el examen. “Lo celebramos aquí, somos seis.”",
+    # --- fastfood ---
+    "deniz": ("Deniz", "Estudiante de secundaria", [
+        "Recién salido de clase, la mochila en un hombro, apurado.",
+        "“Ahora nos juntamos todos acá.”",
+        "Pasó el examen. “El festejo es acá. Somos seis.”",
     ]),
     "burak": ("Burak", "Programador", [
-        "Abre el portátil y pide sin hacer esperar.",
-        "“Trajimos aquí el almuerzo del equipo.”",
-        "“Trabajaré a distancia, pero esta es mi oficina.”",
+        "Abre la laptop y pide sin hacerte esperar.",
+        "“Mudamos el almuerzo del equipo para acá.”",
+        "“Ahora trabajo a distancia, pero esta es prácticamente mi oficina.”",
     ]),
     "elif": ("Elif", "Asesora de tienda", [
-        "Llega con bolsas de compras, tiene quince minutos.",
-        "“Lo vi en el escaparate, han puesto algo nuevo.”",
-        "“Se lo dije a las chicas de la tienda. Ya venimos aquí.”",
-    ]),
-    "kaan_hoca": ("Kaan Hoca", "Profesor de instituto", [
-        "Viene después de clase, aún con la lista en la mano.",
-        "“Aquí puedo comer sin que me vean los alumnos.”",
-        "“Traje a los del claustro. Que lo conozcan.”",
-    ]),
-    "sevda": ("Sevda", "Enfermera", [
-        "Sale del turno, se sienta sin quitarse el uniforme.",
-        "“Es lo único abierto cuando salgo.”",
-        "“En el hospital ya saben este sitio.”",
-    ]),
-    "tolga": ("Tolga", "Entrenador personal", [
-        "Entra con la bolsa del gimnasio, mira el menú de arriba abajo.",
-        "“Dime qué lleva, yo hago la cuenta.”",
-        "“Mando aquí a mis alumnos. Me fío.”",
-    ]),
-    "melis": ("Melis", "Universitaria", [
-        "Se sienta en la mesa del fondo, abre los apuntes.",
-        "“En época de exámenes vivo aquí.”",
-        "“Me gradué. La primera comida fuera, aquí.”",
-    ]),
-    "ozan": ("Ozan", "Chico de las prácticas", [
-        "Llega el primero a la hora de comer, siempre solo.",
-        "“En la oficina soy el nuevo. Aquí no.”",
-        "“Me hicieron fijo. Invito yo.”",
-    ]),
-    "yagmur": ("Yağmur", "Diseñadora gráfica", [
-        "Entra con los cascos puestos, pide por señas.",
-        "“Aquí nadie me da conversación. Se agradece.”",
-        "“Trabajo por mi cuenta. Esta es mi mesa.”",
+        "Llega con las bolsas de las compras, tiene quince minutos.",
+        "“Lo vi por la vitrina: pusieron algo nuevo.”",
+        "“Les conté a las chicas de la tienda. Ahora te pedimos a ti.”",
     ]),
     "cem_abi": ("Cem Abi", "Mensajero en moto", [
         "La moto en la puerta, el casco en la mano.",
-        "“Os puse en el grupo de los repartidores.”",
-        "“Abro mi propio local. Este oficio lo aprendí contigo.”",
+        "“Te puse en el grupo de los mensajeros.”",
+        "“Voy a abrir mi propio local. El oficio lo aprendí de ti.”",
+    ]),
+    "melis": ("Melis", "Contadora independiente", [
+        "Lee la lista de precios de arriba abajo.",
+        "“Yo llevo las cuentas, tú haces la comida.”",
+        "“Me da curiosidad tu margen. No es broma.”",
+    ]),
+    "ozan": ("Ozan", "Futbolista aficionado", [
+        "Después del partido, con todo el equipo, a los gritos.",
+        "“Venimos acá cuando ganamos. Nos das suerte.”",
+        "“Nos llevamos la copa. ¿Ponemos tu nombre en la camiseta?”",
+    ]),
+    "sevda": ("Sevda", "Nutricionista", [
+        "Pregunta por la ensalada: “¿Me pones el aderezo aparte?”",
+        "“A la gente que atiendo le recomiendo este lugar.”",
+        "“Tu menú ya está en la pared de la clínica.”",
+    ]),
+    "tolga": ("Tolga", "Guardia del turno de noche", [
+        "Llega a medianoche. Le sorprende encontrar la puerta abierta.",
+        "“Son el único lugar abierto a esta hora.”",
+        "“Los otros guardias también empezaron a venir. ¿Te diste cuenta?”",
+    ]),
+    "kaan_hoca": ("Kaan Hoca", "Entrenador del gimnasio", [
+        "Recién salido del entrenamiento, preguntando por la proteína.",
+        "“A los que entreno les digo que coman acá.”",
+        "“Puse tu dirección en el tablero del gimnasio. Ojalá no te moleste.”",
+    ]),
+    "yagmur": ("Yağmur", "Profesora de clases nocturnas", [
+        "Tarde y cansada. Pregunta por el postre.",
+        "“Este es el único rato bueno de mi día.”",
+        "“Se terminó el curso. Pero ya es costumbre: voy a volver.”",
     ]),
 }
 

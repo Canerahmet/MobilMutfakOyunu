@@ -56,7 +56,11 @@ namespace Lokanta.Game.Ui
         private static readonly Hint Service = new Hint("servis", "ui.hint.service");
         private static readonly Hint Menu = new Hint("menu", "ui.hint.menu");
         private static readonly Hint Interventions = new Hint(
-            "mudahale", "ui.hint.interventions", s => s.InterventionsPerDay);
+            "mudahale", "ui.hint.interventions", s => s.InterventionsToday);
+            // InterventionsPerDay TABAN sayi (4). Gunluk hak masa
+            // sayisiyla buyuyor (InterventionsToday) - ipucu tabani
+            // okudugu icin ilk genislemeden sonra oyuncuya hakkini
+            // OLDUGUNDAN AZ soyluyordu. Metin dogruydu, kablo yanlisti.
         private static readonly Hint Rent = new Hint("kira", "ui.hint.rent");
         private static readonly Hint Price = new Hint("fiyat", "ui.hint.price");
         private static readonly Hint Staff = new Hint("personel", "ui.hint.staff");

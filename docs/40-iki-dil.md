@@ -11,8 +11,8 @@ kapanıyor.
 
 ## 1. Tek üreteç, iki tablo
 
-İngilizce dizeler ayrı iki modülde (`tools/content/loc_en.py`,
-`tools/content/loc_en_ui.py`) ama **aynı üretecin** içinden geçiyor
+İngilizce dizeler ayrı iki modülde (`tools/content/diller/loc_en.py`,
+`tools/content/diller/loc_en_ui.py`) ama **aynı üretecin** içinden geçiyor
 (`tools/content/gen_loc.py`). Ayrı bir araç yazmak kolay yoldu ve yanlış yoldu:
 iki tablo sessizce ayrışır, ve metinde ayrışma ekranda **`[ui.staff.hire]`
 yazan bir düğme** demek — oyuncunun gördüğü, benim görmediğim bir hata.

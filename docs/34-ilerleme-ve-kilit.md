@@ -460,7 +460,7 @@ docs/02 üç örnek veriyor: *"bir istasyonu hızlandır, bekleyen masaya ikram 
 
 [14-personel-sistemi.md](14-personel-sistemi.md) net: patron mutfakta çalışmaz. Yani mekanik "patron tezgâha geçer" olamaz. Bunun yerine `RushStation` **o istasyonda pişmekte olan işlerin kalan duvar saatinin %40'ını siler** — patron mutfağa girip "şu masa bekliyor" der, bir tabak öne alınır. Aşçının kapasitesini değil, **sıranın önceliğini** değiştirir.
 
-Bu, [27-…](27-tasarim-kararlari.md) Karar D'yi de bozmuyor: `prepMs` içerik tarafında sabit kalıyor, kısalan şey o anki *kalan* süre — ekipmanın yaptığı gibi kalıcı bir hızlanma değil, günde birkaç kez kullanılabilen bir kerelik hak.
+Bu, [27-…](27-zaman-modeli.md) Karar D'yi de bozmuyor: `prepMs` içerik tarafında sabit kalıyor, kısalan şey o anki *kalan* süre — ekipmanın yaptığı gibi kalıcı bir hızlanma değil, günde birkaç kez kullanılabilen bir kerelik hak.
 
 ### Boş istasyonu hızlandırmak hakkı yakmıyor
 
@@ -516,7 +516,7 @@ Sondan alması bilinçli: aksi halde "en deneyimliyi kov" diye anlamsız bir kar
 
 ### Kısalan şey pişme süresi değil
 
-Deneyim `attendMs`'i bölüyor, `prepMs`'i değil. Yani **deneyimli aşçı daha çabuk serbest kalıyor, yemek daha çabuk pişmiyor.** [27-…](27-tasarim-kararlari.md) Karar D ekipman için ne diyorsa deneyim için de aynısı geçerli; `Deneyim_yemegin_pisme_suresine_dokunmuyor` bunu koruyor. Salon tarafında aynı şey: garsonun işi kısalıyor, müşterinin yemek yeme süresi değil.
+Deneyim `attendMs`'i bölüyor, `prepMs`'i değil. Yani **deneyimli aşçı daha çabuk serbest kalıyor, yemek daha çabuk pişmiyor.** [27-…](27-zaman-modeli.md) Karar D ekipman için ne diyorsa deneyim için de aynısı geçerli; `Deneyim_yemegin_pisme_suresine_dokunmuyor` bunu koruyor. Salon tarafında aynı şey: garsonun işi kısalıyor, müşterinin yemek yeme süresi değil.
 
 Patron (salon dizininin sıfırıncı elemanı) deneyim kazanmıyor — zaten `OwnerAdjusted` ile ayrı bir çarpanı var.
 
@@ -538,7 +538,7 @@ Gerçek merdivenle etki ölçülü kalıyor (kalibrasyon cezası yine 0, ölçü
 
 ### 60 günde üçüncü seviye yok
 
-30 gün = 1. seviye, 60 gün = 2. seviye, 90 gün = 3. Yani kampanya süresinde tavana ulaşılamıyor; üçüncü seviye [29-…](29-oyun-sonu.md)'un serbest oyununa ait. Bu bir eksik değil, süre yapısının sonucu — ama testte açıkça yazılı, çünkü fark edilmeden değiştirilecek bir sayı.
+30 gün = 1. seviye, 60 gün = 2. seviye, 90 gün = 3. Yani kampanya süresinde tavana ulaşılamıyor; üçüncü seviye [29-…](08-oyun-sonu.md)'un serbest oyununa ait. Bu bir eksik değil, süre yapısının sonucu — ama testte açıkça yazılı, çünkü fark edilmeden değiştirilecek bir sayı.
 
 ---
 
@@ -802,7 +802,7 @@ Bu dilim oyunu oynanabilir yapmıyor; **görülebilir** yapıyor. Amaç, en büy
 
 ### İçerik platformun arkasına alındı
 
-Yükleyici dosya yolu okuyordu. Android'de dosya yolu diye bir şey yok: içerik APK'nın içinde. `IContentSource` portu yazıldı ([26](26-mimari.md)'nın "platform portun arkasında" kuralı) ve iki uygulaması var:
+Yükleyici dosya yolu okuyordu. Android'de dosya yolu diye bir şey yok: içerik APK'nın içinde. `IContentSource` portu yazıldı ([26](04-mimari.md)'nın "platform portun arkasında" kuralı) ve iki uygulaması var:
 
 | Kaynak | Nerede |
 |---|---|
@@ -848,7 +848,7 @@ Görünüm katmanı simülasyonu **okur, ona yazmaz**; yazan tek şey komut. Kay
 
 ### Ne yapılmadı
 
-Bu dilim kutu-prizma bir yer tutucu. Müşteri figürü yok, animasyon yok, gerçek arayüz yok (HUD bilerek IMGUI — işi tasarım değil, görünürlük). Odaya yaklaşınca dokunma hedefinin **masa takımına** dönmesi de yazılmadı; kamera yaklaşıyor ama hedef hâlâ oda. [16](16-ekranlar.md)'nın on dört ekranı ve [24](24-sanat-hatti.md)'ün mesh hattı önümüzde.
+Bu dilim kutu-prizma bir yer tutucu. Müşteri figürü yok, animasyon yok, gerçek arayüz yok (HUD bilerek IMGUI — işi tasarım değil, görünürlük). Odaya yaklaşınca dokunma hedefinin **masa takımına** dönmesi de yazılmadı; kamera yaklaşıyor ama hedef hâlâ oda. [16](16-ekranlar-ve-ogretici.md)'nın on dört ekranı ve [24](24-sanat-hatti.md)'ün mesh hattı önümüzde.
 
 **Bu katman burada derlenmedi.** `UnityEngine`'e bağlı olduğu için `dotnet build` onu görmüyor; ilk derleme Unity açıldığında olacak.
 
@@ -868,7 +868,7 @@ Bu dilim kutu-prizma bir yer tutucu. Müşteri figürü yok, animasyon yok, ger�
 - **Kalan kuyruk artık içerik ve arayüz işi**, ölü sistem değil:
   - ~~döner/pide~~ **yazıldı** (§17). Adlandırılmış ekipman sayısı Türk'te 3, fast food'da 2; docs/09 mutfak başına 10 istiyor, yani hâlâ içerik işi var.
   - denetleyicinin 4. kontrolü, docs/13 şemasında olup üretilen içerikte olmayan 63 alan sayıyor. Bunlar ölü alan değil, **yazılmamış içerik**: şema, denge aracının ürettiğinden daha geniş bir oyunu tarif ediyor.
-  - ~~oda görünümü~~ **ilk dilimi yazıldı** (§22): iki kademeli kamera ve kat planı sahnede. Yerleşim ekranı ([16](16-ekranlar.md) ekran 14) ve odaya yaklaşınca masa takımına dönen dokunma hedefi hâlâ yazılmadı.
+  - ~~oda görünümü~~ **ilk dilimi yazıldı** (§22): iki kademeli kamera ve kat planı sahnede. Yerleşim ekranı ([16](16-ekranlar-ve-ogretici.md) ekran 14) ve odaya yaklaşınca masa takımına dönen dokunma hedefi hâlâ yazılmadı.
   - ~~imza mekanikleri~~ **yazıldı** (§18); İtalyan (`courses`) ve Japon (`broth`) blokları şema tarafında hazır, o mutfaklar yazılınca kodlanacak.
   - ~~isimli düzenli müşteriler~~ **yazıldı** (§19).
   - ~~personel huyları ve moral~~ **yazıldı** (§20).

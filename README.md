@@ -133,7 +133,10 @@ Oyun içi satın alma ile güç satılmıyor. Hiçbir veri toplanmıyor — uygu
 **internet izni bile istemiyor**. Bu paketin içinden doğrulandı: izin listesi
 boş, `INTERNET` yok, kodda ağ çağrısı yok.
 
-Türkçe ve İngilizce.
+**Beş dil.** Türkçe, İngilizce, İspanyolca, Çince ve Arapça — oyun varsayılan
+olarak İngilizce açılıyor, dil Ayarlar'dan değişiyor. Çince için ikinci bir
+yazı tipi, Arapça için harf birleştirme ve aynalanmış yerleşim var
+([docs/54](docs/54-bes-dil.md)).
 
 ---
 
@@ -154,13 +157,53 @@ cevabı ölçülmeden "biliniyor" sayılmıyor.
 kendi kendine gezdiriyor: menüden kampanya sonuna, 130'dan fazla kontrolle.
 Arayüzü görmenin tek yolu bu — ve bu depodaki görsellerin hepsini o üretiyor.
 
-**Denetim.** `tools/check.py` on üç denetimi tek komutta koşuyor: içerik
-üretimi, denge kuralları, metin tablosu, lisans defteri, URP ayarları, çekirdek
-testleri.
+**Denetim.** `tools/check.py` on dört denetimi tek komutta koşuyor: içerik
+üretimi, denge kuralları, metin tablosu, yazı tipi kapsaması, mağaza metinleri,
+lisans defteri, URP ayarları, çekirdek testleri.
 
 **İçerik üretiliyor.** `content/` altındaki her şey `tools/` içindeki
 üreteçlerden çıkıyor — elle düzenlenmiyor. Denge sayıları bir modelden
-çözülüyor, metin tablosu tek kaynaktan iki dile açılıyor.
+çözülüyor, metin tablosu tek kaynaktan beş dile açılıyor.
+
+### Depoda ne nerede
+
+```
+src/              Oyunun beyni. Unity yok, kayan nokta yok.
+  Lokanta.Core/     Simülasyon, ekonomi, kayıt - determinist çekirdek
+  Lokanta.Content/  İçerik okuma katmanı (JSON -> nesne)
+  Lokanta.Harness/  Denge aracı: bot stratejileri x 60 gün
+tests/            Çekirdeğin testleri (245 test)
+
+unity/            Yalnızca GÖRÜNÜM ve platform.
+  Assets/Lokanta/Game/     Arayüz, sahne, otomatik tur
+  Assets/Lokanta/Editor/   Yapı, sahne üretimi, denetçiler
+  Assets/Lokanta/Art/      Modeller, dokular, yazı tipleri, ATIF.md
+  Assets/Resources/        content/ kopyası - ÜRETİLEN, elle dokunulmaz
+
+content/          ÜRETİLEN içerik. Elle düzenlenmiyor.
+  loc/              tr, en, es, zh, ar - beşi tek üreteçten
+
+tools/            Her şeyi üreten ve denetleyen betikler.
+  check.py          TEK KOMUT: aşağıdakilerin hepsini sırayla koşar
+  audit_content.py  İçerik-kod sözleşmesi: içerikteki her alanı kod okuyor mu
+  check_lisans.py   Lisans ve atıf defteri
+  check_urp.py      URP ayarlarının iki kopyası ayrışmasın
+  dotnet_retry.py   Smart App Control'e takılan dotnet çağrıları için
+  content/          İçerik üreteçleri (gen_*.py) ve mağaza metni denetçisi
+    diller/           Beş dilin metin tabloları - dil başına iki dosya
+  balance/          Denge modeli, çözücü ve dışa aktarım
+  art/              Model/doku üreteçleri ve yazı tipi kapsama denetçisi
+  unity/            Unity'yi toplu kipte koşturan PowerShell betikleri
+  android/          Cihaz ve paket işleri
+
+docs/             Numaralı günlük. Her sayı bir işin kaydı; dizin README.md'de.
+vendor/           Dışarıdan gelen kaynak dosyalar (lisanslarıyla birlikte)
+render/           Üretilen görüntüler; mağaza görselleri render/magaza/
+```
+
+Kural: **bir yön bir kere.** `src/` Unity'yi bilmiyor, `unity/` denge
+kurmuyor, `content/` elle yazılmıyor ve `tools/` dışında hiçbir yerde içerik
+üretilmiyor.
 
 ### Tekrar eden ders
 

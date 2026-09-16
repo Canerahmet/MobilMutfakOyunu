@@ -1702,6 +1702,80 @@ namespace Lokanta.Game
         }
 
         /// <summary>
+        /// CINCE EKRANDA BOS KUTU VAR MI.
+        ///
+        /// Dil Cince'yken butun agac Noto Sans SC ile ciziliyor ve o
+        /// yazi tipinde Latin Extended-A YOK - kaynak fontta da yok,
+        /// yani alt kumeye eklenerek cozulemez. Personel isim
+        /// havuzundaki doksan alti isimden on altisi bu harfleri
+        /// tasiyor; Loc.PersonName onlari katliyor.
+        ///
+        /// Bu kontrol katlamanin CALISTIGINI degil, EKRANDA sonucunu
+        /// olcuyor: gorunen her etiket taraniyor. Katlama bir gun bir
+        /// cagri yerinde unutulursa, o harf buraya dusuyor.
+        ///
+        /// Yazi tipi denetcisi (tools/art/check_font.py) tablolari
+        /// olcuyor; bu, ekrani. Ikisi ayri sorular - tablolar temizken
+        /// ekran bozuk olabilir, nitekim oyleydi.
+        /// </summary>
+        private void CheckNoTofu()
+        {
+            VisualElement kok = ((_app != null && _app.Ui != null) ? _app.Ui.TopView : null);
+            if (kok == null)
+            {
+                NoteIf(olctu: false, ok: false, "Cince ekranda bos kutu: OLCULEMEDI");
+                return;
+            }
+
+            const string yasak = "ğĞıİşŞ";
+            int etiket = 0;
+            string bulunan = null;
+            foreach (Label l in UQueryExtensions.Query<Label>(kok, (string)null, (string)null).ToList())
+            {
+                string t = ((TextElement)l).text;
+                if (string.IsNullOrEmpty(t)) continue;
+                etiket++;
+                if (bulunan != null) continue;
+                for (int i = 0; i < t.Length; i++)
+                    if (yasak.IndexOf(t[i]) >= 0) { bulunan = t; break; }
+            }
+
+            NoteIf(etiket > 0, bulunan == null,
+                   "Cince ekranda cizilemeyen harf yok (" + etiket + " etiket"
+                   + (bulunan == null ? "" : ", ornek: " + bulunan) + ")");
+
+            // EKRANDAKI ETIKETLER YETMIYOR.
+            //
+            // O anki ekranda bir iki personel adi var; havuzda doksan
+            // alti. Kontrol yalnizca gorunene baksaydi, "temiz" demesi
+            // ancak sansa bagli olurdu - ve bu, ozellikle yakalamak
+            // istedigimiz hataydi. Havuzun TAMAMI ayni kapidan
+            // geciriliyor.
+            string[] havuz = ((_app != null && _app.Content != null)
+                              ? _app.Content.StaffNames : null);
+            int bozuk = 0;
+            string ornek = null;
+            if (havuz != null)
+                for (int i = 0; i < havuz.Length; i++)
+                {
+                    string ad = Loc.PersonName(havuz[i]);
+                    if (string.IsNullOrEmpty(ad)) continue;
+                    for (int j = 0; j < ad.Length; j++)
+                        if (yasak.IndexOf(ad[j]) >= 0)
+                        {
+                            bozuk++;
+                            if (ornek == null) ornek = havuz[i] + " -> " + ad;
+                            break;
+                        }
+                }
+
+            NoteIf(havuz != null && havuz.Length > 0, bozuk == 0,
+                   "Cince isim havuzunun tamami cizilebiliyor ("
+                   + (havuz == null ? 0 : havuz.Length) + " isim"
+                   + (ornek == null ? "" : ", ornek: " + ornek) + ")");
+        }
+
+        /// <summary>
         /// ARAPCA HARFLERI BIRLESTI MI.
         ///
         /// Bu tek satirlik bir ayara bagli (Edit > Project Settings >
@@ -1781,6 +1855,7 @@ namespace Lokanta.Game
                     _app.Ui.Refresh();
                 }
                 yield return Settle();
+                if (Loc.Languages[i] == "zh") CheckNoTofu();
                 yield return Shot(onek + "-" + Loc.Languages[i]);
             }
             Loc.UseLanguage(onceki);

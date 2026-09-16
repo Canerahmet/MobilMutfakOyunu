@@ -180,14 +180,14 @@ TRAIT_VOICE = {
     "yavas_ama_titiz": "Checks the plate once more before letting it go.",
     "kalabalikta_panikleyen": "Loses the thread when the room fills up.",
     "sakin": "The busiest hour goes by without a raised voice.",
-    "musteriyle_iyi_anlasan": "Guests say the name on their way out.",
+    "musteriyle_iyi_anlasan": "Guests thank them by name on the way out.",
     "suratsiz": "Does the work, says nothing. Some tables take it personally.",
     "cabuk_yorulan": "Leans on the counter more as the day goes on.",
     "dayanikli": "Still at the morning's pace when the shutters come down.",
     "ekip_moralini_yukselten": "People gather round on the break.",
     "huysuz": "Has a problem with everyone. Right about most of them.",
     "cirak": "New to this. Show it once and it stays.",
-    "tecrubeli": "Thirty years in. Doesn't ask anything new.",
+    "tecrubeli": "Thirty years in. Never has to ask.",
 }
 
 

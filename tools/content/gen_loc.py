@@ -40,6 +40,13 @@ import loc_tarama
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+# DIL TABLOLARI AYRI KLASORDE.
+#
+# Her dil iki dosya (icerik + arayuz) ve bes dil on dosya demek -
+# alti uretec ve iki denetcinin arasinda kayboluyorlardi. Klasor adi
+# ne olduklarini soyluyor; ad kalibi (loc_<dil>[_ui].py) ayni kaldi,
+# yani belgelerdeki atiflar yalnizca klasor kadar degisti.
+sys.path.insert(0, os.path.join(HERE, "diller"))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 CONTENT = os.path.join(ROOT, "content")
 OUT = os.path.join(CONTENT, "loc", "tr.json")
@@ -577,7 +584,7 @@ UI = {
     "ui.staff.wage": "Maaş",
     "ui.staff.cook": "Mutfak",
     "ui.staff.salon": "Salon",
-    "ui.staff.fire_confirm": "Bu kişi çıkarılsın mı? Deneyimi sıfırlanır.",
+    "ui.staff.fire_confirm": "Bu kişi çıkarılsın mı? Deneyimi de onunla gidiyor.",
     "ui.staff.salon_none": "Salon kadron yok. Bugünkü masa sayısı için gerek de yok.",
     "ui.staff.salon_needed": "Salon kadron yok — bugün {0} kişi gerekiyor.",
     "ui.staff.cap": "Kadro tavanı",
@@ -604,7 +611,7 @@ UI = {
     # "ne yapmaliyim" sorularinin ikisini de bir satirda gormeli.
     "notice.plates_out": "Temiz tabak bitti — mutfak bekliyor. "
                          "Lavaboda {0} kirli tabak var.",
-    "notice.plates_out_busy": "Temiz tabak bitti — bulaşıkçı yetişemiyor. "
+    "notice.plates_out_busy": "Temiz tabak bitti — lavabodaki yetişemiyor. "
                               "Lavaboda {0} kirli tabak var.",
     "ui.staff.no_candidate": "Aday kalmadı. Havuz üç günde bir yenileniyor.",
     # Huy kartinda "ücret / hız: normal" - kodda gomulu Turkce idi.
@@ -899,6 +906,7 @@ UI = {
     "ui.menu.unlock_day": "{0}. günde açılıyor",
     "ui.staff.days": "{0} ({1} gün)",
     "ui.staff.inherited": "Huysuz — devraldığın aşçı",
+    "ui.staff.inherited_salon": "Dükkânla birlikte geldi",
 }
 
 
@@ -1132,8 +1140,15 @@ def build_en():
 
 
 def _placeholders(text):
-    """Metindeki {0}, {1}... kumesi."""
-    out = set()
+    """Metindeki {0}, {1}... KAC KEZ gectigi.
+
+    Once kume donuyordu ve "{0} ... {0}" ile "{0}" ayni sayiliyordu.
+    Ingilizce'de tam bu oldu: kidem bildirimi personelin adini iki kez
+    yaziyordu ("The new ones ask for {0}") ve kapi hicbir sey demedi.
+    Bicimleme hata vermiyor - .NET indisleri acik yazili - ama metin
+    ayni adi iki kez basiyor ve hata gibi okunuyor.
+    """
+    out = {}
     i = 0
     while True:
         a = text.find("{", i)
@@ -1142,8 +1157,17 @@ def _placeholders(text):
         b = text.find("}", a)
         if b < 0:
             return out
-        out.add(text[a:b + 1])
+        anahtar = text[a:b + 1]
+        out[anahtar] = out.get(anahtar, 0) + 1
         i = b + 1
+
+
+def _yaz(sayim):
+    """{0}x2 gibi okunur bir ozet."""
+    if not sayim:
+        return "-"
+    return " ".join(k + ("x%d" % n if n > 1 else "")
+                    for k, n in sorted(sayim.items()))
 
 
 def compare(tr, en):
@@ -1171,7 +1195,7 @@ def compare(tr, en):
         a, b = _placeholders(tr[k]), _placeholders(en[k])
         if a != b:
             sorun.append("yer tutucu farkli: %s  tr=%s  en=%s"
-                         % (k, sorted(a) or "-", sorted(b) or "-"))
+                         % (k, _yaz(a), _yaz(b)))
 
     bos = sorted(k for k, v in en.items() if not v or not v.strip())
     for k in bos:

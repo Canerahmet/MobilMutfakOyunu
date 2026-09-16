@@ -186,6 +186,52 @@ namespace Lokanta.Game
                     _src, "loc/" + Languages[index] + ".json");
         }
 
+        /// <summary>
+        /// Bir KISI ADINI ekranda gosterilecek hale getirir.
+        /// </summary>
+        /// <remarks>
+        /// Dil Cince'yken butun arayuz Noto Sans SC ile ciziliyor ve o
+        /// yazi tipinde Latin Extended-A YOK: g-breve, noktali I,
+        /// noktasiz i ve S-cedilla bulunmuyor. Kaynak yazi tipinde de
+        /// yok, yani alt kumeye eklenerek cozulemez.
+        ///
+        /// Personel isim havuzundaki doksan alti isimden ON ALTISI bu
+        /// harfleri tasiyor (Ayse, Ibrahim, Yagmur, Sila...). Cince
+        /// oynayan bir oyuncu her alti personelden birini "Ay[]e" diye
+        /// goruyordu - ve hicbir kontrol bunu yakalamiyordu, cunku
+        /// isimler yerellestirme tablosunda degil.
+        ///
+        /// Cozum Cince ICERIK TABLOSUNUN zaten uyguladigi kuralin ta
+        /// kendisi: Latin ozel adlardan Turkce isaretler dusuyor.
+        /// Burada da ayni sey, ayni sebeple.
+        ///
+        /// Diger dort dilde metin OLDUGU GIBI donuyor - Rubik bu
+        /// harflerin hepsini tasiyor.
+        /// </remarks>
+        public static string PersonName(string name)
+        {
+            if (string.IsNullOrEmpty(name) || LanguageCode != "zh") return name;
+
+            System.Text.StringBuilder sb = null;
+            for (int i = 0; i < name.Length; i++)
+            {
+                char c = name[i];
+                char d = c;
+                switch (c)
+                {
+                    case 'ğ': d = 'g'; break;   // g breve
+                    case 'Ğ': d = 'G'; break;
+                    case 'ı': d = 'i'; break;   // noktasiz i
+                    case 'İ': d = 'I'; break;   // noktali I
+                    case 'ş': d = 's'; break;   // s cedilla
+                    case 'Ş': d = 'S'; break;
+                }
+                if (d != c && sb == null) sb = new System.Text.StringBuilder(name, 0, i, name.Length);
+                if (sb != null) sb.Append(d);
+            }
+            return sb == null ? name : sb.ToString();
+        }
+
         /// <summary>Anahtarin metni. Yoksa [anahtar].</summary>
         public static string T(string key)
         {

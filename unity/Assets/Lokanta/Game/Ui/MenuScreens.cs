@@ -460,6 +460,14 @@ namespace Lokanta.Game.Ui
                 {
                     dugme.style.unityTextGenerator = TextGeneratorType.Advanced;
                     dugme.languageDirection = LanguageDirection.RTL;
+                    // VE YAZI TIPI DE: oyun Cince'yken kok oge Noto Sans
+                    // SC ile ciziliyor ve o yazi tipinde Arapca YOK.
+                    // Arapca okuyan bir oyuncu, Cince bir arayuzde
+                    // dilini yedi bos kutu olarak gorurdu. Rubik Arapca
+                    // tasiyor - yerel olarak veriliyor.
+                    if (Ui.Font != null)
+                        dugme.style.unityFontDefinition =
+                            FontDefinition.FromFont(Ui.Font);
                 }
 
                 diller.Add(dugme);

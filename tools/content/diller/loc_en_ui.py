@@ -122,7 +122,7 @@ UI = {
     "ui.morning.cheap": "Cheap today",
     "ui.morning.expensive": "Pricey today",
     "ui.morning.stock": "Stock",
-    "ui.morning.days_keep": "days left",
+    "ui.morning.days_keep": "days before it spoils",
     "ui.morning.spoils_tonight": "gone by morning",
     "ui.morning.never_spoils": "never spoils",
     "ui.menu.onmenu": "On the menu",
@@ -158,7 +158,7 @@ UI = {
     "ui.staff.wage": "Wage",
     "ui.staff.cook": "Kitchen",
     "ui.staff.salon": "Front of house",
-    "ui.staff.fire_confirm": "Let this person go? Their experience resets.",
+    "ui.staff.fire_confirm": "Let this person go? Their experience goes with them.",
     "ui.staff.salon_none": "No front-of-house crew. At today's table count you "
                            "do not need any.",
     "ui.staff.salon_needed": "No front-of-house crew — you need {0} today.",
@@ -176,8 +176,8 @@ UI = {
     "ui.hud.plates": "Clean plates",
     "notice.plates_out": "Out of clean plates — the kitchen is waiting. "
                          "{0} dirty plates at the sink.",
-    "notice.plates_out_busy": "Out of clean plates — the dishwasher cannot "
-                              "keep up. {0} dirty plates at the sink.",
+    "notice.plates_out_busy": "Out of clean plates — whoever is on the sink "
+                              "cannot keep up. {0} dirty plates at the sink.",
     "ui.staff.no_candidate": "No candidates left. The pool refreshes every three days.",
     "ui.staff.normal": "normal",
     "ui.service.close": "Close the day",
@@ -187,7 +187,7 @@ UI = {
     "ui.service.credit": "Tab",
     # "most impatient" (14) TR "sabırsız"dan (8) UZUN ve serit tam
     # sinirda: TR'de tasan kalip Ingilizce'de yeniden acilirdi.
-    "ui.service.target_auto": "worst",
+    "ui.service.target_auto": "impatient",
     "ui.evening.title": "Day report",
     "ui.evening.revenue": "Takings",
     "ui.evening.ingredients": "Ingredients",
@@ -225,7 +225,7 @@ UI = {
     "notice.level_up": "{0} levelled up: {1}",
     # Long service, split by cuisine - see gen_loc.py for the reason.
     "notice.tenure_lokanta": "{0} has been here {1} days. Doesn't need to ask any more.",
-    "notice.tenure_zincir": "{0} has worked {1} days of shifts. The new ones ask for {0}.",
+    "notice.tenure_zincir": "{0} has worked {1} days of shifts. The new starters come to them with their questions.",
     "notice.weekly": "Paid {0} rent and {1} wages.",
     "notice.wages_late": "Wages are late — {0} short.",
     "notice.debt": "The till has gone negative: {0}",
@@ -234,7 +234,7 @@ UI = {
     "notice.credit_lost": "Tab written off: {0}",
     "notice.equipment": "{0} upgraded — tier {1}",
     "notice.storage": "Cold store upgraded — tier {0}",
-    "notice.rushed": "{0} pushed — {1} orders",
+    "notice.rushed": "{0} sped up — {1} orders",
     "notice.equipment_sold": "Sold to cover debt: {0} › tier {1}",
     "notice.downsized": "The place has shrunk — {0} tables left.",
     "notice.rejected": "That cannot be done right now.",
@@ -256,8 +256,8 @@ UI = {
     "ui.badge.open": "not yet",
     "badge.full_house": "Nobody left hungry",
     "badge.full_house.note": "On a peak day nobody was turned away and nobody walked out angry.",
-    "badge.short_peak": "You ran the peak one short",
-    "badge.short_peak.note": "You worked below the crew you needed and still nobody left angry.",
+    "badge.short_peak": "You ran the peak short-handed",
+    "badge.short_peak.note": "You worked below the crew you needed and still nobody left a table angry.",
     "badge.book_closed": "The book is closed",
     "badge.book_closed.note": "You collected every tab you wrote.",
     "badge.first_beat": "They know you now",
@@ -335,11 +335,11 @@ UI = {
                             "regulars.",
 
     "ui.staff.cap_full": "Crew is full",
-    "ui.storage.desc": "Buys back part of the shelf life of perishables.",
+    "ui.storage.desc": "Gives perishable stock part of its shelf life back.",
     "ui.common.tier": "Tier",
     "ui.common.upgrade": "Upgrade — {0}",
     "ui.common.top_tier": "Top tier",
-    "ui.station.cuisine_only": "cuisine only",
+    "ui.station.cuisine_only": "this kitchen only",
     "ui.station.slots": "Slots",
     "ui.station.too_low": "Too small for this many tables",
     "ui.expand.title": "Expansion",
@@ -357,8 +357,9 @@ UI = {
     "ui.morning.quality_down": "Dishes on your menu please guests {0} points less.",
     "ui.morning.storage_tier": "Cold storage tier {0}",
     "ui.morning.storage_none": "No cold storage — anything perishable goes tonight",
-    "ui.menu.subtitle": "Everything on the menu is kept in stock.",
+    "ui.menu.subtitle": "Every dish you leave on the menu ties up stock.",
     "ui.menu.unlock_day": "Opens on day {0}",
     "ui.staff.days": "{0} ({1} days)",
-    "ui.staff.inherited": "Cranky — the cook you inherited",
+    "ui.staff.inherited": "Bad-tempered — the cook you inherited",
+    "ui.staff.inherited_salon": "Came with the place",
 }
