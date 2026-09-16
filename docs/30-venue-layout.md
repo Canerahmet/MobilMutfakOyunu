@@ -1,378 +1,378 @@
-# Mekân Yerleşimi: Açık Salon, Odalar, Sabit Görünüm
+# Venue Layout: the Open Hall, Rooms, a Fixed View
 
-**Son güncelleme:** 10 Eylül 2026
-**Kütük maddeleri:** A9 ekran listesi ve akış, B7 girdi eylem haritası, C1 sanat hattı
-**Durum:** Araştırma ve öneri. Karar bekliyor.
+**Last updated:** 10 September 2026
+**Register items:** A9 the screen list and the flow, B7 the input-to-action map, C1 the art pipeline
+**Status:** Research and a proposal. Awaiting a decision.
 
-**Dayanak:** [16-screens-and-tutorial.md](16-screens-and-tutorial.md) sonundaki dokunma hedefi ölçümü; `unity/Assets/Lokanta/Editor/RestaurantScene.cs` ve `unity/Assets/Lokanta/Editor/RoomLayout.cs` render'ları; yirmi altı oyunun web araştırması.
+**Basis:** the touch-target measurement at the end of [16-screens-and-tutorial.md](16-screens-and-tutorial.md); the renders from `unity/Assets/Lokanta/Editor/RestaurantScene.cs` and `unity/Assets/Lokanta/Editor/RoomLayout.cs`; web research on twenty-six games.
 
-**Uyarı:** Bu dosyadaki oyun bulgularının bir kısmı, Fandom, GameFAQs, TouchArcade ve Gamezebo gibi doğrudan çekilemeyen sayfaların arama dizinindeki alıntılarına dayanıyor. Doğrulanamayan her madde açıkça **doğrulanmadı** diye işaretlendi. Tahmin yok.
-
----
-
-## 1. Soru
-
-Geliştirici şunu öneriyor: restoran tek bir açık salon olmasın, **odalardan** oluşsun. Salon, mutfak, bulaşık, depo ayrı odalar olsun; genişleme aynı zemine masa eklemek yerine **yeni bir oda eklesin**.
-
-Soru şu yüzden acil: 10 Eylül 2026'da masanın telefon ekranında kaç dp olduğu ölçüldü ve **masanın dokunma hedefi olamayacağı** çıktı. Oda önerisi, bu ölçümün açtığı boşluğa gelen bir cevap. Cevabın işe yarayıp yaramadığı ölçülmeden bilinemez.
-
-Bu dosya üç şeyi yapıyor: ölçümü tamamlıyor, karşılaştırılabilir oyunların ne yaptığını topluyor, ve üç aday yerleşimi bedelleriyle karşılaştırıp bir öneri veriyor.
+**Warning:** some of the findings about games in this file rest on search-index excerpts of pages that cannot be fetched directly, such as Fandom, GameFAQs, TouchArcade and Gamezebo. Every item that could not be confirmed is explicitly marked **not verified**. No guesses.
 
 ---
 
-## 2. Ölçülen kısıt
+## 1. The question
 
-### 2.1 Standart
+The developer proposes this: let the restaurant not be a single open hall but be made of **rooms**. Let the hall, the kitchen, the sink and the store be separate rooms; let expansion **add a new room** instead of adding tables to the same floor.
 
-| Kaynak | Asgari dokunma hedefi | Ek kural |
+The question is urgent because on 10 September 2026 it was measured how many dp a table is on a phone screen, and the answer came out as **a table cannot be a touch target**. The room proposal is an answer aimed at the gap that measurement opened. Whether the answer works cannot be known without measuring it.
+
+This file does three things: it completes the measurement, it collects what comparable games do, and it compares three candidate layouts with their costs and gives a recommendation.
+
+---
+
+## 2. The measured constraint
+
+### 2.1 The standard
+
+| Source | Minimum touch target | Additional rule |
 |---|---|---|
-| Google, Android erişilebilirlik | **48 × 48 dp**, fiziksel karşılığı yaklaşık **9 mm** | Hedefler arasında en az **8 dp** boşluk |
+| Google, Android accessibility | **48 × 48 dp**, physically about **9 mm** | At least **8 dp** of space between targets |
 | Apple | 44 × 44 pt | — |
-| Google, genel tavsiye | Dokunmatik nesneler için 7-10 mm | — |
+| Google, general advice | 7-10 mm for touchable objects | — |
 
-`RoomLayout.cs`'in kullandığı dönüşüm: 960 piksellik render → 2.400 piksellik telefon (×2,5), yoğunluk 2,75. Yani **2.400 × 1.080 piksellik bir telefon, yatayda 873 × 393 dp**. 48 dp, ekran genişliğinin **%5,5'i** demek.
+The conversion `RoomLayout.cs` uses: a 960-pixel render → a 2,400-pixel phone (×2.5), density 2.75. So **a 2,400 × 1,080 pixel phone is 873 × 393 dp in landscape**. 48 dp means **5.5%** of the screen width.
 
-### 2.2 Açık salonda ölçülen (docs/16, Unity konsolundan)
+### 2.2 Measured in the open hall (docs/16, from the Unity console)
 
-| Kademe | Masa | Salon | Masa, 2.400 piksellik telefonda | dp | Asgarinin kaçta kaçı |
+| Tier | Tables | Hall | Table, on a 2,400-pixel phone | dp | Fraction of the minimum |
 |---|---|---|---|---|---|
-| 1 | 4 | 7,8 × 7,4 m | 55 piksel | ~20 dp | %42 |
-| 2 | 7 | 9,6 × 7,4 m | 53 piksel | ~19 dp | %40 |
-| 3 | 10 | 11,5 × 7,4 m | 50 piksel | ~18 dp | %38 |
-| 4 | 14 | 13,3 × 9,1 m | 42 piksel | ~15 dp | **%31** |
+| 1 | 4 | 7.8 × 7.4 m | 55 pixels | ~20 dp | 42% |
+| 2 | 7 | 9.6 × 7.4 m | 53 pixels | ~19 dp | 40% |
+| 3 | 10 | 11.5 × 7.4 m | 50 pixels | ~18 dp | 38% |
+| 4 | 14 | 13.3 × 9.1 m | 42 pixels | ~15 dp | **31%** |
 
-### 2.3 Neyin bozulduğu, tam olarak
+### 2.3 What exactly is broken
 
-`RestaurantScene.cs` okunduğunda sayının nereden geldiği görünüyor ve teşhis "on dört masa çok fazla"dan farklı çıkıyor:
+Reading `RestaurantScene.cs` shows where the number comes from, and the diagnosis turns out to be something other than "fourteen tables is too many":
 
-| Etken | Değer | Etkisi |
+| Factor | Value | Its effect |
 |---|---|---|
-| Masa tablası | 0,86 × 0,86 m | Ölçülen şey bu; sandalyelerle birlikte set 1,86 m |
-| Izgara adımı | 1,85 m yatay, 1,70 m derinlemesine | 14 masa = 6 sütun × 3 satır = 11,1 × 5,1 m |
-| Mutfak şeridi ve pay | 2,4 m + 1,6 m | Salon derinliğinin **%44'ü** masa değil |
-| Duvar yüksekliği | 3,0 m | Kamera sığdırmasında dikey ekseni domine ediyor |
-| Kamera | 32° dikey görüş açısı, 30° eğim, −16° dönüş | Eğim derinliği kısaltıyor |
-| Sığdırma formülü | `mesafe = max(distV, distH) + maxZ + %4 pay`, sonra ×1,04 | `+ maxZ` terimi kamerayı gereğinden **%40 daha geri** çekiyor |
+| The table top | 0.86 × 0.86 m | This is the thing being measured; with the chairs the set is 1.86 m |
+| The grid step | 1.85 m across, 1.70 m in depth | 14 tables = 6 columns × 3 rows = 11.1 × 5.1 m |
+| The kitchen strip and its margin | 2.4 m + 1.6 m | **44%** of the hall's depth is not tables |
+| Wall height | 3.0 m | It dominates the vertical axis in the camera fit |
+| Camera | 32° vertical field of view, 30° tilt, −16° rotation | The tilt foreshortens the depth |
+| The fit formula | `distance = max(distV, distH) + maxZ + 4% margin`, then ×1.04 | The `+ maxZ` term pulls the camera **40% further back** than it needs to be |
 
-Kritik nokta: **kamera genişlikten değil yükseklikten sığdırıyor.** 20:9'luk kare 2,22:1 iken, 30° eğimle yansıtılan kutu dikeyde daha çok yer kaplıyor. Sonuç, oda_14 render'ında gözle görülüyor: restoran şeridi karenin yaklaşık **%45'ini** dolduruyor, gerisi boş arka plan.
+The critical point: **the camera fits from the height, not the width.** A 20:9 frame is 2.22:1, while a box projected at a 30° tilt takes up more room vertically. The result is visible to the eye in the `oda_14` render: the restaurant strip fills about **45%** of the frame and the rest is empty background.
 
-Bu, sayının bir kısmının **doğa kanunu değil kamera kurgusu** olduğu anlamına geliyor. Kareyi kırparak, duvarı sığdırmanın dışında bırakarak ve eğimi düşürerek kabaca 1,5 kat kazanılabilir: 15 dp → yaklaşık 22-25 dp. **Yine de 48'in altında.** Kamera ayarı sorunu hafifletiyor, çözmüyor.
+That means part of the number is **camera staging, not a law of nature.** By cropping the frame, leaving the wall out of the fit and lowering the tilt, roughly 1.5× can be gained: 15 dp → about 22-25 dp. **Still under 48.** The camera setting eases the problem, it does not solve it.
 
-### 2.4 "Hedefi masadan büyük yapalım" neden çalışmıyor
+### 2.4 Why "let us make the target bigger than the table" does not work
 
-docs/16 bunu iddia etmişti, ölçüm doğruluyor. Kademe 4'te sütun adımı 1,85 m, masa tablası 0,86 m. Masa 15 dp ise sütun adımı 15 × (1,85 / 0,86) = **32 dp**. Satır adımı ekranda daha da dar. 48 dp'lik görünmez hedefler komşularıyla çakışır ve Google'ın istediği 8 dp boşluk hiç kalmaz.
+docs/16 had claimed this, and the measurement confirms it. At tier 4 the column step is 1.85 m and the table top is 0.86 m. If the table is 15 dp then the column step is 15 × (1.85 / 0.86) = **32 dp**. The row step is narrower still on screen. Invisible 48 dp targets would overlap their neighbours and the 8 dp of space Google asks for would be gone entirely.
 
-**Masa setinin tamamı** (masa + iki sandalye, 1,86 m) kademe 4'te yaklaşık 32 dp. O da yetmiyor.
+**The whole table set** (a table plus two chairs, 1.86 m) is about 32 dp at tier 4. That is not enough either.
 
 ---
 
-## 3. İkinci ölçüm: oda tabanlı yerleşim kuruldu
+## 3. A second measurement: a room-based layout was built
 
-`unity/Assets/Lokanta/Editor/RoomLayout.cs` (10 Eylül 2026, 10:57) oda önerisini kurup iki kamera kipinde render etti. Yerleşim: en solda mutfak (4,2 × 4,6 m) ve bulaşık (2,6 × 4,6 m), onların sağında salon odaları. Her salon odası 4,6 × 4,3 m ve içinde 4 ya da 3 masa var.
+`unity/Assets/Lokanta/Editor/RoomLayout.cs` (10 September 2026, 10:57) built the room proposal and rendered it in two camera modes. The layout: the kitchen (4.2 × 4.6 m) and the sink (2.6 × 4.6 m) at the far left, the hall rooms to their right. Each hall room is 4.6 × 4.3 m and holds 4 or 3 tables.
 
-| Kademe | Masa | Salon odaları | Toplam şerit eni |
+| Tier | Tables | Hall rooms | Total strip width |
 |---|---|---|---|
-| 1 | 4 | 4 | 11,4 m |
-| 2 | 7 | 4 + 3 | 16,0 m |
-| 3 | 10 | 4 + 3 + 3 | 20,6 m |
-| 4 | 14 | 4 + 3 + 3 + 4 | 25,2 m |
+| 1 | 4 | 4 | 11.4 m |
+| 2 | 7 | 4 + 3 | 16.0 m |
+| 3 | 10 | 4 + 3 + 3 | 20.6 m |
+| 4 | 14 | 4 + 3 + 3 + 4 | 25.2 m |
 
-**Not:** Kademe artışlarımız +3, +3, +4. Bir salon odası 3-4 masa alıyor. Yani kademe merdiveni ile oda merdiveni **birebir örtüşüyor.** Bu tesadüf değil, kademe sayıları zaten oda büyüklüğü kadar.
+**Note:** our tier increments are +3, +3, +4. One hall room takes 3-4 tables. So the tier ladder and the room ladder **line up one to one.** That is not a coincidence; the tier counts are already the size of a room.
 
-### 3.1 Sert kanıt: oda çerçevesi kademeden bağımsız
+### 3.1 Hard evidence: the room frame is independent of the tier
 
-Render'ların MD5'i alındığında `oda_10_tekoda` ile `oda_14_tekoda` **bit bit aynı dosya** çıkıyor. Aynı kare, aynı masa boyutu, on masalık ve on dört masalık restoranda.
+When the MD5s of the renders are taken, `room_10_oneroom` and `room_14_oneroom` come out as **the same file bit for bit**. The same frame, the same table size, in a ten-table restaurant and in a fourteen-table one.
 
 ```
-84afa4423b8f8c177fc3f08b8776f6cb  oda_10_tekoda_105735.png
-84afa4423b8f8c177fc3f08b8776f6cb  oda_14_tekoda_105735.png
+84afa4423b8f8c177fc3f08b8776f6cb  room_10_oneroom_105735.png
+84afa4423b8f8c177fc3f08b8776f6cb  room_14_oneroom_105735.png
 ```
 
-Bu, oda tabanlı yerleşimin tek gerçek yapısal iddiası: **kamera bir odayı çerçeveliyorsa, dokunma hedefi restoranın büyüklüğüne bağlı olmaktan çıkar.** Açık salonda masa 20 dp'den 15 dp'ye düşüyor; oda çerçevesinde düşmüyor, çünkü çerçevelenen şey büyümüyor.
+This is the room-based layout's one real structural claim: **if the camera frames a room, the touch target stops depending on the size of the restaurant.** In the open hall the table falls from 20 dp to 15 dp; in a room frame it does not fall, because the thing being framed is not growing.
 
-### 3.2 Ölçüm tablosu
+### 3.2 The measurement table
 
-| Kademe | Masa | **Açık salon** masa | Oda düzeni, **tüm restoran**: masa | Oda düzeni, **tüm restoran**: oda | Oda düzeni, **tek oda**: masa | Oda düzeni, **tek oda**: masa + sandalye |
+| Tier | Tables | **Open hall** table | Room layout, **whole restaurant**: table | Room layout, **whole restaurant**: room | Room layout, **single room**: table | Room layout, **single room**: table + chairs |
 |---|---|---|---|---|---|---|
 | 1 | 4 | 20 dp | ~44 dp | ~235 dp | ~45 dp | ~100 dp |
 | 2 | 7 | 19 dp | ~31 dp | ~167 dp | ~45 dp | ~100 dp |
 | 3 | 10 | 18 dp | ~24 dp | ~130 dp | ~45 dp | ~100 dp |
 | 4 | 14 | **15 dp** | ~20 dp | **~106 dp** | **~45 dp** | **~100 dp** |
 
-**Sayıların kaynağı ve güvenilirliği.** Açık salon sütunu Unity konsolundan ölçülmüş sayıdır (docs/16). Oda sütunları benim `RoomLayout.cs` geometrisinden hesapladığım ve render'lardan okuduğum değerlerdir; `RoomLayout.cs`'in kendi `Debug.Log` çıktısına erişemedim. İki yöntem yaklaşık %15 içinde örtüşüyor. **Betiği çalıştırıp konsol satırını dosyaya yazmak gerekiyor**; karar bu sayıların işaretine dayanıyor, ondalığına değil.
+**Where the numbers come from and how much they can be trusted.** The open-hall column is a number measured from the Unity console (docs/16). The room columns are values I calculated from `RoomLayout.cs`'s geometry and read off the renders; I could not get at `RoomLayout.cs`'s own `Debug.Log` output. The two methods agree to within about 15%. **The script has to be run and the console line written to a file**; the decision rests on the sign of these numbers, not on their decimals.
 
-"Tüm restoran" sütunundaki düşüş şerit eniyle ters orantılı: 11,4 → 25,2 m arasında masa 44 dp'den 20 dp'ye iniyor.
+The fall in the "whole restaurant" column is inversely proportional to the strip width: between 11.4 and 25.2 m the table goes from 44 dp down to 20 dp.
 
-### 3.3 Üç sonuç
+### 3.3 Three conclusions
 
-1. **Hiçbir yerleşim, tüm restoranı tek karede gösterirken masayı 48 dp yapamıyor.** Ne açık salon (15 dp), ne oda düzeni (20 dp). Kademe 4'te dünyayı gösteren hiçbir kamerada masa birincil dokunma hedefi olamaz.
-2. **Oda düzeni, açık salonda hiç var olmayan bir ara hedef üretiyor:** oda. Kademe 4'te oda ~106 dp, yani asgarinin iki katı. Açık salonda "bütün salon" ile "tek masa" arasında dokunulabilecek hiçbir nesne yok.
-3. **Tek oda çerçevesinde masa 48 dp'ye yaklaşıyor (~45 dp) ve masa seti rahatça geçiyor (~100 dp).** Ama bu, kameranın restoranın dörtte birini gösterdiği anlamına geliyor.
+1. **No layout can make the table 48 dp while showing the whole restaurant in one frame.** Neither the open hall (15 dp) nor the room layout (20 dp). At tier 4 a table cannot be the primary touch target on any camera that shows the world.
+2. **The room layout produces an intermediate target that does not exist at all in the open hall:** the room. At tier 4 a room is ~106 dp, twice the minimum. In the open hall there is no object at all to touch between "the whole hall" and "one table".
+3. **In a single-room frame the table gets close to 48 dp (~45 dp) and the table set passes comfortably (~100 dp).** But that means the camera is showing a quarter of the restaurant.
 
-Kademe 4'te tek oda kipinde 20:9 kare yaklaşık 15 m dünya genişliği gösteriyor: mutfak, bulaşık, birinci salon ve ikinci salonun bir kısmı. Yani "tek oda" kipi pratikte **iki oda artı servis şeridi** demek, dört odanın biri değil.
+At tier 4 in single-room mode a 20:9 frame shows about 15 m of world width: the kitchen, the sink, the first hall and part of the second. So "single room" mode in practice means **two rooms plus the service strip**, not one room out of four.
 
 ---
 
-## 4. Karşılaştırılabilir oyunlar ne yapıyor
+## 4. What comparable games do
 
-Beş soru her oyun için: (1) mekân tek açık zemin mi, odalar mı, sabit tek görünüm mü; (2) genişleme nasıl; (3) kamera; (4) ne dokunuluyor; (5) mobilde hedef nasıl korunuyor.
+Five questions for every game: (1) is the venue a single open floor, rooms, or a single fixed view; (2) how does expansion work; (3) the camera; (4) what is touched; (5) how is the target protected on mobile.
 
-### 4.1 Mobil zaman baskılı servis oyunları
+### 4.1 Mobile time-pressure service games
 
-| Oyun | Mekân | Genişleme | Kamera | Dokunulan | Mobil çözümü |
+| Game | Venue | Expansion | Camera | Touched | Its mobile solution |
 |---|---|---|---|---|---|
-| **Diner Dash** (2004, PC) | Seviye başına tek sabit ekran | Seviye başına 2-6 masa; yeni mekân = yeni sahne. Bölüm 1-1 iki masa, 1-2 dört masa; Hometown Hero kılavuzu "altı masa çok" diyor | Sabit, kaydırma ve yakınlaştırma yok | **Masa.** Tek müşteri için masaya ~5 kez basılıyor: otur, sipariş al, getir, hesap, topla | Masa sayısı seviyeyle sınırlı; kalıcı büyüyen bir salon yok |
-| **Diner DASH Adventures** (Glu, 2019) | Ayrı, elle tasarlanmış sabit seviye sahneleri | Oyun: yeni seviye ve mekân. Mekân: **yıldızla açılan dekor yuvaları**, her yuvada birkaç tasarım seçeneği. Oyuncu asla yerleşim çizmiyor | Seviye içi kamera kontrolü **doğrulanmadı** | Müşteri, masa, sabit yemek istasyonu şeridi | **Masalar renk kodlu** — küçük boyutta masa siluetten değil renkten tanınıyor. Dekor canlı sahneden çıkarılıp yuva seçicisine alınmış |
-| **Cook, Serve, Delicious! 2/3** | **Mekân yok.** Sipariş fişi kuyruğu; bekletme istasyonları ekranın üstünde, kuyruk solda | Büyüyen şey **arayüz yuvaları**: menü, hazırlık ve bekletme istasyonu sayısı. CSD2'nin ayrı "Designer" ekranı duvar, zemin, masa koyduruyor ama **tamamen kozmetik** | Yok, statik arayüz | Sipariş fişi, hazırlık düğmeleri, istasyonlar. Asla mobilya, asla müşteri | Dünyada hedef yok; bütün hedefler sabit konumlu büyük arayüz öğeleri. CSD2/3'ün mobil sürümü yok; sadece CSD1 çıktı ve TouchArcade portun girdi yoğunluğunu **düşürdüğünü** yazdı |
-| **Good Pizza, Great Pizza** | **Tek sabit tezgâh görünümü.** Salon simülasyonu, oturma mantığı, kamera yok | Malzeme, ekipman, dekor, bahçe. Dikkat çekici: **"Wide Counter" yükseltmesi çalışma alanını fiziksel olarak büyütüyor** | Sabit | Hamur, malzeme, fırın, kesici, müşteri fişi | Hedefler yakın plan ve sabit konumlu, işletme büyüklüğünden bağımsız. Malzeme rafı kalabalıklaşınca (etiket yok, oyuncu görünüşten hatırlıyor) çözüm **ikonu küçültmek değil tezgâhı büyütmek** oldu |
-| **Cooking Fever** | Restoran başına **tek sabit görünüm, dört müşteri yuvası** | **48 ayrı restoran**, hepsi aynı dört yuvalı şablon. Tek zemin hiç büyümüyor | Sabit, kaydırma yok | Malzeme kabı, cihaz, tabak, tezgâh, müşteri. **Hiçbir mekânsal şeye dokunulmuyor: masa yok, sandalye yok, zemin yok** | Eş zamanlı müşteri **4'te sabit**; zorluk sayı değil hız ve karmaşıklık. İç mekân yükseltmesi (akvaryum, disko topu, tabure) istatistik veriyor, sahnede görünüyor, **asla dokunulmuyor** |
-| **Cooking Diary** (Mytona) | Sahne başına restoran, **yürüyen şef avatarı** | 9 semt × ~6 restoran, ayrı sahneler | **Doğrulanmadı** | İstasyon ve nesne; avatar oraya kendi yürüyor | Uzaktaki hedefe değil **istasyona** dokunuluyor; hassas nişan gerekmiyor |
-| **Cooking Madness** | Seviye başına sabit tek görünüm mutfak | 80+ tematik restoran, 3.000+ seviye, dünya haritası | Sabit (**mağaza tanımı dışında doğrulanmadı**) | Pişirme istasyonları; siparişler müşterinin başının üstünde | Yeni sahne, büyüyen sahne değil |
-| **Animal Restaurant** | **Ayrı alanlar:** Main, Kitchen, Courtyard, Concert, Garden, Buffet, Fishing Pond, Takeout, Terrace | "Yeni odalar açılıyor"; her alan ayrı gelir üretiyor | Alan başına sabit; arayüz ekran kenarlarında | **Müşteri siparişi, para, çöp** ve kenar arayüzü. Masa değil | Ticari olarak en başarılı oda tabanlı mobil restoran oyunu; hedefler müşteri ve arayüz, mobilya değil |
+| **Diner Dash** (2004, PC) | One fixed screen per level | 2-6 tables per level; a new venue = a new scene. Level 1-1 two tables, 1-2 four tables; the Hometown Hero guide says "six tables is a lot" | Fixed, no panning and no zoom | **The table.** A table is tapped about 5 times for a single customer: seat, take the order, bring it, the bill, clear | The table count is limited by the level; there is no permanently growing hall |
+| **Diner DASH Adventures** (Glu, 2019) | Separate, hand-designed fixed level scenes | The game: new levels and venues. The venue: **decor slots opened with stars**, with a few design options in each slot. The player never draws a layout | In-level camera control **not verified** | Customers, tables, the fixed strip of food stations | **The tables are colour-coded** — at a small size a table is recognised by its colour, not its silhouette. The decor was taken out of the live scene and moved into a slot picker |
+| **Cook, Serve, Delicious! 2/3** | **No venue.** A queue of order tickets; the holding stations along the top of the screen, the queue on the left | What grows is the **interface slots**: the number of menu, prep and holding stations. CSD2 has a separate "Designer" screen that lets you place walls, floors and tables, but it is **purely cosmetic** | None, a static interface | Order tickets, prep buttons, stations. Never furniture, never customers | There are no targets in the world; every target is a large interface element in a fixed position. CSD2/3 have no mobile version; only CSD1 shipped, and TouchArcade wrote that the port **reduced** the input density |
+| **Good Pizza, Great Pizza** | **A single fixed counter view.** No hall simulation, no seating logic, no camera | Ingredients, equipment, decor, the garden. Notable: **the "Wide Counter" upgrade physically enlarges the work area** | Fixed | Dough, ingredients, the oven, the cutter, the customer's ticket | The targets are close-up and in fixed positions, independent of the size of the business. When the ingredient shelf got crowded (no labels, the player remembers by appearance) the solution was **not to shrink the icons but to enlarge the counter** |
+| **Cooking Fever** | **One fixed view, four customer slots** per restaurant | **48 separate restaurants**, all on the same four-slot template. The single floor never grows | Fixed, no panning | Ingredient bins, appliances, plates, the counter, customers. **Nothing spatial is ever touched: no tables, no chairs, no floor** | Simultaneous customers are **fixed at 4**; the difficulty is not the count but the speed and the complexity. Interior upgrades (an aquarium, a disco ball, stools) give stats, appear in the scene and are **never touched** |
+| **Cooking Diary** (Mytona) | A restaurant per scene, with **a walking chef avatar** | 9 districts × ~6 restaurants, separate scenes | **Not verified** | Stations and objects; the avatar walks there by itself | What is touched is the **station**, not a distant target; no precise aiming is needed |
+| **Cooking Madness** | A fixed single-view kitchen per level | 80+ themed restaurants, 3,000+ levels, a world map | Fixed (**not verified beyond the store description**) | Cooking stations; the orders are above the customers' heads | A new scene, not a growing scene |
+| **Animal Restaurant** | **Separate areas:** Main, Kitchen, Courtyard, Concert, Garden, Buffet, Fishing Pond, Takeout, Terrace | "New rooms open up"; each area produces its own income | Fixed per area; the interface is along the screen edges | **Customer orders, money, rubbish** and the edge interface. Not tables | The commercially most successful room-based mobile restaurant game; the targets are customers and interface, not furniture |
 
-### 4.2 Dükkân simülasyonları
+### 4.2 Shop simulations
 
-| Oyun | Mekân | Genişleme | Kamera | Dokunulan | Mobil |
+| Game | Venue | Expansion | Camera | Touched | Mobile |
 |---|---|---|---|---|---|
-| **Supermarket Simulator** (2024) | **Tek açık satış zemini** + bitişikte tek depo binası | 23 "Growth" bölümü, her biri **4×4 m**, hepsi aynı zemini uzatıyor, toplam 1.176.900 $. Depo ayrı 15 bölüm, aynı 4×4 m mantığı | Birinci şahıs | Fiziksel nesneler yakın planda + sipariş, fiyat, işe alım için **bilgisayar terminali** | Resmî mobil sürüm yok; Google Play'deki listelemeler kopya. Depo kasıtlı olarak zahmetli: kademe 1'de sadece **sokak kapısı** açılıyor, mağaza içi kapı kademe 3'te geliyor |
-| **TCG Card Shop Simulator** (2024) | Tek dikdörtgen zemin + bitişik **Lot B** | Dükkân A: 30 karo genişlemesi. Lot B: seviye 15'te 5.000 $'a bir kez, sonra 14 genişleme daha. Her genişleme kabaca 1×1 alan | Birinci şahıs | Raf, kart masası, kasa, kutu; genişleme satın alma **RENO BIGG telefon uygulamasında** | Mobil sürüm yok. Oyuncular "duvar ve bölme daha yaratıcı olsun" istiyor — **oyun oda vermiyor ve oyuncular bunu fark ediyor** |
-| **Recettear** (2010) | **Tek sabit dükkân odası**, tepeden. Recette tezgâhtan ayrılamıyor | Aynı oda üç kez büyüyor: ML12 → 4 tezgâh, ML20 → 6, ML26 → 10. Yeni oda **hiç** eklenmiyor; sadece kapı yer değiştiriyor | Sabit tepeden, tek ekran | Tezgâh yuvası, sonra pazarlık arayüzü | Port yok |
-| **Moonlighter** (2018) | **Tek oda**, tepeden | 4 dükkân yükseltmesi; oda büyüyüp mobilyayı yeniden diziyor, azamide 14 masa. Asla çok odalı olmuyor | Tepeden, dükkân tek ekrana sığıyor | **Masa** → envanter → **masa başına fiyat**; müşteri fiyata emoji ile tepki veriyor | **Bu setteki en güçlü dokunmatik kanıt.** iOS 2020 / Android 2021. Düz port değil: "arayüz dokunmatiğe geçiş için baştan tasarlandı", sanal çubuk yerine "gideceğin yere dokun" — "oyuncular başparmaklarıyla ekranın köşelerini kapatmasın diye". Ve: **"dükkân stoklama ve satış menüleri dokunmatikte çok daha doğal geliyor"** |
-| **Tavern Master** (2021) | Serbest çizilen tek bina; hazır kesilmiş oda yok | Duvar **silerek** büyüyor ("o duvarın üstüne delik çiz"). Mutfak, misafir odası, depo **araştırma** ile açılıyor, sonra oyuncu inşa ediyor | Tepeden/izometrik, kaydır ve yakınlaştır | Katalog sekmesi → mobilya → sürükle yerleştir | Google Play'deki "Tavern Master" farklı bir oyun görünüyor; **PC oyununun mobil sürümü doğrulanamadı** |
-| **Cat Cafe Manager** (2022) | **Tek açık zemin, iç duvar yok.** Geliştiricinin kendi cevabı: oda yapmak için "boş karolardan bir sıra" bırakıyorsun | Karo satın alma (maliyet kafe büyüdükçe artıyor); duvarlar otomatik yerleşiyor. Tapınak araştırması sandalye ve kadro tavanını yükseltiyor | Açılı, yakınlaştırma var, **döndürme yok** | İnşa modu (zemin, duvar kâğıdı, pencere) ve dekor modu (mobilya, cihaz, kapı) | Mobil yok |
-| **Chef Life** (2023) | **Ayrı odalar:** mutfak, salon, ofis. Üçüncü şahıs (birinci şahıs değil) | Salon duvarındaki plana dokunup **hazır bir yerleşimle değiştiriyorsun.** Sadece gündüz hazırlıkta, seviye ve "İç Mimari" kilidi gerekiyor. **Dekorlar sıfırlanıyor** | Üçüncü şahıs takip | İstasyon ve malzeme, ofisteki katalog kitabı, plan panosu | Mobil yok |
-| **Discounty** (2025) | Tepeden tek zemin | **Tam iki kez**, her biri **bitişik yeni bir alan**: sağda çay/kahve dükkânı, sonra solda. Ayrı bir depo odası var | Tepeden | Raf, kasa, ürün; komşuluk mekaniği ("booster" bitişik raftaki ürünleri çekici yapıyor) | Mobil yok |
-| **Travellers Rest** (2020) | Tek binada **üç kat** (bodrum, meyhane, kiralık odalar) | İtibar 7'de İnşaat Modu açılıyor: **tek tek zemin karosu** satın al → bölge ata (kırmızı yemek, mavi üretim) → kapı koy, kapalı alan **kiralık oda** olur. Karo hakkı ve azami oda sayısı itibarla büyüyor | Tepeden | İnşaat masası, karo, kapı | Mobil yok |
-| **Dave the Diver** | Tek sabit restoran sahnesi | **Fiziksel oda eklenmiyor.** Cooksta rütbesi kadro ve menüyü büyütüyor; en sonunda **ikinci şube**, yani ayrı bir mekân | Sabit | Servis dokunuşları; dekorasyon ekranın altındaki menüden | Mobil sürüm 17 Eylül 2026, "telefon için tamamen optimize" |
-| **Restaurant Renovation** (ZYMobile) | **Yönetim oyunu değil.** Eşleştirme bulmacası + dekorasyon; yürünen zemin yok | Bulmaca kazancıyla sahneler yenileniyor | Yok | Bulmaca taşları ve dekor seçenekleri | Adı yanıltıcı; bu referans listeden düşmeli |
+| **Supermarket Simulator** (2024) | **A single open sales floor** + a single storage building next to it | 23 "Growth" sections, each **4×4 m**, all of them extending the same floor, $1,176,900 in total. Storage is a separate 15 sections on the same 4×4 m logic | First person | Physical objects up close + a **computer terminal** for ordering, pricing and hiring | No official mobile version; the listings on Google Play are copies. The storage is deliberately awkward: at tier 1 only the **street door** opens, the in-store door comes at tier 3 |
+| **TCG Card Shop Simulator** (2024) | A single rectangular floor + an adjacent **Lot B** | Shop A: 30 tile expansions. Lot B: once at level 15 for $5,000, then 14 more expansions. Each expansion is roughly a 1×1 area | First person | Shelves, the card table, the till, boxes; buying an expansion happens **in the RENO BIGG phone app** | No mobile version. Players want "walls and partitions to be more creative" — **the game gives no rooms, and the players notice** |
+| **Recettear** (2010) | **A single fixed shop room**, top-down. Recette cannot leave the counter | The same room grows three times: ML12 → 4 counters, ML20 → 6, ML26 → 10. A new room is **never** added; only the door moves | Fixed top-down, a single screen | A counter slot, then the haggling interface | No port |
+| **Moonlighter** (2018) | **A single room**, top-down | 4 shop upgrades; the room grows and rearranges the furniture, at most 14 tables. It never becomes multi-room | Top-down, the shop fits on one screen | **Table** → inventory → **a price per table**; customers react to the price with an emoji | **The strongest touch evidence in this set.** iOS 2020 / Android 2021. Not a straight port: "the interface was designed from scratch for the move to touch", "tap where you want to go" instead of a virtual stick — "so that players do not cover the corners of the screen with their thumbs". And: **"the shop stocking and selling menus feel far more natural on touch"** |
+| **Tavern Master** (2021) | A single freely drawn building; no pre-cut rooms | It grows by **erasing** walls ("draw a hole over that wall"). The kitchen, the guest room and the store open through **research**, and then the player builds them | Top-down/isometric, pan and zoom | Catalogue tab → furniture → drag to place | The "Tavern Master" on Google Play appears to be a different game; **a mobile version of the PC game could not be verified** |
+| **Cat Cafe Manager** (2022) | **A single open floor, no interior walls.** The developer's own answer: to make rooms you leave "a row of empty tiles" | Buying tiles (the cost rises as the cafe grows); the walls place themselves. Temple research raises the chair and crew ceilings | Angled, zoom available, **no rotation** | Build mode (floor, wallpaper, windows) and decor mode (furniture, appliances, doors) | No mobile |
+| **Chef Life** (2023) | **Separate rooms:** kitchen, dining room, office. Third person (not first) | You tap the plan on the dining-room wall and **swap in a ready-made layout.** Only during the daytime prep, and it needs a level and an "Interior Design" unlock. **The decorations reset** | Third-person follow | Stations and ingredients, the catalogue book in the office, the plan board | No mobile |
+| **Discounty** (2025) | A top-down single floor | **Exactly twice**, each time **a new adjacent area**: a tea/coffee shop on the right, then one on the left. There is a separate storage room | Top-down | Shelves, the till, products; an adjacency mechanic (a "booster" makes the products on the adjacent shelf attractive) | No mobile |
+| **Travellers Rest** (2020) | **Three floors** in a single building (cellar, tavern, rooms to let) | Build Mode opens at reputation 7: buy **individual floor tiles** → assign a zone (red for food, blue for production) → place a door, and the enclosed area becomes a **room to let**. The tile allowance and the maximum number of rooms grow with reputation | Top-down | The building table, tiles, doors | No mobile |
+| **Dave the Diver** | A single fixed restaurant scene | **No physical room is added.** The Cooksta rank grows the crew and the menu; at the very end a **second branch**, that is, a separate venue | Fixed | Service taps; decoration from the menu at the bottom of the screen | Mobile version 17 September 2026, "fully optimised for phones" |
+| **Restaurant Renovation** (ZYMobile) | **Not a management game.** A match puzzle plus decoration; there is no floor that is walked on | Scenes are renovated with puzzle winnings | None | Puzzle pieces and decor options | The name is misleading; this one should come off the reference list |
 
-### 4.3 Oda dilbilgisinin iki referansı
+### 4.3 Two references for the grammar of rooms
 
-| Oyun | Mekân | Genişleme | Kamera | Dokunulan | Dokunmatik |
+| Game | Venue | Expansion | Camera | Touched | Touch |
 |---|---|---|---|---|---|
-| **Two Point Hospital / Campus** | Sabit bina kabuğunun içine oyuncunun **çizdiği** odalar. Asgari 2×3 ile 4×5 arası; **kapı zorunlu bir gereç**; oda kalitesi (1-5 prestij) boyut + içindeki eşyalardan çıkıyor | Bitişik **parsel** satın alma, yatay. Kat yok. Her bina bir mikro hastane | Serbest 3B: kaydır, **döndür**, eğ (yaklaşık 45°'ye kadar), yakınlaştır. **Tek oda kipi yok**; onun yerine 12 renk katmanı ("Visualisation Modes") | Oda, tek tek personel (10 eyleme kadar, "Pick Up" ile personeli kaldırıp odaya bırakma), tek tek hasta, ve altı ayrı arayüz listesi | **Hiç dokunmatik sürüm yok, yedi yılda üç oyunda.** iOS/Android yok, Netflix yok; "JUMBO Edition" konsol paketi. Switch'te **dokunmatik hiç desteklenmiyor**, incelemeciler bunu tuhaf buldu |
-| **PlateUp!** | Duvar, servis penceresi ve **kapılarla** çevrili gerçek odalar. 5 prosedürel plan tipi | **Koşu içinde büyümüyor.** Plan koşu başında sabit; deneyim seviyesi daha büyük plan açıyor (Extended 10, Huge 11). Günler arası büyüyen şey **yoğunluk**: aynı kabuğun içine yeni cihaz | Sabit tepeden, **oyuncu kontrolü yok**. Stok planlar tek kareye sığdığı için kontrol gerekmiyor | Cihaz, blueprint | Mobil yok. Büyük haritalarda kamera yetmiyor; topluluk modları (CameraPlus, Free Camera Control) tam bu yüzden var |
+| **Two Point Hospital / Campus** | Rooms the player **draws** inside a fixed building shell. Minimum between 2×3 and 4×5; **a door is a mandatory fitting**; room quality (1-5 prestige) comes out of the size plus the items in it | Buying adjacent **plots**, horizontally. No floors. Every building is a micro hospital | Free 3D: pan, **rotate**, tilt (up to about 45°), zoom. **There is no single-room mode**; instead, 12 colour layers ("Visualisation Modes") | Rooms, individual staff (up to 10 actions, picking a staff member up with "Pick Up" and dropping them in a room), individual patients, and six separate interface lists | **No touch version at all, across three games in seven years.** No iOS/Android, no Netflix; a "JUMBO Edition" console bundle. On Switch **touch is not supported at all**, and reviewers found that strange |
+| **PlateUp!** | Real rooms enclosed by walls, a service window and **doors**. 5 procedural plan types | **It does not grow within a run.** The plan is fixed at the start of a run; the experience level opens larger plans (Extended 10, Huge 11). What grows between days is **density**: new appliances inside the same shell | Fixed top-down, **no player control**. No control is needed because the stock plans fit in a single frame | Appliances, blueprints | No mobile. On large maps the camera is not enough; the community mods (CameraPlus, Free Camera Control) exist for exactly that reason |
 
-**Two Point'in kontrol dersi.** Konsol portu dokunmatik yerine **sanal imleç** kurdu: sol çubuk imleci, sağ çubuk kamerayı, omuz düğmeleri yakınlaştırmayı ve liste gezinmesini sürüyor; menü sol alt köşeye sabitlendi. İncelemeler "on beş dakikada oturuyor" dedi ama "belirli eşya veya kişiyi seçmek zorlaşabiliyor" diye ekledi. Two Point Museum'un Switch 2 portunda aynı sorunlar tekrarlandı: çubukla yerleştirmede **hedefi aşma**, **geri alma yok**, kip değişimi görünmüyor, menü derinliği, ve **metin çok küçük**. Tek işe yarayan hafifletme: **imleç ekranın ortasında sabit tutuluyor, dünya imlecin altında kayıyor.**
+**Two Point's lesson about control.** The console port built a **virtual cursor** instead of touch: the left stick drives the cursor, the right stick the camera, the shoulder buttons the zoom and the list navigation; the menu was pinned to the bottom left corner. The reviews said "it settles in within fifteen minutes" but added that "selecting a particular item or person can get hard". The same problems came back in Two Point Museum's Switch 2 port: **overshooting the target** when placing with a stick, **no undo**, mode changes not being visible, menu depth, and **text that is far too small**. The one mitigation that works: **the cursor is held fixed in the middle of the screen and the world slides underneath it.**
 
-**Two Point'in yol bulma dersi — bizim için en sert olanı.** Koridor inşa edilen bir şey değil, **odaların tümleyeni**: "hastane parselinin oda olmayan her parçası koridordur." Geçerlilik kuralı tek cümle: **"her oda kapısıyla koridora bağlı olmalı ve aynı parseldeki her odanın kapısına açık bir yolu olmalı."** Bunun bedeli belgeli: takılan hastalar, "yol bulamıyor", "geçersiz gezinme" hata başlıkları; oyuncu çözümleri hep yerleşimi bozup düzeltmek. Geliştiricilerin kendi anlatımında en zor kısım "hastaların kuyrukları ve koridorlarda hareketi" ile "duvar kalınlığı ve hücre genişliği" olmuş.
+**Two Point's lesson about pathfinding — the harshest one for us.** A corridor is not something that is built, it is the **complement of the rooms**: "every part of the hospital plot that is not a room is a corridor." The validity rule is one sentence: **"every room must be connected to a corridor by its door, and every room on the same plot must have a clear path to that door."** The cost of this is documented: stuck patients, "cannot find a path" and "invalid navigation" bug titles; the players' fix is always to break the layout and put it back. In the developers' own account, the hardest part was "the patients' queues and their movement in the corridors" and "the wall thickness and the cell width".
 
-**PlateUp'ın üretici sözleşmesi**, oda dilbilgisinin en temiz yazılı hâli: aynı odada olmayan her bitişik karo çiftine bir özellik ekleniyor, **her bitişik oda çiftine rastgele kapı** konuyor, ve sistem **ön kapıdan her odaya kapılardan geçen bir yol olmasını garanti ediyor.**
+**PlateUp's generator contract** is the cleanest written form of the grammar of rooms: a property is added to every pair of adjacent tiles that are not in the same room, **a random door is placed for every pair of adjacent rooms**, and the system **guarantees a path through doors from the front door to every room.**
 
-### 4.4 Telefonda oda tabanlı büyümenin çalışan örnekleri
+### 4.4 Working examples of room-based growth on a phone
 
-| Oyun | Mekân | Genişleme | Kamera | Dokunulan | Ders |
+| Game | Venue | Expansion | Camera | Touched | Lesson |
 |---|---|---|---|---|---|
-| **Fallout Shelter** | Kesitten görünen, kat kat dizili odalar | Yeni oda kaz; aynı tipten oda yan yana gelince **otomatik birleşiyor**, en fazla üç birleşme, kapasite 2'den 6'ya | Pinch yakınlaştırma, kaydırma, ve **otomatik yakınlaştırma**: bir odaya ya da sakine dokununca kamera oraya gidip ortalıyor. "Küçük ekranda parmakla oynanan mobil sürüm için tasarlandı" | Oda, sakin, sol alttaki çekiç düğmesi | **Belgelenmiş başarısızlık.** Bir oyuncunun dokunmatik yazısı: "çok sayıda odayı aynı anda görebilmek için o kadar uzaklaşmak gerekiyor ki hiçbirine dokunmak kolay olmuyor" ve "radyo odasını seçmeye çalışmak, içindeki sakini seçmekle eşit olasılıkta". Otomatik kamera da sevilmiyor: "kameranın kontrolünü oyuncudan almak" şikayet konusu |
-| **Tiny Tower** | Dikey kat yığını, kat başına tek işletme | Yeni kat inşa et | Dikey kaydırma; oyun içi görüntüde **aynı anda dört kat** görünüyor | Kat, asansör, bitizen | Bir kat ekran yüksekliğinin dörtte biri. Hedef büyüklüğü kat sayısıyla **değişmiyor**, çünkü kamera hiçbir zaman kuleyi tümüyle göstermiyor |
-| **Hotel Empire Tycoon** | Ayrı oda ve alanlar; "bir odadan diğerine atlıyorsun" | Yeni oda ve alan, sonra tümüyle **yeni otel** | Kamera ayrıntısı **doğrulanmadı** | Alana dokun → performans ve kadro paneli açılıyor | Dünyadaki nesne bir **seçici**, manipülasyon aracı değil |
+| **Fallout Shelter** | Rooms seen in cross-section, stacked floor by floor | Dig a new room; rooms of the same type placed side by side **merge automatically**, at most three merges, capacity from 2 to 6 | Pinch zoom, panning, and **automatic zoom**: touching a room or a dweller sends the camera there and centres it. "Designed for a mobile version played with a finger on a small screen" | Rooms, dwellers, the hammer button at the bottom left | **A documented failure.** From one player's write-up on touch: "to see a lot of rooms at once you have to zoom out so far that touching any of them is not easy" and "trying to select the radio room is equally likely to select the dweller inside it". The automatic camera is not liked either: "taking control of the camera away from the player" is a standing complaint |
+| **Tiny Tower** | A vertical stack of floors, one business per floor | Build a new floor | Vertical scrolling; **four floors at a time** are visible in the in-game view | Floors, the lift, bitizens | A floor is a quarter of the screen height. The target size **does not change** with the number of floors, because the camera never shows the whole tower |
+| **Hotel Empire Tycoon** | Separate rooms and areas; "you jump from one room to another" | New rooms and areas, then an entirely **new hotel** | Camera detail **not verified** | Tap an area → a performance and crew panel opens | An object in the world is a **selector**, not a manipulation tool |
 
-### 4.5 Yirmi altı oyunun ortak cevabı
+### 4.5 The common answer from twenty-six games
 
-Üç örüntü var ve **her başarılı mobil örnek en az birini kullanıyor**:
+There are three patterns, and **every successful mobile example uses at least one of them**:
 
-| Örüntü | Kim kullanıyor |
+| Pattern | Who uses it |
 |---|---|
-| **Sabit yakın plan istasyon düzeni, tavanlı eş zamanlılık.** Hedefler büyük ve konumu hiç değişmiyor; zorluk sayıdan değil hızdan geliyor | Cooking Fever (4 yuva), Good Pizza (tek tezgâh), CSD (ekranın üstündeki bekletme istasyonları) |
-| **Büyüme = yeni sahne, büyüyen sahne değil.** Kameranın hiç uzaklaşması gerekmiyor | Cooking Fever 48 restoran, Cooking Madness 80+, Cooking Diary 9 semt, Diner Dash mekânları, Dave the Diver ikinci şube |
-| **Yerleşim ve dekorasyon, zamanlı ekrandan sürgün edilmiş** ayrı bir ekranda, yuva seçicilerle | Diner DASH Adventures (yıldız ve anahtarla dekor yuvası), CSD2 Designer, Cooking Fever iç mekân menüsü, Good Pizza dükkân ve bahçe ekranı |
+| **A fixed close-up station layout with a capped concurrency.** The targets are large and never move; the difficulty comes from the speed, not from the count | Cooking Fever (4 slots), Good Pizza (a single counter), CSD (the holding stations along the top of the screen) |
+| **Growth = a new scene, not a growing scene.** The camera never has to pull back | Cooking Fever's 48 restaurants, Cooking Madness's 80+, Cooking Diary's 9 districts, Diner Dash's venues, Dave the Diver's second branch |
+| **Layout and decoration exiled from the timed screen** onto a separate screen, with slot pickers | Diner DASH Adventures (decor slots with stars and keys), CSD2's Designer, Cooking Fever's interior menu, Good Pizza's shop and garden screen |
 
-Ve iki olumsuz bulgu:
+And two negative findings:
 
-- **Masaya dokunduran tek oyun Diner Dash**, ve masa sayısını **sabit ekran başına 2-6** tutuyor, artışı **tek restoranın içinde değil seviyeler arasında** yapıyor, 2019 mobil sürümünde de masayı **renkle** tanınır kılıyor. **Tek karede on dört masalı bir salonun bu türde örneği yok.**
-- **Hiçbir sevkiyat yapmış dükkân oyunu, önceden yazılmış ayrık odaları açarak büyümüyor.** En yakın ikisi (Supermarket Simulator, TCG Card Shop Simulator) tek zemini 4×4 m'lik karolarla uzatıyor ve **tek bir** arka oda ekliyor. Ayrı oda nerede varsa (Supermarket deposu, TCG Lot B, Travellers Rest katları) **arka bölgeyi gizlemek için** var ve kasıtlı olarak yürüme mesafesi konmuş — birinci şahısta içerik gibi okunan bu sürtünme, telefonda 2.5D'de **kamera gidip gelmesi** olarak okunur.
+- **The only game that has you touch a table is Diner Dash**, and it keeps the table count at **2-6 per fixed screen**, makes the increase **between levels rather than inside one restaurant**, and in the 2019 mobile version also makes the table recognisable **by colour**. **There is no example in this genre of a fourteen-table hall in a single frame.**
+- **No shop game that has shipped grows by opening pre-written discrete rooms.** The two closest (Supermarket Simulator, TCG Card Shop Simulator) extend a single floor with 4×4 m tiles and add **one** back room. Wherever a separate room exists (Supermarket's storage, TCG's Lot B, Travellers Rest's floors) it exists **to hide the back area** and walking distance has been put in deliberately — friction that reads as content in first person reads on a phone in 2.5D as **the camera going back and forth**.
 
 ---
 
-## 5. Kairosoft: telefonda oda tabanlı yönetimin tek ticari örneği
+## 5. Kairosoft: the only commercial example of room-based management on a phone
 
-Görev tanımı Kairosoft'u "en yakın ticari emsal" diye işaretledi. Doğru işaretlemiş, ve cevabı beklenenden keskin.
+The brief flagged Kairosoft as "the closest commercial precedent". It flagged it correctly, and the answer is sharper than expected.
 
-### 5.1 Dört oyun, iki farklı yapı
+### 5.1 Four games, two different structures
 
-| Oyun | Mekân | Genişleme | Kamera |
+| Game | Venue | Expansion | Camera |
 |---|---|---|---|
-| **Cafeteria Nipponica** | **Oda yok.** Turuncu çerçeveli arsa içinde ızgaraya masa ve tesis konuyor. El kitabı: "Masa koymak için restoranın turuncu çerçeveli bir alanını seçin" | Kademeli: küçük → orta → büyük. Ayrıca taşınma ve aynı anda üç restoran. **Izgara ölçüleri doğrulanmadı** | Konsol port incelemesi "içine iyice yakınlaşıp uzaklaşabiliyorsun" diyor |
-| **Hot Springs Story** | **Ayrık odalar, sabit ayak izli.** Büyük Banyo 2×3; sahne bonusu sadece sol 2×2'sine işliyor; girişinin belirli bir karede ve üstten veya sağdan açık yolu olması gerekiyor. Kombolar 2 karelik yarıçapta çalışıyor | **Tapu** satın alma, yönlü: Tapu I 20.000 → +1 üst, +2 sol. Tapu V 2.500.000 → +4 üst | Kaydır + yakınlaştır + köşe düğmesinden açılan yön tekerleği |
-| **Mega Mall Story** | **Katlarda odalar.** Dükkânlar 1, 2, 3 veya 4 kare genişliğinde | Yatırım olarak satın alınıyor: "Orta Mall" = her iki yana 4 sütun; "Bodrum" = BF3'e kadar aşağı. **Merdiven ve yürüyen merdiven açık birer dolaşım tesisi** ve satışı belirgin etkiliyor | Parmakla sürükle veya köşe düğmesinden yön okları |
-| **Dream House Days** | Odalar, mobilya tavanlı: küçük 16, orta 32, büyük 64 | Daire boyutu | — |
+| **Cafeteria Nipponica** | **No rooms.** Tables and facilities are placed on a grid inside an orange-framed plot. The manual: "To place a table, select an orange-framed area of the restaurant" | Staged: small → medium → large. Also relocation and three restaurants at once. **The grid dimensions are not verified** | A console port review says "you can zoom right in and back out" |
+| **Hot Springs Story** | **Discrete rooms with fixed footprints.** The Large Bath is 2×3; the scenery bonus only applies to its left 2×2; its entrance has to be on a particular tile with a clear path from above or from the right. Combos work within a 2-tile radius | Buying **deeds**, directionally: Deed I 20,000 → +1 above, +2 to the left. Deed V 2,500,000 → +4 above | Pan + zoom + a direction wheel opened from a corner button |
+| **Mega Mall Story** | **Rooms on floors.** Shops are 1, 2, 3 or 4 tiles wide | Bought as investments: "Mid Mall" = 4 columns on each side; "Basement" = down to BF3. **Stairs and escalators are explicit circulation facilities** and visibly affect sales | Drag with a finger, or direction arrows from a corner button |
+| **Dream House Days** | Rooms with a furniture cap: small 16, medium 32, large 64 | Apartment size | — |
 
-### 5.2 Kairosoft dokunma hedefini nasıl çözüyor
+### 5.2 How Kairosoft solves the touch target
 
-Cevap tek cümlede: **Kairosoft ızgarayı dokunma hedefi yapmıyor, seçim hedefi yapıyor.** Karar karede değil menüde veriliyor.
+The answer is in a single sentence: **Kairosoft does not make the grid a touch target, it makes it a selection target.** The decision is taken in a menu, not in the frame.
 
-| Teknik | Kanıt |
+| Technique | Evidence |
 |---|---|
-| **Doğrudan manipülasyon yok.** Kareye dokunursun, menü açılır | Kairobotica: "Boş bir arsaya dokunarak inşa menüsünü açın" |
-| **İkinci yol her zaman var:** köşedeki menü düğmesi | Sushi Spinnery: "menü düğmesine dokunup açılır listeden inşayı seçin". Kairobotica: menü düğmesi sağ altta, menü sol tarafta açılıyor |
-| **Onay adımı var; göstergesi hayalet ızgara** | Sushi Spinnery genişlemesi: "genişlemenin ne kadar büyük olacağını gösteren ızgaralar görürsün, alanı seçtikten sonra **tekrar dokunup** satın almayı kesinleştirirsin" |
-| **Önce bölge, sonra kare.** Oyun geçerli bölgeyi vurguluyor | Cafeteria Nipponica el kitabı: "turuncu çerçeveli alanı seçin" |
-| **Sürükleme sadece süreklilik gerektiren nesnede** | Sushi Spinnery konveyörü: "dokun ve sürükle, mevcut banda bağlandığından emin ol" |
-| **Yedekli gezinme girdisi:** parmakla sürükleme ve pinch **artı** köşe düğmesinden açılan yön tekerleği | Pocket Academy: "pinch yöntemiyle yakınlaştırıp uzaklaştırabilirsiniz... sol altta pembe aşağı ok düğmesine dokunursanız bir gezinme tekerleği belirir" |
-| **Oyun mantığında kendi imleci var**, işaretçiden ayrı | Switch 2'de Dungeon Village'da "ekranda farklı işler yapan iki imleç" görünüyor |
+| **No direct manipulation.** You touch a tile and a menu opens | Kairobotica: "Tap an empty plot to open the build menu" |
+| **There is always a second route:** the menu button in the corner | Sushi Spinnery: "tap the menu button and choose build from the drop-down list". Kairobotica: the menu button is at the bottom right, the menu opens on the left |
+| **There is a confirmation step; its indicator is a ghost grid** | The Sushi Spinnery expansion: "you will see grids showing how big the expansion will be, and after selecting the area you **tap again** to confirm the purchase" |
+| **Zone first, then tile.** The game highlights the valid zone | The Cafeteria Nipponica manual: "select the orange-framed area" |
+| **Dragging only for an object that needs continuity** | The Sushi Spinnery conveyor: "tap and drag, make sure it connects to the existing belt" |
+| **Redundant navigation input:** finger drag and pinch **plus** a direction wheel opened from a corner button | Pocket Academy: "you can zoom in and out with the pinch method... if you tap the pink down-arrow button at the bottom left, a navigation wheel appears" |
+| **The game logic has its own cursor**, separate from the pointer | In Dungeon Village on Switch 2 you can see "two cursors doing different jobs on screen" |
 
-**Şikayet gerçek ve Kairosoft'un kendisi düzeltmiş.** TouchArcade eski başlıklar için "arayüz bir PC oyunundan çekilmiş gibi" diyor; yeni başlıklar için "sonunda tuş telefonları ve PC yerine akıllı telefon için tasarlanmış hisseden bir arayüz, **yerleştirme daha az zahmetli, menü düğmeleri daha büyük**". 2023'te kalan şikayet **menü derinliği**: "bazı alt menülere ve komutlara erişim olması gerekenden dolambaçlı, özellikle personel yönetiminde".
+**The complaint is real and Kairosoft themselves fixed it.** TouchArcade says of the older titles that "the interface feels lifted from a PC game"; of the newer ones, "finally an interface that feels designed for a smartphone rather than for feature phones and PCs, **placement is less of a chore, the menu buttons are bigger**". The complaint that remained in 2023 is **menu depth**: "getting to some submenus and commands is more roundabout than it needs to be, especially in staff management".
 
-### 5.3 Bizim için üç çıkarım
+### 5.3 Three takeaways for us
 
-1. **Restoran temalı Kairosoft oyunu (Cafeteria Nipponica) oda kullanmıyor.** Oda kullananlar otel, alışveriş merkezi ve apartman. Yani Kairosoft'un kendisi, restoran için açık ızgarayı seçmiş.
-2. **Onay adımı mobilin asıl cevabı.** Hayalet ızgara → tekrar dokun → kesinleşir. Bu, Two Point'in konsolda düştüğü tuzağı (hedefi aşma + geri alma yok) doğrudan kapatıyor.
-3. **Yedekli girdi zorunlu:** parmakla kaydırma ve pinch her zaman, artı köşeden açılan bir yön kontrolü. İkisi de aynı işi yapıyor; bu gereksizlik bilinçli.
+1. **The restaurant-themed Kairosoft game (Cafeteria Nipponica) does not use rooms.** The ones that use rooms are the hotel, the shopping mall and the apartment block. So Kairosoft itself chose an open grid for the restaurant.
+2. **The confirmation step is mobile's real answer.** Ghost grid → tap again → confirmed. That closes, directly, the trap Two Point fell into on console (overshooting the target + no undo).
+3. **Redundant input is mandatory:** finger panning and pinch always, plus a direction control opened from a corner. Both do the same job; that redundancy is deliberate.
 
 ---
 
-## 6. Üç aday yerleşim
+## 6. Three candidate layouts
 
-| | **A. Açık salon** | **B. Odalar** | **C. Sabit tek görünüm** |
+| | **A. The open hall** | **B. Rooms** | **C. A single fixed view** |
 |---|---|---|---|
-| Tanım | Tek zemin, kademede genişliyor. Bugünkü `RestaurantScene.cs` | Salon, mutfak, bulaşık, depo ayrı; kademe yeni oda ekliyor. Bugünkü `RoomLayout.cs` | Kamera hiç hareket etmiyor, salon dekor, karar arayüzde |
-| Kademe 4'te masa, tüm restoran karesinde | 15 dp | ~20 dp | ~20 dp |
-| Kademe 4'te masa, oda karesinde | Oda yok | **~45 dp** (sabit) | Uygulanmıyor |
-| Ara dokunma hedefi | **Yok.** Salon ile masa arasında hiçbir şey | **Oda, ~106 dp** | Alt çubuk çipleri, **istenen kadar dp** |
-| Kamera işi | Kaydır ve yakınlaştır: dokunuş bütçesinde 2 dokunuş (review/05) | Oda değiştirme: kademe 4'te tam tur 3 dokunuş | **Sıfır** |
-| Görünür büyüme | Tek karede, doğrudan | Uzak kipte var, oda kipinde yok | Tek karede, doğrudan |
-| Yol bulma gerekliliği | Yok; masalar tek zeminde | Kapı ve yol tutarlılığı gerekiyor (Two Point, PlateUp kuralı) | Yok |
-| Sanat hacmi | Mutfak başına 1 kabuk × 4 kademe = 8 yerleşim (review/03 bütçesi) | Mutfak başına ~7 oda modülü + paylaşılan kapı/duvar kiti | Mutfak başına 1 kabuk |
-| Emsal | **Yok.** Tek karede 14 masalı mobil örnek bulunamadı | Animal Restaurant, Fallout Shelter, Tiny Tower, Hot Springs Story | Cooking Fever, Good Pizza, CSD, Recettear |
-| Ana riski | Masa hiçbir kademede dokunulamıyor | Gezinme dokunuşu ve at-a-glance kaybı | Salon dekora düşüyor |
+| Definition | One floor, expanding by tier. Today's `RestaurantScene.cs` | Hall, kitchen, sink and store separate; a tier adds a new room. Today's `RoomLayout.cs` | The camera never moves, the hall is decor, the decisions are in the interface |
+| Table at tier 4, in the whole-restaurant frame | 15 dp | ~20 dp | ~20 dp |
+| Table at tier 4, in a room frame | No rooms | **~45 dp** (fixed) | Not applicable |
+| Intermediate touch target | **None.** Nothing between the hall and a table | **A room, ~106 dp** | Bottom-bar chips, **as many dp as you like** |
+| Camera work | Pan and zoom: 2 taps in the tap budget (review/05) | Changing rooms: a full tour at tier 4 is 3 taps | **Zero** |
+| Visible growth | In a single frame, directly | Present in the far mode, absent in the room mode | In a single frame, directly |
+| Pathfinding requirement | None; the tables are on one floor | Door and path consistency needed (the Two Point, PlateUp rule) | None |
+| Art volume | 1 shell per cuisine × 4 tiers = 8 layouts (review/03's budget) | ~7 room modules per cuisine + a shared door/wall kit | 1 shell per cuisine |
+| Precedent | **None.** No mobile example with 14 tables in a single frame could be found | Animal Restaurant, Fallout Shelter, Tiny Tower, Hot Springs Story | Cooking Fever, Good Pizza, CSD, Recettear |
+| Its main risk | The table cannot be touched at any tier | The navigation tap and the loss of at-a-glance | The hall falls to decor |
 
 ---
 
-## 7. Oda tabanlı yerleşimin bize maliyeti
+## 7. What a room-based layout costs us
 
-### 7.1 Gezinme dokunuşu — en sert kısıt
+### 7.1 The navigation tap — the harshest constraint
 
-| Kaynak | Sayı |
+| Source | Number |
 |---|---|
-| docs/16 günlük dokunuş bütçesi | 40-60 |
-| docs/27 türetimi | 480.000 ms servis günü ÷ 60 = dokunuş başına 8.000 ms |
-| review/05 gün sayımı, **servis aşamasının tamamı** | 10 dokunuş, bunun **2'si kamera** |
-| docs/27 gün dilimi sayısı | 4 |
+| docs/16's daily tap budget | 40-60 |
+| docs/27's derivation | a 480,000 ms service day ÷ 60 = 8,000 ms per tap |
+| review/05's day count, **the whole service stage** | 10 taps, **2 of them camera** |
+| docs/27's number of day slices | 4 |
 
-Kademe 4'te dört salon odası var. Bir tam tur = 3 oda değişimi. Oyuncu her dilimde bir kez restoranı taramak isterse **12 dokunuş.** Bu, servis aşamasının bütün bütçesinin **%120'si** ve günün toplam bütçesinin **%20'si.** Karşılığında sıfır karar üretiliyor: gezinme kendi başına hiçbir şeye karar vermek değil.
+At tier 4 there are four hall rooms. A full tour = 3 room changes. If the player wants to scan the restaurant once per slice, that is **12 taps.** That is **120%** of the entire budget for the service stage and **20%** of the day's total budget. In return it produces zero decisions: navigating is not, in itself, deciding anything.
 
-Karşılaştırma: alt çubuktaki uyarı çipi (review/05'in "sabır kuyruğu çipleri" önerisi) **sıfır** gezinme dokunuşu istiyor, çünkü uyarı oyuncuya geliyor, oyuncu uyarıya gitmiyor.
+For comparison: an alert chip in the bottom bar (review/05's "patience queue chips" proposal) asks for **zero** navigation taps, because the alert comes to the player, the player does not go to the alert.
 
-873 dp'lik yatay ekrana 96 dp'lik sekiz çip sığıyor. docs/02'nin gün başına 3-5 patron müdahalesi bütçesi bunun altında; yani çip çubuğu tavanı hiç zorlamıyor.
+Eight 96 dp chips fit across an 873 dp landscape screen. docs/02's budget of 3-5 owner interventions a day is below that; so a chip bar never strains the ceiling.
 
-### 7.2 Yol bulma — docs/14 ile doğrudan çatışma
+### 7.2 Pathfinding — a direct conflict with docs/14
 
-docs/14 açıkça yazıyor: **"Karar: karmaşık yol bulma yok."** Personel istasyonuna sabitleniyor, garsonun yolu önceden hesaplanmış ve kısa, çakışma yok, personel birbirinin içinden geçebiliyor.
+docs/14 says it plainly: **"Decision: no complex pathfinding."** Staff are pinned to their station, the waiter's path is precomputed and short, there are no collisions, staff can walk through each other.
 
-Oda dilbilgisi bu kararla üç yerden çatışıyor:
+The grammar of rooms conflicts with that decision in three places:
 
-| Çatışma | Kanıt |
+| Conflict | Evidence |
 |---|---|
-| Oda varsa **kapı vardır**, kapı varsa **bağlantı geçerliliği** vardır | Two Point: "her oda kapısıyla koridora bağlı olmalı ve her odanın kapısına açık yolu olmalı". PlateUp: üretici, ön kapıdan her odaya kapılardan geçen bir yol garanti ediyor |
-| Bağlantı geçerliliği bozulunca **ajanlar takılır ve bu bir hata sınıfıdır** | Two Point'te belgeli: "yol bulamıyor", "geçersiz gezinme" başlıkları. docs/14 zaten Cat Cafe Manager ve Tavern Keeper'ın "ortak yarası" olarak bunu yazmıştı |
-| Odalı düzende **yürüme süresi ekonomik bir değişkene dönüşür** | Hot Springs Story: oyun mesafeyi ve süreyi hesaplıyor; misafirin gün içinde kaç tesis tüketebileceğini yürüme belirliyor |
+| If there are rooms there are **doors**, and if there are doors there is **connection validity** | Two Point: "every room must be connected to a corridor by its door, and every room must have a clear path to its door". PlateUp: the generator guarantees a path through doors from the front door to every room |
+| When connection validity breaks, **agents get stuck, and that is a class of bug** | Documented in Two Point: the "cannot find a path" and "invalid navigation" titles. docs/14 had already written this down as the "shared wound" of Cat Cafe Manager and Tavern Keeper |
+| In a room layout, **walking time turns into an economic variable** | Hot Springs Story: the game calculates distance and duration; how many facilities a guest can consume in a day is set by the walking |
 
-Ve sayısal çatışma, `RoomLayout.cs` geometrisinden: kademe 4'te mutfak `x ∈ [0; 4,2]`, en uzak salon `x ∈ [20,6; 25,2]`. Merkezler arası **20,8 m.** 1,2 m/s'lik bir yürüyüşle tek yön **17.300 ms.** docs/27 garsona müşteri başına **9.000 ms** "servis" veriyor. Yani şerit yerleşiminde gerçek bir yürüyüş, servis bütçesinin yaklaşık **dört katı** eder.
+And the numerical conflict, from `RoomLayout.cs`'s geometry: at tier 4 the kitchen is at `x ∈ [0; 4.2]` and the furthest hall at `x ∈ [20.6; 25.2]`. Centre to centre is **20.8 m.** At a walk of 1.2 m/s, one way is **17,300 ms.** docs/27 gives the waiter **9,000 ms** of "service" per customer. So a real walk in the strip layout comes to roughly **four times** the service budget.
 
-Üç çıkış var: yürüyüş simüle edilmez (sadece görsel), odalar mutfağın etrafında kompakt kümelenir, ya da her salon odasının kendi servis noktası olur. **Birincisi zaten doğru olan.**
+There are three ways out: the walk is not simulated (visual only), the rooms cluster compactly around the kitchen, or every hall room gets its own service point. **The first is the one that is already correct.**
 
-### 7.3 Çekirdekte mekân diye bir şey yok
+### 7.3 There is no such thing as a venue in the core
 
-`src/` altında arama yapıldığında çekirdeğin mekân modeli olmadığı görülüyor: kademe `TierConfig(Tables, Rent, Upgrade, StaffCap)`, yani **masa sayısı bir skaler.** Koordinat yok, oda yok, koltuk yok. docs/23 de kamerayı ve ekran geçişini "komut olmayan" ilan ediyor: görünüm durumu, simülasyona girmez, **kaydedilmez.**
+Searching under `src/` shows that the core has no venue model: a tier is `TierConfig(Tables, Rent, Upgrade, StaffCap)`, so **the table count is a scalar.** No coordinates, no rooms, no seats. docs/23 also declares the camera and screen transitions "not commands": view state does not enter the simulation and **is not saved.**
 
-İki sonucu var:
+That has two consequences:
 
-1. Oda tabanlı yerleşim bugün **saf sunum kararı.** Simülasyon tarafında hiçbir şey değişmiyor, hiçbir şey eklemek gerekmiyor. Bu iyi haber.
-2. Odaların simülasyonda bir anlamı olsun istenirse (oda başına kapasite, oda başına personel, müşteri yönlendirme) **yeni durum, yeni kayıt alanı ve yeni yol bulma** gerekir. O anda docs/14'ün kararı bozulur.
-3. Kamera durumu kaydedilmediği için, **gün ortasında çıkıp dönen oyuncu varsayılan odada uyanır.** docs/16'nın "her an çıkış, kaldığı saniyeden devam" kuralı kamerada tutmuyor.
+1. A room-based layout is, today, **a pure presentation decision.** Nothing changes on the simulation side, nothing has to be added. That is good news.
+2. If the rooms are wanted to mean something in the simulation (capacity per room, staff per room, routing customers) that needs **new state, a new save field and new pathfinding.** At that moment docs/14's decision breaks.
+3. Because the camera state is not saved, **a player who leaves and comes back mid-day wakes up in the default room.** docs/16's "leave at any moment, resume from the second you left" rule does not hold for the camera.
 
-### 7.4 Sanat hacmi — sanılandan küçük bir mesele
+### 7.4 Art volume — a smaller matter than it is assumed to be
 
-review/03'ün çıkış bütçesi: "Mimari kabuk: 2, her biri 4 genişleme kademesiyle = **8 yerleşim**", mutfak başına 2-3 hafta, toplam 1-1,5 kişi-ay.
+review/03's output budget: "Architectural shell: 2, each with 4 expansion tiers = **8 layouts**", 2-3 weeks per cuisine, 1-1.5 person-months in total.
 
-Odalı düzende sayım değişiyor:
+In a room layout the count changes:
 
-| Kalem | Açık salon | Odalar |
+| Item | Open hall | Rooms |
 |---|---|---|
-| Mutfak başına elle kurulan yerleşim | 4 (kademe başına bir) | 0; kademe modüllerin birleşimi |
-| Mutfak başına oda modülü | 1 kabuk | Mutfak 1, bulaşık 1, depo 1, salon 3-4 çeşit = **6-7** |
-| Paylaşılan | — | Kapı/duvar/geçiş kiti, 1 kez |
-| İki mutfak için toplam | 8 yerleşim | 12-14 modül + 1 kit |
+| Hand-built layouts per cuisine | 4 (one per tier) | 0; a tier is a combination of modules |
+| Room modules per cuisine | 1 shell | Kitchen 1, sink 1, store 1, hall 3-4 variants = **6-7** |
+| Shared | — | A door/wall/transition kit, once |
+| Total for two cuisines | 8 layouts | 12-14 modules + 1 kit |
 
-Modül sayısı artıyor ama her modül bir yerleşimden küçük, ve bu tam olarak docs/24'ün zaten benimsediği mantık ("32 yemek, 14 mesh"). **Sanat hacmi odalı düzenin ana maliyeti değil; kabaca başabaş.**
+The module count goes up, but each module is smaller than a layout, and this is exactly the logic docs/24 has already adopted ("32 dishes, 14 meshes"). **Art volume is not the room layout's main cost; it is roughly break-even.**
 
-İki gerçek sanat maliyeti var:
+There are two real art costs:
 
-- **Dört aynı salon odası kopyala-yapıştır gibi okunur.** En az 3 çeşit gerekiyor, yoksa kademe 4 ucuz görünür. Bu, "yerleşim başına yeni tasarım" tasarrufunu geri alır.
-- **Depo, hiçbir dokümanda karşılığı olmayan yeni bir oda.** docs/14'te dört rol var, depocu yok; docs/12'de stok var, fiziksel depo yok. Two Point'in kuralı burada uyarı: bir odanın **zorunlu gereçleri ve bir işi** olmalı. İşi olmayan depo odası saf maliyet.
+- **Four identical hall rooms read as copy-paste.** At least 3 variants are needed, otherwise tier 4 looks cheap. That takes back the "no new design per layout" saving.
+- **The store is a new room with no counterpart in any document.** docs/14 has four roles and no storekeeper; docs/12 has stock but no physical store. Two Point's rule is the warning here: a room must have **mandatory fittings and a job.** A store room with no job is pure cost.
 
-Ayrıca render'lardaki hâliyle önerilen şey aslında **oda değil**: `RoomLayout.cs` üç duvar koyuyor, ön taraf kameraya açık, tavan yok, kapı yok. Bunlar mühürlü oda değil, **arka duvarı paylaşan koylar.** Bu iyi bir şey — koy, odanın sanat maliyetini ödemeden odanın çerçeveleme faydasını veriyor. Ama o zaman "oda" kelimesi tartışmayı yanıltıyor.
+Also, in the form they have in the renders, what is being proposed is in fact **not rooms**: `RoomLayout.cs` places three walls, the front is open to the camera, there is no ceiling and there are no doors. These are not sealed rooms, they are **bays sharing a back wall.** That is a good thing — a bay gives the framing benefit of a room without paying a room's art cost. But then the word "room" is misleading the discussion.
 
-### 7.5 Bir bakışta bütün işletme
+### 7.5 The whole business at a glance
 
-research/01 §3, oyuncuların en sevdiği mekanikleri sıralarken 2. ve 3. sıraya şunu koyuyor: **yerleşim tasarımı ve mekân genişletme**, ve **görünür büyüme** — "minicik dükkânının hareketli bir merkeze dönüşmesini izlemek."
+research/01 §3, listing the mechanics players love most, puts these in 2nd and 3rd place: **layout design and venue expansion**, and **visible growth** — "watching your tiny shop turn into a bustling hub."
 
-Tek oda kipi bunu kapatıyor. Fallout Shelter'ın belgelenmiş çıkmazı tam bu: uzaklaşınca dokunulamıyor, yaklaşınca görülmüyor, ve iki hedef (oda mı, içindeki kişi mi) aynı piksele düşüyor.
+Single-room mode shuts that down. Fallout Shelter's documented dead end is exactly this: zoom out and you cannot touch, zoom in and you cannot see, and the two targets (the room, or the person inside it) land on the same pixel.
 
-Odalı düzenin lehine olan tek şey burada, ölçümde: **uzak kipte oda 106 dp.** Yani "uzaklaş, ama dokunulabilirliği kaybetme" mümkün — dokunulan şey masa değil oda olduğu sürece.
+The one thing in the room layout's favour is here, in the measurement: **in the far mode a room is 106 dp.** So "pull back, but do not lose touchability" is possible — as long as what is touched is the room and not the table.
 
 ---
 
-## 8. "Patron, şef değil" fantezisine etkisi
+## 8. Its effect on the "owner, not chef" fantasy
 
-docs/02 §1: "Sen aşçı değil patronsun." docs/14: patron pişiremez, salonda 1,4 iş-günü katkı verir, **aynı anda tek yerde olabilir.**
+docs/02 §1: "You are not the cook, you are the owner." docs/14: the owner cannot cook, contributes 1.4 person-days in the hall, and **can only be in one place at a time.**
 
-| Argüman | Yön |
+| Argument | Direction |
 |---|---|
-| Patron **bölüm** düşünür, şef **istasyon** düşünür. Mutfak, salon, bulaşık zaten docs/14'ün rol ayrımı | Odalar **lehine** |
-| Two Point, türün en saf "patron" fantezisi ve tamamen oda tabanlı | Odalar **lehine** |
-| Ama bizim karar birimlerimiz menü, fiyat, kadro ve istasyon ataması; hepsinin zaten ayrı ekranı var (docs/16 ekran 8, 11, 12, 13) | Odalar **aleyhine**: aynı kararın ikinci bir temsili |
-| Patron aynı anda tek yerde olabiliyorsa (docs/14), kamerayı bir odaya kilitlemek fantezi ile **tutarlı** | Odalar lehine, **ama servis dokunuş bütçesini yakarak** |
-| docs/16'nın kendi çıkarımı: "Salon dekora dönüşür; ama zaten patron oynuyoruz, garson değil" | Sabit görünüm lehine |
+| An owner thinks in **departments**, a chef thinks in **stations**. Kitchen, hall and sink are already docs/14's role split | **For** rooms |
+| Two Point is the genre's purest "owner" fantasy and it is entirely room-based | **For** rooms |
+| But our decision units are the menu, prices, the crew and station assignment; every one of them already has its own screen (docs/16 screens 8, 11, 12, 13) | **Against** rooms: a second representation of the same decision |
+| If the owner can only be in one place at a time (docs/14), locking the camera to one room is **consistent** with the fantasy | For rooms, **but by burning the service tap budget** |
+| docs/16's own conclusion: "The hall turns into decor; but we are playing the owner anyway, not the waiter" | For the fixed view |
 
-Sonuç: odalar fantezi ile çelişmiyor, hatta destekliyor. Ama fantezinin gerektirdiği şey **odaların içinde gezinmek** değil, **odalar hakkında karar vermek.** İkincisi bir arayüz işi.
+Conclusion: rooms do not conflict with the fantasy, they support it. But what the fantasy requires is **not walking around inside the rooms**, it is **making decisions about the rooms.** The second one is an interface job.
 
 ---
 
-## 9. Öneri
+## 9. Recommendation
 
-**Odalı yerleşim benimsensin — sanat ve genişleme metaforu olarak. Etkileşim modeli ve servis kamerası olarak benimsenmesin.**
+**Adopt the room layout — as an art and expansion metaphor. Do not adopt it as the interaction model and the service camera.**
 
-Somut olarak beş madde:
+Concretely, five items:
 
-| # | Karar | Gerekçe |
+| # | Decision | Reason |
 |---|---|---|
-| 1 | **Mekân koylardan kurulsun** (mutfak, bulaşık, salon koyları). Kademe yeni bir salon koyu ekler | Kademe artışları (+3, +3, +4) zaten koy büyüklüğü. `RoomLayout.cs`'te kademe 1'de masa 44 dp, açık salonda 20 dp; şeride dizmek yatay ekranı doğru kullanıyor |
-| 2 | **Servis sırasında kamera sabit, bütün restoran karede, oyuncunun kamera işi sıfır** | review/05 kamerayı 2 dokunuşla bütçelemiş; oda gezinmesi 12 dokunuş isterdi. Cooking Fever, Good Pizza, CSD ve Recettear hepsi sabit |
-| 3 | **Servis sırasında masa dokunma hedefi değil.** Birincil hedef alt çubuktaki sabır kuyruğu çipleri; çip masayı vurgular ve müdahaleyi tetikler | Hiçbir yerleşim kademe 4'te masayı 48 dp yapmıyor. Çip istenen dp'de olabilir. review/05 zaten bunu önerdi; docs/16'nın üçüncü yolu bu |
-| 4 | **Oda çerçeveli kamera sadece yerleşim düzenleme ekranında** (docs/16 ekran 11) var olsun, Kairosoft kalıbıyla: kareye dokun → menü, hayalet ızgara → tekrar dokun → onay, artı yedekli gezinme (sürükle + pinch + köşe yön kontrolü) | Orada masa ~45 dp, masa seti ~100 dp ve dokunuş bütçesi baskı altında değil. Two Point'in konsolda düştüğü "hedefi aşma + geri alma yok" tuzağını onay adımı kapatıyor |
-| 5 | **Koylar mühürlü oda olmasın: kapı, koridor, yol geçerliliği yok.** Garsonun yürüyüşü görsel, simüle edilmiyor | docs/14 "karmaşık yol bulma yok" diyor. Çekirdekte zaten mekân yok. Two Point'in belgeli hata sınıfını satın almanın anlamı yok |
+| 1 | **Build the venue out of bays** (kitchen, sink, hall bays). A tier adds a new hall bay | The tier increments (+3, +3, +4) are already bay-sized. In `RoomLayout.cs` a table at tier 1 is 44 dp against 20 dp in the open hall; laying them out in a strip uses the landscape screen properly |
+| 2 | **During service the camera is fixed, the whole restaurant is in frame, and the player's camera work is zero** | review/05 budgeted the camera at 2 taps; room navigation would have asked for 12. Cooking Fever, Good Pizza, CSD and Recettear are all fixed |
+| 3 | **During service the table is not a touch target.** The primary target is the patience-queue chips in the bottom bar; a chip highlights its table and triggers the intervention | No layout makes a table 48 dp at tier 4. A chip can be at any dp you like. review/05 already proposed this; it is docs/16's third way |
+| 4 | **A room-framed camera exists only on the layout-editing screen** (docs/16 screen 11), in the Kairosoft pattern: tap a tile → menu, ghost grid → tap again → confirm, plus redundant navigation (drag + pinch + a corner direction control) | There a table is ~45 dp, a table set ~100 dp, and the tap budget is not under pressure. The confirmation step closes the "overshoot the target + no undo" trap Two Point fell into on console |
+| 5 | **The bays are not sealed rooms: no doors, no corridors, no path validity.** The waiter's walk is visual, not simulated | docs/14 says "no complex pathfinding". There is no venue in the core anyway. There is no point in buying Two Point's documented class of bugs |
 
-**En büyük bedeli:** servis sırasında salon **dekora düşüyor.** Oyuncunun dikkati, sanat bütçesinin çoğunu harcadığımız 3B sahneden alt çubuktaki bir arayüz şeridine kayıyor. research/01'in en sevilen mekanikler sıralamasında 2. ve 3. sırada olan "yerleşim tasarımı" ve "görünür büyüme", servis boyunca arka plana iniyor ve ödülünü ancak yerleşim ekranında ve gün sonu karesinde veriyor. Dokunulabilirliği, üstünde durduğumuz şeyi geri plana atarak satın alıyoruz.
+**Its biggest cost:** during service the hall **falls to decor.** The player's attention shifts from the 3D scene we spend most of the art budget on to a strip of interface in the bottom bar. "Layout design" and "visible growth", ranked 2nd and 3rd in research/01's list of best-loved mechanics, drop into the background throughout service and pay out only on the layout screen and in the end-of-day frame. We are buying touchability by pushing the very thing we are standing on into the background.
 
-İkinci bedel: **depo odası ile kapı/duvar kiti**, arkasında hiçbir simülasyon olmayan yeni sanat işi. Depoya bir iş verilemiyorsa yerleşimden çıkarılmalı.
-
----
-
-## 10. Açık kalanlar
-
-1. **`RoomLayout.cs` konsol satırı dosyaya yazılmalı.** Bu dosyadaki oda dp değerleri benim hesabım ve render okumam; ölçülmüş sayı değil. Karar işaretlere dayanıyor ama sayılar dokümana ölçülmüş hâliyle girmeli.
-2. **Kamera sığdırması düzeltilirse açık salon kaç dp'ye çıkar?** `+ maxZ` terimi ve duvar yüksekliğinin sığdırmaya katılması, kareyi kabaca %45 doluluğa düşürüyor. Kırpan bir kamerayla 15 dp → 22-25 dp bekliyorum. Ölçülmeden bilinmez, ve 48'e yetmeyecek olsa da B ile C arasındaki farkı değiştirebilir.
-3. **Depo odasının işi ne?** İşi yoksa çıkmalı. docs/12'nin stok ve bozulma mekaniğine görünür bir karşılık verilebilir mi?
-4. **Kaç salon koyu çeşidi gerekiyor?** Dört aynı koy kopyala-yapıştır okunur. 3 mü, 4 mü, kaç varyantla yeterli görünür?
-5. **Kamera durumu kaydedilmiyor** (docs/23). Yerleşim ekranından çıkıp dönen oyuncu hangi koyda uyanacak? İstisna yazılmalı mı?
-6. **Çip çubuğu üst çubukla çatışıyor mu?** review/05 üst çubuğa müdahale hakkı ve gün ilerlemesi koymayı önerdi; alt çubuğa çip geliyor. 393 dp'lik yatay yükseklikte iki şeridin toplam payı ölçülmeli.
-7. **İkinci şube (docs/02 §6, bölüm 6) odalı düzende ne demek?** Şerit uzamaya devam eder mi, yoksa Cooking Fever kalıbıyla ayrı sahne mi olur? İlk sürüm kapsamı dışında ama yerleşim kararı buna bakmalı.
-8. **Restaurant Renovation referans listesinden düşmeli.** Doğrulandı: eşleştirme bulmacası, yönetim oyunu değil.
+The second cost: **the store room and the door/wall kit**, new art work with no simulation behind it. If the store cannot be given a job, it should come out of the layout.
 
 ---
 
-## 11. Kaynaklar
+## 10. Open items
 
-**Standart ve ölçüm**
-- Google, dokunma hedefi boyutu: https://support.google.com/accessibility/android/answer/7101858
-- Material Design erişilebilirlik: https://m2.material.io/design/usability/accessibility.html
-- Proje içi: `unity/Assets/Lokanta/Editor/RestaurantScene.cs`, `unity/Assets/Lokanta/Editor/RoomLayout.cs`, `tools/art/out/unity/oda_*.png`
+1. **`RoomLayout.cs`'s console line must be written to a file.** The room dp values in this file are my calculation and my reading of the renders; they are not measured numbers. The decision rests on the signs, but the numbers should go into the document in their measured form.
+2. **If the camera fit is corrected, how many dp does the open hall reach?** The `+ maxZ` term and including the wall height in the fit drop the frame to roughly 45% full. With a cropping camera I expect 15 dp → 22-25 dp. It cannot be known without measuring, and even if it will not reach 48 it could change the difference between B and C.
+3. **What is the store room's job?** If it has none it should go. Can docs/12's stock and spoilage mechanic be given a visible counterpart?
+4. **How many hall bay variants are needed?** Four identical bays read as copy-paste. Is it 3, is it 4, how many variants look sufficient?
+5. **The camera state is not saved** (docs/23). Which bay will a player who leaves the layout screen and comes back wake up in? Should an exception be written?
+6. **Does the chip bar conflict with the top bar?** review/05 proposed putting the intervention allowance and the day's progress in the top bar; chips are coming to the bottom bar. The two strips' combined share of the 393 dp landscape height has to be measured.
+7. **What does a second branch (docs/02 §6, section 6) mean in a room layout?** Does the strip keep getting longer, or does it become a separate scene in the Cooking Fever pattern? Out of scope for the first release, but the layout decision should look at it.
+8. **Restaurant Renovation should come off the reference list.** Verified: it is a match puzzle, not a management game.
 
-**Diner Dash ve mobil servis oyunları**
+---
+
+## 11. Sources
+
+**Standards and measurement**
+- Google, touch target size: https://support.google.com/accessibility/android/answer/7101858
+- Material Design accessibility: https://m2.material.io/design/usability/accessibility.html
+- In-project: `unity/Assets/Lokanta/Editor/RestaurantScene.cs`, `unity/Assets/Lokanta/Editor/RoomLayout.cs`, `tools/art/out/unity/oda_*.png`
+
+**Diner Dash and mobile service games**
 - https://en.wikipedia.org/wiki/Diner_Dash
 - https://en.wikipedia.org/wiki/Diner_Dash:_Hometown_Hero
-- https://dinerdash.fandom.com/wiki/Walkthrough:Flo's_Diner_(Diner_Dash) (dizin alıntısı)
+- https://dinerdash.fandom.com/wiki/Walkthrough:Flo's_Diner_(Diner_Dash) (index excerpt)
 - https://apps.apple.com/us/app/diner-dash-adventures/id1380831764
 - https://www.levelwinner.com/diner-dash-adventures-beginners-guide-tips-cheats-strategies-to-restore-dinertown/
 - https://www.nowf.com/guides/diner-dash-adventures-guide
@@ -381,73 +381,73 @@ Somut olarak beş madde:
 **Cook, Serve, Delicious!**
 - https://en.wikipedia.org/wiki/Cook,_Serve,_Delicious!_2 , .../Cook,_Serve,_Delicious!_3
 - https://store.steampowered.com/app/386620/Cook_Serve_Delicious_2/
-- https://steamcommunity.com/app/386620/discussions/0/1520386297697292960/ (menü ve istasyon yuvaları)
-- https://www.choicestgames.com/2023/08/cook-serve-delicious-2-review.html (Designer kozmetik)
+- https://steamcommunity.com/app/386620/discussions/0/1520386297697292960/ (menu and station slots)
+- https://www.choicestgames.com/2023/08/cook-serve-delicious-2-review.html (the Designer is cosmetic)
 - https://www.pocketgamer.com/cook-serve-delicious-mobile/warning-android-cook-serve-delicious-users-the-game-is-getting-delisted-but-dont/
 
 **Good Pizza, Great Pizza / Cooking Fever / Cooking Diary / Cooking Madness / Animal Restaurant**
 - https://en.wikipedia.org/wiki/Good_Pizza,_Great_Pizza
 - https://store.steampowered.com/app/770810/Good_Pizza_Great_Pizza__Cooking_Simulator_Game/
-- https://noodlearcade.com/cooking-fever-ultimate-strategy-guide (dört müşteri yuvası)
+- https://noodlearcade.com/cooking-fever-ultimate-strategy-guide (four customer slots)
 - https://www.pocketgamer.com/cooking-fever/cooking-fever-tips-and-tricks-how-to-survive-hells-kitchen/
 - https://en.wikipedia.org/wiki/Cooking_Fever
 - https://cookingdiary.game/game-guide/game-tips/tips-and-tricks
 - https://play.google.com/store/apps/details?id=droidhang.twgame.restaurant
-- https://animalrestaurant.fandom.com/wiki/Animal_Restaurant (alan listesi, dizin alıntısı)
+- https://animalrestaurant.fandom.com/wiki/Animal_Restaurant (the area list, index excerpt)
 - https://www.levelwinner.com/animal-restaurant-beginners-guide-tips-cheats-strategies-to-grow-your-restaurant-business-fast/
 
-**Dükkân simülasyonları**
+**Shop simulations**
 - https://store.steampowered.com/app/2670630/Supermarket_Simulator/
-- https://supermarket-simulator.fandom.com/wiki/Growth , .../Storage (dizin alıntısı)
+- https://supermarket-simulator.fandom.com/wiki/Growth , .../Storage (index excerpt)
 - https://theguidehall.com/supermarket-simulator-how-unlock-storage/
 - https://store.steampowered.com/app/3070070/TCG_Card_Shop_Simulator/
 - https://tcgcardshopsimulator.wiki.gg/wiki/RENO_BIGG
-- https://steamcommunity.com/app/3070070/discussions/0/4849903998512913531/ (duvar ve bölme talebi)
+- https://steamcommunity.com/app/3070070/discussions/0/4849903998512913531/ (the request for walls and partitions)
 - https://en.wikipedia.org/wiki/Recettear:_An_Item_Shop%27s_Tale
-- https://recettear.fandom.com/wiki/Merchant_Level (dizin alıntısı)
+- https://recettear.fandom.com/wiki/Merchant_Level (index excerpt)
 - https://www.thegamer.com/moonlighter-shop-upgrades/ , https://moonlighter.fandom.com/wiki/Shop_Upgrades
-- https://www.pocketgamer.com/moonlighter/moonlighter-hands-on-innovative-controls-and-great-design-updated/ (dokunmatik yeniden tasarım)
+- https://www.pocketgamer.com/moonlighter/moonlighter-hands-on-innovative-controls-and-great-design-updated/ (the touch redesign)
 - https://toucharcade.com/2020/12/01/moonlighter-review-iphone-ipad-android/
 - https://store.steampowered.com/app/1525700/Tavern_Master/ , https://steamcommunity.com/app/1525700/discussions/0/3202621452558674963/
-- https://catcafemanager.wiki.gg/wiki/Design_Mode , https://steamcommunity.com/app/1354830/discussions/2/3830914078559477875/ (iç duvar yok)
-- https://steamcommunity.com/app/1122340/discussions/0/3825289852122217751 (Chef Life yerleşim değişimi)
+- https://catcafemanager.wiki.gg/wiki/Design_Mode , https://steamcommunity.com/app/1354830/discussions/2/3830914078559477875/ (no interior walls)
+- https://steamcommunity.com/app/1122340/discussions/0/3825289852122217751 (Chef Life's layout swap)
 - https://www.thegamer.com/chef-life-a-restaurant-simulator-upgrade-decorate-restaurant/
 - https://store.steampowered.com/app/2274620/Discounty/ , https://steamcommunity.com/app/2274620/discussions/0/601914904286416715/
 - https://travellersrest.wiki.gg/wiki/Construction_Mode
-- https://dave-the-diver.fandom.com/wiki/Bancho_Sushi (dizin alıntısı) , https://www.pockettactics.com/dave-the-diver/mobile
-- https://play.google.com/store/apps/details?id=com.zymobile.restaurant (Restaurant Renovation, eşleştirme bulmacası)
+- https://dave-the-diver.fandom.com/wiki/Bancho_Sushi (index excerpt) , https://www.pockettactics.com/dave-the-diver/mobile
+- https://play.google.com/store/apps/details?id=com.zymobile.restaurant (Restaurant Renovation, a match puzzle)
 
-**Two Point ve PlateUp!**
-- https://en.wikipedia.org/wiki/Two_Point_Hospital (platform listesi, geliştirme zorlukları)
-- https://two-point-hospital.fandom.com/wiki/Rooms , .../Corridor , .../Door (dizin alıntısı)
-- https://www.gamepressure.com/two-point-hospital/hospital-rooms/zbb405 (asgari oda ölçüleri)
+**Two Point and PlateUp!**
+- https://en.wikipedia.org/wiki/Two_Point_Hospital (the platform list, development difficulties)
+- https://two-point-hospital.fandom.com/wiki/Rooms , .../Corridor , .../Door (index excerpt)
+- https://www.gamepressure.com/two-point-hospital/hospital-rooms/zbb405 (minimum room sizes)
 - https://gamefaqs.gamespot.com/pc/230622-two-point-hospital/faqs/76595/room-prestige
-- http://www.nintendoworldreport.com/review/52928/two-point-hospital-switch-review (sanal imleç şeması)
-- https://godisageek.com/reviews/two-point-hospital-switch-review-nintendo-sega/ (dokunmatik yok)
-- http://www.nintendoworldreport.com/review/73084/two-point-museum-switch-2-review-in-progress (hedefi aşma, geri alma yok, küçük metin)
-- https://steamcommunity.com/app/535930/discussions/0/1737715419898938140/ (yol bulma hataları)
+- http://www.nintendoworldreport.com/review/52928/two-point-hospital-switch-review (the virtual cursor scheme)
+- https://godisageek.com/reviews/two-point-hospital-switch-review-nintendo-sega/ (no touch)
+- http://www.nintendoworldreport.com/review/73084/two-point-museum-switch-2-review-in-progress (overshooting the target, no undo, small text)
+- https://steamcommunity.com/app/535930/discussions/0/1737715419898938140/ (pathfinding bugs)
 - https://www.twopointstudios.com/en/post/creativity-tools-breakdown-two-point-campus
-- https://wiki.plateupgame.com/gameplay/Restaurant , .../Modding/GameDataObjects/LayoutProfile (üretici sözleşmesi)
+- https://wiki.plateupgame.com/gameplay/Restaurant , .../Modding/GameDataObjects/LayoutProfile (the generator contract)
 - https://wiki.plateupgame.com/gameplay/Headquarters , .../Automation
 - https://github.com/Karl-HeinzSchneider/PlateUp-CameraPlus
 - https://en.wikipedia.org/wiki/PlateUp!
 
 **Kairosoft**
-- https://www.gamezebo.com/walkthroughs/pocket-academy-walkthrough/ (pinch + yön tekerleği)
-- https://www.gamezebo.com/walkthroughs/mega-mall-story-walkthrough/ (sürükle + yön okları, yatırım genişlemesi)
-- https://www.gamezebo.com/walkthroughs/kairobotica-walkthrough/ (boş kareye dokun → menü)
-- https://www.gamezebo.com/walkthroughs/the-sushi-spinnery-walkthrough/ (hayalet ızgara, tekrar dokun, onay)
-- https://kairosoft.wiki.gg/wiki/Transcript:Manual_(Cafeteria_Nipponica) (turuncu çerçeveli alan)
-- https://kairosoft.wiki.gg/wiki/Hot_Springs_Story , https://gamefaqs.gamespot.com/iphone/618271-hot-springs-story/faqs/61941 (tapular, ayak izleri, yürüme süresi)
+- https://www.gamezebo.com/walkthroughs/pocket-academy-walkthrough/ (pinch + the direction wheel)
+- https://www.gamezebo.com/walkthroughs/mega-mall-story-walkthrough/ (drag + direction arrows, investment expansion)
+- https://www.gamezebo.com/walkthroughs/kairobotica-walkthrough/ (tap an empty tile → menu)
+- https://www.gamezebo.com/walkthroughs/the-sushi-spinnery-walkthrough/ (ghost grid, tap again, confirm)
+- https://kairosoft.wiki.gg/wiki/Transcript:Manual_(Cafeteria_Nipponica) (the orange-framed area)
+- https://kairosoft.wiki.gg/wiki/Hot_Springs_Story , https://gamefaqs.gamespot.com/iphone/618271-hot-springs-story/faqs/61941 (deeds, footprints, walking time)
 - https://kairosoft.wiki.gg/wiki/Special_Rooms_(Dream_House_Days)
-- https://toucharcade.com/2015/06/05/biz-builder-delux-review-like-several-kairosoft-games-stapled-together/ (arayüz iyileşmesi)
-- https://toucharcade.com/2023/06/27/dream-town-island-mobile-kairosoft-game-review-iphone-ipad-android/ (kalan menü derinliği şikayeti)
-- https://higherplaingames.com/mobile/cafeteria-nipponica-review/ (yakınlaştırma)
-- https://www.whatsitlike.com.au/game-dev-story-switch-2-review/ (oyun içi imleç)
+- https://toucharcade.com/2015/06/05/biz-builder-delux-review-like-several-kairosoft-games-stapled-together/ (the interface improvement)
+- https://toucharcade.com/2023/06/27/dream-town-island-mobile-kairosoft-game-review-iphone-ipad-android/ (the remaining menu-depth complaint)
+- https://higherplaingames.com/mobile/cafeteria-nipponica-review/ (zoom)
+- https://www.whatsitlike.com.au/game-dev-story-switch-2-review/ (the in-game cursor)
 
-**Telefonda oda tabanlı büyüme**
-- https://damonwakes.wordpress.com/2016/03/26/touchscreen-troubles/ (Fallout Shelter dokunmatik çıkmazı)
-- https://steamcommunity.com/app/588430/discussions/0/1319962514593528480/ (otomatik yakınlaştırma şikayeti)
+**Room-based growth on a phone**
+- https://damonwakes.wordpress.com/2016/03/26/touchscreen-troubles/ (Fallout Shelter's touch dead end)
+- https://steamcommunity.com/app/588430/discussions/0/1319962514593528480/ (the automatic zoom complaint)
 - https://gamerant.com/fallout-shelter-how-to-merge-rooms/
 - https://en.wikipedia.org/wiki/Tiny_Tower
 - https://www.couchclicker.com/complete-guide-to-hotel-empire-tycoon/ , https://www.levelwinner.com/hotel-empire-tycoon-beginners-guide-tips-cheats-strategies-to-grow-your-hotel-empire-fast/

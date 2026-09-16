@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-vendor/*.zip icinden SECILMIS modelleri Unity projesine kopyalar.
+Copies SELECTED models out of vendor/*.zip into the Unity project.
 
-Neden hepsini degil: Food Kit tek basina 600 model. Hepsini almak APK'yi
-sisiriyor ve Unity'nin iceri alma suresini dakikalara cikariyor. Oyunun
-gercekten gosterdigi sey belli - masa, sandalye, tabak, birkac yemek ve
-on iki figur - o yuzden liste ELLE yaziliyor.
+Why not all of them: the Food Kit alone has 600 models. Taking them all bloats
+the APK and pushes Unity's import time into the minutes. What the game
+actually shows is known - tables, chairs, plates, a handful of dishes and a
+dozen figures - so the list is written BY HAND.
 
-Lisans dosyasi da kopyalaniyor. vendor/ATTRIBUTION.md'deki kural bu: License.txt
-modellerle birlikte gider, yoksa alti ay sonra bu modellerin nereden
-geldigini kimse bilmez.
+The licence file is copied too. That is the rule in vendor/ATTRIBUTION.md:
+License.txt travels with the models, otherwise in six months nobody will know
+where these models came from.
 
-Calistirma:
+Running it:
     python tools/art/import_vendor.py
 """
 from __future__ import print_function
@@ -27,18 +27,18 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 VENDOR = os.path.join(ROOT, "vendor")
 ART = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Art")
 
-# (zip, hedef klasor, model listesi)
+# (zip, destination folder, model list)
 PICKS = [
     ("kenney_furniture-kit.zip", "Furniture", [
-        # salon
+        # the hall
         "table", "tableRound", "tableCloth", "tableCrossCloth",
         "chair", "chairCushion", "chairRounded", "benchCushion",
         "stoolBar", "kitchenBar", "kitchenBarEnd",
-        # mutfak
+        # the kitchen
         "kitchenStove", "kitchenFridge", "kitchenFridgeLarge",
         "kitchenSink", "kitchenCabinet", "kitchenCabinetDrawer",
         "kitchenCabinetUpper", "kitchenMicrowave", "kitchenCoffeeMachine",
-        # depo ve dekor
+        # the store room and decoration
         "bookcaseClosedDoors", "pottedPlant", "rugRectangle", "rugRounded",
         "lampSquareCeiling", "doorwayOpen", "wallDoorway",
     ]),
@@ -49,14 +49,14 @@ PICKS = [
         "character-male-d", "character-male-e", "character-male-f",
     ]),
     ("kenney_food-kit.zip", "Food", [
-        # servis kaplari
+        # serving ware
         "plate", "plate-deep", "plate-dinner", "bowl", "bowl-soup",
         "cup", "cup-tea", "cup-saucer", "glass", "soda-glass",
         # fast food
         "burger", "burger-cheese", "fries", "meat-patty",
-        # turk
+        # Turkish
         "meat-cooked", "rice-ball", "bread", "salad", "cake",
-        # hal
+        # the market
         "tomato", "onion", "egg", "cheese",
     ]),
 ]
@@ -65,7 +65,7 @@ PICKS = [
 def extract(zip_name, folder, names):
     src = os.path.join(VENDOR, zip_name)
     if not os.path.exists(src):
-        print("  ATLANDI (zip yok): " + zip_name)
+        print("  SKIPPED (no zip): " + zip_name)
         return 0
 
     dest = os.path.join(ART, folder)
@@ -82,48 +82,67 @@ def extract(zip_name, folder, names):
             if not base:
                 continue
 
-            # Modeller
+            # The models
             if "FBX format/" in item and base in wanted:
                 with z.open(item) as f, io.open(os.path.join(dest, base), "wb") as out:
                     shutil.copyfileobj(f, out)
                 found.add(base)
 
-            # Dokular - hepsi, cunku hangi model hangisini kullaniyor
-            # zipten anlasilmiyor ve toplam boyutlari kucuk.
+            # The textures - all of them, because the zip does not say which
+            # model uses which, and their total size is small.
             elif "/Textures/" in item and base.lower().endswith((".png", ".jpg")):
                 with z.open(item) as f, \
                      io.open(os.path.join(dest, "Textures", base), "wb") as out:
                     shutil.copyfileobj(f, out)
                 textures += 1
 
-            # Lisans - vendor/ATTRIBUTION.md kurali
+            # The licence - the vendor/ATTRIBUTION.md rule
             elif base.lower() == "license.txt":
                 with z.open(item) as f, \
                      io.open(os.path.join(dest, "License.txt"), "wb") as out:
                     shutil.copyfileobj(f, out)
 
     missing = sorted(w[:-4] for w in wanted - found)
-    print("  %-22s %2d model, %d doku" % (folder, len(found), textures))
+    print("  %-22s %2d models, %d textures" % (folder, len(found), textures))
     if missing:
-        print("     BULUNAMADI: " + ", ".join(missing))
+        print("     NOT FOUND: " + ", ".join(missing))
     return len(found)
 
 
 def main():
     if not os.path.isdir(VENDOR):
-        print("vendor/ klasoru yok")
+        print("there is no vendor/ folder")
         return 1
 
-    print("Varlik iceri alma (kaynak: vendor/, lisans: vendor/ATTRIBUTION.md)")
+    print("Asset import (source: vendor/, licence: vendor/ATTRIBUTION.md)")
     total = 0
     for zip_name, folder, names in PICKS:
         total += extract(zip_name, folder, names)
 
-    # Atif dosyasi da projeye girsin: oyunu acan biri lisansi gormeli.
-    shutil.copy(os.path.join(VENDOR, "ATTRIBUTION.md"), os.path.join(ART, "ATTRIBUTION.md"))
+    # THE LEDGER IS NO LONGER COPIED, AND THAT IS THE POINT.
+    #
+    # This line used to do `shutil.copy(vendor/ATTRIBUTION.md ->
+    # Art/ATTRIBUTION.md)`, treating the vendor copy as the master. The two
+    # files were the same document once. They are not any more: the Art copy
+    # carries the FOLDER MAPPING TABLE that tools/check_licenses.py parses,
+    # plus the audio and Noto Sans SC sections; the vendor copy carries the
+    # engine-components table and the animation section.
+    #
+    # So running this importer would have silently deleted the `| Icons |`
+    # row and the whole mapping - and the licence check would have gone red
+    # with no clue why. Two ledgers that must BOTH be right cannot be kept
+    # right by overwriting one with the other.
+    #
+    # Both are now edited by hand, and check_licenses.py is what proves the
+    # Art copy still says what the folders on disk say.
+    print("")
+    print("REMINDER: a new folder under Art/ needs a row in BOTH ledgers")
+    print("  unity/Assets/Lokanta/Art/ATTRIBUTION.md  (the folder mapping table)")
+    print("  vendor/ATTRIBUTION.md                    (where it was downloaded from)")
+    print("  then: python tools/check_licenses.py")
 
     print("")
-    print("toplam %d model -> unity/Assets/Lokanta/Art/" % total)
+    print("%d models in total -> unity/Assets/Lokanta/Art/" % total)
     return 0
 
 

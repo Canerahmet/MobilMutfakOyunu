@@ -1,161 +1,161 @@
-# Mutfak Sistemi ve Gelir Modeli
+# Cuisine System and Revenue Model
 
-**Son güncelleme:** 9 Eylül 2026
-**Durum:** Karar verildi, üç şartla. Şartlar aşağıda.
+**Last updated:** 9 September 2026
+**Status:** Decided, on three conditions. The conditions are below.
 
 ---
 
-## Karar
+## The decision
 
-Oyun başlarken oyuncu bir restoran tarzı seçer. Seçim o kayıt için kalıcıdır ve oyun bitene kadar değişmez.
+At the start of the game the player picks a restaurant style. The choice is permanent for that save and does not change until the game ends.
 
-| Mutfak | Erişim |
+| Cuisine | Access |
 |---|---|
-| Fast food | Ücretsiz |
-| Türk mutfağı | Oyun içi satın alma |
-| İtalyan | Oyun içi satın alma |
-| Japon mutfağı | Oyun içi satın alma |
+| Fast food | Free |
+| Turkish cuisine | In-app purchase |
+| Italian | In-app purchase |
+| Japanese cuisine | In-app purchase |
 
-Her mutfak sadece yemek listesini değil, **müşteri profilini, ekonomiyi ve karar mekanizmalarını** değiştirir.
+Each cuisine changes not just the dish list but the **customer profile, the economy and the decision mechanics**.
 
-**Steam'de farklı:** Steam oyuncuları içerik satın almasına kötü tepki verir. Steam sürümü tek fiyatla satılır ve bütün mutfakları içerir. Port sınırı bu farkı zaten taşıyor, ek mimari iş gerekmiyor.
-
----
-
-## Neden bu yapı doğru
-
-1. **Araştırmadaki en çok nefret edilen beşinci şey boş son oyundu.** Dört mutfak, oyunu bitirdikten sonra yeniden oynamak için gerçek bir sebep veriyor.
-2. **Gelir modeli dürüst.** Güç satmıyoruz, içerik satıyoruz. Araştırmadaki nefret listesinde enerji, sayaç ve seviye kilidi vardı. Bunların hiçbiri yok.
-3. **Tek tema seçme sorununu çözüyor.** Belirli bir kimlik önerisi geçerli kalıyor, ama tek kimliğe hapsolmuyoruz.
-4. **Türk mutfağı pazarda gerçekten yok.** Ayırt edici bir kanca.
+**Different on Steam:** Steam players react badly to buying content. The Steam version is sold at a single price and includes every cuisine. The port boundary already carries that difference; no extra architectural work is needed.
 
 ---
 
-## Riski: içerik dört katına çıkıyor
+## Why this structure is right
 
-Bu, tek kişilik bir proje için gerçek bir tehlike. Kapsam patlaması, solo projelerin en sık ölüm sebebi.
-
-**Riski taşınabilir kılan şey mimari.** Mutfaklar aynı sistemleri paylaşır, sadece veri olarak farklılaşır. Çekirdek kodu bir kez yazılır, mutfaklar JSON dosyalarında yaşar. Böylece ikinci mutfağın maliyeti kod değil içerik olur.
-
-**Ama sıfır değil.** Her mutfak yeni yemek modelleri, yeni dekor ve yeni diyalog ister. Bu yüzden aşağıdaki birinci şart var.
-
----
-
-## Üç şart
-
-### Şart 1: İlk sürümde dört mutfak olmayacak
-
-**Çıkışta: ücretsiz fast food artı bir ücretli mutfak.** Diğer ikisi güncelleme olarak gelir.
-
-İlk ücretli mutfak olarak **Türk mutfağı** öneriliyor. Sebepleri:
-- En özgün olanı, pazarda benzeri yok
-- Sana en yakın olan, referans bulmak ve doğrulamak kolay
-- Fast food'dan mekanik olarak en uzak olanı, yani satın almanın değerini en net gösteren
-
-Güncelleme olarak gelen mutfaklar ayrıca tutundurmaya yarar. Araştırmada Dave the Diver'ın en güçlü tarafı sürekli yeni sistem açmasıydı.
-
-### Şart 2: Ücretsiz mutfak tam bir oyun olacak, demo değil
-
-Fast food eksik hissettirirse yorumlar bunu cezalandırır. Araştırmadaki en sert şikayetler ödeme duvarı arkasına saklanan oyunlara geliyordu.
-
-Fast food'un tam bir kampanyası, gerçek bir sonu ve kendi imza mekaniği olacak. Oyuncu hiç para vermeden oyunu bitirip memnun kalabilmeli. Ücretli mutfaklar "asıl oyun" değil, "başka bir oyun" olacak.
-
-### Şart 3: Birden fazla kayıt yuvası olacak
-
-Tarzın kilitlenmesi iyi bir tasarım. Seçimi anlamlı yapıyor ve her mutfağı ayrı bir oyun haline getiriyor.
-
-**Ama tek kayıt yuvası olursa kilit tuzağa dönüşür.** Oyuncu Türk mutfağını satın alır, mevcut fast food oyununu kaybetmeden başlayamaz. Bu iade ve kötü yorum üretir.
-
-Çözüm basit: birden fazla kayıt yuvası. Her yuva kendi mutfağına kilitli, yuvalar birbirinden bağımsız.
-
-Ayrıca ilk birkaç oyun gününde seçim serbestçe sıfırlanabilmeli. Yanlış seçim yapan oyuncu yirmi dakika sonra kapana kısılmamalı.
+1. **The fifth most hated thing in the research was an empty endgame.** Four cuisines give a real reason to play again after finishing the game.
+2. **The revenue model is honest.** We are not selling power, we are selling content. The research's hate list had energy, timers and level locks on it. None of those are here.
+3. **It solves the problem of picking one theme.** A specific identity proposal stays valid, but we are not trapped in a single identity.
+4. **Turkish cuisine genuinely does not exist in the market.** A distinctive hook.
 
 ---
 
-## Bir bağımlılık doğdu: oyunun sonu tanımlanmalı
+## Its risk: content quadruples
 
-"Oyun bitene kadar o tarz ile devam edelim" cümlesi, oyunun bittiği bir noktanın olmasını gerektiriyor. Bu, kütükteki **A14 son oyun** maddesini artık zorunlu hale getiriyor.
+For a one-person project this is a real danger. Scope explosion is the most common cause of death for solo projects.
 
-Öneri: her oyun tanımlı bir sonla biter. Belirli bir itibara ulaşmak, bir hikaye yayını tamamlamak veya restoranı devredip emekli olmak gibi.
+**What makes the risk bearable is the architecture.** Cuisines share the same systems and differ only as data. The core code is written once, the cuisines live in JSON files. That makes the cost of the second cuisine content, not code.
 
-Tanımlı son, araştırmadaki boş son oyun şikayetini de kapatır ve mutfak değiştirip yeniden oynamayı doğal hale getirir.
+**But it is not zero.** Every cuisine wants new dish models, new decor and new dialogue. That is why condition one below exists.
 
 ---
 
-## Mutfaklar ne ile farklılaşır
+## Three conditions
 
-Her mutfak yedi değişkeni değiştirir. Paylaşılan sistemler aynı kalır: gün döngüsü, hal, menü ve fiyat, personel istasyonları, servis, haftalık kira, batma merdiveni, itibar, mekân genişletme.
+### Condition 1: the first release will not have four cuisines
 
-| Değişken | Ne demek |
+**At launch: free fast food plus one paid cuisine.** The other two arrive as updates.
+
+**Turkish cuisine** is proposed as the first paid one. The reasons:
+- The most original of them, nothing like it in the market
+- The closest one to you, so references are easy to find and verify
+- The furthest from fast food mechanically, so it shows the value of the purchase most clearly
+
+Cuisines that arrive as updates also serve retention. In the research, Dave the Diver's strongest side was that it kept opening new systems.
+
+### Condition 2: the free cuisine will be a whole game, not a demo
+
+If fast food feels incomplete, the reviews will punish it. The harshest complaints in the research went to games that hid behind a paywall.
+
+Fast food will have a full campaign, a real ending and its own signature mechanic. A player who never pays anything should be able to finish the game and be satisfied. Paid cuisines will not be "the real game", they will be "another game".
+
+### Condition 3: there will be more than one save slot
+
+Locking the style is good design. It makes the choice meaningful and turns every cuisine into a separate game.
+
+**But with a single save slot the lock becomes a trap.** The player buys Turkish cuisine and cannot start it without losing their current fast food game. That produces refunds and bad reviews.
+
+The fix is simple: more than one save slot. Each slot is locked to its own cuisine, and the slots are independent of each other.
+
+The choice should also be freely resettable during the first few in-game days. A player who chose wrong should not be trapped twenty minutes later.
+
+---
+
+## A dependency was born: the end of the game has to be defined
+
+The sentence "let us continue with that style until the game ends" requires there to be a point at which the game ends. That now makes register item **A14 endgame** mandatory.
+
+Proposal: every game ends with a defined ending. Reaching a certain reputation, completing a story arc, or handing the restaurant over and retiring.
+
+A defined ending also closes the empty-endgame complaint from the research, and makes switching cuisine and replaying feel natural.
+
+---
+
+## What the cuisines differ by
+
+Every cuisine changes seven variables. The shared systems stay the same: the day cycle, the market, the menu and prices, staff stations, service, weekly rent, the bankruptcy ladder, reputation, venue expansion.
+
+| Variable | What it means |
 |---|---|
-| Ritim | Hacim ve marj dengesi |
-| Müşteri profili | Kim geliyor, sabrı, harcaması, grup büyüklüğü, zirve saatleri |
-| Menü yapısı | Kaç çeşit, hazırlık karmaşıklığı, kurs yapısı |
-| Malzeme ekonomisi | Bozulma hızı, fiyat oynaklığı, tedarik |
-| **İmza mekaniği** | Sadece o mutfakta olan tek mekanik |
-| Mekân ve dekor | Görsel set |
-| Personel | İstasyon tipleri |
+| Rhythm | The balance of volume and margin |
+| Customer profile | Who comes, their patience, their spend, group size, peak hours |
+| Menu structure | How many items, preparation complexity, course structure |
+| Ingredient economy | Spoilage speed, price volatility, supply |
+| **Signature mechanic** | The one mechanic that exists only in that cuisine |
+| Venue and decor | The visual set |
+| Staff | Station types |
 
-**İmza mekaniği en önemli satır.** Satın almanın yeniden boyama değil başka bir oyun olduğunu gösteren şey bu.
-
----
-
-## Dört mutfak
-
-### Fast food (ücretsiz)
-
-- **Ritim:** Yüksek hacim, düşük marj
-- **Müşteri:** Sabırsız, hızlı, genç ve aile. Öğle ve akşam zirveleri keskin
-- **Menü:** Az çeşit, hızlı hazırlık
-- **Malzeme:** Uzun ömürlü, bozulma az, fiyat oynaklığı düşük
-- **İmza mekaniği: Kombo ve akış.** Menüyü kombolara bağlarsın. Doğru kombo kurgusu ortalama fiş tutarını yükseltir ama mutfak yükünü artırır. Sipariş kuyruğu hiç durmaz, oyun sürekli akış yönetimidir.
-
-En az değişkenli sistem olduğu için öğretici olarak da doğru yer. Ücretsiz olması bu yüzden doğal.
-
-### Türk mutfağı, esnaf lokantası (ilk ücretli)
-
-- **Ritim:** Orta hacim, düşük ve orta marj, ama sadakat yüksek
-- **Müşteri:** Ağırlıklı olarak düzenli müşteri. Esnaf ve çalışanlar. Öğle zirvesi çok güçlü
-- **Menü:** Günün yemeği rotasyonu, tencere yemekleri, toplu pişirme
-- **Malzeme:** Porsiyon yönetimi, tencere başına maliyet
-- **İmza mekaniği: Veresiye ve düzenli müşteri.** Düzenli müşterilere veresiye açarsın. Nakit akışını bozar ama sadakati ve itibarı yükseltir. Kimin ödeyeceği belirsizdir. Ayrıca çay servisi ve porsiyon cömertliği ile marj arasında sürekli bir takas vardır.
-
-Veresiye mekaniği haftalık kira baskısıyla doğrudan çatışır. Bu, oyunun ana gerilimini en sert hissettiren mutfak.
-
-### İtalyan
-
-- **Ritim:** Orta hacim, yüksek marj
-- **Müşteri:** Uzun oturan, çift ve aile. Akşam ağırlıklı. Sabırlı ama beklentisi yüksek
-- **Menü:** Kurslar. Başlangıç, ana yemek, tatlı. Şarap eşleştirme
-- **Malzeme:** Taze ve pahalı, orta bozulma
-- **İmza mekaniği: Masa süresi ve kurs zamanlaması.** Müşteri uzun oturur, masa devir hızı düşer. Kursları doğru zamanlamak bahşişi ve itibarı yükseltir; yanlış zamanlama masayı tıkar. Az masayla çok kazanma oyunu.
-
-### Japon mutfağı, ramen dükkânı
-
-- **Ritim:** Çok yüksek devir, orta marj
-- **Müşteri:** Hızlı, tek kişilik masa ağırlıklı, tezgâh önünde oturur. Öğle zirvesi güçlü
-- **Menü:** Ramen ağırlıklı, hızlı servis, sınırlı yan ürün
-- **Malzeme:** Taze malzeme ve her sabah kaynatılan çorba suyu
-- **İmza mekaniği: Çorba suyu ve tükenme.** Sabah kaç porsiyonluk suyu kaynatacağına karar verirsin. Az yaparsan gün ortasında tükenir ve dükkânı erken kapatırsın; müşteri kaybedersin ama israf olmaz. Çok yaparsan artan su ertesi güne kalmaz, doğrudan zarardır.
-
-Bu mekanik gerçek ramen dükkânlarının işleyişinden geliyor: su bitince dükkân kapanır. Tek bir sabah kararının bütün günü belirlemesi, oyunun en keskin tahmin anını yaratıyor ve diğer üç mutfaktan tamamen ayrılıyor.
+**The signature mechanic is the most important row.** It is the thing that shows the purchase is another game rather than a repaint.
 
 ---
 
-## Fiyatlandırma
+## The four cuisines
 
-- Her mutfak ayrı satın alınabilir.
-- Hepsini içeren bir paket, tek tek almaya göre indirimli.
-- Satın alma öncesi oyuncu neyi aldığını görebilmeli. Sadece isim değil, imza mekaniği ve müşteri profili farkı gösterilmeli.
-- Kesin rakamlar kütükteki D2 maddesinde, henüz yazılmadı.
+### Fast food (free)
+
+- **Rhythm:** High volume, low margin
+- **Customer:** Impatient, fast, young and families. Lunch and evening peaks are sharp
+- **Menu:** Few items, fast preparation
+- **Ingredients:** Long-lived, little spoilage, low price volatility
+- **Signature mechanic: combo and flow.** You tie the menu into combos. The right combo design raises the average ticket but increases the kitchen's load. The order queue never stops; the game is continuous flow management.
+
+Because it is the system with the fewest variables it is also the right place for the tutorial. That is why being free is natural for it.
+
+### Turkish cuisine, the tradesman's lokanta (first paid)
+
+- **Rhythm:** Medium volume, low to medium margin, but high loyalty
+- **Customer:** Mostly regulars. Tradespeople and workers. A very strong lunch peak
+- **Menu:** A dish-of-the-day rotation, pot dishes, batch cooking
+- **Ingredients:** Portion management, cost per pot
+- **Signature mechanic: tab (credit) and regulars.** You open a tab for regulars. It disrupts cash flow but raises loyalty and reputation. Who will pay is uncertain. There is also a constant trade-off between tea service, portion generosity and margin.
+
+The tab mechanic collides directly with weekly rent pressure. This is the cuisine that makes the game's main tension bite hardest.
+
+### Italian
+
+- **Rhythm:** Medium volume, high margin
+- **Customer:** Sits for a long time, couples and families. Evening-weighted. Patient but with high expectations
+- **Menu:** Courses. Starter, main, dessert. Wine pairing
+- **Ingredients:** Fresh and expensive, medium spoilage
+- **Signature mechanic: table time and course timing.** The customer sits for a long time, table turnover drops. Timing the courses correctly raises tips and reputation; wrong timing blocks the table. A game about earning a lot with few tables.
+
+### Japanese cuisine, the ramen shop
+
+- **Rhythm:** Very high turnover, medium margin
+- **Customer:** Fast, mostly single-seat, sits at the counter. Strong lunch peak
+- **Menu:** Ramen-weighted, fast service, limited sides
+- **Ingredients:** Fresh ingredients and a broth boiled every morning
+- **Signature mechanic: broth and running out.** In the morning you decide how many portions of broth to boil. Make too little and it runs out mid-day and you close the shop early; you lose customers but nothing is wasted. Make too much and the leftover broth does not keep until the next day, which is a straight loss.
+
+This mechanic comes from how real ramen shops work: when the broth is gone, the shop closes. A single morning decision determining the whole day creates the game's sharpest moment of prediction and separates it completely from the other three cuisines.
 
 ---
 
-## Bu kararın kapattığı kütük maddeleri
+## Pricing
 
-| Madde | Eski durum | Yeni durum |
+- Every cuisine can be bought separately.
+- A bundle containing all of them, discounted against buying them one by one.
+- Before buying, the player should be able to see what they are getting. Not just the name — the signature mechanic and the customer profile difference should be shown.
+- The exact figures are in register item D2, not written yet.
+
+---
+
+## The register items this decision closes
+
+| Item | Old status | New status |
 |---|---|---|
-| D1 Gelir modeli | Karar bekliyor | ✅ İçerik satın alması, güç değil |
-| D3 İlk sürüm kapsamı | Karar bekliyor | ✅ Mekân genişletme dahil, ikinci şube hariç, iki mutfak |
-| D4 Tema ve mutfak kimliği | Karar bekliyor | ✅ Dört mutfak, çıkışta iki tanesi |
-| A14 Son oyun | Yazılmadı | ⚠️ Artık zorunlu, bu karara bağımlı |
+| D1 Revenue model | Awaiting decision | ✅ Content purchase, not power |
+| D3 First release scope | Awaiting decision | ✅ Venue expansion included, second branch excluded, two cuisines |
+| D4 Theme and cuisine identity | Awaiting decision | ✅ Four cuisines, two of them at launch |
+| A14 Endgame | Not written | ⚠️ Now mandatory, dependent on this decision |

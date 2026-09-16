@@ -3,26 +3,28 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Iki kademeli kamera. docs/31-rooms-and-camera.md ve kullanicinin
-    /// kendi cumlesi: "tum her sey ayni anda goruldugu durumda oyuncu
-    /// dokunarak kamerayi o moduler kisma yaklastirmis olur."
+    /// A two-step camera. docs/31-rooms-and-camera.md and the user's own
+    /// sentence: "when everything is seen at once, the player touches and
+    /// so brings the camera closer to that modular part."
     ///
-    ///   GENEL   butun arsa gorunuyor. Dokunma hedefi ODA.
-    ///   ODA     tek odaya yaklasilmis. Dokunma hedefi MASA TAKIMI.
+    ///   OVERVIEW  the whole plot is visible. The touch target is a ROOM.
+    ///   ROOM      zoomed in on one room. The touch target is a TABLE SET.
     ///
-    /// Aci, gorus acisi ve mesafe CameraFit'ten geliyor - dokunma hedefi
-    /// olcumunun kullandigi hesabin ta kendisi. Burada ayri sayi yazmak
-    /// olcumu gecersiz kilar; ilk yazimda oyle oldu ve restoran karenin
-    /// yalnizca %38'ini kapliyordu.
+    /// The angle, the field of view and the distance come from CameraFit -
+    /// the very calculation the touch-target measurement uses. Writing
+    /// separate numbers here invalidates that measurement; that is what
+    /// happened in the first version and the restaurant covered only 38%
+    /// of the frame.
     ///
-    /// Genel gorunum ACIK odalari cerceveliyor, butun arsayi degil -
-    /// acilmamis odalar cizilmiyor bile (RestaurantView.BuildFloors).
+    /// The overview frames the OPEN rooms, not the whole plot - rooms that
+    /// have not been opened are not even drawn
+    /// (RestaurantView.BuildFloors).
     ///
-    /// Dokunma hedefi bundan ZARAR GORMUYOR, tersine: olcum (docs/31'in
-    /// araci, Editor/RoomLayout.cs) en kucuk acik odanin arayuz
-    /// cubuklariyla birlikte 71 dp oldugunu ve bunun kademeyle
-    /// DEGISMEDIGINI soyluyor. Eski ayarda ayni sayi 52'den 48'e
-    /// duserek Google'in asgarisine tam tamina degiyordu.
+    /// The touch target DOES NOT SUFFER from this, quite the opposite: the
+    /// measurement (the tool of docs/31, Editor/RoomLayout.cs) says the
+    /// smallest open room is 71 dp with the interface bars in place, and
+    /// that it DOES NOT CHANGE with the tier. With the old setting that
+    /// same number fell from 52 to 48, touching Google's minimum exactly.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class CameraRig : MonoBehaviour
@@ -30,17 +32,18 @@ namespace Lokanta.Game
         public float MoveSeconds = 0.35f;
 
         /// <summary>
-        /// Kayan gecis suruyor mu.
+        /// Is a sliding transition under way?
         ///
-        /// Turun sormasi icin: gecisin bittigini SURE ile beklemek
-        /// (MoveSeconds + 0,1) bir kosuda yetmedi ve "kamera genel
-        /// cerceveye geri geldi" kontrolu 13 m sapmayla kirmiziya
-        /// dustu - kamera yolun ortasindayken olculmustu. Sureyi
-        /// beklemek yerine DURUMU beklemek gerekiyor.
+        /// So the tour can ask: waiting out the transition BY TIME
+        /// (MoveSeconds + 0.1) was not enough on one run and the "the camera
+        /// came back to the overview framing" check went red with a 13 m
+        /// deviation - it had been measured while the camera was halfway
+        /// along. Instead of waiting for the time, you have to wait for the
+        /// STATE.
         /// </summary>
         public bool Moving { get { return _t < 1f; } }
 
-        /// <summary>-1 ise genel gorunum.</summary>
+        /// <summary>-1 means the overview.</summary>
         public int FocusRoom { get; private set; } = -1;
 
         private Vector3 _from, _to;
@@ -50,11 +53,11 @@ namespace Lokanta.Game
         private float _aspect;
 
         /// <summary>
-        /// Arayuzun ust ve altta kapladigi oran. Oyun ekrani kendi
-        /// cubuklarini olcup buraya bildiriyor - kamera sabit bir sayi
-        /// varsaymiyor, cunku cubuklarin yuksekligi icerige gore
-        /// degisiyor (kalan hak satiri, mudahale dugmeleri).
-        /// </summary>
+        /// The fraction the interface covers at the top and at the bottom.
+        /// The game screen measures its own bars and reports them here - the
+        /// camera does not assume a fixed number, because the height of the
+        /// bars changes with the content (the remaining-allowance line, the
+        /// intervention buttons).
         private float _top01, _bottom01;
 
         public void SetSafeArea(float top01, float bottom01)
@@ -71,10 +74,11 @@ namespace Lokanta.Game
         {
             _cam = GetComponent<Camera>();
 
-            // Aci, gorus acisi ve mesafe OLCUMLE AYNI kaynaktan geliyor
-            // (CameraFit). Burada ayri sayilar yazmak, dokunma hedefi
-            // olcumunu gecersiz kilar - ilk yazimda tam bu oldu ve
-            // restoran karenin %38'ini kapliyordu.
+            // The angle, the field of view and the distance come from THE SAME
+            // source as the measurement (CameraFit). Writing separate numbers
+            // here invalidates the touch-target measurement - which is exactly
+            // what happened in the first version, and the restaurant covered
+            // 38% of the frame.
             _cam.fieldOfView = CameraFit.FieldOfView;
             transform.rotation = LookRotation;
 
@@ -85,8 +89,9 @@ namespace Lokanta.Game
 
         private void Update()
         {
-            // Ekran donerse cerceve yeniden hesaplaniyor. Sabit bir konum
-            // yazsaydik, yatay-dikey gecisinde arsa cerceveden tasardi.
+            // If the screen is rotated the framing is worked out again. Had we
+            // written a fixed position, the plot would spill out of the frame
+            // on a landscape-portrait change.
             if (!Mathf.Approximately(_aspect, _cam.aspect))
             {
                 _aspect = _cam.aspect;
@@ -101,33 +106,34 @@ namespace Lokanta.Game
                 transform.rotation = Quaternion.Slerp(_fromRot, LookRotation, k);
             }
 
-            // Arayuze dusen dokunus kameraya GITMIYOR.
+            // A TOUCH THAT LANDS ON THE INTERFACE DOES NOT REACH THE CAMERA.
             //
-            // Once kosulsuz gidiyordu: "Servisi Ac" dugmesine basmak ayni
-            // anda arkadaki odayi da seciyor ve kamera oraya ucuyordu.
+            // It used to reach it unconditionally: pressing the "Open service"
+            // button also selected the room behind it and the camera flew
+            // there.
             HandlePinch();
 
             if (TouchDown(out Vector3 screen) && !OverUi(screen)) HandleTouch(screen);
         }
 
         // ---------------------------------------------------------------------
-        // IKI PARMAK: YAKINLASTIRMA VE DONDURME.
+        // TWO FINGERS: ZOOM AND TURN.
         //
-        // Sinirlar bilincli:
+        // The limits are deliberate:
         //
-        //   YAKINLASTIRMA 0,45 - 1,00. 1,00, olculmus varsayilan cerceve
-        //   (docs/31); daha UZAGA cikilamiyor cunku o cerceve zaten her
-        //   seyi gosteriyor ve uzaklasmak yalnizca dokunma hedefini
-        //   kucultur. 0,45 yaklasik 2,2 kat buyutme.
+        //   ZOOM 0.45 - 1.00. The 1.00 is the measured default framing
+        //   (docs/31); you cannot go FURTHER OUT because that framing
+        //   already shows everything and pulling back would only make the
+        //   touch target smaller. 0.45 is about 2.2x magnification.
         //
-        //   DONDURME +-35 derece. Tamamen serbest birakmak iki seyi
-        //   bozuyor: dokunma hedefi olcumu belli bir acida yapildi
-        //   (docs/31), ve arkadan bakildiginda mutfak salonun onune
-        //   geciyor. +-35, "obur taraftan bakayim" istegini karsilarken
-        //   kat planini okunur birakiyor.
+        //   TURN +-35 degrees. Leaving it completely free breaks two
+        //   things: the touch-target measurement was made at a particular
+        //   angle (docs/31), and seen from behind the kitchen comes in
+        //   front of the hall. +-35 satisfies the "let me look from the
+        //   other side" wish while leaving the floor plan readable.
         //
-        // Genel gorunume donmek ikisini de SIFIRLIYOR: oyuncunun her
-        // zaman bilinen bir yere donebilecegi bir yol olmali.
+        // Going back to the overview RESETS both: there has to be a way for
+        // the player to get back to somewhere known at any time.
         private float _zoom = 1f;
         private float _yawOffset;
 
@@ -135,10 +141,10 @@ namespace Lokanta.Game
         private const float MaxZoom = 1.00f;
         private const float MaxYaw = 35f;
 
-        /// <summary>Yakinlastirma orani: 1 varsayilan cerceve.</summary>
+        /// <summary>The zoom ratio: 1 is the default framing.</summary>
         public float Zoom { get { return _zoom; } }
 
-        /// <summary>Oyuncunun cevirdigi aci, derece.</summary>
+        /// <summary>The angle the player has turned to, in degrees.</summary>
         public float YawOffset { get { return _yawOffset; } }
 
         private Vector3 TargetPosition(int room)
@@ -148,20 +154,21 @@ namespace Lokanta.Game
                 : CameraFit.RoomBounds(room);
 
             Vector3 p = CameraFit.Position(b, _aspect, _top01, _bottom01);
-            Vector3 merkez = b.center;
+            Vector3 center = b.center;
 
-            // Yakinlastirma kamerayi hedefe DOGRU cekiyor. Gorus acisini
-            // daraltmak da yaklastirirdi ama perspektifi degistirir ve
-            // dokunma hedefi olcumunun kullandigi hesabi gecersiz kilar.
-            p = merkez + (p - merkez) * _zoom;
+            // The zoom pulls the camera TOWARDS the target. Narrowing the
+            // field of view would zoom in as well, but it changes the
+            // perspective and invalidates the calculation the touch-target
+            // measurement uses.
+            p = center + (p - center) * _zoom;
 
             if (Mathf.Abs(_yawOffset) > 0.01f)
-                p = merkez + Quaternion.Euler(0f, _yawOffset, 0f) * (p - merkez);
+                p = center + Quaternion.Euler(0f, _yawOffset, 0f) * (p - center);
 
             return p;
         }
 
-        /// <summary>Kameranin baktigi yon: temel aci arti oyuncunun donusu.</summary>
+        /// <summary>The direction the camera looks: the base angle plus the player's turn.</summary>
         private Quaternion LookRotation
         {
             get { return Quaternion.Euler(0f, _yawOffset, 0f) * CameraFit.Rotation; }
@@ -182,24 +189,25 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Hareketi uygular. Parmak da tur da BURADAN geciyor.
+        /// Applies the gesture. Both a finger and the tour come THROUGH
+        /// HERE.
         ///
-        /// Ayri bir giris yolu birakmak, denetimin hicbir zaman gercek
-        /// kodu olcmemesi demekti: tur dokunmatik uretemiyor ve
-        /// yakinlastirma smiriyla ilgili her sey olculmeden kalirdi.
+        /// Leaving a separate input path would have meant the check never
+        /// measuring the real code: the tour cannot produce touches, and
+        /// everything to do with the zoom limit would have gone unmeasured.
         /// </summary>
         public void ApplyGesture(float zoomDelta, float twist)
         {
-            float oncekiZoom = _zoom;
-            float oncekiYaw = _yawOffset;
+            float previousZoom = _zoom;
+            float previousYaw = _yawOffset;
             _zoom = Mathf.Clamp(_zoom - zoomDelta, MinZoom, MaxZoom);
             _yawOffset = Mathf.Clamp(_yawOffset + twist, -MaxYaw, MaxYaw);
 
-            if (Mathf.Approximately(oncekiZoom, _zoom)
-                && Mathf.Approximately(oncekiYaw, _yawOffset)) return;
+            if (Mathf.Approximately(previousZoom, _zoom)
+                && Mathf.Approximately(previousYaw, _yawOffset)) return;
 
-            // ANINDA, yumusatma yok: parmagin altindaki goruntunun
-            // gecikmesi yakinlastirmayi agir hissettiriyor.
+            // IMMEDIATE, with no smoothing: a lag in the picture under the
+            // finger makes the zoom feel heavy.
             _to = TargetPosition(FocusRoom);
             transform.position = _to;
             transform.rotation = LookRotation;
@@ -209,15 +217,15 @@ namespace Lokanta.Game
             Quality.ApplyZoom(_zoom);
         }
 
-        /// <summary>Yakinlastirmanin alt siniri. Turun sormasi icin.</summary>
+        /// <summary>The lower limit of the zoom. So the tour can ask.</summary>
         public static float MinZoomLimit { get { return MinZoom; } }
 
-        /// <summary>Donusun siniri, derece. Turun sormasi icin.</summary>
+        /// <summary>The limit of the turn, in degrees. So the tour can ask.</summary>
         public static float MaxYawLimit { get { return MaxYaw; } }
 
         /// <summary>
-        /// Iki parmak (ya da fare tekerlegi) hareketi.
-        /// zoom pozitif = yaklastir. twist = derece.
+        /// A two-finger (or mouse wheel) gesture.
+        /// zoom positive = closer. twist = degrees.
         /// </summary>
         private bool Gesture(out float zoom, out float twist)
         {
@@ -261,7 +269,7 @@ namespace Lokanta.Game
 #endif
         }
 
-        /// <summary>Iki parmagin arasindaki mesafe ve acidan degisimi okur.</summary>
+        /// <summary>Reads the change from the distance and the angle between the two fingers.</summary>
         private void Read(Vector2 a, Vector2 b, ref float zoom, ref float twist)
         {
             float d = Vector2.Distance(a, b);
@@ -269,12 +277,12 @@ namespace Lokanta.Game
 
             if (_pinching)
             {
-                // Ekran kosegenine BOLUNUYOR: ayni parmak hareketi her
-                // cozunurlukte ayni kadar yakinlastirmali.
-                float kosegen = Mathf.Sqrt(
+                // DIVIDED BY THE SCREEN DIAGONAL: the same finger movement has
+                // to zoom by the same amount at every resolution.
+                float diagonal = Mathf.Sqrt(
                     Screen.width * (float)Screen.width
                     + Screen.height * (float)Screen.height);
-                zoom = (d - _lastPinchDist) / Mathf.Max(1f, kosegen) * 2.2f;
+                zoom = (d - _lastPinchDist) / Mathf.Max(1f, diagonal) * 2.2f;
                 twist = Mathf.DeltaAngle(_lastPinchAngle, ang);
             }
             _lastPinchDist = d;
@@ -289,17 +297,17 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Kayan gecisi baslatir: NEREDEN ve HANGI ACIDAN.
+        /// Starts the sliding transition: FROM WHERE and FROM WHICH ANGLE.
         ///
-        /// Aci da tasinmak ZORUNDA. Onceden yalnizca konum kayiyordu ve
-        /// aciyi yalnizca parmak hareketi yaziyordu - yani oyuncu
-        /// kamerayi cevirip "genel gorunum"e bastiginda kamera dogru
-        /// yere gidiyor ama YAN BAKMAYA devam ediyordu. Cevirdigi
-        /// kamerayi duzeltmenin caresi kalmiyordu.
+        /// The angle HAS TO travel too. Only the position used to slide, and
+        /// the angle was written by the finger gesture alone - so when the
+        /// player had turned the camera and then pressed "overview", the
+        /// camera went to the right place but WENT ON LOOKING SIDEWAYS.
+        /// There was no cure for a camera you had turned.
         ///
-        /// Turun kontrolu bunu gormemisti cunku alanlara (Zoom,
-        /// YawOffset) bakiyordu; ikisi de sifirlaniyordu. Olculmesi
-        /// gereken sey kameranin KENDISI.
+        /// The tour's check had not seen this because it looked at the
+        /// fields (Zoom, YawOffset); both of those were being reset. What
+        /// has to be measured is the camera ITSELF.
         /// </summary>
         private void Begin()
         {
@@ -310,9 +318,9 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Genel gorunum. Yakinlastirma ve donus de SIFIRLANIYOR:
-        /// oyuncunun her zaman bilinen bir yere donebilecegi bir yol
-        /// olmali, yoksa cevirdigi kamerayi duzeltmenin caresi kalmiyor.
+        /// The overview. The zoom and the turn are RESET too: there has to
+        /// be a way for the player to get back to somewhere known at any
+        /// time, otherwise there is no cure for a camera they have turned.
         /// </summary>
         public void Overview()
         {
@@ -323,13 +331,14 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Acik masa sayisi. Genel cerceve buna gore kuruluyor: kapali
-        /// kanatlar ekranda yer kaplamiyor.
+        /// The number of open tables. The overview framing is built from it:
+        /// the closed wings do not take up room on screen.
         ///
-        /// Baslangic degeri ilk kademenin masa sayisi; AfterSimChanged
-        /// gercek degeri yaziyor ve Snap ile aninda oturtuyor, yani
-        /// oyuna girerken kamera ucmuyor. Genisleme sirasindaki degisim
-        /// ise KAYARAK oluyor - oyuncu restoranin buyudugunu gormeli.
+        /// The initial value is the first tier's table count; AfterSimChanged
+        /// writes the real value and settles it at once with Snap, so the
+        /// camera does not fly about as you enter the game. The change during
+        /// an expansion, though, SLIDES - the player should see the
+        /// restaurant grow.
         /// </summary>
         public int OpenTables
         {
@@ -345,18 +354,18 @@ namespace Lokanta.Game
         private int _tables = 4;
 
         /// <summary>
-        /// Genel gorunumun HEDEF konumu.
+        /// The TARGET position of the overview.
         ///
-        /// Denetim icin: "kamera genel gorunume dondu mu" sorusu, daha
-        /// once kaydedilmis bir konumla degil SU ANKI hedefle
-        /// karsilastirilmali. Restoran buyudugunde genel cerceve de
-        /// degisiyor ve eski konum artik dogru cevap degil - denetim
-        /// 3,74 m sapma olcup kirmiziya dustu, oysa kamera tam olmasi
-        /// gereken yerdeydi.
+        /// For the check: the question "has the camera come back to the
+        /// overview" has to be compared with the CURRENT target, not with a
+        /// position recorded earlier. When the restaurant grows the overview
+        /// framing changes too and the old position is no longer the right
+        /// answer - the check measured a 3.74 m deviation and went red, when
+        /// the camera was exactly where it should have been.
         /// </summary>
         public Vector3 OverviewPosition { get { return TargetPosition(-1); } }
 
-        /// <summary>Kayan gecisi atlar; kamera hedefine simdi oturur.</summary>
+        /// <summary>Skips the sliding transition; the camera settles on its target now.</summary>
         public void Snap()
         {
             _to = TargetPosition(FocusRoom);
@@ -367,7 +376,7 @@ namespace Lokanta.Game
             _t = 1f;
         }
 
-        /// <summary>Bu ekran noktasinda bir arayuz ogesi var mi.</summary>
+        /// <summary>Is there an interface element at this point on screen?</summary>
         private bool OverUi(Vector3 screen)
         {
             if (_ui == null) _ui = FindFirstObjectByType<Ui.UiRoot>();
@@ -383,28 +392,29 @@ namespace Lokanta.Game
 
             if (FocusRoom >= 0)
             {
-                // ODADAYKEN once MASA araniyor.
+                // WHILE IN A ROOM, A TABLE IS LOOKED FOR FIRST.
                 //
-                // Bir masaya dokunmak onu mudahalelerin hedefi yapiyor;
-                // baska bir yere dokunmak eskisi gibi geri cikariyor.
-                // Geri dugmesi ARAMAK mobilde en sik sikayet edilen sey,
-                // o yuzden "bos yere dokun = geri" kurali duruyor.
+                // Touching a table makes it the target of the interventions;
+                // touching anywhere else takes you back out as before. HAVING TO
+                // LOOK for a back button is the most complained-about thing on
+                // mobile, which is why the "touch an empty place = back" rule
+                // stands.
                 if (anyHit)
                 {
                     TableTouch tt = hit.collider.GetComponentInParent<TableTouch>();
                     if (tt != null && SelectTable(tt.TableIndex)) return;
 
-                    // MASAYI ISKALAMAK GERI CIKARMIYOR.
+                    // MISSING THE TABLE DOES NOT TAKE YOU BACK OUT.
                     //
-                    // Once her iska Overview() cagiriyordu ve deneme
-                    // yanilma cezalandiriliyordu: masaya dokunmayi
-                    // ogrenmeye calisan oyuncu her isada basa donuyor,
-                    // kamera geri ucuyor, tekrar yaklasmasi gerekiyordu.
+                    // Every miss used to call Overview() and trial and error was
+                    // punished: a player learning to touch a table went back to
+                    // the start on every miss, the camera flew back and they had
+                    // to zoom in again.
                     //
-                    // Simdi ODANIN ICI guvenli: zemine dokunmak hicbir sey
-                    // yapmiyor. Geri cikmak icin odanin DISINA dokunmak
-                    // gerekiyor - ve "geri dugmesi aramamak" kurali da
-                    // boylece duruyor.
+                    // Now the INSIDE OF THE ROOM is safe: touching the floor does
+                    // nothing. To go back out you have to touch OUTSIDE the room -
+                    // and so the "no hunting for a back button" rule still
+                    // stands.
                     RoomTouch inside = hit.collider.GetComponentInParent<RoomTouch>();
                     if (inside != null && inside.RoomIndex == FocusRoom) return;
                 }
@@ -418,9 +428,10 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Masayi mudahale hedefi yapar. Yalnizca SERVIS sirasinda ve
-        /// yalnizca DOLU masada; bos bir masayi secmek oyuncuya hicbir
-        /// sey kazandirmaz ve geri cikma hareketini calardi.
+        /// Makes the table the target of an intervention. Only DURING
+        /// SERVICE and only on an OCCUPIED table; selecting an empty table
+        /// gains the player nothing and would steal the gesture for going
+        /// back out.
         /// </summary>
         private bool SelectTable(int index)
         {
@@ -436,16 +447,17 @@ namespace Lokanta.Game
                 || st == Lokanta.Core.Sim.CustomerStage.LeftAngry)
                 return false;
 
-            // Ayni masaya ikinci dokunus secimi BIRAKIYOR: secimden
-            // cikmanin yolu, secmenin yoluyla ayni olmali.
+            // A second touch on the same table DROPS the selection: the way
+            // out of a selection should be the same as the way into it.
             app.SelectedTable = app.SelectedTable == index ? -1 : index;
             _ui.Refresh();
             return true;
         }
 
         /// <summary>
-        /// Dokunma veya fare. Yeni Input System paketi projede var ama
-        /// eski girdi de acik; ikisini de destekleyen en kisa yol bu.
+        /// A touch or the mouse. The new Input System package is in the
+        /// project but the old input is switched on too; this is the
+        /// shortest way of supporting both.
         /// </summary>
         private static bool TouchDown(out Vector3 screen)
         {

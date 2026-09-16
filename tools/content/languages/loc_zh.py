@@ -1,44 +1,47 @@
 # -*- coding: utf-8 -*-
 """
-Cince (basitlestirilmis) metin tablosu. gen_loc.py content/loc/zh.json uretir.
+Chinese (Simplified) string table. gen_loc.py produces content/loc/zh.json.
 
-BASITLESTIRILMIS CINCE (zh-Hans), anakara olcunu. Kullanicinin istegi
-"ortak anlasilir olsun" idi; basitlestirilmis yazi en genis kitleye
-ulasan secim.
+SIMPLIFIED CHINESE (zh-Hans), the mainland standard. What the user asked
+for was that it "be commonly understood"; the simplified script is the
+choice that reaches the widest audience.
 
-CEVIRI KARARLARI - loc_en.py ve loc_es.py ile AYNI cizgi:
+TRANSLATION DECISIONS - THE SAME line as loc_en.py and loc_es.py:
 
-  Malzemeler TAMAMEN cevriliyor.
+  Ingredients are translated IN FULL.
 
-  Yemekler DEGISKEN. Dunyaca taninan Turkce adlar SES CEVIRISIYLE
-  korunuyor ve yanina kisa aciklama konuyor: Cince okuyan biri icin
-  "Lahmacun" tek basina hicbir sey soylemiyor, ama "拉赫马俊" de
-  soylemiyor - o yuzden ikisi birlikte: 土耳其肉馅薄饼(Lahmacun).
-  Betimleyici adlar dogrudan cevriliyor.
+  Dishes VARY. Turkish names the world already knows are kept BY
+  TRANSLITERATION with a short explanation set next to them: for
+  somebody reading Chinese, "Lahmacun" on its own says nothing - but
+  neither does "拉赫马俊", so the two go together:
+  土耳其肉馅薄饼(Lahmacun). Descriptive names are translated directly.
 
-  Duzenli musterilerin sahneleri OYUNUN SESI: kisa, gundelik, tek bir
-  sey anlatan cumleler. Birebir degil, ayni tonda.
+  The regulars' scenes are THE GAME'S VOICE: short, everyday sentences
+  that each tell one thing. Not word for word, but in the same tone.
 
-  Ozel adlar LATIN HARFLERIYLE korunuyor (Hasan Usta). Cince metinde
-  yabanci ad birakmak yaygin ve okunuyor; ses cevirisi yapmak, yirmi
-  karakteri taninmaz hale getirirdi. Unvan meslek satirinda aciklaniyor.
+  Proper names are kept IN LATIN LETTERS (Hasan Usta). Leaving a foreign
+  name in Latin script inside Chinese text is common and it is read;
+  transliterating would have made twenty names unrecognisable. The title
+  is explained on the occupation line.
 
-NOT - CINCE TABLODA OZEL ADLAR ISARETSIZ YAZILIYOR:
+NOTE - IN THE CHINESE TABLE PROPER NAMES ARE WRITTEN WITHOUT DIACRITICS:
 
-  Guler Hanim, Ismail Sofor, Yagmur ... (Güler/Şoför/Yağmur degil)
+  Guler Hanim, Ismail Sofor, Yagmur ... (not Güler/Şoför/Yağmur)
 
-Sebep ikili ve ikisi de olculdu:
-  1. Cince yazi tipi (Noto Sans SC) Latin Extended-A TASIMIYOR - ğ, İ,
-     ı, Ş onda yok. Oyun Cince'deyken butun arayuz o fontla ciziliyor,
-     yani isaretli yazsak oyuncu BOS KUTU gorurdu.
-  2. Cince okuyan biri icin ğ ile g arasindaki fark zaten bilgi
-     tasimiyor; ad yine taniniyor.
+The reason is twofold, and both halves were measured:
+  1. The Chinese font (Noto Sans SC) DOES NOT CARRY Latin Extended-A -
+     it has no ğ, İ, ı or Ş. While the game is in Chinese the whole
+     interface is drawn with that font, so had we written the
+     diacritics the player would have seen EMPTY BOXES.
+  2. For somebody reading Chinese the difference between ğ and g does
+     not carry information anyway; the name is still recognised.
 
-Turkce, Ingilizce, Ispanyolca ve Arapca tablolarda adlar TAM
-isaretleriyle duruyor - orada Rubik ciziyor ve Rubik onlari tasiyor.
+In the Turkish, English, Spanish and Arabic tables the names stand with
+ALL their diacritics - there Rubik does the drawing, and Rubik carries
+them.
 
-YAZI TIPI UYARISI: Rubik'te Cince glif YOK. Bu dil ayri bir yazi tipi
-gerektiriyor (bkz. docs/54).
+FONT WARNING: Rubik has NO Chinese glyphs. This language needs a font of
+its own (see docs/54).
 """
 
 INGREDIENTS = {
@@ -165,8 +168,8 @@ TRAIT_DESC = {
     "tecrubeli": "贵、快、不会再进步。",
 }
 
-# Ses kurallari docs/53: davranisi adlandir kisiyi degil, aciklamayi
-# esirge, duz ve kisa.
+# The rules of the voice are docs/53: name the behaviour, not the person;
+# spare the explanation; plain and short.
 TRAIT_VOICE = {
     "hizli_ama_daginik": "出餐很快。轮到收桌，急劲就没了。",
     "yavas_ama_titiz": "盘子放手前还要再看一眼。",

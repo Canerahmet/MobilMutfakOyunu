@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 
@@ -34,33 +34,34 @@ namespace Lokanta.Core.Sim
         Clear = 5,
 
         /// <summary>
-        /// Bulasik yikama. Salon havuzundan bir kisi lavaboya geciyor.
+        /// Washing up. One head from the hall pool moves to the sink.
         ///
-        /// docs/14 bulasikciyi bir DARBOGAZ olarak tarif ediyor: "tabak
-        /// biterse servis durur - gorunmeyen ama tikaninca fark edilen".
-        /// O darbogaz bugune kadar salon kapasitesinin icine gomuluydu,
-        /// yani hic gorunmuyordu.
+        /// docs/14 describes the dishwasher as a BOTTLENECK: "if the plates
+        /// run out, service stops - invisible, but noticed the moment it
+        /// clogs". Until now that bottleneck was buried inside the hall
+        /// capacity, that is, it was never visible at all.
         /// </summary>
         Wash = 6
     }
 
     /// <summary>
-    /// Sabit adimli restoran simulasyonu.
+    /// The fixed-step restaurant simulation.
     ///
-    /// docs/23-core-contract.md sozlesmesi geceridir:
-    ///   - Tick() parametresizdir, 100 ms ilerletir, gercek zamani gormez
-    ///   - butun durum tamsayidir
-    ///   - rastgelelik alt sistem basina ayri akislardan gelir
-    ///   - ayni tohum ve ayni komut gunlugu ayni durumu verir
+    /// The contract of docs/23-core-contract.md holds:
+    ///   - Tick() takes no parameters, advances 100 ms, and never sees real time
+    ///   - all state is integer
+    ///   - randomness comes from a separate stream per subsystem
+    ///   - the same seed and the same command log give the same state
     ///
-    /// Personel ajan olarak modellenmez. docs/14: "karmasik yol bulma yok".
-    /// Personel, is havuzunda bir SUNUCU'dur; ayni anda tek gorev isler.
-    /// Gunluk kapasite bu gorev surelerinden dogal olarak cikar.
+    /// Staff are not modelled as agents. docs/14: "no complex pathfinding".
+    /// A member of staff is a SERVER in a work pool; they work one task at a
+    /// time. Daily capacity falls out naturally from these task durations.
     ///
-    /// Musteri birimi: bir yuva bir MASAYI isgal eden GRUPTUR. Talep formulu
-    /// KISI uretir; gruplar kisiler bitene kadar olusturulur. Is ve hesap
-    /// grup buyuklugu ile olceklenir. Degerlendirmenin "kisi/grup netlessin"
-    /// bulgusunun karari budur.
+    /// The unit of a customer: one slot is a PARTY occupying a TABLE. The
+    /// demand formula produces PEOPLE; parties are formed until the people
+    /// run out. Work and the bill scale with the party size. This is the
+    /// decision behind the review's finding that "people vs. parties must be
+    /// made clear".
     /// </summary>
     public sealed partial class Simulation
     {
@@ -68,51 +69,52 @@ namespace Lokanta.Core.Sim
         public const int MaxTables = 16;
         public const int MaxServers = 16;
 
-        /// <summary>Acilis stogu, malzeme basina gram.</summary>
+        /// <summary>The opening stock, in grams per ingredient.</summary>
         public const int OpeningStockGrams = 6000;
 
         /// <summary>
-        /// Menude duran her yemek icin en az bu kadar porsiyonluk malzeme
-        /// tutulur. Azami grup buyuklugu kadar.
+        /// At least this many portions' worth of ingredients is held for
+        /// every dish on the menu. It matches the largest party size.
         /// </summary>
         public const int MinPartyBuffer = 4;
 
         /// <summary>
-        /// Gun basina azami komut. docs/23 7.3: dokunus butcesi 60,
-        /// dort kat pay birakildi. Asilirsa komut reddediliyor.
+        /// The most commands per day. docs/23 7.3: the touch budget is 60,
+        /// and four times that was left as headroom. Beyond it a command is
+        /// rejected.
         /// </summary>
         public const int MaxCommandsPerDay = 256;
 
-        // Kredi sartlari ICERIKTEN geliyor (economy.json). Once burada
-        // sabit kodluydular ve icerikteki degerlerle ayni olmalari
-        // tesaduftu; tools/audit_content.py bunu yakaladi.
+        // The loan terms come FROM THE CONTENT (economy.json). They used to
+        // be hard coded here and it was a coincidence that they matched the
+        // values in the content; tools/audit_content.py caught it.
 
-        /// <summary>Bir gramin kilo fiyatindan maliyeti: fiyat x gram / 1000.</summary>
+        /// <summary>A gram's cost from the price per kilo: price x grams / 1000.</summary>
         private const int GramsPerKilo = 1000;
 
-        // ---- degismezler ---------------------------------------------------
+        // ---- immutables -----------------------------------------------------
         private readonly EconomyConfig _economy;
         private readonly ContentSet _content;
         private readonly TimingConfig _timing;
         private readonly ulong _masterSeed;
 
-        // ---- rastgelelik ---------------------------------------------------
+        // ---- randomness -----------------------------------------------------
         private Rng _rngArrival;
         private Rng _rngArchetype;
         private Rng _rngOrder;
         private Rng _rngStaffError;
 
-        /// <summary>Hal fiyatlarinin gunluk oynamasi. RngStream.Market.</summary>
+        /// <summary>The daily movement of market prices. RngStream.Market.</summary>
         private Rng _rngMarket;
         private Rng _rngCredit;
         private Rng _rngRegular;
         private Rng _rngHiring;
         private Rng _rngEvent;
 
-        /// <summary>Personel ismi. Oynanisa girmiyor, sunuma giriyor.</summary>
+        /// <summary>The staff name. It does not enter the play, only the presentation.</summary>
         private Rng _rngName;
 
-        // ---- durum ---------------------------------------------------------
+        // ---- state ----------------------------------------------------------
         private long _tickIndex;
         private int _day;
         private DayPhase _phase;
@@ -123,283 +125,308 @@ namespace Lokanta.Core.Sim
         private long _cash;
 
         private int _cooks;
-        private int _salon;
+        private int _hall;
 
-        // --- Veresiye, docs/07 Turk imza mekanigi ---------------------------
-        // Acik hesaplar. Bir hesap = bir grubun odemedigi fis.
-        // Islem SIRASI onemli: dizide bosluk birakilmiyor, silinen hesabin
-        // yerine sonuncusu kayiyor, boylece tarama _tabCount ile bitiyor.
+        // --- The tab, docs/07 the Turkish signature mechanic ------------------
+        // Open accounts. One account = one party's unpaid bill.
+        // The ORDER of operations matters: no gap is left in the array, the
+        // last account slides into the place of the one removed, so that a
+        // scan ends at _tabCount.
         public const int MaxTabs = 24;
         private readonly long[] _tabAmount = new long[MaxTabs];
         private readonly int[] _tabDueDay = new int[MaxTabs];
         private readonly int[] _tabTea = new int[MaxTabs];
 
         /// <summary>
-        /// Bu hesap KIME yazildi (duzenli musteri indisi, yoksa -1).
+        /// WHO this account is written against (the regular's index, or -1).
         ///
-        /// Defter kimin borcu oldugunu TUTMUYORDU, o yuzden tahsilat
-        /// sansi herkes icin ayniydi ve "kime yazayim" diye bir soru
-        /// dogamiyordu. Guven bu alandan okunuyor.
+        /// The book WAS NOT KEEPING whose debt it was, which is why the
+        /// collection chance was the same for everybody and no question of
+        /// "who shall I write it against" could arise. Trust is read from
+        /// this field.
         /// </summary>
         private readonly int[] _tabRegular = new int[MaxTabs];
         private int _tabCount;
-        /// <summary>Bu grubun fisi veresiyeye yazilacak mi.</summary>
+        /// <summary>Is this party's bill going onto the tab.</summary>
         private readonly bool[] _pCredit = new bool[MaxParties];
-        /// <summary>Bu gruba cay ikram edildi mi; tahsilat sansini yukseltiyor.</summary>
+        /// <summary>Was this party offered tea; it raises the collection chance.</summary>
         private readonly bool[] _pTea = new bool[MaxParties];
-        /// <summary>Bu grup veresiye ISTIYOR mu. Istegi geri cevirmek bedelli.</summary>
+        /// <summary>Is this party ASKING for a tab. Turning the request down has a price.</summary>
         private readonly bool[] _pAsksCredit = new bool[MaxParties];
-        /// <summary>Kombo alan grup: fis kombodan hesaplaniyor.</summary>
+        /// <summary>A party taking the combo: the bill is worked out from the combo.</summary>
         private readonly bool[] _pCombo = new bool[MaxParties];
-        /// <summary>Kombo menude ve aciksa true. Oyuncunun karari.</summary>
+        /// <summary>True when the combo is on the menu and switched on. The player's decision.</summary>
         private bool _comboOn;
-        /// <summary>Veresiyenin biriktirdigi sadakat: talebe kalici katki, bp.</summary>
+        /// <summary>The loyalty the tab has built up: a permanent addition to demand, in bp.</summary>
         private int _creditLoyaltyBp;
 
-        // --- Isimli duzenli musteriler, docs/11 -----------------------------
-        // Arketip binlerce musteri uretir; duzenli musteri TEK BIR KISIDIR
-        // ve hep ayni kisidir. Bu yuzden durumu kisi basina tutuluyor:
-        // kac kez geldi, ortalama ne kadar memnun ayrildi, hikayesinin
-        // kacinci sahnesi acildi, ve kirilip kac gun gelmeyecek.
+        // --- Named regulars, docs/11 ------------------------------------------
+        // An archetype produces thousands of customers; a regular is ONE
+        // SINGLE PERSON and is always the same person. That is why their
+        // state is kept per person: how many times they have come, how
+        // satisfied they left on average, which beat of their story has
+        // opened, and, if they were upset, how many days they will stay away.
         public const int MaxRegulars = 16;
         private readonly int[] _regVisits = new int[MaxRegulars];
         private readonly long[] _regSatSum = new long[MaxRegulars];
         private readonly int[] _regBeat = new int[MaxRegulars];
         private readonly int[] _regAwayDays = new int[MaxRegulars];
         private readonly bool[] _regComing = new bool[MaxRegulars];
-        /// <summary>Bu grup hangi duzenli musteri; -1 ise isimsiz kalabalik.</summary>
+        /// <summary>Which regular this party is; -1 means the nameless crowd.</summary>
         private readonly int[] _pRegular = new int[MaxParties];
-        /// <summary>Sevdigi yemegi menude bulamadi mi.</summary>
+        /// <summary>Did they fail to find their favourite dish on the menu.</summary>
         private readonly bool[] _pMissedFavourite = new bool[MaxParties];
         private readonly int[] _arrRegular = new int[MaxParties];
 
-        // docs/14 "Deneyim ve seviye": kisi basina CALISILAN GUN. Sim personeli
-        // sayi olarak tutuyor, ama deneyim sayilamaz - kim ne kadar suredir
-        // burada, o kisiye ait. Dizinin ilk _cooks / _salon elemani gecerli.
-        // Ise alim sona ekler, cikarma sondan alir: en yeni giden. Aksi halde
-        // "en deneyimliyi kov" diye bir karar ortaya cikardi ki anlamsiz.
+        // docs/14 "Experience and level": DAYS WORKED per head. The sim keeps
+        // staff as a count, but experience cannot be a count - how long each
+        // one has been here belongs to that person. The first _cooks /
+        // _hall elements of the array are the valid ones. Hiring appends at
+        // the end and firing takes from the end: the newest goes. Otherwise a
+        // decision of the form "sack the most experienced one" would arise,
+        // which makes no sense.
         private readonly int[] _cookXpDays = new int[MaxServers];
 
         /// <summary>
-        /// KIDEM: kac gundur burada. Deneyimden AYRI.
+        /// TENURE: how many days they have been here. SEPARATE from experience.
         ///
-        /// Ekran "Seviye 0 (0 gun)" yaziyordu ve o "gun" aslinda
-        /// _cookXpDays idi - yani DENEYIM. Deneyim huya bagli
-        /// (`tecrubeli` XpBp 0, `cirak` 2x), dolayisiyla:
-        ///   - altmis gun calismis bir `tecrubeli` ekranda "0 gun",
-        ///   - otuz gun calismis bir `cirak` "60 gun" goruunuyordu.
-        /// Simulasyonun yalanladigi bir sayiyi ekranda yazmak, bu
-        /// oturumun repliklerde duzelttigi hatanin aynisi.
+        /// The screen read "Level 0 (0 days)" and that "days" was actually
+        /// _cookXpDays - that is, EXPERIENCE. Experience depends on the trait
+        /// (the `tecrubeli` trait has XpBp 0, while the
+        /// `cirak` one has 2x), and therefore:
+        ///   - somebody with `tecrubeli` who had worked sixty days
+        ///     showed "0 days",
+        ///   - somebody with `cirak` who had worked thirty days
+        ///     showed "60 days".
+        /// Printing on screen a number the simulation contradicts is the
+        /// same mistake this session fixed in the dialogue lines.
         ///
-        /// Kidem huydan bagimsiz: her calisilan gun +1.
+        /// Tenure is independent of the trait: +1 for every day worked.
         /// </summary>
         private readonly int[] _cookTenure = new int[MaxServers];
-        private readonly int[] _salonTenure = new int[MaxServers];
+        private readonly int[] _hallTenure = new int[MaxServers];
 
         /// <summary>
-        /// Kac gunluk kidem TANINIYOR.
+        /// How many days of tenure ARE RECOGNISED.
         ///
-        /// 30 = kampanyanin yarisi. Uydurulmadi, iki sinirdan cikti:
-        ///   - Cok kucuk olursa (ornegin 7) her hafta biri icin cikar ve
-        ///     tanima olmaktan cikip gurultuye doner - nisanlarin
-        ///     on bes gunde ug kez atesleyip sonra elli iki gun susmasi
-        ///     bu projede bir kez yasandi (docs/47).
-        ///   - Cok buyuk olursa (ornegin 50) yalnizca ilk gun alinan ve
-        ///     hic degistirilmeyen kadro icin cikar, yani oyuncunun
-        ///     KARARIYLA ilgisi kalmaz.
-        /// Otuz gun, ikinci ayinda hala yaninda olan kisi demek.
+        /// 30 = half the campaign. It was not invented; it came out of two
+        /// bounds:
+        ///   - Too small (7, say) and it fires for somebody every week and
+        ///     stops being recognition, turning into noise - the badges
+        ///     firing three times in fifteen days and then going quiet for
+        ///     fifty-two was lived through once already on this project
+        ///     (docs/47).
+        ///   - Too large (50, say) and it only ever fires for a crew hired on
+        ///     day one and never changed, so it has nothing to do with the
+        ///     player's DECISION.
+        /// Thirty days means someone still with you in their second month.
         ///
-        /// ESIK TEK: "== TenureDays" ile, ">=" degil. Aksi halde olay
-        /// her gun yeniden atesler ve bildirim seridi tek cumleyle
-        /// dolardi - ayni hata tabak bildiriminde bir kez yapildi.
+        /// THE THRESHOLD IS EXACT: "== TenureDays", not ">=". Otherwise the
+        /// event would fire again every day and the notification strip would
+        /// fill up with a single sentence - the same mistake was made once
+        /// with the plate notification.
         /// </summary>
         public const int TenureDays = 30;
-        private readonly int[] _salonXpDays = new int[MaxServers];
+        private readonly int[] _hallXpDays = new int[MaxServers];
 
-        // --- Huy ve moral, docs/14 -------------------------------------------
-        // Her personele havuzdan IKI huy dusuyor; cakisan ikili cikmiyor.
-        // Moral 0-100, yeni personel 70 ile basliyor.
+        // --- Traits and morale, docs/14 ---------------------------------------
+        // Each member of staff draws TWO traits from the pool; a conflicting
+        // pair never comes up. Morale is 0-100 and a new hire starts at 70.
         private readonly int[] _cookTraitA = new int[MaxServers];
         private readonly int[] _cookTraitB = new int[MaxServers];
-        private readonly int[] _salonTraitA = new int[MaxServers];
-        private readonly int[] _salonTraitB = new int[MaxServers];
+        private readonly int[] _hallTraitA = new int[MaxServers];
+        private readonly int[] _hallTraitB = new int[MaxServers];
         /// <summary>
-        /// Personelin isim havuzundaki sirasi.
+        /// The member of staff's position in the name pool.
         ///
-        /// Isim OYUNUN KURALLARINA girmiyor; yalnizca oyuncunun bagini
-        /// kuruyor. Yine de durumda tutuluyor ve kaydediliyor: "Nurten
-        /// Abla" ikinci acilista baska biri olursa bag da gider.
+        /// The name does not enter THE GAME'S RULES; it only builds the
+        /// player's attachment. It is still kept in the state and saved: if
+        /// "Nurten Abla" turns out to be somebody else on the second launch,
+        /// the attachment goes with her.
         /// </summary>
         private readonly int[] _cookName = new int[MaxServers];
-        private readonly int[] _salonName = new int[MaxServers];
+        private readonly int[] _hallName = new int[MaxServers];
 
         private readonly int[] _cookMorale = new int[MaxServers];
-        private readonly int[] _salonMorale = new int[MaxServers];
-        /// <summary>Bu grubu son hangi garson agirladi; huyun memnuniyete etkisi icin.</summary>
+        private readonly int[] _hallMorale = new int[MaxServers];
+        /// <summary>Which waiter served this party last; for the trait's effect on satisfaction.</summary>
         private readonly int[] _pServer = new int[MaxParties];
-        /// <summary>Bu grubun yemegini son hangi asci pisirdi.</summary>
+        /// <summary>Which cook last cooked this party's food.</summary>
         private readonly int[] _pCook = new int[MaxParties];
-        /// <summary>Ust uste yogun gun sayaci. docs/14: gunde -3 moral.</summary>
+        /// <summary>The run of busy days in a row. docs/14: -3 morale a day.</summary>
         private int _busyStreak;
 
-        // --- Ise alim adaylari, docs/14 --------------------------------------
-        // "Ise alim ekraninda ayni anda uc aday gorunur. Adaylar uretilir:
-        //  rol, iki huy, gorunum, isim. Aday havuzu her uc gunde bir
-        //  yenilenir."
+        // --- Hiring candidates, docs/14 ---------------------------------------
+        // "Three candidates are visible at once on the hiring screen. A
+        //  candidate is generated: role, two traits, appearance, name. The
+        //  candidate pool refreshes every three days."
         //
-        // Bu havuz olmadan huy bir PIYANGO: oyuncu kimi aldigini bilmiyor.
-        // Olcum bunu gosterdi - kor ise alim, fast food'da iyi oyuncunun
-        // itibarini 96,5'ten 87'ye indirdi, cunku pahali bir kadro cekmek
-        // butceyi daraltiyor ve daralan butce servisi duzeltecek kisiyi
-        // almayi engelliyordu. docs/14'un SECIM'i tam olarak bunun cevabi.
+        // Without this pool a trait is A LOTTERY: the player does not know
+        // who they are taking on. Measurement showed it - blind hiring took
+        // a good player's reputation on fast food from 96.5 down to 87,
+        // because drawing an expensive crew tightens the budget and a tight
+        // budget stopped them hiring the person who would have fixed the
+        // service. The CHOICE in docs/14 is precisely the answer to that.
         public const int CandidateSlots = 3;
         private readonly int[] _candTraitA = new int[CandidateSlots * 2];
         private readonly int[] _candTraitB = new int[CandidateSlots * 2];
         private int _candDay = -1;
 
-        private readonly long[] _dishPrice;      // oyuncunun belirledigi fiyat
+        private readonly long[] _dishPrice;      // the price the player set
         private readonly bool[] _dishOnMenu;
 
         /// <summary>
-        /// Bu yemek DUN acik miydi. Yalnizca acilisi duyurmak icin;
-        /// oyunun kurallarina girmiyor.
+        /// Was this dish open YESTERDAY. Only for announcing the unlock; it
+        /// does not enter the game's rules.
         /// </summary>
         private readonly bool[] _dishWasUnlocked;
 
         /// <summary>
-        /// Bu istasyonu kullanan bir yemek var mi. Mutfak yuklenirken bir
-        /// kez hesaplaniyor.
+        /// Is there any dish that uses this station. Worked out once while
+        /// the cuisine is loading.
         /// </summary>
         private readonly bool[] _stationUsed;
 
-        // ---- stok (hal asamasi) --------------------------------------------
-        // docs/02 gun dongusu: malzeme sabah HAL'den pesin alinir.
-        // Bu olmadan restoran kendi kendini isletiyordu ve hic mudahale
-        // etmeyen oyuncu altmis gunu karla kapatiyordu. Ihmalin bedeli budur.
+        // ---- stock (the market stage) ----------------------------------------
+        // The day cycle of docs/02: ingredients are bought for cash AT THE
+        // MARKET in the morning. Without this the restaurant was running
+        // itself and a player who never intervened at all closed the sixty
+        // days in profit. This is the price of neglect.
         private readonly int[] _stockGrams;
 
         /// <summary>
-        /// Malzemenin YASI, gun. Soguk hava olmadan anlamsiz: bozulabilir
-        /// her sey gece olyor. Soguk hava kademesi geldiginde malzemenin
-        /// kendi raf omrunun bir kismi kadar yasayabiliyor.
+        /// The ingredient's AGE, in days. Meaningless without a cold store:
+        /// everything perishable goes off overnight. Once a cold-store tier
+        /// arrives, an ingredient can live for part of its own shelf life.
         ///
-        /// Yas parti basina degil MALZEME basina tutuluyor; alim yapinca
-        /// AGIRLIKLI ORTALAMA aliniyor. Basit "alinca sifirla" kurali bir
-        /// istismar aciyordu: her gun bir gram alip saati sonsuza kadar
-        /// sifirda tutabiliyordun.
+        /// The age is kept per INGREDIENT rather than per batch; on a
+        /// purchase a WEIGHTED MEAN is taken. The simple "reset on purchase"
+        /// rule opened an exploit: you could buy one gram a day and keep the
+        /// clock at zero forever.
         /// </summary>
         private readonly int[] _stockAgeDays;
 
-        /// <summary>Sahip olunan soguk hava kademesi. 0 = yok.</summary>
+        /// <summary>The cold-store tier owned. 0 = none.</summary>
         private int _storageTier;
 
         /// <summary>
-        /// BUGUNKU hal fiyat carpani, malzeme basina, baz puan.
+        /// TODAY'S market price multiplier, per ingredient, in basis points.
         ///
-        /// docs/12 3: "erken alim avantaji yok, stok bozuluyor. Ucuz gune
-        /// denk gelmek sans degil, takip meselesi." Icerikte
-        /// priceVolatilityBp yaziliydi ve hicbir yerde okunmuyordu; hal
-        /// her gun ayni fiyati veriyor, yani takip edilecek bir sey yoktu.
+        /// docs/12 3: "there is no advantage in buying early, stock goes off.
+        /// Catching the cheap day is not luck, it is a matter of paying
+        /// attention." priceVolatilityBp was written in the content and was
+        /// read nowhere; the market gave the same price every day, so there
+        /// was nothing to pay attention to.
         ///
-        /// Gun basinda kuruluyor ve gun boyunca sabit: oyuncu sabah
-        /// fiyatlari gorup karar veriyor.
+        /// It is set at the start of the day and fixed for the day: the
+        /// player sees the prices in the morning and decides.
         /// </summary>
         private readonly int[] _marketBp;
 
         /// <summary>
-        /// Halden alinan malzemenin kalite kademesi: 0 dusuk, 1 standart,
-        /// 2 yuksek. TEK bir kuresel ayar, malzeme basina secim yok.
+        /// The quality tier of what is bought at the market: 0 low, 1
+        /// standard, 2 high. ONE global setting, with no choice per
+        /// ingredient.
         ///
-        /// Sebep icerikte: en hassas alti malzemenin hepsi et, tuz ile
-        /// karabiber neredeyse duyarsiz. Yani tek ayar bile yemege gore
-        /// farkli sonuc veriyor ve oyuncuya 77 karar yuklenmiyor.
+        /// The reason is in the content: the six most sensitive ingredients
+        /// are all meat, while salt and black pepper are all but
+        /// insensitive. So even a single setting gives a different result by
+        /// dish, and the player is not loaded with 77 decisions.
         /// </summary>
         private int _quality = 1;
 
         /// <summary>
-        /// Stoktaki malzemenin ORTALAMA kalite etkisi, santi-puan.
-        /// Alim yapinca agirlikli ortalama aliniyor; ucuz alip sonra
-        /// pahali alan, elindeki ucuz maldan hemen kurtulamiyor.
+        /// The MEAN quality effect of the stock in hand, in centi-points.
+        /// A weighted mean is taken on a purchase; somebody who buys cheap
+        /// and then buys dear is not rid of the cheap goods on their hands
+        /// straight away.
         /// </summary>
         private readonly int[] _stockQualityCenti;
         private int _stockOutEvents;
         private int _turnedAwayParties;
 
         /// <summary>
-        /// Kapidan donen musterinin memnuniyeti. Notr esik 6000; bunun
-        /// altinda ama sifira yakin degil. "Hicbir sey yokmus" kotu bir
-        /// deneyim, ama "kirk dakika bekledim" kadar degil.
+        /// The satisfaction of a customer turned back at the door. The
+        /// neutral threshold is 6000; this is below it, but nowhere near
+        /// zero. "They had nothing" is a bad experience, but not as bad as
+        /// "I waited forty minutes".
         /// </summary>
         private const int TurnAwaySatisfactionCenti = 4000;
 
-        // ---- masalar -------------------------------------------------------
-        private readonly int[] _tableParty;      // -1 bos
+        // ---- tables ----------------------------------------------------------
+        private readonly int[] _tableParty;      // -1 empty
         private readonly bool[] _tableDirty;
 
-        // ---- TABAK DONGUSU -------------------------------------------------
+        // ---- THE PLATE CYCLE -------------------------------------------------
         //
-        // Lokantada SAYILI tabak var ve donuyor:
+        // The restaurant has a COUNTED number of plates and they circulate:
         //
-        //   temiz  -> (asci yemegi tabakliyor)  -> kullanimda
-        //   kullanimda -> (garson masayi topluyor) -> kirli
-        //   kirli  -> (lavaboda yikaniyor)      -> temiz
+        //   clean   -> (the cook plates the food)     -> in use
+        //   in use  -> (the waiter clears the table)  -> dirty
+        //   dirty   -> (washed at the sink)           -> clean
         //
-        // Toplam degismez: temiz + kullanimda + kirli = kademe tabagi.
-        // Bu bir DEGISMEZ ve test onu boyle sinar - sizan bir tabak,
-        // servisi yavas yavas durduran ve sebebi gorunmeyen bir hata olur.
+        // The total does not change: clean + in use + dirty = the tier's
+        // plates. This is an INVARIANT and the test checks it as one - a
+        // leaking plate would be a bug that slowly brings service to a halt
+        // with no visible cause.
         //
-        // Neden sayili: docs/14'un bulasikci gerekcesi. Temiz tabak
-        // bitince asci pisen yemegi tabaga koyamiyor ve servis DURUYOR.
-        // Oyuncuya "onemsiz gorunen seyi ihmal etme" dersini veren sey bu.
+        // Why counted: docs/14's justification for the dishwasher. When the
+        // clean plates run out the cook cannot put the cooked food on a plate
+        // and service STOPS. This is the thing that teaches the player "do
+        // not neglect what looks unimportant".
         private int _platesClean;
         private int _platesDirty;
         private int _platesInUse;
 
-        /// <summary>Masada duran tabak sayisi; masa toplaninca lavaboya gider.</summary>
+        /// <summary>The plates sitting on the table; they go to the sink when it is cleared.</summary>
         private readonly int[] _tablePlates;
 
-        /// <summary>Grubun elindeki tabak sayisi.</summary>
+        /// <summary>The plates the party has in hand.</summary>
         private readonly int[] _pPlates;
 
-        /// <summary>Yemegi PISTI ama tabak bekliyor.</summary>
+        /// <summary>Their food HAS COOKED but it is waiting for a plate.</summary>
         private readonly bool[] _pCooked;
 
-        /// <summary>Temiz tabak olmadigi icin bekleyen tick sayisi (gunluk).</summary>
+        /// <summary>The ticks spent waiting because there is no clean plate (for the day).</summary>
         private int _plateBlockedTicks;
 
-        // ---- gruplar -------------------------------------------------------
+        // ---- parties ---------------------------------------------------------
         private readonly bool[] _pActive;
         private readonly int[] _pArchetype;
         private readonly int[] _pDishMain;
-        private readonly int[] _pDishSide;    // -1 yok
-        private readonly int[] _pDishDrink;   // -1 yok
+        private readonly int[] _pDishSide;    // -1 none
+        private readonly int[] _pDishDrink;   // -1 none
 
         /// <summary>
-        /// Tatli. Bu alan yazilana kadar tatli grubu OLU icerikti: fast
-        /// food'da 6, Turk lokantasinda 3 tatli yemegi vardi ve hicbiri
-        /// siparis edilemiyordu. docs/27 3.3 zirve tablosu tatliya 0,08
-        /// es zamanli tabak veriyor, ekipman merdiveninde tatli
-        /// istasyonunun bir yukseltmesi var; ikisi de bosa calisiyordu.
+        /// The dessert. Until this field was written the dessert group was
+        /// DEAD content: fast food had 6 dessert dishes and the Turkish
+        /// restaurant 3, and not one of them could be ordered. The peak
+        /// table of docs/27 3.3 gives the dessert 0.08 concurrent plates,
+        /// and the equipment ladder has an upgrade for the dessert station;
+        /// both were running for nothing.
         /// </summary>
-        private readonly int[] _pDishDessert; // -1 yok
+        private readonly int[] _pDishDessert; // -1 none
 
         /// <summary>
-        /// Musterinin SORDUGU ama restoranin yapamadigi yemek. -1 yok.
+        /// The dish the customer ASKED FOR but which the restaurant cannot
+        /// make. -1 for none.
         ///
-        /// Kilit sistemi yazilinca olculdu ki kilitli yemek PASIFLIGI
-        /// odullendiriyor: yapilamayan yemegin stok masrafi da yok, yani
-        /// yatirim yapmayan oyuncu bedavaya kar ediyordu. Bu alan o bedavayi
-        /// kaldiriyor: gunu ve itibari gelmis ama EKIPMANI alinmamis yemegi
-        /// musteri gelip soruyor, bulamayinca memnuniyeti dusuyor.
+        /// Once the unlock system was written it was measured that a locked
+        /// dish rewards PASSIVITY: a dish that cannot be made costs nothing
+        /// in stock either, so a player who invested nothing was profiting
+        /// for free. This field removes that free ride: a customer comes and
+        /// asks for the dish whose day and reputation have come but whose
+        /// EQUIPMENT has not been bought, and when they cannot have it their
+        /// satisfaction drops.
         /// </summary>
         private readonly int[] _pAskedDish;
         private readonly int[] _pSize;
         private readonly CustomerStage[] _pStage;
 
         /// <summary>
-        /// Patron bu masayla BIZZAT ilgilendi mi - siradaki salon isi
-        /// icin. Is yapilinca temizleniyor: ilgi bir ADIM, surekli bir
-        /// hal degil.
+        /// Did the owner see to this table IN PERSON - for the next piece of
+        /// hall work. It is cleared once the work is done: attention is a
+        /// SINGLE STEP, not a standing condition.
         /// </summary>
         private readonly bool[] _pAttended;
         private readonly int[] _pTable;
@@ -408,48 +435,51 @@ namespace Lokanta.Core.Sim
         private readonly int[] _pWaitedMs;
         private readonly int[] _pEatLeftMs;
         private readonly int[] _pSatisfactionCenti;
-        private readonly int[] _pBonusCenti;     // ozur, ikram, patron ilgisi
+        private readonly int[] _pBonusCenti;     // an apology, a treat, the owner's attention
 
         /// <summary>
-        /// Bugun kalan patron mudahalesi hakki. docs/02 59: gun basina 3-5.
-        /// Sinir olmadan her kizgin musteri bedava kurtarilabiliyordu.
+        /// The owner's intervention allowance left today. docs/02 59: 3-5 a
+        /// day. Without the limit every angry customer could be saved for
+        /// free.
         /// </summary>
         private int _interventionsLeft;
         private readonly bool[] _pInTask;
         private readonly bool[] _pWarned;
         private int _partyCount;
 
-        // ---- istasyonlar ve ekipman ----------------------------------------
-        // docs/27 Karar D: prepMs yemegin DUVAR SAATI suresi, asci
-        // mesguliyeti prepMs x attendBp / 10000. Ekipman yukseltmesi ya
-        // yuva ekler ya attendBp dusurur, prepMs'e dokunmaz.
+        // ---- stations and equipment ------------------------------------------
+        // docs/27 Decision D: prepMs is the dish's WALL CLOCK time, and the
+        // cook is occupied for prepMs x attendBp / 10000. An equipment
+        // upgrade either adds a slot or lowers attendBp; it does not touch
+        // prepMs.
         //
-        // Bu yazilana kadar simulasyon asciyi butun duvar saati boyunca
-        // mesgul tutuyordu, yani firin ile ocak arasinda hicbir fark yoktu
-        // ve ekipmanin anlatacagi hikaye de yoktu.
-        private readonly int[] _stationTier;    // sahip olunan ekipman kademesi
-        private readonly int[] _stationBusy;    // o an dolu yuva
+        // Until this was written the simulation kept the cook busy for the
+        // whole of the wall clock, which meant there was no difference at all
+        // between the oven and the stove and no story for the equipment to
+        // tell.
+        private readonly int[] _stationTier;    // the equipment tier owned
+        private readonly int[] _stationBusy;    // the slots currently occupied
 
-        /// <summary>Bir grubun en fazla kac istasyon isi olabilir: ana, yan, icecek.</summary>
-        /// <summary>Ana, yan, icecek, tatli: dordu de ayri istasyon olabilir.</summary>
+        /// <summary>The most station jobs one party can have: main, side, drink.</summary>
+        /// <summary>Main, side, drink, dessert: all four may be separate stations.</summary>
         private const int MaxJobsPerParty = 4;
 
-        private readonly int[] _jobStation;     // MaxParties x 3, -1 bos
-        private readonly int[] _jobMs;          // kalan duvar saati
-        private readonly int[] _jobState;       // 0 bekliyor, 1 pisiyor, 2 bitti
-        private readonly int[] _jobPlates;      // kac tabak
-        private readonly int[] _jobSlots;       // is baslarken kac yuva tuttu
+        private readonly int[] _jobStation;     // MaxParties x 3, -1 empty
+        private readonly int[] _jobMs;          // the wall clock remaining
+        private readonly int[] _jobState;       // 0 waiting, 1 cooking, 2 done
+        private readonly int[] _jobPlates;      // how many plates
+        private readonly int[] _jobSlots;       // how many slots it took when it started
         private readonly int[] _pJobsLeft;
 
-        // ---- is havuzlari --------------------------------------------------
-        private readonly TaskKind[] _salonTaskKind;
-        private readonly int[] _salonTaskTarget;
-        private readonly int[] _salonTaskLeftMs;
+        // ---- the work pools --------------------------------------------------
+        private readonly TaskKind[] _hallTaskKind;
+        private readonly int[] _hallTaskTarget;
+        private readonly int[] _hallTaskLeftMs;
         private readonly TaskKind[] _kitchenTaskKind;
         private readonly int[] _kitchenTaskTarget;
         private readonly int[] _kitchenTaskLeftMs;
 
-        // ---- gelis plani ---------------------------------------------------
+        // ---- the arrival plan ------------------------------------------------
         private readonly int[] _arrTick;
         private readonly int[] _arrArchetype;
         private readonly int[] _arrSize;
@@ -457,137 +487,144 @@ namespace Lokanta.Core.Sim
         private int _arrNext;
 
         /// <summary>
-        /// Gun icinde her rolden kac kalem siparis edildi: 0 ana, 1 yan,
-        /// 2 icecek, 3 tatli. Yalnizca olcum icin; tatli grubunun bir daha
-        /// sessizce olu icerige donmemesi test bununla korunuyor.
+        /// How many items of each role were ordered during the day: 0 main,
+        /// 1 side, 2 drink, 3 dessert. For measurement only; this is what the
+        /// test uses to guard against the dessert group quietly turning back
+        /// into dead content.
         /// </summary>
         private readonly int[] _orderedRole = new int[4];
 
-        // ---- gun sayaclari -------------------------------------------------
+        // ---- the day's counters ----------------------------------------------
         private int _servedParties;
         private int _servedPeople;
         private int _angryParties;
 
         /// <summary>
-        /// Bugun MASADAN kizgin ayrilan grup sayisi.
+        /// How many parties left A TABLE angry today.
         ///
-        /// _angryParties kapidan donenleri de sayiyor - masa bulamayan
-        /// grup hic oturmadi, yani kriz seridinde HIC GORUNMEDI. Ikisi
-        /// ayrilmazsa "kizgin musteri varsa uyari cikmis olmali"
-        /// cikarimi yanlis: uyari yalnizca OTURAN bir grup icin
-        /// verilebilir.
+        /// _angryParties counts those turned back at the door as well - a
+        /// party that found no table never sat down, and so NEVER APPEARED
+        /// in the crisis strip. Without separating the two, the inference
+        /// "if there is an angry customer a warning must have gone out" is
+        /// wrong: a warning can only be given for a party that IS SEATED.
         /// </summary>
         private int _angrySeated;
-        private int _salonRushWashes;
+        private int _hallRushWashes;
         private long _revenue;
         private long _ingredientCost;
-        private long _satisfactionSum;      // santi, kisi agirlikli
-        private long _revenueAll;           // kampanya boyunca, sifirlanmiyor
-        private long _reputationDeltaMicro; // birikimli, 1e-6 puan
+        private long _satisfactionSum;      // centi, weighted by people
+        private long _revenueAll;           // across the campaign, never zeroed
+        private long _reputationDeltaMicro; // cumulative, 1e-6 points
         private long _weeklyWagesPaid;
         private long _weeklyRentPaid;
-        private int _firstDebtDay;          // 0 = hic borca dusmedi
+        private int _firstDebtDay;          // 0 = never fell into debt
 
         /// <summary>
-        /// Batma merdivenine kac kez inildi. Yil sonu degerlendirmesinin
-        /// SAGLAMLIK ekseni bunu okuyor (docs/08): ceza anlik degil
-        /// birikimli.
+        /// How many times the ladder down was climbed. The RESILIENCE axis
+        /// of the year-end evaluation reads this (docs/08): the punishment is
+        /// cumulative rather than momentary.
         /// </summary>
         private int _debtRungs;
 
         /// <summary>
-        /// BUGUN odenen ucret ve kira. Haftada bir gun dolu, digerlerinde
-        /// sifir; gun raporu bunlari gosteriyor.
+        /// The wages and rent paid TODAY. Full on one day a week and zero on
+        /// the others; the day report shows these.
         /// </summary>
         private long _dayWages, _dayRent;
 
         /// <summary>
-        /// BUGUN cope giden stogun degeri. Toplam degil gunluk: aksam
-        /// raporu bugunu anlatiyor.
+        /// The value of the stock thrown out TODAY. Daily rather than
+        /// cumulative: the evening report is about today.
         /// </summary>
         private long _daySpoiled;
 
         /// <summary>
-        /// Sezon boyunca COPE GIDEN stogun degeri, santi. Gelir
-        /// tablosunun eksik dorduncu satiri.
+        /// The value of the stock THROWN OUT across the season, in centi.
+        /// The missing fourth line of the income statement.
         /// </summary>
         private long _spoiledValue;
 
-        /// <summary>Ekipmana ve genislemeye odenen toplam, santi.</summary>
+        /// <summary>The total paid for equipment and expansion, in centi.</summary>
         private long _equipmentSpend, _expansionSpend;
 
         /// <summary>
-        /// Malzemeye HARCANAN nakit, santi. IngredientCost'tan farkli:
-        /// o SATILAN MALIN maliyeti (gun raporu icin), bu kasadan cikan
-        /// para. Ikisini karistirmak denge aracinin gelir tablosunu
-        /// gercek kasa hareketinden koparmisti.
+        /// The cash SPENT on ingredients, in centi. Different from
+        /// IngredientCost: that is the cost OF GOODS SOLD (for the day
+        /// report), this is the money leaving the till. Confusing the two
+        /// had torn the balance tool's income statement away from the real
+        /// movement of cash.
         /// </summary>
         private long _ingredientSpend;
 
         /// <summary>
-        /// Batma merdiveninin kasaya SOKTUGU para, santi: satilan
-        /// ekipmanin yarisi, kuculmenin iadesi ve silinen borc.
+        /// The money the ladder down PUTS INTO the till, in centi: half of
+        /// the equipment sold, the refund from downsizing, and debt written
+        /// off.
         ///
-        /// Gelir tablosunda ayri bir satir olmasi sart: onsuz "net" ile
-        /// gercek kasa hareketi tutmuyor ve fark aciklanamiyor.
+        /// It has to be its own line in the income statement: without it the
+        /// "net" and the real movement of cash do not agree, and the
+        /// difference cannot be explained.
         /// </summary>
         private long _rescueValue;
 
-        // ---- yil sonu degerlendirmesi (docs/08) -------------------------
+        // ---- the year-end evaluation (docs/08) -------------------------------
         //
-        // Bunlar oyunun KURALLARINA girmiyor; yalnizca altmisinci gunun
-        // sonunda okunuyor. Kural etkisi olmayan bir sayaci durumda tutmak
-        // ucuz, ve gerekcesi su: yil sonu puani gecmise bakiyor, ve gecmis
-        // yalnizca biriktirilirse var.
+        // These do not enter the game's RULES; they are only read at the end
+        // of the sixtieth day. Keeping a counter with no effect on the rules
+        // in the state is cheap, and the justification is this: the year-end
+        // score looks at the past, and the past only exists if it is
+        // accumulated.
 
         /// <summary>
-        /// Sezon boyunca ANA YEMEK siparis eden grup sayisi ve bunlarin
-        /// kacinin komboya dondugu.
+        /// How many parties ordered A MAIN DISH across the season, and how
+        /// many of those turned into a combo.
         ///
-        /// Imza ekseninin paydasi ile payi. Payda "butun gruplar" degil
-        /// ANA YEMEK SIPARISI OLANLAR: kombo yalnizca ana yemege
-        /// ekleniyor, yani tatli ya da icecek alan bir grup oyuncunun
-        /// kararini olcmuyor - paydaya girerse ekseni menu bilesimi
-        /// bulandirir.
+        /// The denominator and the numerator of the signature axis. The
+        /// denominator is not "all parties" but THOSE WITH A MAIN DISH ON
+        /// THE ORDER: a combo only attaches to a main, so a party taking a
+        /// dessert or a drink is not measuring the player's decision - put
+        /// into the denominator, it would let the menu mix muddy the axis.
         /// </summary>
         private int _mainOrders, _comboOrders;
 
         /// <summary>
-        /// Veresiye acilirken ikram edilen cayin toplam bedeli, santi.
+        /// The total cost of the tea offered when a tab is opened, in centi.
         ///
-        /// SAYILMASI SART: para kasadan cikiyordu ve HICBIR gider
-        /// kalemine yazilmiyordu, yani veresiye acan bir oyuncunun
-        /// gelir tablosu mutabakati asla kapanamazdi. Denge aracinin
-        /// "fark" sutunu Turk mutfaginda imzaci botta 134 sikke
-        /// gosteriyordu ve o sayi tam olarak buydu.
+        /// IT HAS TO BE COUNTED: the money was leaving the till and was
+        /// written into NO expense line, so the income statement of a player
+        /// who opened tabs could never be reconciled. The balance tool's
+        /// "difference" column showed 134 coins for the signature bot on
+        /// Turkish cuisine, and that number was exactly this.
         ///
-        /// Gorunmesi de sart: veresiye BEDAVA DEGIL ve bedelinin
-        /// hicbir ekranda olmamasi, mekanigi oldugundan ucuz
-        /// gosteriyordu.
+        /// It has to be visible too: a tab IS NOT FREE, and the absence of
+        /// its cost from every screen made the mechanic look cheaper than it
+        /// is.
         /// </summary>
         private long _teaSpend;
 
-        /// <summary>Sezon boyunca deftere yazilan toplam, santi.</summary>
+        /// <summary>The total written into the book across the season, in centi.</summary>
         private long _creditIssued;
 
-        /// <summary>Sezon boyunca tahsil edilen toplam, santi.</summary>
+        /// <summary>The total collected across the season, in centi.</summary>
         private long _creditCollected;
 
-        // ---- kredi (docs/12 4) ---------------------------------------------
-        // Ayni anda tek kredi. Taksit haftalik, kira ve maasla ayni gun.
-        private long _loanInstallment;      // haftalik taksit, santi-sikke
+        // ---- the loan (docs/12 4) --------------------------------------------
+        // One loan at a time. The instalment is weekly, on the same day as
+        // the rent and the wages.
+        private long _loanInstallment;      // the weekly instalment, centi-coins
 
-        /// <summary>Cekilen kredinin anaparasi toplami, santi.</summary>
+        /// <summary>The total principal of the loans taken, in centi.</summary>
         private long _loanTaken;
 
         /// <summary>
-        /// BUTUN kredilere odenen toplam taksit, santi.
+        /// The total instalments paid on ALL loans, in centi.
         ///
-        /// _loanTotalRepaid'den farkli: o, yeni bir kredi cekilince
-        /// SIFIRLANIYOR (o alanin isi "bu kredinin ne kadari odendi"
-        /// sorusu). Denge aracinin mutabakati onu kullaninca ikinci
-        /// krediyi ceken stratejilerde 6.750 sikkelik bir acik cikti ve
-        /// acik tam olarak unutulan geri odemelerdi.
+        /// Different from _loanTotalRepaid: that one IS ZEROED when a new
+        /// loan is taken (that field's job is the question "how much of THIS
+        /// loan has been paid"). When the balance tool's reconciliation used
+        /// it, a shortfall of 6,750 coins appeared on the strategies that
+        /// took a second loan, and the shortfall was exactly the forgotten
+        /// repayments.
         /// </summary>
         private long _loanRepaidAll;
         private int _loanWeeksLeft;
@@ -595,10 +632,11 @@ namespace Lokanta.Core.Sim
 
         private readonly EventBuffer _events = new EventBuffer();
 
-        // ---- komut gunlugu (docs/23 7) --------------------------------------
-        // Kayit: gun basi anlik goruntusu + o gunden beri uygulanan komutlar.
-        // Yukleme, gunlugu azami hizda tekrar oynatiyor. Deterministik oldugu
-        // icin sonuc kesintisiz oyunla bayt bayt ayni.
+        // ---- the command log (docs/23 7) -------------------------------------
+        // A save is: a snapshot at the start of the day + the commands
+        // applied since then. Loading replays the log at top speed. Because
+        // it is deterministic the result is byte for byte the same as an
+        // uninterrupted game.
         private readonly Command[] _commandLog = new Command[MaxCommandsPerDay];
         private int _commandCount;
 
@@ -608,35 +646,37 @@ namespace Lokanta.Core.Sim
         {
             _economy = economy ?? throw new ArgumentNullException(nameof(economy));
 
-            // MUTFAGIN SALON HAVUZU EKONOMIYE UYGULANIYOR.
+            // THE CUISINE'S HALL POOL IS APPLIED TO THE ECONOMY.
             //
-            // Icerik kendi rol listesini verdiyse (cuisines/*.json:
-            // salonRoles) salon yuku ve ucreti ondan geliyor. Vermediyse
-            // WithSalonPool hicbir sey degistirmiyor, yani eski davranis
-            // birebir korunuyor.
-            if (content != null && content.SalonWorkPerCustomerMicro > 0)
-                _economy = _economy.WithSalonPool(
-                    content.SalonWorkPerCustomerMicro, content.SalonWageNumerator);
+            // If the content gave its own role list (cuisines/*.json:
+            // salonRoles), the hall workload and wage come from it. If it did
+            // not, WithHallPool changes nothing, so the old behaviour is kept
+            // exactly.
+            if (content != null && content.HallWorkPerCustomerMicro > 0)
+                _economy = _economy.WithHallPool(
+                    content.HallWorkPerCustomerMicro, content.HallWageNumerator);
 
-            // MUTFAGIN KIRASI.
+            // THE CUISINE'S RENT.
             //
-            // Gerekce gercekci: zincirler yuksek trafikli, pahali
-            // yerlerde oturur - hacmin bedeli kira.
+            // The justification is realistic: chains sit in expensive,
+            // high-traffic places - rent is the price of volume.
             //
-            // AMA YON SEZGISEL DEGIL, OLCULDU (docs/52):
+            // BUT THE DIRECTION WAS NOT INTUITED, IT WAS MEASURED (docs/52):
             //
-            //   kira x1,15  makul 22.263  planci 25.094  imzaci 22.433
-            //   kira x1,25  makul 23.493  planci 26.548  imzaci 22.578
+            //   rent x1.15  reasonable 22,263  planner 25,094  signature 22,433
+            //   rent x1.25  reasonable 23,493  planner 26,548  signature 22,578
             //
-            // Kirayi ARTIRMAK botun kasasini ARTIRIYOR. Sebep hacim
-            // carpaninda gorulen sebebin aynisi (docs/51 §5): bot
-            // maliyete genislemeyerek cevap veriyor ve genislememek
-            // zaten daha karli. Yani BITIS KASASI BU BOT ICIN BIR
-            // ZORLUK OLCUSU DEGIL; olcu, iki mutfak ARASINDAKI FARK.
+            // RAISING the rent RAISES the bot's till. The reason is the same
+            // one seen with the volume multiplier (docs/51 §5): the bot
+            // answers a cost by not expanding, and not expanding is more
+            // profitable anyway. So THE CLOSING TILL IS NOT A MEASURE OF
+            // DIFFICULTY FOR THIS BOT; the measure is the DIFFERENCE BETWEEN
+            // the two cuisines.
             //
-            // 11500 secildi cunku farki daraltan deger o:
-            //   carpansiz  %29,5  |  x1,15  %28,3  |  x1,25  %35,4
-            // (Turk makul 17.351'e karsi.)
+            // 11500 was chosen because it is the value that narrows that
+            // difference:
+            //   no multiplier  29.5%  |  x1.15  28.3%  |  x1.25  35.4%
+            // (against Turkish reasonable at 17,351.)
             if (content != null && content.RentMultiplierBp > 0
                 && content.RentMultiplierBp != Fx.One)
             {
@@ -681,9 +721,9 @@ namespace Lokanta.Core.Sim
             _pInTask = new bool[MaxParties];
             _pWarned = new bool[MaxParties];
 
-            _salonTaskKind = new TaskKind[MaxServers];
-            _salonTaskTarget = new int[MaxServers];
-            _salonTaskLeftMs = new int[MaxServers];
+            _hallTaskKind = new TaskKind[MaxServers];
+            _hallTaskTarget = new int[MaxServers];
+            _hallTaskLeftMs = new int[MaxServers];
             _stationTier = new int[content.Stations.Length];
             _stationBusy = new int[content.Stations.Length];
             _jobStation = new int[MaxParties * MaxJobsPerParty];
@@ -731,120 +771,128 @@ namespace Lokanta.Core.Sim
             _reputationCenti = economy.StartingReputationCenti;
             _cash = economy.StartingCash;
             _cooks = 1;
-            // Baslangic ascisi HUYSUZ ama moralli baslar.
+            // The starting cook begins WITHOUT TRAITS but with morale.
             //
-            // Iki ayri sey. Moral: bu satir olmadan ilk ascinin morali 0
-            // ile basliyordu - istifa esiginin ALTINDA - ve restoran ikinci
-            // gun ascisiz kaliyordu.
+            // Two separate things. Morale: without this line the first
+            // cook's morale started at 0 - BELOW the resignation threshold -
+            // and the restaurant was left without a cook on the second day.
             //
-            // Huy: baslangic ascisini oyuncu SECMIYOR, oyun veriyor. Ona
-            // rastgele huy atmak, kampanyanin ilk gununde gorunmez bir zar
-            // atmak demek - ve olculdu: kotu huylu bir baslangic ascisi
-            // ceken kosuda memnuniyet 9.000’den 5.000’e siziyor, dukkan
-            // dort masada kaliyor ve altmis gun boyunca toparlanamiyor.
-            // Devraldigin asci SIRADAN; karakter, SECTIGIN kisilerle geliyor.
+            // Traits: the player DOES NOT CHOOSE the starting cook, the game
+            // gives them one. Rolling random traits for them means rolling
+            // an invisible die on the campaign's first day - and it was
+            // measured: on a run that drew a badly-trait'd starting cook,
+            // satisfaction leaks from 9,000 down to 5,000, the shop stays at
+            // four tables and never recovers across the sixty days. The cook
+            // you inherit is ORDINARY; character comes with the people you
+            // CHOOSE.
             _cookMorale[0] = _economy.StartingMorale;
             _cookTraitA[0] = -1;
             _cookTraitB[0] = -1;
 
-            // Devraldigin ascinin da bir adi var - huyu olmasa bile.
-            // Isimsiz bir insan, oyuncunun ilgilenmedigi bir sayidir.
-            for (int i = 0; i < MaxServers; i++) { _cookName[i] = -1; _salonName[i] = -1; }
+            // The cook you inherit has a name too - even without traits.
+            // A person without a name is a number the player does not care
+            // about.
+            for (int i = 0; i < MaxServers; i++) { _cookName[i] = -1; _hallName[i] = -1; }
             if (content.StaffNames.Length > 0)
             {
                 _cookName[0] = _rngName.NextInt(content.StaffNames.Length);
-                _salonName[0] = _rngName.NextInt(content.StaffNames.Length);
+                _hallName[0] = _rngName.NextInt(content.StaffNames.Length);
             }
 
-            // Aday havuzu BIRINCI GUNDE de dolu.
+            // The candidate pool is full ON THE FIRST DAY too.
             //
-            // Once yalnizca gun acilisinda kuruluyordu ve ilk gun hic
-            // acilis yok - oyun zaten birinci gunun sabahinda basliyor.
-            // Sonuc: alti aday da dizilerin sifir varsayilanini gosteriyordu,
-            // yani hepsi ayni huyu IKI KEZ tasiyan ayni kisiydi. Ekranda
-            // ucu de tipatip ayni gorunuyordu ve secim diye bir sey yoktu.
+            // It used to be built only at the opening of a day, and there is
+            // no opening on the first day - the game already starts on the
+            // morning of day one. The result: all six candidates showed the
+            // arrays' zero default, that is, they were all the same person
+            // carrying the same trait TWICE. All three looked exactly alike
+            // on screen and there was no choice at all.
             for (int i = 0; i < CandidateSlots * 2; i++)
             {
                 _candTraitA[i] = -1;
                 _candTraitB[i] = -1;
             }
             RefreshCandidates();
-            // Ilk gun ZATEN ACIK basliyor, yani OpenDay hic cagrilmiyor.
-            // Hakki yalnizca orada kurmak, birinci gunu haksiz birakiyordu.
-            // DEFTER SAHIPLERI -1 ILE BASLIYOR.
+            // The first day starts ALREADY OPEN, so OpenDay is never called.
+            // Setting the allowance only there left day one short-changed.
+            // THE BOOK'S DEBTORS START AT -1.
             //
-            // int dizisinin varsayilani 0 ve 0 gecerli bir duzenli
-            // musteri indisi: bos bir hesap, hic tanimadigi birinin
-            // guvenini kullanirdi. Sessiz olurdu.
+            // The default for an int array is 0, and 0 is a valid regular
+            // index: an empty account would be drawing on the trust of
+            // somebody it had never met. It would be silent.
             for (int i = 0; i < MaxTabs; i++) _tabRegular[i] = -1;
 
-            _interventionsLeft = economy.InterventionsPerDay;   // kurulusta masa sayisi taban
+            _interventionsLeft = economy.InterventionsPerDay;   // at construction the table count is the base
 
-            // DEVRALDIGIN KADRO: BIR ASCI, BIR GARSON.
+            // THE CREW YOU INHERIT: ONE COOK, ONE WAITER.
             //
-            // Onceden salon BOSTU ve birinci gun butun servisi patron tek
-            // basina yapiyordu. Iki sebeple yanlis:
+            // The hall used to be EMPTY and on the first day the owner did
+            // the whole service alone. That is wrong for two reasons:
             //
-            //   1. Oyun "patronsun, sef degilsin" diyor ama acilista
-            //      oyuncunun gordugu sey tek kisilik bir dukkan - kendisi.
-            //      Devralinan bir lokantanin bir garsonu olur.
-            //   2. Ogretici acidan: garsonun ne yaptigini gormeden
-            //      "garson tuttum" kararinin ne ise yaradigi anlasilmiyor.
-            //      Birinci gun gorulen sey, sonradan cogaltilacak sey
-            //      olmali.
+            //   1. The game says "you are the owner, not the chef", but what
+            //      the player sees at the opening is a one-person shop -
+            //      themselves. A restaurant you take over has a waiter.
+            //   2. As teaching: without seeing what a waiter does, the
+            //      decision "I hired a waiter" cannot be understood. What is
+            //      seen on the first day should be the thing that is
+            //      multiplied later.
             //
-            // Ascida oldugu gibi: morali BASLANGIC MORALI (yoksa istifa
-            // esiginin altinda dogar ve ikinci gun salon bosalir), huyu
-            // YOK (devralinan personel siradan; karakter SECTIGIN
-            // kisilerle geliyor), ama adi var.
-            _salon = 1;
-            _salonMorale[0] = _economy.StartingMorale;
-            _salonTraitA[0] = -1;
-            _salonTraitB[0] = -1;
+            // As with the cook: morale is THE STARTING MORALE (otherwise
+            // they are born below the resignation threshold and the hall
+            // empties on the second day), there are NO traits (inherited
+            // staff are ordinary; character comes with the people you
+            // CHOOSE), but they do have a name.
+            _hall = 1;
+            _hallMorale[0] = _economy.StartingMorale;
+            _hallTraitA[0] = -1;
+            _hallTraitB[0] = -1;
 
-            // Acilis stogu: ilk gunu cikarmaya yeter, ikinci gun icin
-            // oyuncunun hal'e gitmesi gerekir.
+            // The opening stock: enough to get through the first day; for
+            // the second the player has to go to the market.
             //
-            // BIR GUNLUK, MENUYE GORE. Onceden yetmis yedi malzemenin
-            // HEPSINE altisar kilo konuyordu - menude olmayan yemeklerin
-            // malzemesi, daha kilidi acilmamis yemeklerin malzemesi,
-            // hepsi. Kirk dordu bozulabilir oldugu icin tamami birinci
-            // gece cope gidiyordu: 14.713 sikke, oyuncunun baslangic
-            // kasasinin uc katindan fazla.
+            // ONE DAY'S WORTH, BY THE MENU. Six kilos used to be put in for
+            // EVERY ONE of the seventy-seven ingredients - the ingredients
+            // of dishes not on the menu, the ingredients of dishes not yet
+            // unlocked, all of them. Since forty-four are perishable, the
+            // lot went into the bin on the first night: 14,713 coins, more
+            // than three times the player's starting till.
             //
-            // Gorunmedigi surece zararsiz sanildi. Aksam raporuna "cope
-            // giden" satiri eklenince ortaya cikti: oyuncu daha ilk
-            // gunun sonunda, hicbir sey satin almadan, kasasindan buyuk
-            // bir zayiat rakami gorecekti.
+            // As long as it was invisible it was taken for harmless. It came
+            // out when the "thrown out" line was added to the evening
+            // report: at the end of the very first day, having bought
+            // nothing, the player would see a large spoilage figure taken
+            // out of their till.
             RestockForOneDay();
 
-            // Birinci gunun acik yemekleri DUYURULMUYOR: oyuncu onlari
-            // zaten menude goruyor. Bayragi simdi doldurmak, ilk gun
-            // ekranin on yedi "yeni yemek" bildirimiyle dolmasini
-            // engelliyor.
+            // The dishes open on the first day ARE NOT ANNOUNCED: the player
+            // can already see them on the menu. Filling the flag now stops
+            // the screen filling up with seventeen "new dish" notifications
+            // on day one.
             for (int i = 0; i < _content.Dishes.Length; i++)
                 _dishWasUnlocked[i] = Unlocked(i);
 
-            // Ilk gunun hal fiyatlari da OYNASIN.
+            // Let the first day's market prices MOVE as well.
             //
-            // Once RollMarket yalnizca gun acilisinda cagriliyordu ve ilk
-            // gun hic acilis yok - oyuncunun gordugu ilk ekonomi ekraninda
-            // "bugunku fiyat" ile "yil ortalamasi" her satirda birbirinin
-            // ayniydi. Iki sutunun neden var oldugu anlasilmiyordu.
+            // RollMarket used to be called only at the opening of a day, and
+            // there is no opening on the first day - so on the first economy
+            // screen the player saw, "today's price" and "the yearly
+            // average" were identical on every line. There was no telling
+            // why the two columns existed.
             RollMarket();
 
             for (int i = 0; i < MaxTables; i++) _tableParty[i] = -1;
 
-            // SIFIRINCI HAFTANIN FOTOGRAFI.
+            // THE PHOTOGRAPH OF WEEK ZERO.
             //
-            // Ilk karnenin farki, bu satir olmadan eksenlerin KENDISI
-            // olurdu: gecen hafta sifir sayilir ve oyuncu yedinci gunde
-            // "Mekan +33" gibi, kendisinin yapmadigi bir sicrama gorurdu.
-            // Devraldigi dukkanin puani onun kazanci degil.
-            SeasonScore acilis = Score();
+            // Without this line the first report's difference would be the
+            // axes THEMSELVES: last week would count as zero and on day
+            // seven the player would see a jump such as "Place +33" that
+            // they had not made. The score of the shop they inherited is not
+            // something they earned.
+            SeasonScore opening = Score();
             for (int i = 0; i < SeasonScore.AxisCount; i++)
             {
-                _weekAxis[i] = acilis.AxisAt(i);
+                _weekAxis[i] = opening.AxisAt(i);
                 _weekAxisPrev[i] = _weekAxis[i];
             }
         }
@@ -863,23 +911,23 @@ namespace Lokanta.Core.Sim
             _rngName = RngSeeder.Create(_masterSeed, RngStream.Name);
         }
 
-        // ---- okuma yuzeyi --------------------------------------------------
+        // ---- the read surface ------------------------------------------------
         public long TickIndex { get { return _tickIndex; } }
         public int Day { get { return _day; } }
         public DayPhase Phase { get { return _phase; } }
         public int ServiceTick { get { return _serviceTick; } }
 
         /// <summary>
-        /// Servisin ilerlemesi, ON BINDE (0-10000).
+        /// The progress of service, IN TEN-THOUSANDTHS (0-10000).
         ///
-        /// TAMSAYI: cekirdek kayan nokta alip vermiyor (docs/23) ve bir
-        /// test bunu makineyle kontrol ediyor - ilk yazim float
-        /// donduruyordu ve test HAKLI olarak kirmiziya dustu. Orani
-        /// kayan noktaya cevirmek gorunumun isi.
+        /// AN INTEGER: the core neither takes nor returns floating point
+        /// (docs/23) and a test checks that mechanically - the first draft
+        /// returned a float and the test went red, RIGHTLY. Turning the
+        /// ratio into floating point is the view's job.
         ///
-        /// Gorunum bunu gunun saatine ceviriyor (DayLight): golgelerin
-        /// yonu, isigin rengi ve sokak lambalari bu tek sayidan
-        /// okunuyor.
+        /// The view turns this into the time of day (DayLight): the
+        /// direction of the shadows, the colour of the light and the street
+        /// lamps are all read from this one number.
         /// </summary>
         public int ServiceProgressBp
         {
@@ -893,7 +941,7 @@ namespace Lokanta.Core.Sim
         }
         public int TableCount { get { return _tableCount; } }
 
-        /// <summary>Su an dolu masa sayisi. Gorunum ve muzik icin.</summary>
+        /// <summary>How many tables are occupied right now. For the view and the music.</summary>
         public int OccupiedTables
         {
             get
@@ -904,16 +952,16 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        /// <summary>Bu masada oturan bir grup var mi. Gorunum katmani icin.</summary>
+        /// <summary>Is there a party sitting at this table. For the view layer.</summary>
         public bool TableOccupied(int table)
         {
             return table >= 0 && table < _tableCount && _tableParty[table] >= 0;
         }
 
         /// <summary>
-        /// Bu masada kac kisi oturuyor. Gorunum katmani sandalyeye figur
-        /// oturtmak icin kullaniyor: her dolu masaya tek figur koymak,
-        /// dort kisilik bir grubu tek kisi gibi gosteriyordu.
+        /// How many people are sitting at this table. The view layer uses it
+        /// to put figures on the chairs: putting a single figure at every
+        /// occupied table made a party of four look like one person.
         /// </summary>
         public int TableGuests(int table)
         {
@@ -923,23 +971,25 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bu masadaki grubun ASAMASI. Bos masada None.
+        /// The STAGE of the party at this table. None at an empty table.
         ///
-        /// Gorunum katmani her masanin uzerine durumunu ciziyor. Bu
-        /// olmadan servis asamasi izlenemiyordu: sekiz dakika boyunca
-        /// ekranda hicbir sey kipirdamiyor, ust seritteki iki sayi
-        /// disinda hicbir bilgi akmiyordu.
+        /// The view layer draws each table's state above it. Without this
+        /// the stage of service could not be followed: for eight minutes
+        /// nothing on screen moved and no information flowed at all beyond
+        /// the two numbers in the top strip.
         /// </summary>
         /// <summary>
-        /// Bu masada oturan GRUBUN indisi. -1 masa bossa.
+        /// The index of the PARTY sitting at this table. -1 if the table is
+        /// empty.
         ///
-        /// IKI AYRI INDIS UZAYI VAR ve karistirmak sessiz bir hata
-        /// uretiyor: masa 0..15 (MaxTables), grup 0..255 (MaxParties).
-        /// Arayuz masaya dokunuyor, Intervene ise GRUP bekliyor. Ceviri
-        /// olmadan "3. masaya cay ikram et" komutu 3 NUMARALI GRUBA
-        /// gidiyor - gun ilerledikce bambaska bir masa, ya da coktan
-        /// cikmis bir grup; o zaman komut sessizce reddediliyor ve
-        /// oyuncu yine "ikram edildi" yazisini okuyor.
+        /// THERE ARE TWO SEPARATE INDEX SPACES and mixing them up produces a
+        /// silent bug: a table is 0..15 (MaxTables), a party is 0..255
+        /// (MaxParties). The UI touches a table, whereas Intervene expects a
+        /// PARTY. Without the translation the command "offer tea to table 3"
+        /// goes to PARTY NUMBER 3 - as the day goes on, an entirely
+        /// different table, or a party that left long ago; and then the
+        /// command is silently rejected and the player still reads "tea was
+        /// offered".
         /// </summary>
         public int PartyAtTable(int table)
         {
@@ -955,28 +1005,32 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bu masadaki grubun KALAN SABRI, baz puan (10000 = dolu).
+        /// The PATIENCE LEFT in the party at this table, in basis points
+        /// (10000 = full).
         ///
-        /// Sabir uyarisi zaten olay olarak uretiliyordu ve hicbir yerde
-        /// gorunmuyordu; oysa oyuncunun mudahale kararini verecegi tek
-        /// bilgi bu.
+        /// The patience warning was already being raised as an event and was
+        /// visible nowhere; and yet it is the one piece of information the
+        /// player's intervention decision rests on.
         /// </summary>
         /// <summary>
-        /// Sabrin "kritik" sayildigi esik, baz puan.
+        /// The threshold at which patience counts as "critical", in basis
+        /// points.
         ///
-        /// Gorunum bunu kriz seridini kurmak icin soruyor: hangi masanin
-        /// sabri bitmek uzere. Esigi arayuze ikinci kez yazmak, denge
-        /// degisince sessizce ayrisirdi.
+        /// The view asks for it to build the crisis strip: which table's
+        /// patience is about to run out. Writing the threshold a second time
+        /// into the UI would have let the two drift apart silently whenever
+        /// the balance changed.
         /// </summary>
         public int PatienceWarnBp { get { return _timing.PatienceWarnBp; } }
 
         /// <summary>
-        /// Su an sabri UYARI ESIGININ altina inmis bir grup var mi.
+        /// Is there any party whose patience has now fallen BELOW THE
+        /// WARNING THRESHOLD.
         ///
-        /// Denge araci icin: "mudahale kazandiriyor mu" sorusunun
-        /// cevabi, haklarin NE ZAMAN harcandigina bagli. Bot onlari
-        /// gunun ilk seksen saniyesinde yakarken olculen sey mekanik
-        /// degil, botun kotu oynamasiydi.
+        /// For the balance tool: the answer to "does intervening pay" turns
+        /// on WHEN the allowance is spent. While the bot was burning it in
+        /// the first eighty seconds of the day, what was being measured was
+        /// not the mechanic but the bot playing badly.
         /// </summary>
         public bool AnyPartyCritical
         {
@@ -986,9 +1040,9 @@ namespace Lokanta.Core.Sim
                 {
                     if (!_pActive[i] || _pPatienceTotalMs[i] <= 0) continue;
                     if (DrainRateBp(i) <= 0) continue;
-                    long kalanBp = Fx.MulDiv(_pPatienceLeftMs[i], Fx.One,
-                                             _pPatienceTotalMs[i]);
-                    if (kalanBp <= _timing.PatienceWarnBp) return true;
+                    long leftBp = Fx.MulDiv(_pPatienceLeftMs[i], Fx.One,
+                                            _pPatienceTotalMs[i]);
+                    if (leftBp <= _timing.PatienceWarnBp) return true;
                 }
                 return false;
             }
@@ -1006,7 +1060,7 @@ namespace Lokanta.Core.Sim
             return (int)bp;
         }
 
-        /// <summary>Bu masa toplanmayi bekliyor mu.</summary>
+        /// <summary>Is this table waiting to be cleared.</summary>
         public bool TableDirty(int table)
         {
             return table >= 0 && table < _tableCount && _tableDirty[table];
@@ -1014,9 +1068,9 @@ namespace Lokanta.Core.Sim
         public int ReputationCenti { get { return _reputationCenti; } }
 
         /// <summary>
-        /// Bu kademede itibarin cikabilecegi en yuksek deger. Arayuz
-        /// bunu gostermeli: tavana dayanan oyuncu, neden artik
-        /// yukselmedigini bilmeli.
+        /// The highest reputation reachable at this tier. The UI has to show
+        /// it: a player pressed against the ceiling should know why it no
+        /// longer goes up.
         /// </summary>
         public int ReputationCapCenti
         {
@@ -1027,77 +1081,79 @@ namespace Lokanta.Core.Sim
             }
         }
         /// <summary>
-        /// Tavanda KAYBOLAN itibar burada birikiyor, santi-puan.
+        /// The reputation LOST at the ceiling accumulates here, in
+        /// centi-points.
         ///
-        /// Tavan dogru bir fikir - dort masalik bir dukkan semtin
-        /// konustugu lokanta olamaz - ama tasan degeri SILMEK bir sey
-        /// daha yapiyordu: tavandaki oyuncu icin MUKEMMEL bir gun ile
-        /// IDARE EDEN bir gun arasinda olculebilir fark kalmiyordu.
-        /// Olculdu: iyi oynayan yedi masada 75'e dayanip otuz iki gun
-        /// orada duruyor - kampanyanin yarisindan fazlasi karsiliksiz.
+        /// The ceiling is the right idea - a four-table shop cannot be the
+        /// restaurant the whole neighbourhood talks about - but DELETING the
+        /// overflow did one more thing: for a player at the ceiling there
+        /// was no measurable difference left between a PERFECT day and a day
+        /// that merely GOT BY. Measured: a good player presses against 75 at
+        /// seven tables and stands there for thirty-two days - more than
+        /// half the campaign, unrequited.
         ///
-        /// Ayni kural fiyat aciginda olculmustu: BIR EKSEN
-        /// KIRPILIYORSA, O EKSENE ODENEN HER BEDEL TAVANIN USTUNDE
-        /// BEDAVADIR. Burasi onun ters yonu - tavanin ustunde
-        /// KAZANILAN da bedava veriliyordu.
+        /// The same rule had been measured in the price gap: IF AN AXIS IS
+        /// CLAMPED, EVERY PRICE PAID INTO THAT AXIS IS FREE ABOVE THE
+        /// CEILING. This is its mirror image - what was EARNED above the
+        /// ceiling was being given away free too.
         /// </summary>
         private int _reputationOverflowCenti;
 
-        /// <summary>Tavanda biriken itibar. Arayuz ve tur icin.</summary>
+        /// <summary>The reputation banked at the ceiling. For the UI and the tour.</summary>
         public int ReputationOverflowCenti { get { return _reputationOverflowCenti; } }
 
         // =====================================================================
-        // NISANLAR VE HAFTALIK KARNE
+        // BADGES AND THE WEEKLY REPORT
         //
-        // Ikisi ayni yeri kapatiyor: oyun yedi eksende puan veriyordu ve
-        // oyuncu onlari TAM BIR KEZ goruyordu - altmisinci gunde.
-        // Goremedigin bir seyde ilerleme hissedemezsin. Haftalik karne
-        // tek basari anini dokuza cikariyor; nisanlar da aradaki gunlerde
-        // basarilani ADIYLA soyluyor.
+        // The two close the same gap: the game scored on seven axes and the
+        // player saw them EXACTLY ONCE - on the sixtieth day. You cannot
+        // feel progress in something you cannot see. The weekly report takes
+        // that single moment of achievement up to nine; and the badges name
+        // what was achieved on the days in between.
         //
-        // Neden gunluk degil HAFTALIK: gunluk gurultu olurdu (eksenler
-        // bir gunde kipirdamiyor) ve oyunun kendi ritmi zaten haftalik -
-        // ucret ve kira haftalik odeniyor, zirve haftada iki gun.
+        // Why WEEKLY rather than daily: daily would be noise (the axes do
+        // not move in a day) and the game's own rhythm is weekly already -
+        // wages and rent are paid weekly, and the peak falls two days a week.
         // =====================================================================
 
-        /// <summary>Kazanilmis nisanlarin bit maskesi.</summary>
+        /// <summary>The bit mask of badges earned.</summary>
         private int _badges;
 
-        /// <summary>BUGUN kazanilanlar. Aksam ekrani bunu vurguluyor.</summary>
+        /// <summary>Those earned TODAY. The evening screen highlights these.</summary>
         private int _badgesToday;
 
         /// <summary>
-        /// Defter bir kez acildi mi. "Defter kapandi" nisani bunsuz
-        /// SESSIZCE yanlis olurdu: hic veresiye vermemis oyuncunun da
-        /// acik veresiyesi sifirdir, yani nisan ilk gun kendiliginden
-        /// dagitilirdi.
+        /// Has the book ever been opened. Without this the "book closed"
+        /// badge would be SILENTLY wrong: a player who has never given
+        /// credit also has an outstanding tab of zero, so the badge would be
+        /// handed out on the first day of its own accord.
         /// </summary>
         private bool _creditEverOpened;
 
-        /// <summary>Bu haftanin eksenleri; hafta sonunda dolduruluyor.</summary>
+        /// <summary>This week's axes; filled at the end of the week.</summary>
         private readonly int[] _weekAxis = new int[SeasonScore.AxisCount];
 
-        /// <summary>Gecen haftanin eksenleri. Fark bu ikisinden cikiyor.</summary>
+        /// <summary>Last week's axes. The difference comes out of these two.</summary>
         private readonly int[] _weekAxisPrev = new int[SeasonScore.AxisCount];
 
-        /// <summary>Karnenin cikarildigi gun; 0 ise hic cikmadi.</summary>
+        /// <summary>The day the report was issued; 0 means it never was.</summary>
         private int _weekReportDay;
 
         public int BadgeCount { get { return Badges.Count; } }
 
-        /// <summary>Nisan kazanildi mi.</summary>
+        /// <summary>Has the badge been earned.</summary>
         public bool HasBadge(int i)
         {
             return i >= 0 && i < Badges.Count && (_badges & (1 << i)) != 0;
         }
 
-        /// <summary>Nisan BUGUN mu kazanildi.</summary>
+        /// <summary>Was the badge earned TODAY.</summary>
         public bool BadgeEarnedToday(int i)
         {
             return i >= 0 && i < Badges.Count && (_badgesToday & (1 << i)) != 0;
         }
 
-        /// <summary>Kac nisan kazanildi.</summary>
+        /// <summary>How many badges have been earned.</summary>
         public int BadgesEarned
         {
             get
@@ -1109,13 +1165,14 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Haftalik karne bu gun cikti mi. Aksam ekrani bunu soruyor;
-        /// "Day % 7 == 0" diye sormak YANLIS olurdu, cunku karne gun
-        /// KAPANISINDA cikiyor ve oyuncu onu aksam ekraninda goruyor.
+        /// Did the weekly report come out on this day. The evening screen
+        /// asks this; asking "Day % 7 == 0" would be WRONG, because the
+        /// report comes out at the CLOSE of the day and the player sees it
+        /// on the evening screen.
         /// </summary>
         public bool WeekReportReady { get { return _weekReportDay > 0 && _weekReportDay == _day; } }
 
-        /// <summary>Karnenin kacinci hafta oldugu.</summary>
+        /// <summary>Which week the report is for.</summary>
         public int WeekNumber { get { return _weekReportDay / 7; } }
 
         public int WeekAxis(int i)
@@ -1123,7 +1180,7 @@ namespace Lokanta.Core.Sim
             return i >= 0 && i < SeasonScore.AxisCount ? _weekAxis[i] : 0;
         }
 
-        /// <summary>Gecen haftaya gore fark. Karnenin butun anlami bu.</summary>
+        /// <summary>The difference against last week. This is the whole point of the report.</summary>
         public int WeekAxisDelta(int i)
         {
             return i >= 0 && i < SeasonScore.AxisCount
@@ -1132,58 +1189,60 @@ namespace Lokanta.Core.Sim
 
         public long Cash { get { return _cash; } }
         public int Cooks { get { return _cooks; } }
-        public int SalonStaff { get { return _salon; } }
+        public int HallStaff { get { return _hall; } }
 
-        /// <summary>Lavaboya adanmis salon calisani sayisi.</summary>
+        /// <summary>How many hall staff are dedicated to the sink.</summary>
         public int Dishwashers { get { return _dishwashers; } }
 
-        /// <summary>Temiz tabak sayisi.</summary>
+        /// <summary>The number of clean plates.</summary>
         public int PlatesClean { get { return _platesClean; } }
 
-        /// <summary>Lavaboda bekleyen kirli tabak sayisi.</summary>
+        /// <summary>The number of dirty plates waiting at the sink.</summary>
         public int PlatesDirty { get { return _platesDirty; } }
 
-        /// <summary>Masalarda ve serviste olan tabak sayisi.</summary>
+        /// <summary>The number of plates on tables and in service.</summary>
         public int PlatesInUse { get { return _platesInUse; } }
 
-        /// <summary>Lokantanin toplam tabagi.</summary>
+        /// <summary>The restaurant's total plates.</summary>
         public int PlatesTotal
         {
             get { return _economy.TierForTables(_tableCount).Plates; }
         }
 
         /// <summary>
-        /// Temiz tabak olmadigi icin mutfagin bekledigi tick sayisi.
+        /// The ticks the kitchen spent waiting because there was no clean
+        /// plate.
         ///
-        /// "Bulasikci ihmal edildi" cumlesinin OLCUSU. Sifirdan buyukse
-        /// servis gercekten durmus demektir.
+        /// THE MEASURE of the sentence "the washing-up was neglected". If it
+        /// is above zero, service really did stop.
         /// </summary>
         public int PlateBlockedTicks { get { return _plateBlockedTicks; } }
 
-        /// <summary>Bugun yikanan tabak.</summary>
+        /// <summary>The plates washed today.</summary>
         public int PlatesWashedToday { get { return _washedToday; } }
 
         /// <summary>
-        /// Salon personelinin BUGUN kac kez isini birakip lavaboya
-        /// kostugu. Bulasikcinin olculebilir etkisi bu sayida.
+        /// How many times TODAY the hall staff dropped their work and ran to
+        /// the sink. The dishwasher's measurable effect is in this number.
         /// </summary>
-        public int SalonRushWashes { get { return _salonRushWashes; } }
+        public int HallRushWashes { get { return _hallRushWashes; } }
 
-        /// <summary>Mutfak durdugu icin lavaboya kosulan gorev sayisi.</summary>
-        public int SalonCrisisWashes { get { return _salonCrisisWashes; } }
+        /// <summary>How many trips to the sink were made because the kitchen had stopped.</summary>
+        public int HallCrisisWashes { get { return _hallCrisisWashes; } }
 
-        /// <summary>Bugun kirlenen tabak (birikmeli).</summary>
+        /// <summary>The plates dirtied today (cumulative).</summary>
         public int PlatesDirtiedToday { get { return _dirtiedToday; } }
         public int ActiveParties { get { return _partyCount; } }
         public int ServedParties { get { return _servedParties; } }
         public int ServedPeople { get { return _servedPeople; } }
         /// <summary>
-        /// Su an SABRI ISLEYEN grup sayisi - yani bir sey bekleyen.
+        /// How many parties currently have PATIENCE RUNNING - that is, are
+        /// waiting for something.
         ///
-        /// Cayin hedefi bu kume: cay salona gidiyor ve bekleyeni
-        /// olmayan bir salonda gonderilecek kimse yok. Arayuz de
-        /// bunu okuyup dugmeyi kapatiyor, yoksa oyuncu bos salonda
-        /// mudahale hakki yakmaya calisirdi.
+        /// This set is the tea's target: the tea goes out into the hall, and
+        /// in a hall with nobody waiting there is nobody to send it to. The
+        /// UI reads this and disables the button, or the player would be
+        /// trying to burn an intervention in an empty hall.
         /// </summary>
         public int WaitingParties
         {
@@ -1198,26 +1257,28 @@ namespace Lokanta.Core.Sim
 
         public int AngryParties { get { return _angryParties; } }
 
-        /// <summary>Bugun masadan kizgin ayrilan grup sayisi.</summary>
+        /// <summary>How many parties left a table angry today.</summary>
         public int AngrySeatedParties { get { return _angrySeated; } }
 
         /// <summary>
-        /// Menude yapabilecegi bir sey bulamayip KAPIDAN DONEN grup.
+        /// Parties TURNED BACK AT THE DOOR because there was nothing on the
+        /// menu that could be made for them.
         ///
-        /// Gun raporunda vardi, servis sirasinda SORULAMIYORDU - yani
-        /// ilk haftanin en sik olum bicimi oyuncuya ancak gun bitince
-        /// gorunuyordu, hala duzeltebilecegi saatlerde degil.
+        /// It was in the day report but COULD NOT BE ASKED FOR during
+        /// service - so the commonest way of dying in the first week was
+        /// only visible to the player once the day was over, not in the
+        /// hours when they could still fix it.
         /// </summary>
         public int TurnedAwayParties { get { return _turnedAwayParties; } }
         public long Revenue { get { return _revenue; } }
 
         /// <summary>
-        /// Bugunku ortalama memnuniyet (santi). Kisi agirlikli.
+        /// Today's mean satisfaction (in centi). Weighted by people.
         ///
-        /// Gun raporu bunu zaten hesapliyordu ama YALNIZCA gun sonunda:
-        /// oyuncu gun boyunca nasil gittigini hicbir yerden okuyamiyordu.
-        /// Ayni bolme, servis sirasinda da anlamli - kimse servis
-        /// edilmediyse 0.
+        /// The day report was already working this out, but ONLY at the end
+        /// of the day: the player could read nowhere how it was going while
+        /// it went. The same division is meaningful during service too - 0
+        /// if nobody has been served.
         /// </summary>
         public int AverageSatisfactionCenti
         {
@@ -1232,29 +1293,32 @@ namespace Lokanta.Core.Sim
         public long TotalWagesPaid { get { return _weeklyWagesPaid; } }
 
         /// <summary>
-        /// KAMPANYA BOYUNCA toplam ciro. _revenue her gun sifirlaniyor.
+        /// The total revenue ACROSS THE CAMPAIGN. _revenue is zeroed every
+        /// day.
         ///
-        /// Denge araci ciroyu gun raporlarindan TOPLUYORDU ve bu bir
-        /// sinir artigi uretiyordu: AdvanceToNextDay() vadesi gelen
-        /// veresiyeyi tahsil ediyor, ama o cagri gunun raporu ALINDIKTAN
-        /// sonra calisiyor - yani son gunun tahsilati hicbir rapora
-        /// girmiyordu ve gelir tablosunun mutabakati imzaci oyuncuda
-        /// kapanmiyordu. Ucret ve kira zaten kumulatif okunuyordu; ciro
-        /// da oyle okunmali.
+        /// The balance tool was SUMMING revenue from the day reports, and
+        /// that produced a boundary leftover: AdvanceToNextDay() collects the
+        /// tabs that have fallen due, but that call runs AFTER the day's
+        /// report has been taken - so the last day's collection went into no
+        /// report at all and the income statement could not be reconciled
+        /// for a player using the signature mechanic. Wages and rent were
+        /// already being read cumulatively; revenue should be read the same
+        /// way.
         /// </summary>
         public long TotalRevenue { get { return _revenueAll; } }
         public long TotalRentPaid { get { return _weeklyRentPaid; } }
-        /// <summary>Kasanin ilk kez eksiye dustugu gun; 0 ise hic dusmedi.</summary>
+        /// <summary>The day the till first went negative; 0 means it never did.</summary>
         public int FirstDebtDay { get { return _firstDebtDay; } }
 
         /// <summary>
-        /// Kira ve maas gunune kac gun kaldi. Bugun odenecekse 0.
+        /// How many days are left until the rent-and-wages day. 0 if it falls
+        /// today.
         ///
-        /// docs/02 haftalik kirayi "baskinin metronomu" ilan ediyor:
-        /// "oyuncu dorduncu gunden itibaren cuma gununu dusunmeye baslar."
-        /// Oyunda cuma gunu diye bir sey YOKTU - para kasadan cikiyor,
-        /// oyuncu bunu ancak sayi dustukten sonra fark ediyordu. Metronom
-        /// sessizdi.
+        /// docs/02 declares the weekly rent "the metronome of the pressure":
+        /// "from the fourth day on, the player starts thinking about Friday."
+        /// In the game there WAS no such Friday - the money left the till and
+        /// the player only noticed once the number had dropped. The metronome
+        /// was silent.
         /// </summary>
         public int DaysToRent
         {
@@ -1267,52 +1331,53 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        /// <summary>Bu hafta odenecek kira ve maasin toplami.</summary>
+        /// <summary>The rent and wages due to be paid this week, together.</summary>
         public long WeeklyBill
         {
             get
             {
-                Crew crew = new Crew(_cooks, _salon);
+                Crew crew = new Crew(_cooks, _hall);
                 long wages = StaffingModel.WeeklyWageBill(crew, _day / 7, _economy);
                 wages = Fx.MulDiv(wages, TraitWageMultiplierBp(), Fx.One);
                 return wages + _economy.TierForTables(_tableCount).Rent + _loanInstallment;
             }
         }
 
-        /// <summary>Batma merdivenine kac kez inildi.</summary>
+        /// <summary>How many times the ladder down was climbed.</summary>
         public int DebtRungs { get { return _debtRungs; } }
 
-        /// <summary>Cope giden stogun toplam degeri, santi.</summary>
+        /// <summary>The total value of the stock thrown out, in centi.</summary>
         public long SpoiledValue { get { return _spoiledValue; } }
 
-        /// <summary>Malzemeye harcanan toplam nakit, santi.</summary>
+        /// <summary>The total cash spent on ingredients, in centi.</summary>
         public long IngredientSpend { get { return _ingredientSpend; } }
 
-        /// <summary>Batma merdiveninin kasaya soktugu toplam, santi.</summary>
+        /// <summary>The total the ladder down put into the till, in centi.</summary>
         public long RescueValue { get { return _rescueValue; } }
 
-        /// <summary>Cekilen kredinin anaparasi, santi.</summary>
+        /// <summary>The principal of the loans taken, in centi.</summary>
         public long LoanTaken { get { return _loanTaken; } }
 
-        /// <summary>Butun kredilere odenen toplam taksit, santi.</summary>
+        /// <summary>The total instalments paid on all loans, in centi.</summary>
         public long LoanRepaid { get { return _loanRepaidAll; } }
 
-        /// <summary>Ekipmana odenen toplam, santi.</summary>
+        /// <summary>The total paid for equipment, in centi.</summary>
         public long EquipmentSpend { get { return _equipmentSpend; } }
 
-        /// <summary>Genislemeye odenen toplam, santi.</summary>
+        /// <summary>The total paid for expansion, in centi.</summary>
         public long ExpansionSpend { get { return _expansionSpend; } }
 
-        /// <summary>Bir gunde agirlanan en yuksek kisi sayisi.</summary>
+        /// <summary>The highest number of people served in a single day.</summary>
         /// <summary>
-        /// Ana yemek siparislerinin yuzde kaci komboya dondu, bin-puan.
+        /// What share of main-dish orders turned into a combo, in basis
+        /// points.
         ///
-        /// Imza ekseninin ham hali. Denge araci bunu basiyor ki eksenin
-        /// HEDEFI olcumden gelsin - uydurulmus bir hedef, ekseni ya
-        /// doygun ya erisilmez yapar ("doygun bir eksene odenen odul
-        /// gorunmez").
+        /// The raw form of the signature axis. The balance tool prints this
+        /// so that the axis's TARGET comes out of a measurement - an invented
+        /// target makes the axis either saturated or unreachable ("a reward
+        /// paid into a saturated axis is invisible").
         /// </summary>
-        /// <summary>Veresiye cayina harcanan toplam, santi.</summary>
+        /// <summary>The total spent on the tab's tea, in centi.</summary>
         public long TeaSpend { get { return _teaSpend; } }
 
         public int ComboShareBp
@@ -1324,15 +1389,15 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        /// <summary>Kampanyanin uzunlugu, gun.</summary>
+        /// <summary>The length of the campaign, in days.</summary>
         public int CampaignDays { get { return _economy.CampaignDays; } }
 
         /// <summary>
-        /// Kampanya doldu ve degerlendirme HENUZ GOSTERILMEDI.
+        /// The campaign is up and the evaluation HAS NOT YET BEEN SHOWN.
         ///
-        /// Gorunum katmani bunu gorup ekrani aciyor ve MarkSeasonScored
-        /// cagiriyor. Bayrak kayda giriyor, yani ikinci acilista ayni
-        /// ekran tekrar cikmiyor.
+        /// The view layer sees this, opens the screen and calls
+        /// MarkSeasonScored. The flag goes into the save, so the same screen
+        /// does not come up again on the second launch.
         /// </summary>
         public bool SeasonJustEnded
         {
@@ -1342,59 +1407,60 @@ namespace Lokanta.Core.Sim
         public void MarkSeasonScored() { _seasonScored = true; }
 
         /// <summary>
-        /// Kampanya bitti mi. SeasonJustEnded'dan farki: bu bir daha
-        /// KAPANMIYOR, yani degerlendirme ekrani menuden her zaman
-        /// yeniden acilabiliyor.
+        /// Is the campaign over. Unlike SeasonJustEnded, this one NEVER
+        /// CLOSES again, so the evaluation screen can always be reopened
+        /// from the menu.
         /// </summary>
         public bool SeasonOver { get { return _day > _economy.CampaignDays; } }
 
         /// <summary>
-        /// Yil sonu degerlendirmesi. docs/08-endgame.md yedi eksen.
+        /// The year-end evaluation. The seven axes of docs/08-endgame.md.
         ///
-        /// Her eksen 0-100 ve hicbiri digerinin yerine gecmiyor: buyuyerek
-        /// de, kucuk ama sevilen bir dukkan isleterek de iyi puan
-        /// alinabilmeli.
+        /// Each axis is 0-100 and none stands in for another: it should be
+        /// possible to score well by growing and equally by running a small
+        /// but well-loved shop.
         ///
-        /// Olculer OYUNUN KENDI SAYILARI, ayri bir puan ekonomisi degil.
-        /// Ayri bir olcek uydurmak, oyuncunun oynarken takip ettigi seyle
-        /// yil sonunda odullendirilen seyi birbirinden ayirirdi.
+        /// The measures are THE GAME'S OWN NUMBERS, not a separate score
+        /// economy. Inventing a separate scale would have pulled apart the
+        /// thing the player watches while playing and the thing that is
+        /// rewarded at the end of the year.
         /// </summary>
-        /// <summary>Duzenli musteri basina yazilmis sahne sayisi (docs/13).</summary>
+        /// <summary>How many beats are written per regular (docs/13).</summary>
         private const int StoryBeatsPerRegular = 3;
 
         public SeasonScore Score()
         {
-            // --- varlik: kasa + defter + SAHIP OLUNANLAR
+            // --- wealth: the till + the book + WHAT IS OWNED
             //
-            // YATIRIM CEZALANDIRILMIYOR ARTIK. Once yalnizca kasa ve
-            // defter sayiliyordu: ekipman aldikca "Varlik" cubugu
-            // KISALIYORDU, yani oyunun tesvik ettigi sey karnede ceza
-            // olarak donuyordu. Oyuncunun gordugu sey suydu - dogru
-            // oynadikca puani dusuyor ve sebebini hicbir ekran
-            // soylemiyor.
+            // INVESTMENT IS NO LONGER PUNISHED. Only the till and the book
+            // used to be counted: as equipment was bought the "Wealth" bar
+            // GOT SHORTER, so the thing the game encourages came back as a
+            // penalty on the report. What the player saw was this - their
+            // score falls as they play well, and no screen says why.
             //
-            // Sahip olunanlarin degeri, katalogun tamamindan KALANI
-            // cikararak bulunuyor. Ayri bir toplama yazmadim bilerek:
-            // iki ayri hesap bir gun birbirinden ayrilir ve hangisinin
-            // dogru oldugu anlasilmaz (bu dosyada ayni hata bir kez
-            // yasandi - RemainingPurchaseCost soguk havayi sayiyordu,
-            // oteki saymiyordu).
+            // The value of what is owned is found by subtracting WHAT IS
+            // LEFT from the whole catalogue. I deliberately did not write a
+            // separate summation: two separate calculations drift apart one
+            // day and there is no telling which is right (the same mistake
+            // was lived through once in this file - RemainingPurchaseCost
+            // counted the cold store and the other one did not).
             long yardstick = RemainingPurchaseCostTotal();
             long owned = yardstick - RemainingPurchaseCost();
             if (owned < 0) owned = 0;
             long worth = _cash + OpenCredit + owned;
             int wealth = yardstick > 0 ? (int)(worth * 100 / yardstick) : 100;
 
-            // --- itibar: dogrudan
+            // --- reputation: straight through
             int reputation = _reputationCenti / 100;
 
-            // --- duzenli musteriler: ILISKININ DERINLIGI
+            // --- regulars: THE DEPTH OF THE RELATIONSHIP
             //
-            // "Ugradi mi" degil "kac sahnesini actin". Ilk olcum yalnizca
-            // ziyarete bakiyordu ve altmis gunde herkes en az bir kez
-            // ugradigi icin eksen HERKESTE 100 cikiyordu - yani hicbir sey
-            // olcmuyordu. Sahne acmak ise emek istiyor: sik gelmesi ve
-            // memnun ayrilmasi gerekiyor.
+            // Not "did they drop in" but "how many of their beats did you
+            // open". The first measure looked only at visits, and because
+            // everyone drops in at least once in sixty days the axis came out
+            // at 100 FOR EVERYBODY - that is, it measured nothing. Opening a
+            // beat, by contrast, takes work: they have to come often and
+            // leave satisfied.
             int beats = 0;
             for (int i = 0; i < RegularCount; i++)
             {
@@ -1404,20 +1470,21 @@ namespace Lokanta.Core.Sim
             int regulars = RegularCount > 0
                 ? beats * 100 / (RegularCount * StoryBeatsPerRegular) : 0;
 
-            // --- ekip: kadro doluluğu ve morali, yari yariya
+            // --- crew: how full the roster is and its morale, half and half
             int cap = StaffCap;
-            int head = _cooks + _salon;
+            int head = _cooks + _hall;
             int fill = cap > 0 ? head * 100 / cap : 0;
             int crew = head > 0 ? (fill + AverageMorale()) / 2 : 0;
 
-            // --- mekan: son kademeye gore masa
+            // --- place: tables, against the top tier
             int topTables = _economy.TierAt(_economy.TierCount - 1).Tables;
             int place = topTables > 0 ? _tableCount * 100 / topTables : 0;
 
-            // --- saglamlik: merdivene hic inmemek tam puan
+            // --- resilience: never climbing down the ladder is full marks
             //
-            // docs/08'in en degerli yan etkisi: batma merdivenine inmek
-            // artik ANLIK degil BIRIKIMLI bir bedel. Her basamak 30 puan.
+            // The most valuable side effect of docs/08: climbing down the
+            // ladder is now a CUMULATIVE price rather than a momentary one.
+            // Each rung is 30 points.
             int resilience = 100 - _debtRungs * 30;
             if (_firstDebtDay > 0 && _debtRungs == 0) resilience -= 15;
 
@@ -1425,7 +1492,7 @@ namespace Lokanta.Core.Sim
                                    place, resilience, SignatureAxis());
         }
 
-        /// <summary>Kampanyanin tamami satin alinabilir olsa ne tutardi.</summary>
+        /// <summary>What the whole campaign would come to if it were all up for sale.</summary>
         private long RemainingPurchaseCostTotal()
         {
             long total = 0;
@@ -1438,15 +1505,14 @@ namespace Lokanta.Core.Sim
                 for (int t = 1; t < def.Tiers.Length; t++) total += def.Tiers[t].Price;
             }
 
-            // SOGUK HAVA DA SATIN ALINABILIR BIR SEY.
+            // THE COLD STORE IS SOMETHING YOU CAN BUY TOO.
             //
-            // Buradan atlanmisti ve RemainingPurchaseCost() - ayni
-            // soruyu soran oteki fonksiyon - onu SAYIYORDU. Iki
-            // fonksiyon "geriye ne satin alinacak kaldi" sorusuna iki
-            // farkli cevap veriyordu, ve yil sonu SERVET ekseninin
-            // paydasi kucuk olani kullaniyordu: oyuncunun serveti,
-            // satin alabileceklerinin tamamina degil bir kismina
-            // oranlaniyordu.
+            // It had been skipped here, while RemainingPurchaseCost() - the
+            // other function asking the same question - WAS counting it. Two
+            // functions gave two different answers to "what is left to buy",
+            // and the denominator of the year-end WEALTH axis was using the
+            // smaller one: the player's wealth was being measured not
+            // against everything they could buy but against part of it.
             if (_content.Storage != null)
                 for (int t = 1; t < _content.Storage.Tiers.Length; t++)
                     total += _content.Storage.Tiers[t].Price;
@@ -1458,13 +1524,14 @@ namespace Lokanta.Core.Sim
         {
             int sum = 0, n = 0;
             for (int i = 0; i < _cooks && i < MaxServers; i++) { sum += _cookMorale[i]; n++; }
-            for (int i = 0; i < _salon && i < MaxServers; i++) { sum += _salonMorale[i]; n++; }
+            for (int i = 0; i < _hall && i < MaxServers; i++) { sum += _hallMorale[i]; n++; }
             return n > 0 ? sum / n : 0;
         }
 
         /// <summary>
-        /// Mutfaga ozel eksen. Olcunun KENDISI kodda, HEDEFI icerikte
-        /// (content/cuisines/*.json scoreAxis) - docs/23 8.2.
+        /// The cuisine-specific axis. The measure ITSELF is in the code, its
+        /// TARGET is in the content (content/cuisines/*.json scoreAxis) -
+        /// docs/23 8.2.
         /// </summary>
         private int SignatureAxis()
         {
@@ -1474,32 +1541,35 @@ namespace Lokanta.Core.Sim
             switch (axis.Kind)
             {
                 case "comboShare":
-                    // ANA YEMEK SIPARISLERININ YUZDE KACI KOMBO OLDU.
+                    // WHAT SHARE OF MAIN-DISH ORDERS BECAME A COMBO.
                     //
-                    // Fast food'un ekseni bir sure `peakCovers` idi ve
-                    // OLCULDU ki imzayi degil GENISLEMEYI izliyordu:
-                    // komboyu her sabah acan bot ile hic acmayan bot
-                    // ayni puani aliyordu (38 / 38), en yuksek puanlar
-                    // ise en cok masa acanlardaydi - yani eksen "Mekan"
-                    // ekseninin kopyasiydi. docs/08 o eksen icin "imza
-                    // mekanigini DOGRUDAN odullendirir" diyor ve
-                    // soylemedigi sey buydu.
+                    // Fast food's axis was `peakCovers` for a while, and it
+                    // WAS MEASURED that it was tracking EXPANSION rather than
+                    // the signature: a bot that switched the combo on every
+                    // morning and a bot that never switched it on scored the
+                    // same (38 / 38), while the highest scores belonged to
+                    // whoever opened the most tables - that is, the axis was
+                    // a copy of the "Place" axis. docs/08 says of that axis
+                    // that it "rewards the signature mechanic DIRECTLY", and
+                    // this was the thing it was not saying.
                     //
-                    // Bu olcu bir KARAR olcuyor: kombo ortalama fisi
-                    // yukseltiyor ama mutfak yukunu de artiriyor, yani
-                    // zirvede kapatmak mesru bir oyun. Hic acmamak sifir
-                    // degil ama tam puan da degil.
+                    // This measure measures a DECISION: the combo lifts the
+                    // average ticket but raises the kitchen load too, so
+                    // switching it off at the peak is a legitimate play.
+                    // Never switching it on is not zero, but it is not full
+                    // marks either.
                     //
-                    // Payda sifirsa (hic ana yemek satilmadi) puan 0:
-                    // mekanigi kullanma FIRSATI dogmadiysa bile, kimseye
-                    // yemek satmamis bir yil imza puani hak etmiyor.
+                    // If the denominator is zero (no main dish sold at all)
+                    // the score is 0: even if no OPPORTUNITY to use the
+                    // mechanic arose, a year in which no food was sold to
+                    // anybody does not deserve a signature score.
                     if (_mainOrders <= 0) return 0;
-                    int komboBp = (int)((long)_comboOrders * Fx.One / _mainOrders);
-                    return komboBp * 100 / axis.Target;
+                    int comboBp = (int)((long)_comboOrders * Fx.One / _mainOrders);
+                    return comboBp * 100 / axis.Target;
 
                 case "creditCollected":
-                    // Hic veresiye acmamak tam puan DEGIL: mekanigi hic
-                    // kullanmamak, onu iyi kullanmakla ayni sayilamaz.
+                    // Never opening a tab is NOT full marks: never using the
+                    // mechanic cannot count the same as using it well.
                     if (_creditIssued <= 0) return 0;
                     int rateBp = (int)(_creditCollected * Fx.One / _creditIssued);
                     return rateBp * 100 / axis.Target;
@@ -1516,7 +1586,7 @@ namespace Lokanta.Core.Sim
         public int TierCount { get { return _economy.TierCount; } }
         public int DishCount { get { return _content.Dishes.Length; } }
 
-        /// <summary>Icerikteki piyasa fiyati. Oyuncunun ayarladigi fiyat degil.</summary>
+        /// <summary>The market price from the content. Not the price the player set.</summary>
         public long BasePriceOf(int dishIndex)
         {
             if (dishIndex < 0 || dishIndex >= _content.Dishes.Length) return 0;
@@ -1526,14 +1596,14 @@ namespace Lokanta.Core.Sim
         public CustomerStage StageOf(int party) { return _pStage[party]; }
 
         // =====================================================================
-        // GORUNUM ICIN SALT-OKUNUR SORULAR.
+        // READ-ONLY QUESTIONS FOR THE VIEW.
         //
-        // Salonda kimin nerede DURDUGUNU degil, kimin neyle MESGUL
-        // oldugunu soyluyorlar. Konum gorunum katmaninin isi; simulasyon
-        // metre bilmiyor ve bilmemeli (docs/23: cekirdekte Unity yok,
-        // kayan nokta yok). Bu erisimciler durum DEGISTIRMIYOR.
+        // They say not WHERE anybody is STANDING in the hall but what each
+        // one is BUSY WITH. Position is the view layer's job; the simulation
+        // does not know metres and must not (docs/23: no Unity in the core,
+        // no floating point). These accessors DO NOT CHANGE state.
 
-        /// <summary>Grup hangi masada; -1 ise henuz oturmamis.</summary>
+        /// <summary>Which table the party is at; -1 if they have not sat down yet.</summary>
         public int TableOfParty(int party)
         {
             if (party < 0 || party >= MaxParties) return -1;
@@ -1543,28 +1613,30 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Salon calisani su an hangi masayla ilgileniyor; -1 ise bosta.
+        /// Which table the hall worker is seeing to right now; -1 if idle.
         ///
-        /// 0 numarali calisan PATRONUN kendisi (DispatchSalon: "patron da
-        /// salonda calisiyor"), yani ekranda o da yuruyor.
+        /// Worker number 0 is THE OWNER themselves (DispatchHall: "the owner
+        /// works the hall too"), so they walk about on screen as well.
         /// </summary>
-        public int SalonTaskTable(int server)
+        public int HallTaskTable(int server)
         {
             if (server < 0 || server >= MaxServers) return -1;
-            TaskKind k = _salonTaskKind[server];
+            TaskKind k = _hallTaskKind[server];
             if (k == TaskKind.None) return -1;
-            // Temizlik hedefi zaten MASA; digerlerinde hedef GRUP.
-            if (k == TaskKind.Clear) return _salonTaskTarget[server];
-            return TableOfParty(_salonTaskTarget[server]);
+            // The target of a clearing task is already a TABLE; for the
+            // rest the target is a PARTY.
+            if (k == TaskKind.Clear) return _hallTaskTarget[server];
+            return TableOfParty(_hallTaskTarget[server]);
         }
 
         /// <summary>
-        /// Bu istasyonda su an KAC TABAK pisiyor. 0 ise istasyon bosta.
+        /// HOW MANY PLATES are cooking at this station right now. 0 means the
+        /// station is idle.
         ///
-        /// Gorunum bunu ocagin alevine ve firinin lambasina ceviriyor:
-        /// calisan bir ocak yanmali, bos bir ocak yanmamali. Sayinin
-        /// kendisi de bilgi - iki tabak pisen bir ocak ile alti tabak
-        /// pisen bir ocak ayni gorunmemeli.
+        /// The view turns this into the flame on the hob and the lamp in the
+        /// oven: a working hob should be lit, an idle one should not. The
+        /// number itself is information too - a hob with two plates on it and
+        /// a hob with six should not look the same.
         /// </summary>
         public int StationLoad(int station)
         {
@@ -1573,34 +1645,34 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Salon calisani su an YEMEK MI TASIYOR.
+        /// Is the hall worker CARRYING FOOD right now.
         ///
-        /// Gorunum bunu garsonun elindeki tabaga ceviriyor: servis bir
-        /// yonetim oyununun ana fiili ve goruntusu olmadan oyuncu neyin
-        /// olup bittigini takip edemiyor. Hesap almak, siparis almak ve
-        /// masa toplamak elde bir sey gerektirmiyor.
+        /// The view turns this into a plate in the waiter's hand: serving is
+        /// a management game's main verb, and without seeing it the player
+        /// cannot follow what is going on. Taking a payment, taking an order
+        /// and clearing a table need nothing in the hands.
         /// </summary>
         /// <summary>
-        /// Salon calisani su an LAVABODA mi.
+        /// Is the hall worker AT THE SINK right now.
         ///
-        /// Gorunum icin ayri bir soru: yikamanin hedefi bir masa degil
-        /// (SalonTaskTable -1 donuyor) ve -1, "bosta" ile ayni sayi.
-        /// Ayirt edilmezse yikayan garson evine yollanir ve oyuncu
-        /// bulasigin yikandigini hic gormez.
+        /// A separate question for the view: a washing task's target is not a
+        /// table (HallTaskTable returns -1) and -1 is the same number as
+        /// "idle". Without telling the two apart, a waiter who is washing is
+        /// sent home and the player never sees the washing-up being done.
         /// </summary>
-        public bool SalonWashing(int server)
+        public bool HallWashing(int server)
         {
             if (server < 0 || server >= MaxServers) return false;
-            return _salonTaskKind[server] == TaskKind.Wash;
+            return _hallTaskKind[server] == TaskKind.Wash;
         }
 
-        public bool SalonCarrying(int server)
+        public bool HallCarrying(int server)
         {
             if (server < 0 || server >= MaxServers) return false;
-            return _salonTaskKind[server] == TaskKind.Serve;
+            return _hallTaskKind[server] == TaskKind.Serve;
         }
 
-        /// <summary>Asci su an hangi istasyonda calisiyor; -1 ise bosta.</summary>
+        /// <summary>Which station the cook is working at right now; -1 if idle.</summary>
         public int CookTaskStation(int cook)
         {
             if (cook < 0 || cook >= MaxServers) return -1;
@@ -1613,26 +1685,28 @@ namespace Lokanta.Core.Sim
         public int PartyArchetype(int party) { return _pArchetype[party]; }
         public long DishPrice(int dish) { return _dishPrice[dish]; }
 
-        /// <summary>Servis penceresi doldu ve salonda kimse kalmadi.</summary>
+        /// <summary>The service window is up and nobody is left in the hall.</summary>
         public bool ServiceComplete
         {
             get { return _serviceTick >= _timing.ServiceTicks && _partyCount == 0; }
         }
 
         // ====================================================================
-        // Komutlar
+        // Commands
         // ====================================================================
         public void Apply(in Command c)
         {
-            // Gun basindan beri uygulanan her komut gunluge yaziliyor.
-            // Hiz, duraklatma ve kamera komut DEGIL: onlar gorunum durumu.
-            // ASAMA KOMUTLARI SINIRDAN MUAF.
+            // Every command applied since the start of the day is written
+            // into the log. Speed, pause and camera are NOT commands: those
+            // are view state.
+            // THE STAGE COMMANDS ARE EXEMPT FROM THE LIMIT.
             //
-            // Servisi acmak ve gunu kapatmak oyuncunun "eylemi" degil,
-            // gunun ilerlemesi. Onlari reddetmek yumusak kilit demek: gun
-            // hic kapanmiyor, ertesi gune gecilemiyor, vadesi gelen
-            // veresiye kapanmiyor. Bu tam olarak oldu ve iki imza
-            // mekanigi testi bunu yakaladi.
+            // Opening service and closing the day are not the player's
+            // "actions" but the progress of the day. Rejecting them means a
+            // soft lock: the day never closes, the next day cannot be
+            // reached, and the tabs falling due are never settled. That is
+            // exactly what happened, and two signature mechanic tests caught
+            // it.
             bool phase = c.Kind == CommandKind.OpenService || c.Kind == CommandKind.CloseDay;
 
             if (_commandCount < MaxCommandsPerDay)
@@ -1641,14 +1715,14 @@ namespace Lokanta.Core.Sim
             }
             else if (!phase)
             {
-                // RETURN SART. Once yalnizca olay basiliyor ve komut YINE DE
-                // isleniyordu: durum degisiyor ama gunluge girmiyor. Bu,
-                // "ayni tohum + ayni komut gunlugu = ayni durum"
-                // sozlesmesini (docs/23 7) sessizce boziyordu - kayittan
-                // tekrar oynatma ayrisiyordu.
-                // 12 = GUNLUK KOMUT HAKKI BITTI. Arayuz bu sayiya
-                // bakip sebebi soyluyor (Notices.cs), yani sayi bir
-                // ARAYUZ SOZLESMESI - baska bir sebebe verilmemeli.
+                // THE RETURN IS ESSENTIAL. It used to only raise the event
+                // while the command was processed ANYWAY: the state changed
+                // but it did not go into the log. That silently broke the
+                // contract "the same seed + the same command log = the same
+                // state" (docs/23 7) - a replay from the save diverged.
+                // 12 = THE DAY'S COMMAND ALLOWANCE IS SPENT. The UI looks at
+                // this number and says why (Notices.cs), so the number is a
+                // UI CONTRACT - it must not be given to another reason.
                 Emit(SimEventKind.CommandRejected, (int)c.Kind, 12);
                 return;
             }
@@ -1700,7 +1774,7 @@ namespace Lokanta.Core.Sim
                 return;
             }
 
-            // Salonda kalanlar kizgin cikar.
+            // Whoever is left in the hall leaves angry.
             for (int i = 0; i < MaxParties; i++)
                 if (_pActive[i]) LeaveAngry(i);
 
@@ -1710,11 +1784,12 @@ namespace Lokanta.Core.Sim
             PayWeeklyCostsIfDue();
             UpdateMorale();
 
-            // NISANLAR HER SEY ISLEDIKTEN SONRA bakiliyor.
+            // THE BADGES ARE CHECKED AFTER EVERYTHING HAS RUN.
             //
-            // Sira onemli: "kasada ilk on bin" ucret ve kira odenmeden
-            // once bakilsaydi, oyuncu haftanin faturasini odemeden once
-            // bir an icin zengin gorunur ve nisani HAK ETMEDEN alirdi.
+            // The order matters: had "the first ten thousand in the till"
+            // been checked before the wages and rent were paid, the player
+            // would look rich for a moment before the week's bill and would
+            // take the badge WITHOUT EARNING IT.
             EvaluateBadges();
             WeeklyReportIfDue();
 
@@ -1723,62 +1798,63 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bugun hangi nisanlar kazanildi.
+        /// Which badges were earned today.
         ///
-        /// Hepsi GERIYE DONUK: bakilan sey oyuncunun yaptigi, yapmasi
-        /// istenen degil. Bu yuzden hicbiri oyuncunun planini bozamaz -
-        /// bilerek kadrosu eksik calisan oyuncu bir gorevi kacirirdi,
-        /// burada nisan aliyor.
+        /// All of them look BACKWARDS: what is checked is what the player
+        /// did, not what they were asked to do. That is why none of them can
+        /// upset the player's plan - a player deliberately running
+        /// short-handed would have missed a quest; here they take a badge.
         /// </summary>
         private void EvaluateBadges()
         {
-            // Defter bir kez acildiysa bunu KALICI hatirliyoruz: nisanin
-            // kosulu "acik veresiye sifir" degil, "defter acildi ve
-            // kapandi". Bayrak olmadan nisan birinci gun dagitilirdi.
+            // If the book has ever been opened we remember it PERMANENTLY:
+            // the badge's condition is not "the outstanding tab is zero" but
+            // "the book was opened and closed". Without the flag the badge
+            // would be handed out on the first day.
             if (OpenCredit > 0) _creditEverOpened = true;
 
-            bool zirve = IsWeekend(_day);
-            bool kizginYok = _angrySeated == 0;
+            bool peak = IsWeekend(_day);
+            bool noneAngry = _angrySeated == 0;
 
-            // 1. Zirvede kimse ac donmedi.
-            if (zirve && kizginYok && _turnedAwayParties == 0 && _servedParties > 0)
-                Earn(Badges.HerkesDoydu);
+            // 1. Nobody went hungry at the peak.
+            if (peak && noneAngry && _turnedAwayParties == 0 && _servedParties > 0)
+                Earn(Badges.EverybodyFed);
 
-            // 2. Zirveyi eksik kadroyla gecti.
+            // 2. Got through the peak short-handed.
             //
-            // "Eksik" = gereken kadronun ALTINDA. Iki havuzdan biri bile
-            // eksikse sayiliyor: oyunun takasinda bir kisi eksik
-            // calismak bir kisi eksik calismaktir.
-            if (zirve && kizginYok && _servedParties > 0)
+            // "Short" = BELOW the crew required. It counts if even one of the
+            // two pools is short: in the game's trade-off, working one head
+            // short is working one head short.
+            if (peak && noneAngry && _servedParties > 0)
             {
-                Crew gereken = RequiredCrewToday();
-                if (_cooks < gereken.Cooks || _salon < gereken.Salon)
-                    Earn(Badges.ZirveEksikKadro);
+                Crew required = RequiredCrewToday();
+                if (_cooks < required.Cooks || _hall < required.Hall)
+                    Earn(Badges.PeakShortHanded);
             }
 
-            // 3. Defter kapandi.
-            if (_creditEverOpened && OpenCredit == 0) Earn(Badges.DefterKapandi);
+            // 3. The book was closed.
+            if (_creditEverOpened && OpenCredit == 0) Earn(Badges.TabBookClosed);
 
-            // 4. Ilk hikaye sahnesi.
+            // 4. The first story beat.
             for (int i = 0; i < RegularCount; i++)
-                if (_regBeat[i] > 0) { Earn(Badges.IlkSahne); break; }
+                if (_regBeat[i] > 0) { Earn(Badges.FirstStoryBeat); break; }
 
-            // 5. Kasada ilk on bin.
-            if (_cash >= Badges.CashMilestone) Earn(Badges.IlkOnBin);
+            // 5. The first ten thousand in the till.
+            if (_cash >= Badges.CashMilestone) Earn(Badges.FirstTenThousand);
 
-            // 6. Dukkan buyudu.
-            if (_tableCount > _economy.TierAt(0).Tables) Earn(Badges.IlkGenisleme);
+            // 6. The shop grew.
+            if (_tableCount > _economy.TierAt(0).Tables) Earn(Badges.FirstExpansion);
 
-            // 7. Itibar 90. Once genislemeyi gerektiriyor - itibar masa
-            // kademesinin tavanina kirpiliyor.
+            // 7. Reputation 90. It requires expanding first - reputation is
+            // clamped to the ceiling of the table tier.
             if (_reputationCenti >= Badges.ReputationMilestoneCenti)
-                Earn(Badges.SemtinKonustugu);
+                Earn(Badges.TalkOfTheNeighbourhood);
         }
 
         /// <summary>
-        /// Nisani ver - YALNIZCA ilk kez. Ikinci kez "bugun kazanildi"
-        /// diye isaretlemek, oyuncuya her hafta ayni seyi yeni gibi
-        /// gostermek olurdu ve nisanin degerini sifirlardi.
+        /// Award the badge - ONLY the first time. Marking it "earned today" a
+        /// second time would be showing the player the same thing as new
+        /// every week, and it would reduce a badge's worth to nothing.
         /// </summary>
         private void Earn(int badge)
         {
@@ -1790,12 +1866,12 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Hafta dolduysa yedi ekseni fotografliyor.
+        /// Photographs the seven axes if the week is up.
         ///
-        /// Score() mevcut durumun SAF bir fonksiyonu - kampanyanin
-        /// herhangi bir gununde calisiyor, yani karne icin yeni bir
-        /// hesap yazmak gerekmedi. Iki ayri hesap bir gun birbirinden
-        /// ayrilirdi ve hangisinin dogru oldugu anlasilmazdi.
+        /// Score() is a PURE function of the current state - it runs on any
+        /// day of the campaign, so no new calculation had to be written for
+        /// the report. Two separate calculations would drift apart one day
+        /// and there would be no telling which was right.
         /// </summary>
         private void WeeklyReportIfDue()
         {
@@ -1811,8 +1887,9 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// docs/14: calisilan her gun 1 puan. Gun KAPANISINDA veriliyor,
-        /// yani bugun ise alinan kisi bugunun servisini acemi gecirir.
+        /// docs/14: 1 point for every day worked. It is awarded at the CLOSE
+        /// of the day, so somebody hired today spends today's service as a
+        /// novice.
         /// </summary>
         private void GainExperience()
         {
@@ -1822,52 +1899,56 @@ namespace Lokanta.Core.Sim
                 before = _economy.XpLevelOf(_cookXpDays[i]);
                 _cookXpDays[i] += XpGainOf(0, i);
                 _cookTenure[i]++;
-                // B = SIRA, gun sayisi degil: gun zaten TenureDays
-                // sabiti. Sirayi tasimazsa bildirim onu ARAMAK zorunda
-                // kalir ve ayni gun iki kisi esigi gecerse ikisine de
-                // birinci adi yazar - yanlis ad, tanimayi tanima
-                // olmaktan cikarir.
+                // B = THE INDEX, not the day count: the day is the constant
+                // TenureDays already. If it did not carry the index the
+                // notification would have to GO LOOKING for it, and if two
+                // people crossed the threshold on the same day it would
+                // write the first one's name against both - a wrong name
+                // stops recognition being recognition.
                 if (_cookTenure[i] == TenureDays)
                     Emit(SimEventKind.StaffTenure, 0, i);
                 after = _economy.XpLevelOf(_cookXpDays[i]);
                 if (after > before) Emit(SimEventKind.StaffLeveledUp, 0, after);
             }
-            for (int i = 0; i < _salon && i < MaxServers; i++)
+            for (int i = 0; i < _hall && i < MaxServers; i++)
             {
-                before = _economy.XpLevelOf(_salonXpDays[i]);
-                _salonXpDays[i] += XpGainOf(1, i);
-                _salonTenure[i]++;
-                if (_salonTenure[i] == TenureDays)
+                before = _economy.XpLevelOf(_hallXpDays[i]);
+                _hallXpDays[i] += XpGainOf(1, i);
+                _hallTenure[i]++;
+                if (_hallTenure[i] == TenureDays)
                     Emit(SimEventKind.StaffTenure, 1, i);
-                after = _economy.XpLevelOf(_salonXpDays[i]);
+                after = _economy.XpLevelOf(_hallXpDays[i]);
                 if (after > before) Emit(SimEventKind.StaffLeveledUp, 1, after);
             }
         }
 
         // =====================================================================
-        // Moral. docs/14 "Moral" tablosu ve esikleri.
+        // Morale. The "Morale" table and thresholds of docs/14.
         //
-        // Bu sistemin varlik sebebi docs/14'te yazili: "Batma merdiveniyle
-        // baglanti: maas gecikmesi merdivenin ucuncu kademesi. Moral cokusu
-        // ve istifa, batmanin somut yuzu oluyor. SAYI KAYBETMEK SOYUT,
-        // ADINI BILDIGIN BIR CALISANIN ISTIFA ETMESI SOMUT."
+        // The reason this system exists is written down in docs/14: "The link
+        // with the ladder down: a late wage is the ladder's third rung. A
+        // collapse in morale, and a resignation, become the concrete face of
+        // going under. LOSING A NUMBER IS ABSTRACT; A MEMBER OF STAFF WHOSE
+        // NAME YOU KNOW HANDING IN THEIR NOTICE IS CONCRETE."
         // =====================================================================
 
         /// <summary>
-        /// Gunun sonunda moral: yogunluk, huy aurasi, ve istifa riski.
-        /// Maas etkisi PayWeeklyCostsIfDue icinde, odeme aninda isliyor.
+        /// Morale at the end of the day: how busy it was, the aura of the
+        /// traits, and the risk of resignation. The effect of wages runs
+        /// inside PayWeeklyCostsIfDue, at the moment of payment.
         /// </summary>
         private void UpdateMorale()
         {
-            if (_cooks + _salon == 0) return;
+            if (_cooks + _hall == 0) return;
 
-            // Yogun gun = mutfak TASARIM KAPASITESININ ustunde calisti.
+            // A busy day = the kitchen worked above its DESIGN CAPACITY.
             //
-            // Ilk tanim "masa basina uc grup" idi ve olcum reddetti: iyi
-            // yonetilen bir dukkanda her gun yogun sayiliyordu, moral tek
-            // yonlu dusuyordu ve butun kadro bir ayda istifa ediyordu.
-            // Yogunluk mutlak bir esik degil, KADROYA GORE bir esik: ayni
-            // musteri sayisi iki asciyla sakin, bir asciyla yorucu.
+            // The first definition was "three parties per table" and
+            // measurement rejected it: in a well-run shop every day counted
+            // as busy, morale fell in one direction only, and the whole crew
+            // resigned within a month. Busyness is not an absolute threshold
+            // but a threshold RELATIVE TO THE CREW: the same number of
+            // customers is calm with two cooks and gruelling with one.
             long capacity = (long)_cooks * _economy.CookCapacityPerDay;
             bool busy = capacity > 0 && _servedPeople > capacity;
             _busyStreak = busy ? _busyStreak + 1 : 0;
@@ -1875,32 +1956,34 @@ namespace Lokanta.Core.Sim
             int busyDelta = _busyStreak >= 3 ? _economy.MoraleBusyDelta : 0;
             if (!busy) busyDelta = _economy.MoraleRecoveryDelta;
 
-            // Huy aurasi: ekip moralini yukselten +10, huysuz -8. Kendi
-            // aurasi kendine islemiyor - yoksa huysuz kendi kendini
-            // dovuyor ve moralin cok altina dusuyordu.
+            // The trait aura: whoever lifts the crew's morale gives +10, a
+            // surly one -8. Their own aura does not apply to themselves -
+            // otherwise the surly one beats themselves up and falls far
+            // below the morale floor.
             int aura = 0;
             for (int i = 0; i < _cooks && i < MaxServers; i++)
                 aura += TraitSum(0, i, t => t.MoraleAura);
-            for (int i = 0; i < _salon && i < MaxServers; i++)
+            for (int i = 0; i < _hall && i < MaxServers; i++)
                 aura += TraitSum(1, i, t => t.MoraleAura);
 
             for (int pool = 0; pool < 2; pool++)
             {
-                int count = pool == 0 ? _cooks : _salon;
-                int[] morale = pool == 0 ? _cookMorale : _salonMorale;
+                int count = pool == 0 ? _cooks : _hall;
+                int[] morale = pool == 0 ? _cookMorale : _hallMorale;
                 for (int i = 0; i < count && i < MaxServers; i++)
                 {
                     int own = TraitSum(pool, i, t => t.MoraleAura);
-                    // Aura gunluk degil KADEMELI: bir huysuz her gun -8
-                    // vermez, ekibin havasini o kadar asagi CEKER. Onda
-                    // birini uygulamak, dengeyi yillik degil haftalik
-                    // olcege oturtuyor.
+                    // The aura is GRADUAL rather than daily: a surly one
+                    // does not give -8 every day, they PULL the crew's mood
+                    // down by that much. Applying a tenth of it settles the
+                    // balance onto a weekly rather than a yearly scale.
                     morale[i] += busyDelta + (aura - own) / 10;
 
-                    // Toparlanma baslangic moralini GECMIYOR: sakin gunler
-                    // bir personeli mutlu etmez, yalnizca normale dondurur.
-                    // Ustune cikmak icin oyuncunun bir sey YAPMASI lazim
-                    // (zam, izin gunu - docs/14 olay listesi).
+                    // Recovery DOES NOT GO PAST the starting morale: quiet
+                    // days do not make somebody happy, they only bring them
+                    // back to normal. Going above it requires the player to
+                    // DO something (a rise, a day off - the event list in
+                    // docs/14).
                     if (busyDelta > 0 && morale[i] > _economy.StartingMorale)
                         morale[i] = _economy.StartingMorale;
                     ClampMorale(pool, i);
@@ -1911,52 +1994,53 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Kadronun huylarindan gelen ucret carpani, baz puan.
-        /// Bir cirak ucuz, bir tecrubeli pahali; ikisi bir aradaysa fatura
-        /// arada bir yerde.
+        /// The wage multiplier coming out of the crew's traits, in basis
+        /// points. An apprentice is cheap and an experienced hand dear; with
+        /// both on the books the bill lands somewhere in between.
         /// </summary>
         public int TraitWageMultiplierBp()
         {
-            int people = _cooks + _salon;
+            int people = _cooks + _hall;
             if (people == 0) return Fx.One;
 
             long sum = 0;
             for (int i = 0; i < _cooks && i < MaxServers; i++)
                 sum += Fx.One + TraitSum(0, i, t => t.WageBp);
-            for (int i = 0; i < _salon && i < MaxServers; i++)
+            for (int i = 0; i < _hall && i < MaxServers; i++)
                 sum += Fx.One + TraitSum(1, i, t => t.WageBp);
 
             int bp = (int)(sum / people);
-            return bp < 1000 ? 1000 : bp;      // taban: ucret sifirlanamaz
+            return bp < 1000 ? 1000 : bp;      // a floor: a wage cannot be zeroed
         }
 
-        /// <summary>Butun kadronun moraline ayni miktari uygular.</summary>
+        /// <summary>Applies the same amount to the morale of the whole crew.</summary>
         private void MoraleEvent(int delta)
         {
             for (int i = 0; i < _cooks && i < MaxServers; i++)
             { _cookMorale[i] += delta; ClampMorale(0, i); }
-            for (int i = 0; i < _salon && i < MaxServers; i++)
-            { _salonMorale[i] += delta; ClampMorale(1, i); }
+            for (int i = 0; i < _hall && i < MaxServers; i++)
+            { _hallMorale[i] += delta; ClampMorale(1, i); }
         }
 
         private void ClampMorale(int pool, int index)
         {
-            int[] m = pool == 0 ? _cookMorale : _salonMorale;
+            int[] m = pool == 0 ? _cookMorale : _hallMorale;
             if (m[index] > 100) m[index] = 100;
             if (m[index] < 0) m[index] = 0;
         }
 
         /// <summary>
-        /// docs/14: moral 15'in altindaysa her gun %10 istifa riski.
-        /// Istifa eden SONDAN degil, kendi yerinden gidiyor; kalanlar
-        /// kayiyor. Yani en deneyimliyi de kaybedebilirsin.
+        /// docs/14: with morale below 15, a 10% risk of resignation every
+        /// day. Whoever resigns goes from their own position rather than from
+        /// the end; the rest slide along. So you can lose your most
+        /// experienced hand too.
         /// </summary>
         private void RollResignations()
         {
             for (int pool = 0; pool < 2; pool++)
             {
-                int[] morale = pool == 0 ? _cookMorale : _salonMorale;
-                for (int i = (pool == 0 ? _cooks : _salon) - 1; i >= 0; i--)
+                int[] morale = pool == 0 ? _cookMorale : _hallMorale;
+                for (int i = (pool == 0 ? _cooks : _hall) - 1; i >= 0; i--)
                 {
                     if (i >= MaxServers) continue;
                     if (morale[i] >= _economy.MoraleQuitThreshold) continue;
@@ -1969,45 +2053,49 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bir personeli listeden cikarir; sonrakiler kayiyor.
+        /// Removes a member of staff from the list; those after them slide
+        /// along.
         ///
-        /// AD DA KAYIYOR. Once ad dizisi kaydirilmiyordu ve bu fonksiyonun
-        /// tek cagirani ISTIFA: dusuk morallu biri ayrilinca listede
-        /// altindaki HERKESIN adi bir kayiyordu, ve ad kayda yazildigi
-        /// icin hata kaliciydi.
+        /// THE NAME SLIDES TOO. The name array was not being shifted, and
+        /// this function's only caller is A RESIGNATION: when somebody with
+        /// low morale left, the name of EVERYONE below them in the list
+        /// shifted by one, and because the name is written into the save the
+        /// error was permanent.
         ///
-        /// Bu mekanigin var olma sebebi tam da buydu: "sayi kaybetmek
-        /// soyut, ADINI BILDIGIN bir calisanin istifa etmesi somut."
-        /// Adlar yalan soyleyince mekanik tersine doniyordu.
+        /// That is precisely why this mechanic exists: "losing a number is
+        /// abstract; a member of staff WHOSE NAME YOU KNOW handing in their
+        /// notice is concrete." Once the names started lying, the mechanic
+        /// turned on its head.
         /// </summary>
         /// <summary>
-        /// Grubun MUTFAKTA isi var mi.
+        /// Does the party have work IN THE KITCHEN.
         ///
-        /// _pInTask'tan AYRI. Ikisi de "bu grupla ilgileniliyor" diye
-        /// yazilmisti ama anlamlari farkli: _pInTask "garson masada"
-        /// demek ve sabri DONDURUYOR; asci ocakta olmak ise musteriyle
-        /// ilgilenmek degil - musteri tam da o sirada bekliyor.
+        /// SEPARATE from _pInTask. Both had been written as "this party is
+        /// being seen to", but their meanings differ: _pInTask means "a
+        /// waiter is at the table" and it FREEZES patience; whereas a cook
+        /// being at the stove is not attending to the customer - the
+        /// customer is waiting at exactly that moment.
         ///
-        /// Olculdu: "yemek bekliyor" tiklerinin %87'sinde sabir
-        /// DONMUSTU, yani DrainWaitingFoodBp = 3500 fiilen ~465 olarak
-        /// isliyordu (7,5 kat zayif). Sonucu: prepMs, ekipman kademesi
-        /// ve kombonun mutfak yuku musteri tarafinda neredeyse hic
-        /// gorunmuyordu - "mutfak sikisti" gerilimi vardi ama bedeli
-        /// yoktu.
+        /// Measured: in 87% of "waiting for food" ticks, patience WAS
+        /// FROZEN, so DrainWaitingFoodBp = 3500 was in practice behaving as
+        /// ~465 (7.5 times weaker). The consequence: prepMs, the equipment
+        /// tier and the combo's kitchen load were almost invisible on the
+        /// customer's side - the tension of "the kitchen is backed up"
+        /// existed, but it had no price.
         ///
-        /// Gorev dagitimi iki bayragi da okuyor (bir grubu ayni anda
-        /// iki ise almamak icin); yalnizca SABIR ayrildi.
+        /// Task dispatch reads both flags (so as not to put a party into two
+        /// tasks at once); only PATIENCE was separated out.
         /// </summary>
         private readonly bool[] _pKitchenTask = new bool[MaxParties];
 
         private void RemoveStaff(int pool, int index)
         {
-            int[] xp = pool == 0 ? _cookXpDays : _salonXpDays;
-            int[] ta = pool == 0 ? _cookTraitA : _salonTraitA;
-            int[] tb = pool == 0 ? _cookTraitB : _salonTraitB;
-            int[] mo = pool == 0 ? _cookMorale : _salonMorale;
-            int[] nm = pool == 0 ? _cookName : _salonName;
-            int count = pool == 0 ? _cooks : _salon;
+            int[] xp = pool == 0 ? _cookXpDays : _hallXpDays;
+            int[] ta = pool == 0 ? _cookTraitA : _hallTraitA;
+            int[] tb = pool == 0 ? _cookTraitB : _hallTraitB;
+            int[] mo = pool == 0 ? _cookMorale : _hallMorale;
+            int[] nm = pool == 0 ? _cookName : _hallName;
+            int count = pool == 0 ? _cooks : _hall;
 
             for (int k = index; k < count - 1 && k + 1 < MaxServers; k++)
             {
@@ -2023,12 +2111,14 @@ namespace Lokanta.Core.Sim
                 xp[last] = 0; ta[last] = -1; tb[last] = -1; mo[last] = 0;
                 nm[last] = -1;
             }
-            if (pool == 0) _cooks--; else _salon--;
+            if (pool == 0) _cooks--; else _hall--;
         }
 
         /// <summary>
-        /// Gunluk deneyim puani. docs/14: normalde 1, cirak huyu varsa 2,
-        /// tecrubeli huyu varsa 0 - "tecrubeli deneyim kazanmaz."
+        /// The day's experience points. docs/14: normally 1. It is 2 with
+        /// the `cirak` trait, and 0 with the
+        /// `tecrubeli` trait, since "an experienced hand gains no
+        /// experience."
         /// </summary>
         private int XpGainOf(int pool, int index)
         {
@@ -2038,21 +2128,21 @@ namespace Lokanta.Core.Sim
                 int t = StaffTrait(pool, index, slot);
                 if (t < 0) continue;
                 int xp = _economy.TraitAt(t).XpBp;
-                if (xp != Fx.One) mult = xp;      // en belirleyici huy
+                if (xp != Fx.One) mult = xp;      // the most decisive trait
             }
             return (int)Fx.MulDiv(1, mult, Fx.One);
         }
 
         /// <summary>
-        /// Bozulabilir malzeme gunu kapatinca degerinin tamamini kaybediyor.
-        /// docs/12 3: mutfaklarin risk profilini ayiran sey bu, ve soguk
-        /// hava YOKKEN gecerli olan kural.
+        /// A perishable ingredient loses all of its value when the day
+        /// closes. docs/12 3: this is what separates the cuisines' risk
+        /// profiles, and it is the rule that holds WITHOUT a cold store.
         ///
-        /// Soguk hava kademesi malzemenin KENDI raf omrunun bir kismini
-        /// kazandiriyor. Icerikteki spoilDays alani boylece canlaniyor:
-        /// o alan yazilmisti ama simulasyon onu hic okumuyordu, yani
-        /// yirmi gun dayanan sogan ile bir gun dayanan kiyma ayni gece
-        /// cope gidiyordu.
+        /// A cold-store tier buys back part of an ingredient's OWN shelf
+        /// life. That is how the spoilDays field in the content comes alive:
+        /// the field had been written but the simulation never read it, so
+        /// an onion that keeps for twenty days and mince that keeps for one
+        /// went into the bin on the same night.
         /// </summary>
         private void SpoilPerishables()
         {
@@ -2064,36 +2154,39 @@ namespace Lokanta.Core.Sim
 
                 _stockAgeDays[i]++;
 
-                // Omur = KAC GUN kullanilabilir. Yas her gecenin sonunda
-                // bir artiyor, yani omur 1 "yalnizca alindigi gun" demek
-                // ve omur 0 ile ayni gece cope gidiyor.
+                // The life = HOW MANY DAYS it can be used. The age goes up
+                // by one at the end of every night, so a life of 1 means
+                // "only on the day it was bought" and goes into the bin on
+                // the same night as a life of 0.
                 //
-                // Burada bir zamanlar "soguk hava varsa en az bir gun"
-                // diye bir taban vardi; hicbir sey yapmiyordu, cunku omur
-                // 1 ile omur 0 ayni. Taban buyutulerek "gercek" yapilmak
-                // istendi ve TEST CURUTTU: icerikteki spoilDays, TAM
-                // SOGUTMADAKI raf omru. Kiymanin spoilDays'i 1, yani en
-                // ust kademede bile bir gun - ve oyle olmali. Taban
-                // buyutulseydi kiyma buzdolabinda etten uzun yasardi.
+                // There used to be a floor here reading "at least one day if
+                // there is a cold store"; it did nothing, because a life of 1
+                // and a life of 0 are the same. An attempt was made to make
+                // it "real" by raising the floor and A TEST REFUTED IT: the
+                // spoilDays in the content is the shelf life UNDER FULL
+                // REFRIGERATION. Mince has a spoilDays of 1, that is, one day
+                // even at the top tier - and so it should be. Had the floor
+                // been raised, mince would outlive beef in the fridge.
                 //
-                // Yani kisa omurlu malzeme her gece oluyor, her kademede.
-                // Soguk hava onlari kurtarmiyor; UZUN omurlulari kurtariyor
-                // ve menu genisligini oradan satin aliyor.
+                // So a short-lived ingredient dies every night, at every
+                // tier. The cold store does not save those; it saves the
+                // LONG-lived ones, and that is where it buys menu breadth.
                 int life = keepBp > 0
                     ? (int)Fx.MulDiv(_content.Ingredients[i].SpoilDays, keepBp, Fx.One)
                     : 0;
 
                 if (_stockAgeDays[i] >= life)
                 {
-                    // ZAYIATIN DEGERI sayiliyor.
+                    // THE VALUE OF THE SPOILAGE IS COUNTED.
                     //
-                    // Denge araci "net" sutununda gercek kasa
-                    // hareketinin 2-20 kati bir sayi raporluyordu ve
-                    // farkin tamami buydu: cope giden stok hicbir yerde
-                    // toplanmiyordu. Olculdu - hicbir sey almayan ama
-                    // her gun hal'e giden bir botta, alinan her 100
-                    // sikkelik malzemenin 43'u cope gidiyor. Uc tasarim
-                    // sorusunun cevabi bu yuzden TERS ISARETLIYDI.
+                    // The balance tool was reporting a number in the "net"
+                    // column 2-20 times the real movement of cash, and the
+                    // whole of the difference was this: the stock going into
+                    // the bin was not being totalled anywhere. Measured - on
+                    // a bot that buys nothing but goes to the market every
+                    // day, 43 out of every 100 coins' worth of ingredients
+                    // bought goes into the bin. That is why the answers to
+                    // three design questions CARRIED THE WRONG SIGN.
                     long lost = Fx.MulDiv(
                         _content.Ingredients[i].BasePrice, _stockGrams[i], 1000);
                     _spoiledValue += lost;
@@ -2106,8 +2199,8 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Soguk hava kademesinin kazandirdigi raf omru payi, baz puan.
-        /// 0 = soguk hava yok, malzeme gece oluyor.
+        /// The share of shelf life the cold-store tier buys back, in basis
+        /// points. 0 = no cold store, the ingredient dies overnight.
         /// </summary>
         private int StorageKeepBp()
         {
@@ -2116,21 +2209,22 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Kira ve maaslar HAFTALIK, yedinci gunun sonunda tek seferde odenir.
-        /// docs/12 2: baski metronomu bu.
+        /// Rent and wages are WEEKLY, paid in one go at the end of the
+        /// seventh day. docs/12 2: this is the metronome of the pressure.
         /// </summary>
         private void PayWeeklyCostsIfDue()
         {
             if (_day % _economy.RentDayInterval != 0) return;
 
             int week = _day / 7;
-            Crew crew = new Crew(_cooks, _salon);
+            Crew crew = new Crew(_cooks, _hall);
             long wages = StaffingModel.WeeklyWageBill(crew, week, _economy);
 
-            // Huyun ucrete etkisi. docs/14: cirak -%25, tecrubeli +%30.
-            // Kadro carpani ORTALAMA aliniyor cunku WeeklyWageBill kisi
-            // basi degil havuz basi hesapliyor; ucret modelinin sekli
-            // (docs/14 kapasite modeli) o yuzden bozulmuyor.
+            // The trait's effect on the wage. docs/14: `cirak` -25%,
+            // `tecrubeli` +30%. The crew multiplier is taken as a MEAN
+            // because WeeklyWageBill works per pool rather than per head;
+            // that is why the shape of the wage model (the capacity model of
+            // docs/14) is not broken.
             wages = Fx.MulDiv(wages, TraitWageMultiplierBp(), Fx.One);
 
             long rent = _economy.TierForTables(_tableCount).Rent;
@@ -2145,14 +2239,16 @@ namespace Lokanta.Core.Sim
                 if (_loanWeeksLeft == 0) _loanInstallment = 0;
             }
 
-            // docs/14: "maas zamaninda odendi +5, maas gecikti -25", ve bu
-            // batma merdiveninin ucuncu kademesi.
+            // docs/14: "the wage was paid on time +5, the wage was late
+            // -25", and this is the third rung of the ladder down.
             //
-            // Olcut BUTUN FATURA: kira, maas ve taksit odendikten sonra
-            // kasa artida mi. Ilk yazim yalnizca maasa bakiyordu ve o gun
-            // sabah malzeme almis SAGLAM bir dukkani da "gecikti" sayiyordu;
-            // bir kisi istifa edince servis dusuyor, ciro dusuyor ve iyi
-            // oyuncu kendi kendine cokuyordu. Gecikme, borca dusmektir.
+            // The test is THE WHOLE BILL: is the till in credit after the
+            // rent, the wages and the instalment have been paid. The first
+            // draft looked only at the wages and counted a SOUND shop that
+            // had bought ingredients that morning as "late" too; one
+            // resignation dropped service, which dropped revenue, and a good
+            // player came down on their own. Being late means falling into
+            // debt.
             bool onTime = _cash - (wages + rent + installment) >= 0;
             MoraleEvent(onTime ? _economy.MoralePaidDelta : _economy.MoraleLateDelta);
             if (!onTime) Emit(SimEventKind.WagesLate, _day, (int)(wages - _cash));
@@ -2177,39 +2273,42 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Batma merdiveni. docs/02 "yumusak ama disli basarisizlik".
+        /// The ladder down. docs/02, "soft but toothed failure".
         ///
-        /// Bu yazilana kadar kasa eksiye dusunce HICBIR SEY olmuyordu ve
-        /// sonuc bir yumusak kilitti: eksi kasayla malzeme alinamiyor
-        /// (OrderIngredient "cost > _cash" ile reddediyor), yani ciro
-        /// sifira duşuyor; ama kira ve maas kosulsuz kesilmeye devam
-        /// ediyor. Olculdu: atilgan bot 7. gunde borca dusuyor, kalan 53
-        /// gunu musterisiz geciriyor ve -48.370 ile bitiriyor. Ne
-        /// ogreticiydi ne keyfi - oyun bitmiyordu, sadece donuyordu.
+        /// Until this was written, NOTHING happened when the till went
+        /// negative, and the result was a soft lock: with a negative till no
+        /// ingredients can be bought (OrderIngredient rejects on "cost >
+        /// _cash"), so revenue falls to zero; but the rent and the wages go
+        /// on being taken unconditionally. Measured: the bold bot falls into
+        /// debt on day 7, spends the remaining 53 days without a customer and
+        /// finishes on -48,370. It was neither instructive nor enjoyable -
+        /// the game did not end, it simply froze.
         ///
-        /// Merdiven uc basamak, ve HER BASAMAK KASAYI TOPARLIYOR:
+        /// The ladder has three rungs, and EVERY RUNG PUTS THE TILL BACK
+        /// TOGETHER:
         ///
-        ///   1. Ekipman satisi - en ust kademeden baslayarak, alis
-        ///      fiyatinin yarisina. Kapasite dusuyor ama dukkan aciliyor.
-        ///   2. Kucullme - bir masa kademesi asagi, gecis bedelinin
-        ///      yarisi geri. Kira da dusuyor, yani bu asil kurtarma.
-        ///   3. Kalan borc SILINIYOR ve itibar bedeli aliniyor.
+        ///   1. Selling equipment - starting from the top tier, at half the
+        ///      purchase price. Capacity falls but the shop opens.
+        ///   2. Downsizing - one table tier down, half the cost of the move
+        ///      back. The rent falls too, so this is the real rescue.
+        ///   3. The remaining debt IS WRITTEN OFF and the price is taken out
+        ///      of reputation.
         ///
-        /// Kayit silinmiyor, oyun bitmiyor (docs/08). Bedel birikimli:
-        /// merdivene inmek yil sonu degerlendirmesinde saglamlik eksenini
-        /// dusuruyor.
+        /// The save is not deleted and the game does not end (docs/08). The
+        /// price is cumulative: climbing down the ladder lowers the
+        /// resilience axis in the year-end evaluation.
         /// </summary>
         private void ClimbDownDebtLadder()
         {
             _debtRungs++;
 
-            // --- 1. ekipman sat ------------------------------------------
+            // --- 1. sell equipment ----------------------------------------
             while (_cash < 0 && SellBestEquipment()) { }
 
-            // --- 2. kucul ------------------------------------------------
+            // --- 2. downsize ----------------------------------------------
             while (_cash < 0 && Downsize()) { }
 
-            // --- 3. borcu sil, itibari ode ------------------------------
+            // --- 3. write off the debt, pay in reputation ------------------
             if (_cash < 0)
             {
                 _rescueValue += -_cash;
@@ -2217,59 +2316,62 @@ namespace Lokanta.Core.Sim
                 _reputationCenti -= _economy.DebtWriteOffRepCenti;
                 if (_reputationCenti < 0) _reputationCenti = 0;
 
-                // SIFIR KASA DA BIR KILITTI.
+                // A ZERO TILL WAS A LOCK TOO.
                 //
-                // Merdiven tam olarak yumusak kilidi cozmek icin yazildi,
-                // ama ucuncu basamak kasayi SIFIRA birakiyordu ve Buy
-                // "cost > _cash" ile reddediyor - sifirla da hicbir
-                // malzeme alinamiyor. Olculdu: tabak testinin tani
-                // ciktisi 10. gunden 40. gune kadar HER GUN "0 grup, 4
-                // masa" basiyordu. Otuz bes gun ust uste tek musteri yok,
-                // kira ve maas kesilmeye devam ediyor, merdiven her hafta
-                // yeniden iniyor. Yani merdiven kilidi cozmuyor,
-                // SONSUZA KADAR TEKRARLIYORDU.
+                // The ladder was written precisely to break the soft lock,
+                // but the third rung left the till at ZERO, and Buy rejects
+                // on "cost > _cash" - with zero, no ingredient can be bought
+                // either. Measured: the diagnostic output of the plate test
+                // printed "0 parties, 4 tables" EVERY DAY from day 10 to day
+                // 40. Thirty-five days running without a single customer,
+                // the rent and the wages still being taken, and the ladder
+                // being climbed down again every week. So the ladder was not
+                // breaking the lock, it was REPEATING IT FOREVER.
                 //
-                // Basamak artik dukkani CALISIR halde birakiyor: bir
-                // gunluk onerilen stogun bedeli kadar kurtarma payi.
-                // Sayi uydurma degil - RecommendedRestock zaten menuyu,
-                // talebi ve emniyet payini biliyor, yani "yarin sabah
-                // acilabilecek kadar".
+                // The rung now leaves the shop IN WORKING ORDER: a rescue
+                // sum equal to the cost of one day's recommended stock. The
+                // number is not invented - RecommendedRestock already knows
+                // the menu, the demand and the safety margin, so it means
+                // "enough to open tomorrow morning".
                 //
-                // Bedeli var: kurtarma degeri yil sonu saglamlik
-                // eksenine yaziliyor, yani merdivene inmek hep pahali.
-                long tabanKasa = RecommendedRestockCost();
-                if (tabanKasa > 0)
+                // It has a price: the rescue value is written into the
+                // year-end resilience axis, so climbing down the ladder is
+                // always expensive.
+                long floorCash = RecommendedRestockCost();
+                if (floorCash > 0)
                 {
-                    _cash = tabanKasa;
-                    _rescueValue += tabanKasa;
+                    _cash = floorCash;
+                    _rescueValue += floorCash;
                 }
             }
         }
 
         /// <summary>
-        /// Bir gunluk onerilen stogun guncel mevsim fiyatiyla bedeli.
+        /// The cost of one day's recommended stock at the current seasonal
+        /// price.
         ///
-        /// Merdivenin kurtarma payi bundan geliyor. Buy ile AYNI fiyat
-        /// yolunu kullaniyor (mevsim oynamasi + pazar carpani), yoksa
-        /// "yetecek kadar verdim" diye hesaplanan para yetmezdi.
+        /// The ladder's rescue sum comes from this. It uses THE SAME price
+        /// path as Buy (the seasonal movement + the market multiplier);
+        /// otherwise money worked out as "I gave them enough" would not have
+        /// been enough.
         /// </summary>
         private long RecommendedRestockCost()
         {
-            long toplam = 0;
+            long total = 0;
             for (int i = 0; i < _stockGrams.Length; i++)
             {
                 int need = RecommendedRestock(i);
                 if (need <= 0) continue;
-                long kilo = _content.Ingredients[i].PriceAt(Season, _quality);
-                kilo = Fx.MulDiv(kilo, _marketBp[i], Fx.One);
-                toplam += Fx.MulDiv(kilo, need, GramsPerKilo);
+                long perKilo = _content.Ingredients[i].PriceAt(Season, _quality);
+                perKilo = Fx.MulDiv(perKilo, _marketBp[i], Fx.One);
+                total += Fx.MulDiv(perKilo, need, GramsPerKilo);
             }
-            return toplam;
+            return total;
         }
 
         /// <summary>
-        /// En yuksek kademeli istasyonu bir basamak satar. Fiyatin yarisi
-        /// geri geliyor; satis her zaman zarardir, bilerek.
+        /// Sells the highest-tier station down one rung. Half the price comes
+        /// back; a sale is always a loss, deliberately.
         /// </summary>
         private bool SellBestEquipment()
         {
@@ -2281,8 +2383,8 @@ namespace Lokanta.Core.Sim
                 int t = _stationTier[i];
                 if (t <= 0) continue;
 
-                // Masa sayisinin ZORUNLU kildigi kademenin altina inilmiyor:
-                // satis dukkani calisamaz hale getirmemeli.
+                // It does not go below the tier the table count makes
+                // COMPULSORY: a sale must not leave the shop unable to work.
                 if (t <= RequiredStationTier(i)) continue;
 
                 long price = _content.Stations[i].Tiers[t].Price;
@@ -2297,7 +2399,7 @@ namespace Lokanta.Core.Sim
             return true;
         }
 
-        /// <summary>Bir masa kademesi asagi iner. Kira da dusuyor.</summary>
+        /// <summary>Goes down one table tier. The rent falls with it.</summary>
         private bool Downsize()
         {
             int tier = -1;
@@ -2309,49 +2411,50 @@ namespace Lokanta.Core.Sim
             _cash += _economy.TierAt(tier).Upgrade / 2;
             _rescueValue += _economy.TierAt(tier).Upgrade / 2;
 
-            // KUCULEN DUKKAN TABAK DA KAYBEDIYOR.
+            // A SHRINKING SHOP LOSES PLATES TOO.
             //
-            // Expand fark kadar TEMIZ tabak ekliyordu, Downsize hicbir
-            // sey cikarmiyordu: kucullme gununde
-            // "temiz + kullanimda + kirli > PlatesTotal" oluyor ve
-            // WashNeeded'in esikleri kucullmus toplama gore hesaplandigi
-            // icin bulasik nobeti yanlis zamanda tetikleniyordu. Gece
-            // AdvanceToNextDay tabaklari kademeye yeniden yazdigi icin
-            // hata KENDINI GIZLIYORDU - degismez yalnizca o gun kirikti.
+            // Expand was adding CLEAN plates for the difference while
+            // Downsize removed none: on the day of the downsizing
+            // "clean + in use + dirty > PlatesTotal" held, and because
+            // WashNeeded's thresholds are worked out against the shrunken
+            // total, the washing-up shift was triggered at the wrong time.
+            // Because AdvanceToNextDay rewrites the plates to the tier
+            // overnight, the bug WAS HIDING ITSELF - the invariant was only
+            // broken on that one day.
             //
-            // Once temizden, yetmezse kirliden dusuyor. Masadaki
-            // (kullanimdaki) tabaga dokunulmuyor: elinde tabak olan
-            // misafir ortadan kaybolmaz.
-            int fazlaTabak = _economy.TierAt(tier).Plates - lower.Plates;
-            if (fazlaTabak > 0)
+            // It comes off the clean plates first and off the dirty ones if
+            // that is not enough. The plates on the tables (in use) are not
+            // touched: a guest with a plate in front of them does not vanish.
+            int extraPlates = _economy.TierAt(tier).Plates - lower.Plates;
+            if (extraPlates > 0)
             {
-                int temizden = fazlaTabak < _platesClean ? fazlaTabak : _platesClean;
-                _platesClean -= temizden;
-                fazlaTabak -= temizden;
-                if (fazlaTabak > 0)
+                int fromClean = extraPlates < _platesClean ? extraPlates : _platesClean;
+                _platesClean -= fromClean;
+                extraPlates -= fromClean;
+                if (extraPlates > 0)
                 {
-                    int kirliden = fazlaTabak < _platesDirty ? fazlaTabak : _platesDirty;
-                    _platesDirty -= kirliden;
+                    int fromDirty = extraPlates < _platesDirty ? extraPlates : _platesDirty;
+                    _platesDirty -= fromDirty;
                 }
             }
 
             _tableCount = lower.Tables;
 
-            // Kadro tavani da dustu; fazla kalanlar gidiyor.
+            // The staff cap has fallen too; whoever is over it goes.
             int cap = lower.StaffCap;
-            while (_cooks + _salon > cap && _salon > 0) Fire(1, _salon - 1);
-            while (_cooks + _salon > cap && _cooks > 1) Fire(0, _cooks - 1);
+            while (_cooks + _hall > cap && _hall > 0) Fire(1, _hall - 1);
+            while (_cooks + _hall > cap && _cooks > 1) Fire(0, _cooks - 1);
 
             Emit(SimEventKind.Downsized, _tableCount, tier - 1);
             return true;
         }
 
-        /// <summary>Aksam asamasindan ertesi sabaha gecer.</summary>
+        /// <summary>Moves from the evening stage to the next morning.</summary>
         public void AdvanceToNextDay()
         {
             if (_phase != DayPhase.Evening) return;
 
-            // Gunun kuveri SIFIRLANMADAN once zirveyi guncelle.
+            // Update the peak BEFORE the day's covers are zeroed.
 
             _day++;
             _phase = DayPhase.Morning;
@@ -2363,8 +2466,8 @@ namespace Lokanta.Core.Sim
             _servedPeople = 0;
             _angryParties = 0;
             _angrySeated = 0;
-            _salonRushWashes = 0;
-            _salonCrisisWashes = 0;
+            _hallRushWashes = 0;
+            _hallCrisisWashes = 0;
             _revenue = 0;
             _ingredientCost = 0;
             _satisfactionSum = 0;
@@ -2373,8 +2476,8 @@ namespace Lokanta.Core.Sim
             _arrNext = 0;
             _turnedAwayParties = 0;
             _commandCount = 0;
-            // BUGUN kazanilanlar sifirlaniyor; kazanilmis nisanlar
-            // (_badges) elbette duruyor.
+            // What was earned TODAY is zeroed; the badges already earned
+            // (_badges) of course stay.
             _badgesToday = 0;
             for (int i = 0; i < MaxTables; i++)
             {
@@ -2383,12 +2486,12 @@ namespace Lokanta.Core.Sim
                 _tablePlates[i] = 0;
             }
 
-            // GECE BULASIK BITIYOR.
+            // THE WASHING-UP IS FINISHED OVERNIGHT.
             //
-            // Kapanis vardiyasi lavaboyu bosaltir; ertesi sabah butun
-            // tabaklar temiz. Darbogaz GUN ICINDE bir darbogaz - dunku
-            // ihmali bugune tasimak, oyuncunun goremedigi bir yerden gelen
-            // bir ceza olurdu.
+            // The closing shift empties the sink; the next morning every
+            // plate is clean. The bottleneck is a bottleneck WITHIN THE DAY -
+            // carrying yesterday's neglect into today would be a punishment
+            // arriving from somewhere the player cannot see.
             _platesClean = _economy.TierForTables(_tableCount).Plates;
             _platesDirty = 0;
             _platesInUse = 0;
@@ -2401,11 +2504,12 @@ namespace Lokanta.Core.Sim
             for (int i = 0; i < MaxParties; i++) { _pPlates[i] = 0; _pCooked[i] = false; }
             for (int i = 0; i < MaxServers; i++)
             {
-                _salonTaskKind[i] = TaskKind.None;
+                _hallTaskKind[i] = TaskKind.None;
                 _kitchenTaskKind[i] = TaskKind.None;
             }
-            // Gun basinda hicbir yuva dolu olmamali. Onceki gunden kalan
-            // bir sayac mutfagi kalici olarak daraltirdi.
+            // No slot should be occupied at the start of the day. A counter
+            // left over from the previous day would narrow the kitchen
+            // permanently.
             for (int i = 0; i < _stationBusy.Length; i++) _stationBusy[i] = 0;
             for (int j = 0; j < _jobStation.Length; j++)
             {
@@ -2438,16 +2542,16 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bugun acilan yemekleri duyurur.
+        /// Announces the dishes unlocked today.
         ///
-        /// Neden bir olay: acilis SESSIZ oluyordu. Yemekler 3. gunden 57.
-        /// gune kadar teker teker aciliyor ve oyuncu bunu ancak Menu
-        /// ekranini acip asagi kaydirirsa goruyordu. Acilan her sey bir
-        /// odul; duyurulmayan odul odul degil.
+        /// Why an event: the unlock was SILENT. The dishes open one by one
+        /// from day 3 to day 57, and the player only saw it if they opened
+        /// the Menu screen and scrolled down. Everything that opens is a
+        /// reward; a reward that is not announced is not a reward.
         ///
-        /// Dun kapali bugun acik olanlar taraniyor, yani kosul yemegin
-        /// GUNU olmak zorunda degil - itibarla ya da ekipmanla acilan bir
-        /// yemek de duyuruluyor.
+        /// It scans for what was closed yesterday and is open today, so the
+        /// condition need not be the dish's DAY - a dish opened by reputation
+        /// or by equipment is announced too.
         /// </summary>
         private void AnnounceUnlocks()
         {
@@ -2462,17 +2566,18 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bir yemegin fiyatini ayarlar.
+        /// Sets a dish's price.
         ///
-        /// TAVAN VAR. Memnuniyet [0, 10000] arasina kirpiliyor ve talep
-        /// fiyati hic gormuyor; yani ceza bir noktadan sonra DOYUYOR ve
-        /// ondan sonraki her sifir bedava. Olculdu: yan kalemleri 2000
-        /// kat pahalilastiran bir bot 3,4 milyon sikke topladi, itibar
-        /// ve memnuniyet hic degismedi. Kombo acikken 24,8 milyon.
+        /// THERE IS A CEILING. Satisfaction is clamped to [0, 10000] and
+        /// demand never sees the price; so past a certain point the
+        /// punishment SATURATES and every zero after that is free. Measured:
+        /// a bot that made the side items 2000 times dearer piled up 3.4
+        /// million coins while reputation and satisfaction did not change at
+        /// all. With the combo on, 24.8 million.
         ///
-        /// Taban (UnderpriceFloorBp) zaten vardi; tavanin olmamasi
-        /// simetri hatasiydi. Tavan PIYASA fiyatina gore: icerik
-        /// degisince sinir da degisiyor.
+        /// The floor (UnderpriceFloorBp) was already there; the absence of a
+        /// ceiling was an error of symmetry. The ceiling is relative to THE
+        /// MARKET price: when the content changes, so does the limit.
         /// </summary>
         private void SetPrice(int dishIndex, int price)
         {
@@ -2482,14 +2587,14 @@ namespace Lokanta.Core.Sim
                 return;
             }
 
-            long piyasa = _content.Dishes[dishIndex].Price;
-            if (piyasa > 0)
+            long market = _content.Dishes[dishIndex].Price;
+            if (market > 0)
             {
-                long tavan = Fx.MulDiv(piyasa, _economy.OverpriceCeilingBp, Fx.One);
-                if (price > tavan)
+                long ceiling = Fx.MulDiv(market, _economy.OverpriceCeilingBp, Fx.One);
+                if (price > ceiling)
                 {
-                    // Sebep 13: fiyat tavani. Arayuz bunu "bu fiyata
-                    // kimse gelmez" diye gosteriyor.
+                    // Reason 13: the price ceiling. The UI shows this as
+                    // "nobody will come at that price".
                     Emit(SimEventKind.CommandRejected, (int)CommandKind.SetPrice, 13);
                     return;
                 }
@@ -2509,11 +2614,12 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Istasyonun bir ust ekipman kademesini satin alir. docs/27
-        /// Karar D: yeni kademe ya yuva ekler ya attendBp dusurur; pisme
-        /// suresine dokunmaz.
+        /// Buys the next equipment tier up for a station. docs/27 Decision D:
+        /// a new tier either adds a slot or lowers attendBp; it does not
+        /// touch the cooking time.
         ///
-        /// Fiyat pesin ve kasadan dusuyor; borca girilerek alinmiyor.
+        /// The price is paid in cash out of the till; it cannot be bought on
+        /// credit.
         /// </summary>
         private void BuyEquipment(int station)
         {
@@ -2545,13 +2651,14 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Soguk havanin bir ust kademesini satin alir.
+        /// Buys the next cold-store tier up.
         ///
-        /// Bunun oyundaki karsiligi MENU GENISLIGI. Soguk hava yokken
-        /// bozulabilir her sey gece oldugu icin dar menu kesinlikle dogru
-        /// strateji; denge aracinda makul oyuncuyu ayakta tutan sey menuyu
-        /// uc ana yemege daraltmak. Soguk hava o kisiti gevsetiyor ve otuz
-        /// iki yemeklik icerik envanterinin var olma sebebi oluyor.
+        /// What this buys in the game is MENU BREADTH. Without a cold store
+        /// everything perishable dies overnight, so a narrow menu is
+        /// unambiguously the right strategy; in the balance tool what keeps
+        /// the reasonable player standing is narrowing the menu to three main
+        /// dishes. The cold store loosens that constraint, and so becomes the
+        /// reason the thirty-two-dish content inventory exists at all.
         /// </summary>
         private void BuyStorage()
         {
@@ -2583,16 +2690,16 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Halden alinacak malzemenin kalite kademesini secer.
-        /// 0 dusuk, 1 standart, 2 yuksek. Elde olan stogu DEGISTIRMEZ;
-        /// yalnizca bundan sonraki alimlari etkiler.
+        /// Chooses the quality tier of what is bought at the market.
+        /// 0 low, 1 standard, 2 high. It DOES NOT CHANGE the stock in hand;
+        /// it affects only purchases from here on.
         /// </summary>
         /// <summary>
-        /// Kalite kademesi sayisi: dusuk, standart, yuksek.
+        /// The number of quality tiers: low, standard, high.
         ///
-        /// Tek yerde duruyor cunku iki yerde okunuyor - komut dogrulamasi
-        /// ve kayit dogrulamasi. Ikisinde ayri yazilmis bir sayi, birinin
-        /// kabul edip otekinin reddettigi bir deger demek.
+        /// It lives in one place because it is read in two - command
+        /// validation and save validation. A number written separately in
+        /// the two means a value one of them accepts and the other rejects.
         /// </summary>
         public const int QualityCount = 3;
 
@@ -2607,8 +2714,8 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Verilen arketip, verilen rolden hangi yemegi secerdi. Yalnizca
-        /// olcum icin; simulasyonun durumunu degistirmiyor.
+        /// Which dish the given archetype would pick from the given role. For
+        /// measurement only; it does not change the simulation's state.
         /// </summary>
         public int WouldPick(int archetype, int role, int servings = 1)
         {
@@ -2621,27 +2728,27 @@ namespace Lokanta.Core.Sim
                                 _content.Archetypes[archetype]);
         }
 
-        /// <summary>Secili kalite kademesi.</summary>
+        /// <summary>The quality tier selected.</summary>
         public int Quality { get { return _quality; } }
 
-        /// <summary>Yemegin bugunku kalite etkisi, santi-puan. Olcum icin.</summary>
+        /// <summary>The dish's quality effect today, in centi-points. For measurement.</summary>
         public int DishQualityCentiOf(int dish)
         {
             if (dish < 0 || dish >= _content.Dishes.Length) return 0;
             return DishQualityCenti(dish);
         }
 
-        /// <summary>Stoktaki malzemenin ortalama kalite etkisi, santi-puan.</summary>
+        /// <summary>The mean quality effect of the ingredient in stock, in centi-points.</summary>
         public int StockQualityOf(int ingredient)
         {
             if (ingredient < 0 || ingredient >= _stockQualityCenti.Length) return 0;
             return _stockQualityCenti[ingredient];
         }
 
-        /// <summary>Sahip olunan soguk hava kademesi.</summary>
+        /// <summary>The cold-store tier owned.</summary>
         public int StorageTier { get { return _storageTier; } }
 
-        /// <summary>Bir ust soguk hava kademesinin fiyati; en ustteyse -1.</summary>
+        /// <summary>The price of the next cold-store tier up; -1 at the top.</summary>
         public long NextStoragePrice()
         {
             StorageDef def = _content.Storage;
@@ -2650,7 +2757,7 @@ namespace Lokanta.Core.Sim
             return next > def.MaxTier ? -1 : def.Tiers[next].Price;
         }
 
-        /// <summary>Istasyonun sahip olunan ekipman kademesi.</summary>
+        /// <summary>The equipment tier owned for this station.</summary>
         public int StationTier(int station)
         {
             if (station < 0 || station >= _stationTier.Length) return 0;
@@ -2658,8 +2765,8 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bugunun mevsimi: 0 ilkbahar, 1 yaz, 2 sonbahar, 3 kis.
-        /// Gun 1'de ilkbahar; her SeasonDays gunde bir donuyor.
+        /// Today's season: 0 spring, 1 summer, 2 autumn, 3 winter.
+        /// Spring on day 1; it turns over every SeasonDays days.
         /// </summary>
         public int Season
         {
@@ -2673,8 +2780,8 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Malzemenin BUGUNKU kilo fiyati: mevsim, kalite ve gunluk hal
-        /// oynamasi birlikte.
+        /// The ingredient's price per kilo TODAY: the season, the quality and
+        /// the daily market movement together.
         /// </summary>
         public long IngredientPriceToday(int ingredient)
         {
@@ -2683,7 +2790,7 @@ namespace Lokanta.Core.Sim
             return Fx.MulDiv(p, _marketBp[ingredient], Fx.One);
         }
 
-        /// <summary>Bugunku hal carpani, baz puan. 10000 = normal gun.</summary>
+        /// <summary>Today's market multiplier, in basis points. 10000 = a normal day.</summary>
         public int MarketBpOf(int ingredient)
         {
             if (ingredient < 0 || ingredient >= _marketBp.Length) return Fx.One;
@@ -2691,10 +2798,10 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Gunun hal fiyatlarini atar. Her malzeme bagimsiz oynuyor:
-        /// bir gun domates ucuz, et pahali olabiliyor. Tek carpanla
-        /// oynatmak "bugun her sey pahali" demek olurdu ve takip edilecek
-        /// bir sey birakmazdi.
+        /// Rolls the day's market prices. Every ingredient moves
+        /// independently: on one day tomatoes can be cheap and meat dear.
+        /// Moving them with a single multiplier would mean "everything is
+        /// dear today" and would leave nothing to pay attention to.
         /// </summary>
         private void RollMarket()
         {
@@ -2708,7 +2815,7 @@ namespace Lokanta.Core.Sim
                 _marketBp[i] = Fx.One - vol + _rngMarket.NextInt(2 * vol + 1);
         }
 
-        /// <summary>Malzemenin dort mevsim ORTALAMA kilo fiyati.</summary>
+        /// <summary>The ingredient's MEAN price per kilo across the four seasons.</summary>
         public long IngredientPriceMean(int ingredient)
         {
             if (ingredient < 0 || ingredient >= _content.Ingredients.Length) return 0;
@@ -2719,7 +2826,7 @@ namespace Lokanta.Core.Sim
             return sum / d.SeasonPriceBp.Length;
         }
 
-        /// <summary>Malzeme bugunku soguk havayla kac gun dayanir.</summary>
+        /// <summary>How many days the ingredient keeps with today's cold store.</summary>
         public int KeepDays(int ingredient)
         {
             if (ingredient < 0 || ingredient >= _content.Ingredients.Length) return 0;
@@ -2728,16 +2835,17 @@ namespace Lokanta.Core.Sim
             int keepBp = StorageKeepBp();
             if (keepBp <= 0) return 1;
             int life = (int)Fx.MulDiv(d.SpoilDays, keepBp, Fx.One);
-            // Arayuz icin taban 1: "0 gun dayanir" diye bir sey yok,
-            // bugun kullanilabiliyor. Simulasyonda omur 0 ve 1 ayni sey.
+            // A floor of 1 for the UI: there is no such thing as "it keeps
+            // for 0 days", it can be used today. In the simulation a life of
+            // 0 and a life of 1 are the same thing.
             return life < 1 ? 1 : life;
         }
 
         /// <summary>
-        /// Bu malzeme hic bozulur mu. Tuz, un ve yag bozulmaz; onlar icin
-        /// KeepDays int.MaxValue donuyor ve arayuz o sayiyi OLDUGU GIBI
-        /// yazarsa oyuncu "2147483647 gun" goruyor - ilk masaustu
-        /// yapisinda tam olarak bu oldu.
+        /// Does this ingredient go off at all. Salt, flour and oil do not; for
+        /// those KeepDays returns int.MaxValue, and if the UI prints that
+        /// number AS IT IS the player sees "2147483647 days" - which is
+        /// exactly what happened in the first desktop build.
         /// </summary>
         public bool IsPerishable(int ingredient)
         {
@@ -2745,7 +2853,7 @@ namespace Lokanta.Core.Sim
                 && _content.Ingredients[ingredient].Perishable;
         }
 
-        /// <summary>Malzeme bir gunden uzun saklanabiliyor mu.</summary>
+        /// <summary>Can the ingredient be kept for more than a day.</summary>
         public bool CanKeep(int ingredient)
         {
             return KeepDays(ingredient) > 1;
@@ -2754,10 +2862,10 @@ namespace Lokanta.Core.Sim
         public int StationCount { get { return _stationTier.Length; } }
 
         /// <summary>
-        /// Bu istasyon mutfaga OZEL adlandirilmis bir ekipman mi (tas firin,
-        /// doner ocagi...) yoksa paylasilan alti istasyondan biri mi.
-        /// Adlandirilmis olan hicbir zaman masa sayisi yuzunden ZORUNLU
-        /// olmaz; yalnizca menu acar.
+        /// Is this station a piece of equipment named SPECIFICALLY for the
+        /// cuisine (tas_firin, doner_ocagi, ...) or one of the six shared
+        /// stations. A named one never becomes COMPULSORY because of the
+        /// table count; it only opens menu.
         /// </summary>
         public bool IsCuisineStation(int station)
         {
@@ -2765,31 +2873,33 @@ namespace Lokanta.Core.Sim
                 && !_content.Stations[station].Shared;
         }
 
-        /// <summary>Bugun bu rolden kac kalem siparis edildi. 0 ana, 3 tatli.</summary>
+        /// <summary>How many items of this role were ordered today. 0 main, 3 dessert.</summary>
         public int OrderedInRole(int role)
         {
             return role >= 0 && role < _orderedRole.Length ? _orderedRole[role] : 0;
         }
 
         /// <summary>
-        /// Bu masa sayisinda istasyonun gerektirdigi EN DUSUK kademe.
-        /// Ekipman merdiveninin neededAtTables alanindan okunuyor; o alan
-        /// tools/balance icinde docs/27 3.3 zirve tablosundan turetiliyor.
+        /// The LOWEST tier the station requires at this table count.
+        /// It is read from the equipment ladder's neededAtTables field; that
+        /// field is derived inside tools/balance from the peak table of
+        /// docs/27 3.3.
         ///
-        /// Kizgin musteri sayisindan degil KAPASITEDEN okunmasi bilincli:
-        /// kadro kararinda ayni hata yapilmis ve denge araci yakalanmisti.
+        /// Reading it from CAPACITY rather than from the number of angry
+        /// customers is deliberate: the same mistake had been made in the
+        /// crew decision and the balance tool caught it.
         /// </summary>
         public int RequiredStationTier(int station)
         {
             if (station < 0 || station >= _stationTier.Length) return 0;
 
-            // BU MUTFAGIN KULLANMADIGI istasyon zorunlu olamaz.
+            // A station THIS CUISINE DOES NOT USE cannot be compulsory.
             //
-            // equipment.json butun mutfaklarda ortak ve "neededAtTables"
-            // orada duruyor. Firin, on dort masada zorunlu isaretli; ama
-            // otuz iki Turk yemeginin HICBIRI firin kullanmiyor. Yani Turk
-            // lokantasi buyudugunde hicbir ise yaramayan bir firina 4.800
-            // sikke odemek zorunda kaliyordu.
+            // equipment.json is shared by every cuisine and "neededAtTables"
+            // lives there. The oven is marked compulsory at fourteen tables;
+            // but NOT ONE of the thirty-two Turkish dishes uses the oven. So
+            // when the Turkish restaurant grew it was forced to pay 4,800
+            // coins for an oven that was of no use to it whatsoever.
             if (!_stationUsed[station]) return 0;
 
             StationDef def = _content.Stations[station];
@@ -2802,35 +2912,37 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Personelin adi. Isim havuzu yoksa bos donuyor ve arayuz
-        /// sirali ada (Asci 1) duser.
+        /// The member of staff's name. With no name pool it returns null and
+        /// the UI falls back to a numbered name (Cook 1).
         /// </summary>
         public string StaffName(int pool, int index)
         {
-            int count = pool == 0 ? _cooks : _salon;
+            int count = pool == 0 ? _cooks : _hall;
             if (index < 0 || index >= count || index >= MaxServers) return null;
 
-            int[] names = pool == 0 ? _cookName : _salonName;
+            int[] names = pool == 0 ? _cookName : _hallName;
             int n = names[index];
             return n >= 0 && n < _content.StaffNames.Length
                 ? _content.StaffNames[n] : null;
         }
 
-        /// <summary>Bu istasyonu kullanan en az bir yemek var mi.</summary>
+        /// <summary>Is there at least one dish that uses this station.</summary>
         public bool IsStationUsed(int station)
         {
             return station >= 0 && station < _stationUsed.Length && _stationUsed[station];
         }
 
         /// <summary>
-        /// Oyuncunun HALA satin alabilecegi her seyin toplami: kalan
-        /// genisleme kademeleri artı kalan ekipman basamaklari.
+        /// The total of everything the player CAN STILL buy: the expansion
+        /// tiers left plus the equipment rungs left.
         ///
-        /// "Para sorun olmaktan cikti" olcusu bunu kullaniyor. Onceki olcu
-        /// "kasa en pahali genislemenin uc katini asti mi" diyordu ve iki
-        /// yerden yaniliyordu: ekipmani hic saymiyordu, ve uc kat keyfi bir
-        /// sayiydi. Dogru soru "biriktirecek bir sey kaldi mi": kasa kalan
-        /// her seyi tek seferde aliyorsa gercekten kalmamistir.
+        /// The measure "money has stopped being a problem" uses this. The
+        /// previous measure said "is the till above three times the dearest
+        /// expansion", and it was wrong in two ways: it counted no equipment
+        /// at all, and three times was an arbitrary number. The right
+        /// question is "is there anything left to save up for": if the till
+        /// buys everything that is left in one go, then there really is
+        /// nothing left.
         /// </summary>
         public long RemainingPurchaseCost()
         {
@@ -2853,7 +2965,7 @@ namespace Lokanta.Core.Sim
             return total;
         }
 
-        /// <summary>Bir ust kademenin fiyati; en ustteyse -1.</summary>
+        /// <summary>The price of the next tier up; -1 at the top.</summary>
         public long NextEquipmentPrice(int station)
         {
             if (station < 0 || station >= _stationTier.Length) return -1;
@@ -2863,40 +2975,41 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Kac salon calisani lavaboya adanacak.
+        /// How many hall staff are dedicated to the sink.
         ///
-        /// TAVAN _salon. Patron sayilmiyor: oyuncu patron, bulasikci
-        /// degil - DispatchSalon lavaboya sifirinci sunucuyu (patronu)
-        /// hicbir zaman koymuyor (`sinkFrom < 1` koruması).
+        /// THE CEILING IS _hall. The owner is not counted: the player is the
+        /// owner, not the dishwasher - DispatchHall never puts server zero
+        /// (the owner) at the sink (the `sinkFrom < 1` guard).
         ///
-        /// YORUM BIR ZAMANLAR "salon kadrosunun TAMAMI lavaboya
-        /// verilemez, yoksa oyun kendi kendini kilitler" diyordu ve
-        /// altinda iki satir bu tabani TAKLIT EDIYORDU:
+        /// THE COMMENT ONCE SAID "the WHOLE of the hall crew cannot be put on
+        /// the sink, or the game locks itself up", and two lines beneath it
+        /// were IMITATING that floor:
         ///
-        ///     int enFazla = _salon > 0 ? _salon - 0 : 0;   // == _salon
-        ///     if (enFazla > _salon) enFazla = _salon;      // hic dogru olamaz
+        ///     int enFazla = _hall > 0 ? _hall - 0 : 0;   // == _hall
+        ///     if (enFazla > _hall) enFazla = _hall;      // can never be true
         ///
-        /// Denetim ikisinin de no-op oldugunu dogru buldu; yanlis olan
-        /// KODU degil YORUMU idi. Kilit diye bir sey yok: butun hirsli
-        /// personel lavaboda olsa bile patron sahada kaliyor ve servis
-        /// suruyor. Ustelik ilk gun tek salon calisani varken onu
-        /// lavaboya vermek MESRU bir karar - taban konunca tabak
-        /// darbogazi kampanyanin ilk gunlerinde hic denenemiyordu.
+        /// An audit rightly found both to be no-ops; what was wrong was not
+        /// THE CODE but THE COMMENT. There is no such lock: even with every
+        /// hired hand at the sink the owner stays on the floor and service
+        /// carries on. What is more, on the first day, with a single hall
+        /// worker, putting them on the sink is a LEGITIMATE decision - with a
+        /// floor in place the plate bottleneck could not be tried at all in
+        /// the campaign's early days.
         ///
-        /// Yani kural "taban yok, tavan _salon" ve ClampDishwashers
-        /// zaten ayni tavani uyguluyor.
+        /// So the rule is "no floor, ceiling _hall", and ClampDishwashers
+        /// applies that same ceiling already.
         /// </summary>
         private void SetDishwashers(int n)
         {
             if (n < 0) n = 0;
-            if (n > _salon) n = _salon;
+            if (n > _hall) n = _hall;
             _dishwashers = n;
         }
 
         private void Hire(int pool, int candidate)
         {
             int cap = _economy.TierForTables(_tableCount).StaffCap;
-            if (_cooks + _salon >= cap)
+            if (_cooks + _hall >= cap)
             {
                 Emit(SimEventKind.CommandRejected, (int)CommandKind.Hire, 4);
                 return;
@@ -2908,57 +3021,59 @@ namespace Lokanta.Core.Sim
             }
             else
             {
-                if (_salon < MaxServers) { _salonXpDays[_salon] = 0; _salonTenure[_salon] = 0; RollTraits(1, _salon, candidate); }
-                _salon++;
+                if (_hall < MaxServers) { _hallXpDays[_hall] = 0; _hallTenure[_hall] = 0; RollTraits(1, _hall, candidate); }
+                _hall++;
             }
         }
 
         /// <summary>
-        /// Lavabo kadrosunu salon kadrosunun icinde tutar.
+        /// Keeps the sink crew inside the hall crew.
         ///
-        /// Istifa ya da isten cikarma salon sayisini dusurunce lavaboya
-        /// adanmis sayi ondan buyuk kalabiliyor - o zaman DispatchSalon
-        /// var olmayan kisileri lavaboda sayar ve salon sessizce boyle
-        /// bir kisi kadar kucululur.
+        /// When a resignation or a dismissal drops the hall count, the number
+        /// dedicated to the sink can be left larger than it - and then
+        /// DispatchHall counts people who do not exist as being at the sink,
+        /// and the hall silently shrinks by that many heads.
         /// </summary>
         private void ClampDishwashers()
         {
-            if (_dishwashers > _salon) _dishwashers = _salon;
+            if (_dishwashers > _hall) _dishwashers = _hall;
             if (_dishwashers < 0) _dishwashers = 0;
         }
 
         /// <summary>
-        /// Yeni personelin iki huyu. docs/14: havuzdan iki tane, cakisan
-        /// ikili olmadan. Ikinci huy cekilirken cakisanlar ELENIYOR - once
-        /// cekip sonra reddetmek, ayni tohumda farkli sayida rastgele
-        /// cagrisi demek olurdu ve tekrar oynatmayi bozardi.
+        /// A new hire's two traits. docs/14: two from the pool, with no
+        /// conflicting pair. Conflicts are FILTERED OUT while the second
+        /// trait is being drawn - drawing first and rejecting afterwards
+        /// would mean a different number of random calls on the same seed,
+        /// and it would break replay.
         /// </summary>
         private void RollTraits(int pool, int index, int candidate = 0)
         {
-            int[] a = pool == 0 ? _cookTraitA : _salonTraitA;
-            int[] b = pool == 0 ? _cookTraitB : _salonTraitB;
-            int[] morale = pool == 0 ? _cookMorale : _salonMorale;
+            int[] a = pool == 0 ? _cookTraitA : _hallTraitA;
+            int[] b = pool == 0 ? _cookTraitB : _hallTraitB;
+            int[] morale = pool == 0 ? _cookMorale : _hallMorale;
 
             morale[index] = _economy.StartingMorale;
             a[index] = -1;
             b[index] = -1;
 
-            // Isim de simdi seciliyor, ayni akistan: ise alim tek bir
-            // olay, ismi ayri bir zar atisina birakmak tekrar oynatmayi
-            // gereksiz yere karmasiklastirirdi.
-            // Isim KENDI AKISINDAN.
+            // The name is chosen now too, from the same stream: hiring is a
+            // single event, and leaving the name to a separate roll of the
+            // die would complicate replay for no reason.
+            // THE NAME COMES FROM ITS OWN STREAM.
             //
-            // Once ise alim akisindan cekiliyordu ve bu, huy zarini
-            // kaydirdi: ayni tohumla kosan bir test bir anda baska huylar
-            // gordu ve mesgul istasyon bulamadi. docs/23 bagimsiz akislar
-            // tam olarak bunun icin var - sunum, oynanisin zarina
-            // dokunmamali.
-            int[] names = pool == 0 ? _cookName : _salonName;
+            // It used to be drawn from the hiring stream, and that shifted
+            // the trait die: a test running on the same seed suddenly saw
+            // different traits and could not find a busy station. The
+            // independent streams of docs/23 exist precisely for this -
+            // presentation must not touch the die the play runs on.
+            int[] names = pool == 0 ? _cookName : _hallName;
             names[index] = _content.StaffNames.Length > 0
                 ? _rngName.NextInt(_content.StaffNames.Length) : -1;
             if (_economy.TraitCount == 0) return;
 
-            // Havuz henuz kurulmadiysa (kurucu, ilk asci) simdi kur.
+            // If the pool has not been built yet (the constructor, the first
+            // cook), build it now.
             if (_candDay < 0) RefreshCandidates();
 
             if (candidate < 0) candidate = 0;
@@ -2967,17 +3082,19 @@ namespace Lokanta.Core.Sim
             a[index] = CandidateTrait(pool, candidate, 0);
             b[index] = CandidateTrait(pool, candidate, 1);
 
-            // Alinan aday havuzdan cikiyor ve yerine YENISI GELMIYOR:
-            // docs/14 "begenmedigin adayi reddedebilirsin ama yenisi hemen
-            // gelmez." Yeri, havuz tazelenene kadar bos duruyor.
+            // The candidate taken leaves the pool and NO NEW ONE ARRIVES in
+            // their place: docs/14, "you can turn down a candidate you do not
+            // like, but a new one does not arrive straight away." Their slot
+            // stays empty until the pool refreshes.
             int slot = pool * CandidateSlots + candidate;
             _candTraitA[slot] = -1;
             _candTraitB[slot] = -1;
         }
 
         /// <summary>
-        /// Aday havuzunu her uc gunde bir yeniler. docs/14: "begenmedigin
-        /// adayi reddedebilirsin ama yenisi hemen gelmez."
+        /// Refreshes the candidate pool every three days. docs/14: "you can
+        /// turn down a candidate you do not like, but a new one does not
+        /// arrive straight away."
         /// </summary>
         private void RefreshCandidates()
         {
@@ -3010,7 +3127,7 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        /// <summary>Adayin huyu. pool 0 mutfak, 1 salon; slot 0..2.</summary>
+        /// <summary>The candidate's trait. pool 0 kitchen, 1 hall; slot 0..2.</summary>
         public int CandidateTrait(int pool, int slot, int which)
         {
             if (slot < 0 || slot >= CandidateSlots) return -1;
@@ -3018,7 +3135,7 @@ namespace Lokanta.Core.Sim
             return which == 0 ? _candTraitA[i] : _candTraitB[i];
         }
 
-        /// <summary>Adayin ucret farki, baz puan. Arayuz bunu gosterecek.</summary>
+        /// <summary>The candidate's wage difference, in basis points. The UI will show it.</summary>
         public int CandidateWageBp(int pool, int slot)
         {
             int total = 0;
@@ -3031,11 +3148,12 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bir huy ikilisinin kaba degeri: hiz + memnuniyet - ucret.
+        /// A trait pair's rough worth: speed + satisfaction - wage.
         ///
-        /// Uc ayri birim toplaniyor ve bu bilincli bir kabalik. Amac bir
-        /// denge hesabi degil, KIYASLAMA: elindeki kisi mi daha iyi, kapida
-        /// bekleyen aday mi. Arayuz de bu siralamayi gosterecek.
+        /// Three different units are added together and the crudeness is
+        /// deliberate. The aim is not a balance calculation but a COMPARISON:
+        /// is the person you have better, or the candidate at the door. The
+        /// UI will show that ordering too.
         /// </summary>
         private int TraitScore(int a, int b)
         {
@@ -3050,13 +3168,13 @@ namespace Lokanta.Core.Sim
             return score;
         }
 
-        /// <summary>Calisan bir personelin huy puani.</summary>
+        /// <summary>The trait score of a member of staff on the books.</summary>
         public int StaffTraitScore(int pool, int index)
         {
             return TraitScore(StaffTrait(pool, index, 0), StaffTrait(pool, index, 1));
         }
 
-        /// <summary>Bir adayin huy puani. Aday alinmissa int.MinValue.</summary>
+        /// <summary>A candidate's trait score. int.MinValue if the candidate has been taken.</summary>
         public int CandidateScore(int pool, int slot)
         {
             int a = CandidateTrait(pool, slot, 0);
@@ -3064,7 +3182,7 @@ namespace Lokanta.Core.Sim
             return TraitScore(a, CandidateTrait(pool, slot, 1));
         }
 
-        /// <summary>Adayin hiz farki, baz puan.</summary>
+        /// <summary>The candidate's speed difference, in basis points.</summary>
         public int CandidateSpeedBp(int pool, int slot)
         {
             int total = 0;
@@ -3076,24 +3194,24 @@ namespace Lokanta.Core.Sim
             return total;
         }
 
-        /// <summary>Bir personelin huyu; slot 0 veya 1. Yoksa -1.</summary>
+        /// <summary>A member of staff's trait; slot 0 or 1. -1 if there is none.</summary>
         public int StaffTrait(int pool, int index, int slot)
         {
-            int count = pool == 0 ? _cooks : _salon;
+            int count = pool == 0 ? _cooks : _hall;
             if (index < 0 || index >= count || index >= MaxServers) return -1;
-            if (slot == 0) return pool == 0 ? _cookTraitA[index] : _salonTraitA[index];
-            return pool == 0 ? _cookTraitB[index] : _salonTraitB[index];
+            if (slot == 0) return pool == 0 ? _cookTraitA[index] : _hallTraitA[index];
+            return pool == 0 ? _cookTraitB[index] : _hallTraitB[index];
         }
 
-        /// <summary>Bir personelin morali, 0-100.</summary>
+        /// <summary>A member of staff's morale, 0-100.</summary>
         public int StaffMorale(int pool, int index)
         {
-            int count = pool == 0 ? _cooks : _salon;
+            int count = pool == 0 ? _cooks : _hall;
             if (index < 0 || index >= count || index >= MaxServers) return 0;
-            return pool == 0 ? _cookMorale[index] : _salonMorale[index];
+            return pool == 0 ? _cookMorale[index] : _hallMorale[index];
         }
 
-        /// <summary>Bir personelin huylarinin toplam etkisi.</summary>
+        /// <summary>The combined effect of a member of staff's traits.</summary>
         private int TraitSum(int pool, int index, System.Func<TraitDef, int> pick)
         {
             int total = 0;
@@ -3116,27 +3234,27 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Belirli bir kisiyi isten cikarir.
+        /// Dismisses a particular person.
         ///
-        /// INDIS SART. Once yalnizca havuz aliniyordu ve her zaman SONUNCU
-        /// kisi gidiyordu: oyuncu "Asci 2" kartindaki dugmeye basiyor,
-        /// oyun Asci 1'i cikariyordu. Huysuz bir asci butun ekibin
-        /// moralini cekiyor (aura mekanigi) ve oyuncu tam da onu
-        /// cikaramiyordu - personel sisteminin tek aci karari
-        /// calismiyordu.
+        /// THE INDEX IS ESSENTIAL. Only the pool used to be taken and it was
+        /// always the LAST person who went: the player pressed the button on
+        /// the "Cook 2" card and the game removed Cook 1. A surly cook drags
+        /// the whole crew's morale down (the aura mechanic) and the player
+        /// could not remove precisely that one - the staff system's single
+        /// painful decision did not work.
         ///
-        /// Cikarilan kisinin yerine SONUNCU kisi kaydiriliyor; dizide
-        /// bosluk birakmak, butun donguleri "bos mu" kontroluyle
-        /// kirletirdi.
+        /// The LAST person slides into the place of whoever is removed;
+        /// leaving a gap in the array would litter every loop with an "is it
+        /// empty" check.
         /// </summary>
         private void Fire(int pool, int index)
         {
-            int[] xp = pool == 0 ? _cookXpDays : _salonXpDays;
-            int[] kidem = pool == 0 ? _cookTenure : _salonTenure;
-            int[] a = pool == 0 ? _cookTraitA : _salonTraitA;
-            int[] b = pool == 0 ? _cookTraitB : _salonTraitB;
-            int[] morale = pool == 0 ? _cookMorale : _salonMorale;
-            int count = pool == 0 ? _cooks : _salon;
+            int[] xp = pool == 0 ? _cookXpDays : _hallXpDays;
+            int[] tenure = pool == 0 ? _cookTenure : _hallTenure;
+            int[] a = pool == 0 ? _cookTraitA : _hallTraitA;
+            int[] b = pool == 0 ? _cookTraitB : _hallTraitB;
+            int[] morale = pool == 0 ? _cookMorale : _hallMorale;
+            int count = pool == 0 ? _cooks : _hall;
 
             if (count <= 0 || index < 0 || index >= count || index >= MaxServers)
             {
@@ -3148,7 +3266,7 @@ namespace Lokanta.Core.Sim
             if (index != last && last < MaxServers)
             {
                 xp[index] = xp[last];
-                kidem[index] = kidem[last];
+                tenure[index] = tenure[last];
                 a[index] = a[last];
                 b[index] = b[last];
                 morale[index] = morale[last];
@@ -3157,29 +3275,30 @@ namespace Lokanta.Core.Sim
             if (last < MaxServers)
             {
                 xp[last] = 0;
-                kidem[last] = 0;
+                tenure[last] = 0;
                 a[last] = -1;
                 b[last] = -1;
                 morale[last] = 0;
             }
 
-            int[] names = pool == 0 ? _cookName : _salonName;
+            int[] names = pool == 0 ? _cookName : _hallName;
             if (index != last && last < MaxServers) names[index] = names[last];
             if (last < MaxServers) names[last] = -1;
 
-            if (pool == 0) _cooks--; else _salon--;
+            if (pool == 0) _cooks--; else _hall--;
             Emit(SimEventKind.StaffResigned, pool, index);
         }
 
         // =====================================================================
-        // Imza mekanikleri. docs/07: "en onemli satir - satin almanin
-        // yeniden boyama degil BASKA BIR OYUN oldugunu gosteren sey bu."
-        // Mekanik burada, sayilar cuisines/*.json icinde (docs/23 8.2).
+        // The signature mechanics. docs/07: "the most important line - this
+        // is the thing that shows a purchase is not a repaint but ANOTHER
+        // GAME." The mechanic is here, the numbers are in cuisines/*.json
+        // (docs/23 8.2).
         // =====================================================================
 
         // =====================================================================
-        // Isimli duzenli musteriler. docs/11: "isimli musteri tek bir
-        // kisidir, elle yazilmistir, hikayesi vardir ve hep ayni kisidir."
+        // Named regulars. docs/11: "a named customer is one single person,
+        // written by hand, with a story, and always the same person."
         // =====================================================================
 
         public int RegularCount { get { return _content.Regulars.Length; } }
@@ -3195,16 +3314,16 @@ namespace Lokanta.Core.Sim
         {
             return i >= 0 && i < RegularCount && _regAwayDays[i] > 0;
         }
-        /// <summary>Ortalama memnuniyeti, santi-puan. Hic gelmemisse 0.</summary>
+        /// <summary>Their mean satisfaction, in centi-points. 0 if they have never come.</summary>
         public int RegularSatisfactionCenti(int i)
         {
             if (i < 0 || i >= RegularCount || _regVisits[i] == 0) return 0;
             return (int)(_regSatSum[i] / _regVisits[i]);
         }
         /// <summary>
-        /// Bu yemek, kampanyaya girmis bir duzenli musterinin sevdigi
-        /// yemek mi. Arayuz menude yildizla isaretleyecek; denge araci
-        /// menuyu daraltirken bunlari koruyor.
+        /// Is this dish the favourite of a regular who has entered the
+        /// campaign. The UI will mark it with a star on the menu; the balance
+        /// tool protects these while narrowing the menu.
         /// </summary>
         public bool IsFavouriteOfArrivedRegular(int dish)
         {
@@ -3212,11 +3331,12 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bu yemegi seven, GELMIS duzenli musterinin indisi; yoksa -1.
+        /// The index of the regular who favours this dish and HAS ARRIVED;
+        /// -1 if there is none.
         ///
-        /// Once yalnizca "birisi seviyor mu" sorulabiliyordu ve menu
-        /// ekrani bunu adsiz bir noktayla gosteriyordu. Kimin sevdigi
-        /// bilinmeden o nokta bir bilgi degil bir susleme.
+        /// Only "does somebody favour it" could be asked before, and the menu
+        /// screen showed that with a nameless dot. Without knowing whose
+        /// favourite it is, that dot is decoration rather than information.
         /// </summary>
         public int FavouriteRegularOf(int dish)
         {
@@ -3227,18 +3347,19 @@ namespace Lokanta.Core.Sim
             return -1;
         }
 
-        /// <summary>Bu grup hangi duzenli musteri; -1 ise isimsiz kalabalik.</summary>
+        /// <summary>Which regular this party is; -1 means the nameless crowd.</summary>
         public int PartyRegular(int party)
         {
             return party >= 0 && party < MaxParties ? _pRegular[party] : -1;
         }
 
         /// <summary>
-        /// Bugun kimler ugrayacak. Gun acilisinda, gelis planindan ONCE.
+        /// Who will drop in today. At the opening of the day, BEFORE the
+        /// arrival plan.
         ///
-        /// Duzenli musteri talebe EKLENMIYOR, talebin icinden ALINIYOR:
-        /// aksi halde isimli musteri yazmak ekonomiyi sisirirdi ve
-        /// kalibrasyon her yeni isim ile kayardi.
+        /// A regular is NOT ADDED to demand but TAKEN OUT of it: otherwise
+        /// writing a named customer would inflate the economy, and the
+        /// calibration would drift with every new name.
         /// </summary>
         private void PlanRegularVisits()
         {
@@ -3252,9 +3373,9 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bugun gelecek duzenli musterileri gelis planindaki uygun
-        /// satirlara baglar. Once KENDI arketibindeki bir satir aranir;
-        /// bulunamazsa en erken bos satir onun adina yazilir.
+        /// Binds the regulars coming today to suitable rows in the arrival
+        /// plan. A row of THEIR OWN archetype is looked for first; failing
+        /// that, the earliest free row is written in their name.
         /// </summary>
         private void BindRegularsToPlan()
         {
@@ -3281,14 +3402,14 @@ namespace Lokanta.Core.Sim
                         break;
                     }
                 }
-                if (pick < 0) { _regComing[i] = false; continue; }   // bugun yer yok
+                if (pick < 0) { _regComing[i] = false; continue; }   // no room today
                 _arrRegular[pick] = i;
             }
         }
 
         /// <summary>
-        /// Ziyareti kaydeder ve hikaye sahnesi acilip acilmadigina bakar.
-        /// Odeme aninda cagriliyor.
+        /// Records the visit and checks whether a story beat has opened.
+        /// Called at the moment of payment.
         /// </summary>
         private void RecordRegularVisit(int party, int satisfaction)
         {
@@ -3299,9 +3420,9 @@ namespace Lokanta.Core.Sim
             _regSatSum[i] += satisfaction;
             Emit(SimEventKind.RegularVisited, i, satisfaction);
 
-            // Kotu agirlanan duzenli musteri BIR SURE GELMIYOR. Ceza itibar
-            // degil: adini bildigin birinin kapiyi calmamasi, bir puandan
-            // daha cok anlatir.
+            // A regular who is badly served STAYS AWAY FOR A WHILE. The
+            // punishment is not reputation: somebody whose name you know not
+            // knocking on the door says more than a number does.
             if (satisfaction < _economy.RegularUpsetCenti)
             {
                 _regAwayDays[i] = _economy.RegularAwayDays;
@@ -3321,53 +3442,55 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        /// <summary>Toplam acik veresiye, santi-sikke.</summary>
-        // ---- DEFTER, ARAYUZ ICIN ----------------------------------------
+        /// <summary>The total outstanding tab, in centi-coins.</summary>
+        // ---- THE BOOK, FOR THE UI -------------------------------------------
         //
-        // Veresiye bir "prim dugmesi" olmaktan cikip karar uretmeye
-        // basladi (tahsilat sansi artik musterinin guvenine bagli), ama
-        // oyuncu defteri GOREMIYORDU: kimin ne kadar borcu var, vadesi ne
-        // zaman, guveni ne - hicbiri ekranda yoktu ve mekanigin ikinci
-        // karari (erken tahsilat) arayuzsuz duruyordu.
+        // The tab stopped being a "bonus button" and started producing
+        // decisions (the collection chance now depends on the customer's
+        // trust), but the player COULD NOT SEE the book: who owes how much,
+        // when it falls due, what their trust is - none of it was on screen,
+        // and the mechanic's second decision (collecting early) stood there
+        // with no interface at all.
         //
-        // Sans da aciliyor, bilerek: gizli bir olasilik uzerine karar
-        // verilemez. Oyuncunun gordugu sayi, simulasyonun kullandigi
-        // sayinin TA KENDISI olmali - iki ayri hesap olsaydi ekran
-        // yalan soylerdi.
+        // The chance is exposed as well, deliberately: no decision can be
+        // made on a hidden probability. The number the player sees has to be
+        // THE VERY NUMBER the simulation uses - with two separate
+        // calculations, the screen would be lying.
 
-        /// <summary>Defterdeki acik hesap sayisi.</summary>
+        /// <summary>The number of open accounts in the book.</summary>
         public int TabCount { get { return _tabCount; } }
 
-        /// <summary>Hesabin tutari, santi.</summary>
+        /// <summary>The account's amount, in centi.</summary>
         public long TabAmount(int tab)
         {
             return tab >= 0 && tab < _tabCount ? _tabAmount[tab] : 0;
         }
 
-        /// <summary>Vadeye kalan gun. Negatifse gecmis.</summary>
+        /// <summary>The days left until it falls due. Negative means overdue.</summary>
         public int TabDaysLeft(int tab)
         {
             return tab >= 0 && tab < _tabCount ? _tabDueDay[tab] - _day : 0;
         }
 
-        /// <summary>Hesabin sahibi (duzenli musteri indisi), yoksa -1.</summary>
+        /// <summary>The account's owner (the regular's index), or -1.</summary>
         public int TabRegular(int tab)
         {
             return tab >= 0 && tab < _tabCount ? _tabRegular[tab] : -1;
         }
 
-        /// <summary>Bu hesap acilirken cay ikram edilmis miydi.</summary>
+        /// <summary>Was tea offered when this account was opened.</summary>
         public bool TabHadTea(int tab)
         {
             return tab >= 0 && tab < _tabCount && _tabTea[tab] != 0;
         }
 
         /// <summary>
-        /// VADESINDE beklenirse tahsilat sansi, baz puan.
+        /// The collection chance if it is left UNTIL IT FALLS DUE, in basis
+        /// points.
         ///
-        /// SettleTab ile AYNI hesap; orada bir kez daha yazilmiyor, cunku
-        /// iki kopya bir gun ayrilir ve ekran oyuncuya simulasyonun
-        /// kullanmadigi bir sayi gosterirdi.
+        /// THE SAME calculation as SettleTab; it is not written out a second
+        /// time there, because two copies drift apart one day and the screen
+        /// would show the player a number the simulation does not use.
         /// </summary>
         public int TabCollectChanceBp(int tab)
         {
@@ -3375,7 +3498,7 @@ namespace Lokanta.Core.Sim
             return TabChanceBp(tab, false);
         }
 
-        /// <summary>ERKEN kovalanirsa tahsilat sansi, baz puan.</summary>
+        /// <summary>The collection chance if it is CHASED EARLY, in basis points.</summary>
         public int TabEarlyChanceBp(int tab)
         {
             if (tab < 0 || tab >= _tabCount) return 0;
@@ -3393,12 +3516,13 @@ namespace Lokanta.Core.Sim
         }
 
         public int OpenCreditCount { get { return _tabCount; } }
-        /// <summary>Veresiyenin biriktirdigi talep primi, baz puan.</summary>
+        /// <summary>The demand bonus the tab has built up, in basis points.</summary>
         public int CreditLoyaltyBp { get { return _creditLoyaltyBp; } }
         public bool ComboEnabled { get { return _comboOn; } }
         /// <summary>
-        /// Imza mekanigi acildi mi. docs/09: ikinci mevsimin ilk gunu.
-        /// Birinci mevsimde ogretici yuku zaten menu ve fiyatla dolu.
+        /// Has the signature mechanic opened. docs/09: the first day of the
+        /// second season. In the first season the teaching load is already
+        /// full with the menu and the price.
         /// </summary>
         public bool SignatureOpen
         {
@@ -3411,7 +3535,7 @@ namespace Lokanta.Core.Sim
 
         public int SignatureFromDay { get { return _content.Signature.FromDay; } }
 
-        /// <summary>Bu mutfagin imza mekanigi veresiye mi VE acildi mi.</summary>
+        /// <summary>Is this cuisine's signature mechanic the tab, AND has it opened.</summary>
         public bool HasCredit
         {
             get { return _content.Signature.Kind == SignatureKind.Credit && SignatureOpen; }
@@ -3422,30 +3546,32 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bu gruba veresiye acilabilir mi. Kural TURETILMIS: yalnizca
-        /// SIK gelen arketipler (TierIndex 0). docs/13 veresiyeEligible
-        /// alanini "duzenli musteri" dosyasina koymus ama o icerik henuz
-        /// yok; sik gelen musteri zaten mahallenin duzenlisi. Elle bir
-        /// liste daha yazmak, ayni karakteri ikinci kez yazmak olurdu.
+        /// Can a tab be opened for this party. The rule is DERIVED: only the
+        /// FREQUENT archetypes (TierIndex 0). docs/13 put the veresiyeEligible
+        /// field in the "regulars" file, but that content does not exist yet;
+        /// and a frequent customer is the neighbourhood's regular anyway.
+        /// Writing out one more list by hand would mean writing the same
+        /// character a second time.
         /// </summary>
         public bool CreditEligible(int party)
         {
             if (!HasCredit) return false;
             if (party < 0 || party >= MaxParties || !_pActive[party]) return false;
-            // Veresiye TEKLIF EDILMEZ, ISTENIR. Istemeyene acmak, olmayan
-            // bir sorunu cozmek icin nakit baglamak olurdu.
+            // A tab IS NOT OFFERED, IT IS ASKED FOR. Opening one for
+            // somebody who has not asked would mean tying up cash to solve a
+            // problem that does not exist.
             return _pAsksCredit[party];
         }
 
         /// <summary>
-        /// Bu gruba veresiye acilabilir mi - KIMLIK sarti.
+        /// Can a tab be opened for this party - the IDENTITY condition.
         ///
-        /// docs/13 veresiyeEligible alanini duzenli musteri dosyasina
-        /// koymus, ve dogrusu bu: veresiye adini bildigin birine acilir.
-        /// Duzenli musteri icerigi yokken kural SIK GELEN arketipten
-        /// turetiliyordu; artik icerik varsa ondan geliyor, yoksa eski
-        /// turetim yedek olarak duruyor (birim testleri regulars dosyasi
-        /// olmadan kosuyor).
+        /// docs/13 put the veresiyeEligible field in the regulars file, and
+        /// that is the right place: a tab is opened for somebody whose name
+        /// you know. With no regulars content the rule was derived from the
+        /// FREQUENT archetype; now it comes from the content when there is
+        /// any, and the old derivation stands as a fallback when there is not
+        /// (the unit tests run without a regulars file).
         /// </summary>
         private bool CreditIdentityOk(int party)
         {
@@ -3453,16 +3579,16 @@ namespace Lokanta.Core.Sim
                 return _content.Archetypes[_pArchetype[party]].TierIndex == 0;
 
             int i = _pRegular[party];
-            return i >= 0 && i < RegularCount && _content.Regulars[i].VeresiyeEligible;
+            return i >= 0 && i < RegularCount && _content.Regulars[i].TabEligible;
         }
 
-        /// <summary>Bu grup veresiye istiyor mu. Arayuz bunu isaretleyecek.</summary>
+        /// <summary>Is this party asking for a tab. The UI will mark it.</summary>
         /// <summary>
-        /// Su an veresiye isteyen ILK grup, yoksa -1.
+        /// The FIRST party currently asking for a tab, or -1.
         ///
-        /// Arayuz ayni dongueyi kendi yaziyordu; tur da yazacakti.
-        /// Uc kopya, uc ayri "uygun mu" tanimi demek - ve bir gun
-        /// biri otekini yalanlar.
+        /// The UI was writing the same loop itself; the tour would have
+        /// written it too. Three copies means three separate definitions of
+        /// "is it eligible" - and one day one of them contradicts another.
         /// </summary>
         public int FirstCreditAsker()
         {
@@ -3472,13 +3598,14 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bu gruba veresiye ACILDI mi.
+        /// Has a tab been OPENED for this party.
         ///
-        /// ExtendCredit deftere HEMEN yazmiyor: yalnizca grubu
-        /// isaretliyor, defter kaydi hesap ODENDIGINDE olusuyor.
-        /// Komutun kabul edildigini olcmek isteyen (tur, testler)
-        /// OpenCredit'e bakarsa YANLIS ZAMANI olcer ve komut
-        /// reddedilmis sanir - bir kez tam bunu yaptim.
+        /// ExtendCredit does not write into the book STRAIGHT AWAY: it only
+        /// marks the party, and the book entry is created WHEN THE BILL IS
+        /// SETTLED. Anything wanting to measure that the command was accepted
+        /// (the tour, the tests) measures THE WRONG MOMENT if it looks at
+        /// OpenCredit, and takes the command for rejected - I did exactly
+        /// that once.
         /// </summary>
         public bool PartyHasCredit(int party)
         {
@@ -3505,11 +3632,12 @@ namespace Lokanta.Core.Sim
             }
             if (_tabCount >= MaxTabs)
             {
-                // 16, 12 DEGIL. Kod 12 gunluk komut hakkinin bitmesi
-                // demek ve arayuz o sayiya bakip "Bugunluk bu kadar is
-                // yeter" yaziyor - defteri dolu bir oyuncuya bu cumle
-                // yanlis. Red sebepleri ARAYUZE konusuyor; ayni sayiyi
-                // iki sebebe vermek, oyuncuya yanlis sey soylemek.
+                // 16, NOT 12. Code 12 means the day's command allowance is
+                // spent, and the UI looks at that number and writes "that is
+                // enough work for today" - which is the wrong sentence for a
+                // player whose book is full. The rejection reasons SPEAK TO
+                // THE UI; giving the same number to two reasons means telling
+                // the player the wrong thing.
                 Emit(SimEventKind.CommandRejected, (int)CommandKind.ExtendCredit, 16);
                 return;
             }
@@ -3519,9 +3647,10 @@ namespace Lokanta.Core.Sim
                 Emit(SimEventKind.CommandRejected, (int)CommandKind.ExtendCredit, 13);
                 return;
             }
-            // Deftere yazilan adama cay konur. Adet degil MEKANIK: cay
-            // tahsilat sansini yukseltiyor (docs/12 3), ve maliyeti
-            // icerikteki teaCostCenti - o alan bugune kadar okunmuyordu.
+            // A man written into the book gets a glass of tea. Not a custom
+            // but a MECHANIC: the tea raises the collection chance (docs/12
+            // 3), and its cost is teaCostCenti from the content - a field
+            // that until now was not being read.
             long tea = (long)sig.CreditTeaCostCenti * _pSize[party];
             if (_cash >= tea)
             {
@@ -3535,9 +3664,10 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Vadesi gelmemis bir hesabi ERKEN kovalar. Karsiligi var: sans
-        /// yariya iniyor ve tutmazsa hesap orada kapaniyor. "Simdi al ama
-        /// kotu ihtimalle" ile "bekle" arasinda gercek bir takas.
+        /// CHASES an account EARLY, before it falls due. There is a price:
+        /// the chance halves, and if it does not come off the account closes
+        /// there and then. A real trade-off between "take it now but on worse
+        /// odds" and "wait".
         /// </summary>
         private void CollectCredit(int tab)
         {
@@ -3551,18 +3681,19 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bir hesabin tahsilat sansi, baz puan.
+        /// An account's collection chance, in basis points.
         ///
-        /// TEK YERDE: hem SettleTab hem arayuz buradan okuyor. Arayuz
-        /// oyuncuya sansi GOSTERIYOR (gizli bir olasilik uzerine karar
-        /// verilemez) ve ekranin gosterdigi sayi, simulasyonun
-        /// kullandigi sayinin ta kendisi olmali.
+        /// IN ONE PLACE: both SettleTab and the UI read it from here. The UI
+        /// SHOWS the chance to the player (no decision can be made on a
+        /// hidden probability), and the number the screen shows must be the
+        /// very number the simulation uses.
         ///
-        /// SANS KIME YAZDIGINA BAGLI. Sabitti ve odeme primiyle birlikte
-        /// veresiyeyi pesin satistan KARLI yapiyordu (0,95 x 1,12 =
-        /// 1,064 x fis), yani reddetmek icin hicbir gun yoktu. Artik
-        /// musterinin ziyaret sayisi guven olarak ekleniyor: yeni
-        /// tanistigin biri kotu bir bahis, yillardir gelen biri iyi.
+        /// THE CHANCE DEPENDS ON WHO IT IS WRITTEN AGAINST. It was fixed,
+        /// and together with the repayment bonus it made the tab MORE
+        /// PROFITABLE than a cash sale (0.95 x 1.12 = 1.064 x the ticket), so
+        /// there was never a day to refuse. Now the customer's visit count is
+        /// added as trust: somebody you have just met is a bad bet, somebody
+        /// who has come for years is a good one.
         /// </summary>
         private int TabChanceBp(int tab, bool halfChance)
         {
@@ -3570,15 +3701,16 @@ namespace Lokanta.Core.Sim
             int chance = sig.CreditCollectChanceBp + TabTrustBp(tab);
             if (_tabTea[tab] != 0) chance += sig.CreditTeaCollectBonusBp;
 
-            // Tavan TAM KESINLIK DEGIL: risksiz bir defter yine karar
-            // uretmeyen bir prim dugmesi olurdu.
+            // The ceiling is NOT COMPLETE CERTAINTY: a riskless book would
+            // once again be a bonus button that produces no decision.
             if (chance > sig.CreditChanceCapBp) chance = sig.CreditChanceCapBp;
             return halfChance ? chance / 2 : chance;
         }
 
         /// <summary>
-        /// Bir hesabi kapatir: ya tahsil edilir ya batar. Batinca itibar
-        /// dusuyor - kovalamak zorunda kalmak dukkanin havasini bozuyor.
+        /// Closes an account: it is either collected or it goes bad. When it
+        /// goes bad reputation falls - having to chase somebody sours the
+        /// mood of the place.
         /// </summary>
         private void SettleTab(int tab, bool halfChance)
         {
@@ -3592,16 +3724,18 @@ namespace Lokanta.Core.Sim
 
             if (paid)
             {
-                // Hesabini kapatan ustune koyuyor. Mekanigin kazanc tarafi.
+                // Whoever settles their account puts something on top. The
+                // mechanic's earning side.
                 long settled = amount + Fx.Bp(amount, sig.CreditRepayBonusBp);
                 _cash += settled;
                 _revenue += settled;
                 _revenueAll += settled;
                 _creditCollected += amount;
 
-                // Odenen her hesap SADAKAT birakiyor: o musteri geri
-                // geliyor. Itibar degil talep - itibar tavana dayaninca
-                // duruyor, mahalleye guvenmek durmuyor.
+                // Every account paid leaves LOYALTY behind: that customer
+                // comes back. Demand rather than reputation - reputation
+                // stops once it reaches the ceiling, but the neighbourhood's
+                // trust in you does not.
                 _creditLoyaltyBp += sig.CreditLoyaltyDemandBp;
                 if (_creditLoyaltyBp > sig.CreditLoyaltyCapBp)
                     _creditLoyaltyBp = sig.CreditLoyaltyCapBp;
@@ -3613,8 +3747,8 @@ namespace Lokanta.Core.Sim
                 _reputationCenti -= sig.CreditDefaultRepPenaltyCenti;
                 if (_reputationCenti < 0) _reputationCenti = 0;
 
-                // Batan hesap sadakati de goturuyor: kovaladigin musteri
-                // bir daha gelmiyor.
+                // A bad account takes the loyalty with it: a customer you
+                // have chased does not come back.
                 _creditLoyaltyBp -= sig.CreditLoyaltyDemandBp;
                 if (_creditLoyaltyBp < 0) _creditLoyaltyBp = 0;
 
@@ -3624,13 +3758,13 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bu hesabin sahibine duyulan guven, baz puan.
+        /// The trust in this account's owner, in basis points.
         ///
-        /// Ziyaret sayisindan geliyor ve icerikteki tavanla sinirli.
-        /// Adi bilinmeyen bir musteriye (duzenli degilse) guven yok -
-        /// zaten veresiye de yalnizca adi bilinene aciliyor
-        /// (CreditIdentityOk), ama kayit eski bir kayittan gelirse
-        /// -1 olabiliyor.
+        /// It comes from the visit count and is bounded by the ceiling in the
+        /// content. There is no trust in a customer whose name is not known
+        /// (one who is not a regular) - a tab is only opened for somebody
+        /// whose name is known anyway (CreditIdentityOk), but the value can
+        /// be -1 if it comes from an old save.
         /// </summary>
         private int TabTrustBp(int tab)
         {
@@ -3656,20 +3790,21 @@ namespace Lokanta.Core.Sim
             _tabCount--;
         }
 
-        /// <summary>Vadesi gelen hesaplari kapatir. Gun acilisinda.</summary>
+        /// <summary>Closes the accounts that have fallen due. At the opening of the day.</summary>
         private void SettleDueTabs()
         {
-            // HasCredit'e bakmiyoruz bilerek: acilmis bir hesap, mekanik
-            // ne olursa olsun kapanmali.
+            // We deliberately do not look at HasCredit: an account that has
+            // been opened has to close, whatever the mechanic is doing.
             if (_content.Signature.Kind != SignatureKind.Credit) return;
             for (int i = _tabCount - 1; i >= 0; i--)
                 if (_tabDueDay[i] <= _day) SettleTab(i, halfChance: false);
         }
 
         /// <summary>
-        /// Komboyu acar veya kapatir. Acikken kombonun ana yemegini secen
-        /// grup yanini ve icecegini de KESIN aliyor, ucune birden indirimli
-        /// bir fiyat oduyor, ve mutfak daha uzun mesgul kaliyor.
+        /// Switches the combo on or off. While it is on, a party that picks
+        /// the combo's main dish CERTAINLY takes its side and its drink too,
+        /// pays a discounted price for all three, and the kitchen stays busy
+        /// for longer.
         /// </summary>
         private void SetCombo(bool on)
         {
@@ -3681,17 +3816,18 @@ namespace Lokanta.Core.Sim
             _comboOn = on;
         }
 
-        /// <summary>Komboyu satabiliyor muyuz: acik VE uc kalem de menude.</summary>
+        /// <summary>Can we sell the combo: it is on AND all three items are on the menu.</summary>
         /// <summary>
-        /// Kombo su an satilabilir mi.
+        /// Can the combo be sold right now.
         ///
-        /// STOK DA SORULUYOR. Once yalnizca menude mi ve acik mi diye
-        /// bakiliyordu; tek tek yemek secen yol (PickFromRole) her aday
-        /// icin CanMake kontrol ederken kombo blogu onu ATLIYORDU.
-        /// Sonucu olculdu: yan ve icecegin malzemesi hic alinmadiginda
-        /// bile 24 gunde 325 yan + 318 icecek satildi - tam fiyattan,
-        /// SIFIR malzeme maliyetiyle (Consume negatifi sifira kirpiyor).
-        /// Yani kombo, stoksuz bedava uretim kapisiydi.
+        /// THE STOCK IS ASKED ABOUT TOO. Only "is it on the menu" and "is it
+        /// switched on" used to be checked; the path that picks dishes one by
+        /// one (PickFromRole) checks CanMake for every candidate, while the
+        /// combo block SKIPPED it. The consequence was measured: even when no
+        /// ingredients at all were bought for the side and the drink, 325
+        /// sides + 318 drinks were sold over 24 days - at full price, with
+        /// ZERO ingredient cost (Consume clamps a negative to zero). So the
+        /// combo was a door to free production without stock.
         /// </summary>
         private bool ComboSellable()
         {
@@ -3706,71 +3842,75 @@ namespace Lokanta.Core.Sim
             return true;
         }
 
-        /// <summary>Bir kisinin deneyim seviyesi. pool 0 mutfak, 1 salon.</summary>
+        /// <summary>A person's experience level. pool 0 kitchen, 1 hall.</summary>
         public int StaffLevel(int pool, int index)
         {
-            int[] xp = pool == 0 ? _cookXpDays : _salonXpDays;
-            int count = pool == 0 ? _cooks : _salon;
+            int[] xp = pool == 0 ? _cookXpDays : _hallXpDays;
+            int count = pool == 0 ? _cooks : _hall;
             if (index < 0 || index >= count || index >= MaxServers) return 0;
             return _economy.XpLevelOf(xp[index]);
         }
 
         /// <summary>
-        /// Bir kisinin GERCEKTEN calistigi gun sayisi.
+        /// The number of days a person has ACTUALLY worked.
         ///
-        /// Eskiden `_cookXpDays` donduruyordu ve o DENEYIM - huya bagli.
-        /// Ekran "Seviye 0 (0 gun)" diye yaziyordu ve altmis gundur
-        /// calisan bir `tecrubeli` icin bu duz bir yalandi.
+        /// It used to return `_cookXpDays`, and that is EXPERIENCE - which
+        /// depends on the trait. The screen read "Level 0 (0 days)" and for a
+        /// `tecrubeli` who had worked for sixty days that was a flat lie.
         /// </summary>
         public int StaffDaysWorked(int pool, int index)
         {
-            int[] kidem = pool == 0 ? _cookTenure : _salonTenure;
-            int count = pool == 0 ? _cooks : _salon;
+            int[] tenure = pool == 0 ? _cookTenure : _hallTenure;
+            int count = pool == 0 ? _cooks : _hall;
             if (index < 0 || index >= count || index >= MaxServers) return 0;
-            return kidem[index];
+            return tenure[index];
         }
 
-        /// <summary>Bir kisinin DENEYIM gunu. Seviye bundan cikiyor.</summary>
+        /// <summary>A person's days of EXPERIENCE. The level comes out of this.</summary>
         public int StaffXpDays(int pool, int index)
         {
-            int[] xp = pool == 0 ? _cookXpDays : _salonXpDays;
-            int count = pool == 0 ? _cooks : _salon;
+            int[] xp = pool == 0 ? _cookXpDays : _hallXpDays;
+            int count = pool == 0 ? _cooks : _hall;
             if (index < 0 || index >= count || index >= MaxServers) return 0;
             return xp[index];
         }
 
         /// <summary>
-        /// Deneyimin isi kisaltmasi: sure / hiz. Yemegin KENDI pisme suresi
-        /// degil, kisinin o ise BAGLI KALDIGI sure kisaliyor - docs/27
-        /// Karar D ekipman icin ne diyorsa deneyim icin de o gecerli.
+        /// How experience shortens the work: duration / speed. It is not the
+        /// dish's OWN cooking time that shortens but the time the person is
+        /// TIED UP by that job - whatever docs/27 Decision D says for
+        /// equipment holds for experience too.
         /// </summary>
         private int XpAdjusted(int pool, int index, int ms)
         {
-            int[] xp = pool == 0 ? _cookXpDays : _salonXpDays;
+            int[] xp = pool == 0 ? _cookXpDays : _hallXpDays;
             if (index < 0 || index >= MaxServers) return ms;
 
-            // Personelin toplam hizi: deneyim + huy - moral - yogunluk -
-            // yorgunluk. Hepsi ayni carpanda toplaniyor, cunku hepsi ayni
-            // seyi soyluyor: bu kisi bu isi ne kadar cabuk bitiriyor.
+            // The member of staff's total speed: experience + traits -
+            // morale - busyness - fatigue. They all add into the same
+            // multiplier, because they are all saying the same thing: how
+            // quickly does this person get this job done.
             int speedBp = _economy.XpSpeedBp(_economy.XpLevelOf(xp[index]), pool == 0);
             speedBp += TraitSum(pool, index, t => t.SpeedBp);
 
-            // docs/14 moral esikleri: 30 altinda hiz -%20.
+            // The morale thresholds of docs/14: below 30, speed -20%.
             if (StaffMorale(pool, index) < _economy.MoraleLowThreshold)
                 speedBp -= _economy.MoraleSlowPenaltyBp;
 
-            // Yogunluk ve yorgunluk TOPLANMIYOR, buyugu aliniyor.
+            // Busyness and fatigue ARE NOT ADDED; the larger of the two is
+            // taken.
             //
-            // Toplama ilk yazimdi ve olcum reddetti: kalabalikta panikleyen
-            // + cabuk yorulan bir asci, zirvenin son ceyreginde -%45'e
-            // dusuyordu; ustune dusuk moral -%20 binince kisi neredeyse
-            // duruyordu. Fast food'da iyi oyuncunun itibari 96,5'ten
-            // 87'ye indi ve bazi kosularda dukkan 50. gunde bosaldi.
+            // Adding them was the first draft and measurement rejected it: a
+            // cook who panics in a crowd AND tires quickly fell to -45% in the
+            // last quarter of the peak; with low morale's -20% on top of
+            // that, the person all but stopped. On fast food a good player's
+            // reputation fell from 96.5 to 87, and on some runs the shop
+            // emptied on day 50.
             //
-            // docs/14 bu iki huyu AYRI DURUMLAR icin yaziyor ("yogun
-            // dilimlerde", "gunun son ceyreginde"); ust uste bindiklerinde
-            // ikisini birden odemek tasarimin soyledigi sey degil. Kotu
-            // anda kotu olmak yeter, iki kat kotu olmak gerekmiyor.
+            // docs/14 writes these two traits for SEPARATE SITUATIONS ("in
+            // busy slots", "in the last quarter of the day"); paying for both
+            // when they overlap is not what the design says. Being bad at a
+            // bad moment is enough; being doubly bad is not required.
             int situational = 0;
             if (InPeakSlot() && !TraitAny(pool, index, t => t.PeakImmune))
                 situational = TraitSum(pool, index, t => t.PeakPenaltyBp);
@@ -3781,9 +3921,10 @@ namespace Lokanta.Core.Sim
             }
             speedBp -= situational;
 
-            // Taban %50. Ilk yazimda %20 idi - yani bir gorev bes kat
-            // uzayabiliyordu. O kadar derin bir cukur, huyu kisisel bir
-            // fark olmaktan cikarip kosuyu belirleyen sey yapiyor.
+            // The floor is 50%. It was 20% in the first draft - that is, a
+            // task could take five times as long. A pit that deep stops a
+            // trait being a personal difference and makes it the thing that
+            // decides the run.
             if (speedBp < 5000) speedBp = 5000;
             if (speedBp == Fx.One) return ms;
 
@@ -3791,13 +3932,14 @@ namespace Lokanta.Core.Sim
             return adjusted < 1 ? 1 : adjusted;
         }
 
-        /// <summary>Servis gununun yogun dilimindeyiz miyiz.</summary>
+        /// <summary>Are we in the busy slot of the service day.</summary>
         private bool InPeakSlot()
         {
-            // Yogun dilim EN UZUN dilim: docs/28 Karar G pay degil SURE
-            // degistirdi, yani mutfagin zirvesi artik dilim uzunlugunda
-            // yaziyor. Sabit "ikinci dilim" yazmak, Turk lokantasinin
-            // ogle zirvesini fast food'a da dayatirdi.
+            // The busy slot is THE LONGEST slot: docs/28 Decision G changed
+            // the DURATION rather than the share, so a cuisine's peak is now
+            // written in the slot's length. Hard-coding "the second slot"
+            // would force the Turkish restaurant's lunch peak onto fast food
+            // as well.
             int peak = 0, best = 0;
             for (int i = 0; i < _timing.SlotCount; i++)
                 if (_timing.SlotTicks(i) > best) { best = _timing.SlotTicks(i); peak = i; }
@@ -3806,15 +3948,15 @@ namespace Lokanta.Core.Sim
             return _serviceTick >= start && _serviceTick < start + _timing.SlotTicks(peak);
         }
 
-        /// <summary>Gunun son ceyregi. docs/14 "cabuk yorulan".</summary>
+        /// <summary>The last quarter of the day. docs/14, "tires quickly".</summary>
         private bool InLastQuarter()
         {
             return _serviceTick * 4 >= _timing.ServiceTicks * 3;
         }
 
         /// <summary>
-        /// Hal'den malzeme alir. Pesin odenir; kasada yoksa reddedilir.
-        /// docs/02: sabah asamasi.
+        /// Buys an ingredient at the market. Paid in cash; rejected if the
+        /// till cannot cover it. docs/02: the morning stage.
         /// </summary>
         private void OrderIngredient(int ingredient, int grams)
         {
@@ -3828,31 +3970,32 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Satin alir. Parasi yetmiyorsa false doner ve HICBIR SEY
-        /// degistirmez.
+        /// Makes the purchase. Returns false and changes NOTHING AT ALL if
+        /// there is not enough money.
         ///
-        /// Ayri duruyor cunku iki cagiran var: tek kalem alan komut ve
-        /// onerilen stogun tamamini alan komut. Ikincisi elli kalemi
-        /// dener ve yetmeyenleri sessizce atlar; her biri icin ret olayi
-        /// basmak bildirim alanini doldurmaktan baska bir ise yaramaz.
+        /// It stands apart because it has two callers: the command that buys
+        /// a single item, and the command that buys the whole recommended
+        /// stock. The second tries fifty items and silently skips the ones it
+        /// cannot afford; raising a rejection event for each of them would do
+        /// nothing but fill up the notification area.
         /// </summary>
         private bool Buy(int ingredient, int grams)
         {
-            // MEVSIM FIYATI. docs/09 kampanyayi dort mevsime boluyor ve
-            // icerikte 77 malzemenin 35'inin gercek oynamasi var: domates
-            // yazin %14 ucuz, kisin %20 pahali. Bu satira kadar simulasyon
-            // hep taban fiyati oduyordu.
-            long kilo = _content.Ingredients[ingredient].PriceAt(Season, _quality);
-            kilo = Fx.MulDiv(kilo, _marketBp[ingredient], Fx.One);
-            long cost = Fx.MulDiv(kilo, grams, GramsPerKilo);
+            // THE SEASONAL PRICE. docs/09 divides the campaign into four
+            // seasons, and 35 of the 77 ingredients in the content have real
+            // movement: tomatoes 14% cheaper in summer, 20% dearer in winter.
+            // Until this line the simulation always paid the base price.
+            long perKilo = _content.Ingredients[ingredient].PriceAt(Season, _quality);
+            perKilo = Fx.MulDiv(perKilo, _marketBp[ingredient], Fx.One);
+            long cost = Fx.MulDiv(perKilo, grams, GramsPerKilo);
             if (cost > _cash) return false;
 
             _cash -= cost;
             _ingredientSpend += cost;
 
-            // Yeni mal eskisiyle karisiyor: yas AGIRLIKLI ORTALAMA.
-            // "Alinca sifirla" demek, her gun bir gram alip saati sonsuza
-            // kadar durdurmak demekti.
+            // New goods mix with the old: the age is a WEIGHTED MEAN.
+            // "Reset on purchase" meant buying one gram a day and stopping
+            // the clock forever.
             int had = _stockGrams[ingredient];
             if (had > 0 && _stockAgeDays[ingredient] > 0)
                 _stockAgeDays[ingredient] =
@@ -3860,8 +4003,9 @@ namespace Lokanta.Core.Sim
             else
                 _stockAgeDays[ingredient] = 0;
 
-            // Kalite de karisiyor: ucuz alip sonra pahali alan, elindeki
-            // ucuz maldan hemen kurtulamiyor.
+            // The quality mixes too: somebody who buys cheap and then buys
+            // dear is not rid of the cheap goods on their hands straight
+            // away.
             int bought = _content.Ingredients[ingredient].QualityDelta(_quality);
             _stockQualityCenti[ingredient] = had > 0
                 ? (int)((( long)_stockQualityCenti[ingredient] * had + (long)bought * grams)
@@ -3873,8 +4017,9 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Kredi ceker. Ayni anda tek kredi tasinabiliyor.
-        /// Toplam geri odeme anaparanin 1,35 kati, sekiz haftalik esit taksit.
+        /// Takes a loan. Only one loan can be carried at a time.
+        /// The total repayment is 1.35 times the principal, in eight equal
+        /// weekly instalments.
         /// </summary>
         private void TakeLoan(int option)
         {
@@ -3900,74 +4045,76 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bugunun ZIRVE gunune gore gereken kadro. docs/14 kapasite modeli.
-        /// Strateji ve arayuz bunu kullanir; kizgin musteri sayisi kadro
-        /// sinyali degildir.
+        /// The crew required against today's PEAK day. The capacity model of
+        /// docs/14. The strategies and the UI use this; the number of angry
+        /// customers is not a staffing signal.
         /// </summary>
         /// <summary>
-        /// BUGUN gereken kadro. Adi artik dogru.
+        /// The crew required TODAY. The name is now true.
         ///
-        /// Eski hali her gun HAFTA SONU carpanini kullaniyordu, yani
-        /// "bugun" demesine ragmen her zaman ZIRVEYI olcuyordu.
-        /// Denge araci bunun bedelini gosterdi: kapasite modelinin
-        /// dedigi kadar garson tutan oyuncu, BIR GARSON EKSIK calisan
-        /// oyuncudan 5.300 sikke daha az kazaniyordu (18.712'ye 24.022).
-        /// Ucret her gun odeniyor, zirve ise haftada iki gun.
+        /// Its old form used the WEEKEND multiplier every day, so despite
+        /// saying "today" it was always measuring THE PEAK. The balance tool
+        /// showed what that cost: a player hiring as many waiters as the
+        /// capacity model told them to earned 5,300 coins less than a player
+        /// working ONE WAITER SHORT (18,712 against 24,022). Wages are paid
+        /// every day; the peak falls two days a week.
         ///
-        /// Isim yalan soyluyordu ve yalan pahaliydi: arayuz "bugun 3
-        /// kisi gerek" yaziyor, oyuncu tutuyor, para kaybediyordu.
+        /// The name was lying and the lie was expensive: the UI wrote "you
+        /// need 3 today", the player hired, and they lost money.
         ///
-        /// Zirve ayri bir soru ve ayri bir metot (RequiredCrewPeak):
-        /// hafta sonuna hazirlanmak isteyen oyuncunun da onu gormesi
-        /// gerekiyor.
+        /// The peak is a separate question with a separate method
+        /// (RequiredCrewPeak): a player wanting to prepare for the weekend
+        /// needs to see that too.
         /// </summary>
         public Crew RequiredCrewToday()
         {
-            int bugun = ExpectedCustomers(
+            int today = ExpectedCustomers(
                 IsWeekend(_day) ? _economy.WeekendMultiplierBp
                                 : _economy.WeekdayMultiplierBp);
-            return StaffingModel.Required(bugun, _economy);
+            return StaffingModel.Required(today, _economy);
         }
 
         /// <summary>
-        /// YARIN gereken kadro.
+        /// The crew required TOMORROW.
         ///
-        /// Kadro kararlari AKSAM veriliyor ama ertesi gunu etkiliyor:
-        /// bugun hafta ici diye kucuk kadro kuran oyuncu, yarin hafta
-        /// sonuysa zirveye eksik kadroyla giriyor. RequiredCrewToday'in
-        /// adi dogru, CAGIRANI yanlis zamanda soruyordu.
+        /// Crew decisions are taken IN THE EVENING but they affect the next
+        /// day: a player who sets a small crew because today is a weekday
+        /// walks into the peak short-handed if tomorrow is the weekend.
+        /// RequiredCrewToday's name is right; its CALLER was asking at the
+        /// wrong moment.
         /// </summary>
         public Crew RequiredCrewTomorrow()
         {
-            int yarin = ExpectedCustomers(
+            int tomorrow = ExpectedCustomers(
                 IsWeekend(_day + 1) ? _economy.WeekendMultiplierBp
                                     : _economy.WeekdayMultiplierBp);
-            return StaffingModel.Required(yarin, _economy);
+            return StaffingModel.Required(tomorrow, _economy);
         }
 
-        /// <summary>Hafta sonu zirvesinde gereken kadro.</summary>
+        /// <summary>The crew required at the weekend peak.</summary>
         public Crew RequiredCrewPeak()
         {
-            int zirve = ExpectedCustomers(_economy.WeekendMultiplierBp);
-            return StaffingModel.Required(zirve, _economy);
+            int peak = ExpectedCustomers(_economy.WeekendMultiplierBp);
+            return StaffingModel.Required(peak, _economy);
         }
 
         public bool HasLoan { get { return _loanWeeksLeft > 0; } }
         public int LoanWeeksLeft { get { return _loanWeeksLeft; } }
         public long LoanInstallment { get { return _loanInstallment; } }
 
-        /// <summary>Haftalik sabit gider: kira, maas ve varsa kredi taksiti.</summary>
+        /// <summary>The weekly fixed costs: rent, wages and the loan instalment if there is one.</summary>
         public long WeeklyFixedCost()
         {
-            Crew crew = new Crew(_cooks, _salon);
+            Crew crew = new Crew(_cooks, _hall);
             int week = _day / 7 + 1;
 
-            // Huy carpani BURADA DA olmali. Olmayinca oyuncunun (ve denge
-            // aracinin) butce koruyucusu gercek faturayi kucuk gosteriyordu:
-            // bir tecrubeli asci maasi %30 buyutuyor, koruyucu bunu
-            // gormuyor, kadro ve ekipman o yanlis sayiya gore aliniyordu.
-            // Olcum: fast food iyi oyuncusunun itibari 96,5’ten 86,9’a
-            // indi ve dukkan 36. gunde bosaldi - tek sebep buydu.
+            // The trait multiplier has to be HERE TOO. Without it the
+            // player's (and the balance tool's) budget guard showed the real
+            // bill as smaller than it was: one experienced cook raises the
+            // wage by 30%, the guard did not see it, and crew and equipment
+            // were bought against that wrong number. Measured: the fast food
+            // good player's reputation fell from 96.5 to 86.9 and the shop
+            // emptied on day 36 - that was the only cause.
             long wages = Fx.MulDiv(StaffingModel.WeeklyWageBill(crew, week, _economy),
                                    TraitWageMultiplierBp(), Fx.One);
             return wages
@@ -3976,29 +4123,29 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Acilis stogu: menunun birinci gun icin istedigi kadar.
+        /// The opening stock: as much as the menu asks for on day one.
         ///
-        /// RecommendedRestock zaten menuyu, beklenen talebi, emniyet
-        /// payini ve yemek basina tabani biliyor - devraldigin dukkanin
-        /// deposunda tam olarak o var. Bir yemekte kullanilmayan
-        /// malzemeye sifir donuyor, yani depo ARTIK SECICI.
+        /// RecommendedRestock already knows the menu, the expected demand,
+        /// the safety margin and the per-dish floor - and that is exactly
+        /// what is in the store of the shop you inherit. It returns zero for
+        /// an ingredient used in no dish, so the store is NOW SELECTIVE.
         /// </summary>
         private void RestockForOneDay()
         {
             for (int i = 0; i < _stockGrams.Length; i++)
             {
                 int need = RecommendedRestock(i);
-                // Bozulmayan malzeme (tuz, un, yag) biraz bolca: onlar
-                // zaten cope gitmiyor ve ilk sabahi yirmi kalem alarak
-                // gecirmek, oyunun ilk dakikasini bir hesap tablosuna
-                // cevirir.
+                // A little extra of the non-perishables (salt, flour, oil):
+                // they do not go into the bin anyway, and spending the first
+                // morning buying twenty items turns the game's first minute
+                // into a spreadsheet.
                 if (need > 0 && !_content.Ingredients[i].Perishable)
                     need *= 2;
                 _stockGrams[i] = need;
             }
         }
 
-        /// <summary>Bu yemek su anki stokla, verilen porsiyonda yapilabilir mi.</summary>
+        /// <summary>Can this dish be made from the current stock, at the given number of portions.</summary>
         public bool CanMake(int dishIndex, int servings)
         {
             if (dishIndex < 0 || dishIndex >= _content.Dishes.Length) return false;
@@ -4028,12 +4175,13 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bugun icin onerilen stok, gram. Menuden hesaplaniyor: her acik
-        /// yemegin beklenen porsiyonu, o yemegin tarifindeki gramajla carpiliyor.
+        /// The stock recommended for today, in grams. Worked out from the
+        /// menu: every open dish's expected portions multiplied by the
+        /// grammage in that dish's recipe.
         ///
-        /// Bu, docs/02 ilke 2'deki "malzeme siparisi otomatiklesir"
-        /// ozelliginin cekirdek tarafi. Oyuncu tek dokunusla bunu
-        /// siparis edebilir; elle secmek isteyen secer.
+        /// This is the core side of the "ingredient ordering becomes
+        /// automatic" feature of docs/02 principle 2. The player can order it
+        /// with a single tap; anyone who wants to pick by hand still can.
         /// </summary>
         public int RecommendedRestock(int ingredient)
         {
@@ -4041,8 +4189,8 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// ignoreStock: elde ne varsa yok sayar, yani BIR GUNLUK
-        /// ihtiyacin kendisini verir.
+        /// ignoreStock: ignores whatever is in hand, that is, it gives ONE
+        /// DAY'S requirement itself.
         /// </summary>
         private int RecommendedRestock(int ingredient, bool ignoreStock)
         {
@@ -4052,18 +4200,20 @@ namespace Lokanta.Core.Sim
                 ? _economy.WeekendMultiplierBp : _economy.WeekdayMultiplierBp;
             int people = ExpectedCustomers(dayFactorBp);
 
-            // Veresiye sadakati: geri gelen musteri. Tavani icerikte.
+            // The tab's loyalty: the customer who comes back. Its ceiling is
+            // in the content.
             if (_creditLoyaltyBp > 0)
                 people = (int)Fx.MulDiv(people, Fx.One + _creditLoyaltyBp, Fx.One);
             if (people <= 0) return 0;
 
-            // Her roldeki ACIK yemek sayisi; siparisler rol icinde
-            // esit dagiliyor.
+            // How many OPEN dishes there are in each role; orders spread
+            // evenly within a role.
             //
-            // Yan ve icecek icin bir zamanlar sabit "/4" yaziyordu -
-            // "yaklasik dort secenek var" demek. Menude tek bir icecek
-            // acikken o bolme, ihtiyacin dortte birini stokluyor ve
-            // musteri kapidan donuyordu. Sayim artik gercek.
+            // A fixed "/4" used to be written for the side and the drink -
+            // meaning "there are about four options". With a single drink
+            // open on the menu, that division stocked a quarter of what was
+            // needed and the customer was turned back at the door. The count
+            // is now real.
             int mains = 0, sides = 0, drinks = 0, desserts = 0;
             for (int i = 0; i < _content.Dishes.Length; i++)
             {
@@ -4085,18 +4235,20 @@ namespace Lokanta.Core.Sim
                 DishDef d = _content.Dishes[i];
                 if (!_dishOnMenu[i] || !Unlocked(i)) continue;
 
-                // Ana yemek herkese; yan, icecek ve TATLI olasilikla.
+                // A main for everybody; the side, the drink and THE DESSERT
+                // by chance.
                 //
-                // Tatli buraya sonradan geldi ve gelmesi sart: siparis
-                // modeli tatliyi ISTIYOR (DessertChanceBp, satir 3271)
-                // ama hal modeli onun malzemesini HIC ALMIYORDU. Yani
-                // her iki mutfagin tatlilari, acilis stogu bitince
-                // ulasilamaz oluyordu - CanMake false donuyor, siparis
-                // sessizce -1'e dusuyor ve oyuncu hicbir sey gormuyordu.
+                // The dessert arrived here later and it had to: the ordering
+                // model WANTS a dessert (DessertChanceBp, line 3271) while
+                // the market model was BUYING NONE of its ingredients. So the
+                // desserts of both cuisines became unreachable once the
+                // opening stock ran out - CanMake returned false, the order
+                // silently fell to -1, and the player saw nothing at all.
                 //
-                // Acilis stogu yetmis yedi malzemenin hepsine altisar
-                // kilo koydugu surece ortuluydu; stok menuye baglaninca
-                // testler "hic TATLI siparis edilmedi" diye kirildi.
+                // It stayed covered up as long as the opening stock put six
+                // kilos of every one of the seventy-seven ingredients in;
+                // once the stock was tied to the menu, the tests broke with
+                // "no DESSERT was ordered at all".
                 int shareBp;
                 if (_content.IsInRole(d.Group, _content.MainGroups))
                     shareBp = Fx.One / mains;
@@ -4116,17 +4268,18 @@ namespace Lokanta.Core.Sim
                     long expected = Fx.MulDiv((long)people * d.Ingredients[k].Grams,
                                               shareBp, Fx.One);
 
-                    // Taban: menude duran her yemek EN AZ bir grubu
-                    // karsilayabilmeli. Stok kontrolu grup basina yapiliyor;
-                    // gunluk ortalama yeterli gorunse de tek bir dort kisilik
-                    // grup o yemegi isteyince stok yetmiyor ve musteri
-                    // kapidan donuyor.
+                    // A floor: every dish on the menu must be able to serve
+                    // AT LEAST one party. The stock check is done per party;
+                    // the daily average may look sufficient, and yet when a
+                    // single party of four asks for that dish the stock is
+                    // short and the customer is turned back at the door.
                     long floorGrams = (long)d.Ingredients[k].Grams * MinPartyBuffer;
                     grams += expected > floorGrams ? expected : floorGrams;
                 }
             }
 
-            // %20 emniyet payi: talep dalgalaniyor, tukenen mutfak musteri kaybettiriyor.
+            // A 20% safety margin: demand fluctuates, and a kitchen that
+            // runs out loses customers.
             grams = Fx.Bp(grams, 12000);
 
             long missing = grams - (ignoreStock ? 0 : _stockGrams[ingredient]);
@@ -4134,9 +4287,9 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Onerilen stogun tamamini alir. Parasi yetmeyen kalemler
-        /// sessizce atlaniyor - elli ayri ret olayi, gunun bildirim
-        /// alanini doldurmaktan baska bir sey yapmaz.
+        /// Buys the whole of the recommended stock. Items it cannot afford
+        /// are silently skipped - fifty separate rejection events would do
+        /// nothing but fill up the day's notification area.
         /// </summary>
         private void OrderRecommended()
         {
@@ -4154,46 +4307,48 @@ namespace Lokanta.Core.Sim
                 if (need <= 0) continue;
                 if (Buy(i, need)) bought++;
             }
-            // Hicbir sey alinamadiysa oyuncuya soylenmeli: dugmeye
-            // basildi ve kasa kipirdamadi.
+            // If nothing at all could be bought, the player has to be told:
+            // the button was pressed and the till did not move.
             if (bought == 0)
                 Emit(SimEventKind.CommandRejected,
                      (int)CommandKind.OrderRecommended, 9);
         }
 
         /// <summary>
-        /// BIR GUNLUK ihtiyac, elde ne varsa ondan bagimsiz.
+        /// ONE DAY'S requirement, independent of whatever is in hand.
         ///
-        /// RecommendedRestock "eksigi" veriyor, yani stok doluyken sifir
-        /// donuyor. Arayuzun fazladan alim teklif edebilmesi icin ihtiyacin
-        /// KENDISI lazim: ucuz bir gunde uc gunluk almak, soguk hava
-        /// deposunun satin aldigi seyin ta kendisi - ve o karar, ihtiyac
-        /// bilinmeden sunulamiyor.
+        /// RecommendedRestock gives "the shortfall", so it returns zero when
+        /// the stock is full. For the UI to be able to offer buying extra,
+        /// the requirement ITSELF is needed: buying three days' worth on a
+        /// cheap day is the very thing the cold store buys you - and that
+        /// decision cannot be offered without knowing the requirement.
         /// </summary>
         public int DailyNeed(int ingredient)
         {
             if (ingredient < 0 || ingredient >= _stockGrams.Length) return 0;
 
-            // ELDEKI STOGU SIFIRLAMADAN hesapliyor.
+            // It works this out WITHOUT ZEROING THE STOCK IN HAND.
             //
-            // Once stogu gecici olarak sifirlayip RecommendedRestock
-            // cagiriyor ve sonra geri yaziyordu. Bu bir OKUMA fonksiyonu
-            // ve gorunum katmani onu hal ekraninin her kurulusunda
-            // malzeme basina cagiriyor - "gorunum simulasyonu okur, ona
-            // yazmaz" kuralinin tam ortasinda bir yazma.
+            // It used to zero the stock temporarily, call RecommendedRestock,
+            // and then write it back. This is a READ function and the view
+            // layer calls it per ingredient every time the market screen is
+            // built - a write right in the middle of the rule "the view reads
+            // the simulation, it does not write to it".
             //
-            // Zararsiz gorunuyordu cunku geri yazma hemen arkasinda; ama
-            // aradaki hesapta bir tasma olsaydi (Fx.MulDiv tasmada
-            // atiyor) stok KALICI OLARAK sifir kalirdi.
+            // It looked harmless because the write-back came immediately
+            // after; but had there been an overflow in the calculation in
+            // between (Fx.MulDiv throws on overflow) the stock would have
+            // been left at zero PERMANENTLY.
             return RecommendedRestock(ingredient, ignoreStock: true);
         }
 
         /// <summary>
-        /// Bu malzemeden EN FAZLA kac gunluk alinmasi mantikli.
+        /// The most days' worth of this ingredient it makes sense to buy.
         ///
-        /// Bozulmayan malzemede sinir yok (uc gun yeter, fazlasi nakit
-        /// baglamak). Bozulabilende soguk havanin tuttugu kadar: soguk
-        /// hava yoksa bir gun, cunku gece hepsi gidiyor.
+        /// For a non-perishable there is no limit (three days is enough, more
+        /// than that ties up cash). For a perishable, as long as the cold
+        /// store holds it: without a cold store, one day, because all of it
+        /// goes overnight.
         /// </summary>
         public int MaxUsefulDays(int ingredient)
         {
@@ -4203,70 +4358,76 @@ namespace Lokanta.Core.Sim
             return keep > 3 ? 3 : keep;
         }
 
-        /// <summary>Bugun beklenen musteri sayisi. Strateji ve arayuz icin.</summary>
+        /// <summary>The customers expected today. For the strategies and the UI.</summary>
         /// <summary>
-        /// Menudeki yemeklerin kaci su anki stokla YAPILABILIR.
+        /// How many of the dishes on the menu CAN BE MADE from the current
+        /// stock.
         ///
-        /// Sabahki hazirlik ozeti icin: oyuncu servisi acmadan once
-        /// "stok bugunu cikarir mi" sorusunun cevabini gormeli. Bir
-        /// yemek yapilabiliyorsa gun aksar; hicbiri yapilamiyorsa gun
-        /// bastan kayiptir ve bunu aksam raporunda ogrenmek gec.
+        /// For the morning's preparation summary: before opening service the
+        /// player should see the answer to "will the stock get through
+        /// today". If one dish can be made the day limps; if none can, the
+        /// day is lost from the start, and learning that from the evening
+        /// report is too late.
         ///
-        /// Kaba ama dogru bir olcu: menudeki yapilabilir yemek sayisi.
-        /// "Kac gun yeter" gercek cevabi icin talep tahmini gerekir ve
-        /// o, sabah ekraninda tasiyamayacagi kadar belirsiz bir sayi.
+        /// A crude but honest measure: the number of makeable dishes on the
+        /// menu. A real answer to "how many days will it last" needs a demand
+        /// forecast, and that is a number too uncertain for the morning
+        /// screen to carry.
         /// </summary>
         /// <summary>
-        /// Menude KAC YEMEK yapilabiliyor. Gun DEGIL, yemek sayisi.
+        /// HOW MANY DISHES on the menu can be made. NOT days, a dish count.
         ///
-        /// Adi bir zamanlar StockDaysLeft idi ve gun vaat ediyordu;
-        /// govdesi ise "en az bir porsiyonu yapilabilen yemek" sayiyordu.
-        /// Arayuz de ona bakip yesil tik veriyordu: alti yemegin her
-        /// birinden BIRER porsiyonu olan oyuncu "hazir" gorunuyor,
-        /// servisi aciyor ve ilk on dakikada mal bitiyordu.
+        /// Its name was once StockDaysLeft and it promised days; its body
+        /// counted "dishes of which at least one portion can be made". The UI
+        /// looked at it and gave a green tick: a player with ONE portion each
+        /// of six dishes looked "ready", opened service, and ran out of goods
+        /// in the first ten minutes.
         ///
-        /// Ad artik ne yaptigini soyluyor; "gune yetiyor mu" sorusunun
-        /// cevabi StockCoverageBp'de.
+        /// The name now says what it does; the answer to "is it enough for
+        /// the day" is in StockCoverageBp.
         /// </summary>
         public int MakeableDishCount()
         {
-            int yapilabilir = 0;
+            int makeable = 0;
             for (int i = 0; i < _dishOnMenu.Length; i++)
             {
                 if (!_dishOnMenu[i] || !Unlocked(i)) continue;
-                if (CanMake(i, 1)) yapilabilir++;
+                if (CanMake(i, 1)) makeable++;
             }
-            return yapilabilir;
+            return makeable;
         }
 
         /// <summary>
-        /// Bugunun beklenen talebinin yuzde kaci elde var. 10000 = tamami.
+        /// What share of today's expected demand is in hand. 10000 = all of it.
         ///
-        /// OLCUT EN KIT MALZEME, toplam degil. Stogun toplamina bakmak
-        /// yaniltir: yirmi malzemesi bol, biri bitmis bir mutfak toplamda
-        /// "dolu" gorunur ama o bir malzemeyi isteyen her siparis
-        /// kapidan doner. Gunu belirleyen sey en kit olan.
+        /// THE MEASURE IS THE SCARCEST INGREDIENT, not the total. Looking at
+        /// the total stock misleads: a kitchen with twenty ingredients in
+        /// plenty and one of them out looks "full" in total, while every
+        /// order wanting that one ingredient is turned back at the door. What
+        /// decides the day is the scarcest.
         ///
-        /// Ihtiyac, halin kendi hesabindan geliyor (RecommendedRestock,
-        /// ignoreStock: true) - yani ekranin vaat ettigi sayi ile hal
-        /// ekraninin onerdigi miktar AYNI kaynaktan cikiyor. Iki ayri
-        /// hesap olsaydi biri otekini yalanlardi.
+        /// The requirement comes from the market's own calculation
+        /// (RecommendedRestock, ignoreStock: true) - so the number the screen
+        /// promises and the quantity the market screen recommends come out of
+        /// THE SAME source. With two separate calculations one would
+        /// contradict the other.
         /// </summary>
         public int StockCoverageBp()
         {
-            int enAz = int.MaxValue;
+            int lowest = int.MaxValue;
             for (int i = 0; i < _stockGrams.Length; i++)
             {
-                int gerek = RecommendedRestock(i, true);
-                if (gerek <= 0) continue;
+                int needed = RecommendedRestock(i, true);
+                if (needed <= 0) continue;
 
-                int var = _stockGrams[i];
-                int bp = var >= gerek ? Fx.One : (int)Fx.MulDiv(var, Fx.One, gerek);
-                if (bp < enAz) enAz = bp;
+                int have = _stockGrams[i];
+                int bp = have >= needed ? Fx.One : (int)Fx.MulDiv(have, Fx.One, needed);
+                if (bp < lowest) lowest = bp;
             }
 
-            // Hicbir malzeme gerekmiyorsa menu bostur; o ayri bir uyari.
-            return enAz == int.MaxValue ? 0 : enAz;
+            // If no ingredient is needed at all the menu is empty; that is a
+            // separate warning.
+            return lowest == int.MaxValue ? 0 : lowest;
         }
 
         public int ExpectedPeopleToday()
@@ -4277,15 +4438,15 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Yemegin kilidi acik mi. Uc sart birden:
-        ///   1. gun geldi mi        (tempo tabani, docs/09)
-        ///   2. itibar yetiyor mu   (kazanilan sey)
-        ///   3. ekipman var mi      (satin alinan sey)
+        /// Is the dish unlocked. Three conditions at once:
+        ///   1. has the day come     (the tempo floor, docs/09)
+        ///   2. is reputation enough (the thing you earn)
+        ///   3. is the equipment there (the thing you buy)
         ///
-        /// Ikinci ve ucuncu sart olmadan kilit bir TAKVIMDI: oyuncu hicbir
-        /// sey yapmadan yemekler kendiliginden aciliyordu. Simdi ekipman
-        /// almak menu aciyor, yani ekipman merdiveni yalnizca hiz degil
-        /// ICERIK satin aliyor.
+        /// Without the second and third conditions the unlock was A
+        /// CALENDAR: the dishes opened of their own accord with the player
+        /// doing nothing. Now buying equipment opens menu, so the equipment
+        /// ladder buys not only speed but CONTENT.
         /// </summary>
         private bool Unlocked(int dish)
         {
@@ -4303,11 +4464,11 @@ namespace Lokanta.Core.Sim
                 && Unlocked(dish);
         }
 
-        /// <summary>Bu yemek su an menude mi. Arayuz icin.</summary>
+        /// <summary>Is this dish on the menu right now. For the UI.</summary>
         /// <summary>
-        /// Bu yemek ANA yemek mi. Rol icerikten geliyor; mutfaklar kendi
-        /// grup adlarini kullaniyor (docs/33) ve sabit bir liste ikinci
-        /// mutfakta sifir musteri uretmisti.
+        /// Is this dish a MAIN. The role comes from the content; the cuisines
+        /// use their own group names (docs/33) and a hard-coded list had
+        /// produced zero customers on the second cuisine.
         /// </summary>
         public bool IsMainDish(int dish)
         {
@@ -4332,20 +4493,21 @@ namespace Lokanta.Core.Sim
 
         private void Intervene(int party, InterventionKind kind)
         {
-            // Istasyon acele ettirme, masaya degil ISTASYONA yapiliyor;
-            // A alani orada masa degil istasyon indisi.
+            // Hurrying a station along is done to A STATION rather than to a
+            // table; in that case the A field is a station index, not a
+            // table.
             if (kind == InterventionKind.RushStation)
             {
                 RushStation(party);
                 return;
             }
 
-            // BILINMEYEN TUR SESSIZCE CAYA DUSMUYOR.
+            // AN UNKNOWN KIND NO LONGER FALLS SILENTLY THROUGH TO THE TEA.
             //
-            // Asagidaki dallar "OwnerAttention mi?" diye soruyor ve
-            // degilse CAY gibi davraniyordu. Yani tanimsiz bir tur
-            // (ornegin default(InterventionKind)) cayin etkisini
-            // PARASINI ODEMEDEN aliyordu. Artik acikca reddediliyor.
+            // The branches below ask "is it OwnerAttention?" and, if not,
+            // behaved like THE TEA. So an undefined kind (for instance
+            // default(InterventionKind)) took the tea's effect WITHOUT PAYING
+            // FOR IT. It is now rejected outright.
             if (kind != InterventionKind.FreeTea
                 && kind != InterventionKind.OwnerAttention)
             {
@@ -4359,46 +4521,49 @@ namespace Lokanta.Core.Sim
                 return;
             }
 
-            // CAY ARTIK SALONA GIDIYOR, TEK MASAYA DEGIL.
+            // THE TEA NOW GOES TO THE WHOLE HALL, NOT TO ONE TABLE.
             //
-            // Eski hali UC FIILDEN BIRINI OLU BIRAKIYORDU. Cay her
-            // eksende patron ilgisinin altindaydi: memnuniyet 900'e
-            // karsi 2400, sabir x1'e karsi x2, mutfagi hizlandirmiyor -
-            // ve ustelik KASADAN PARA CIKARIYOR, ilgi bedava. Ayni
-            // mudahale hakkini yaktiklari icin cayin basilmasi icin
-            // hicbir gun yoktu. Anlayan oyuncu altmis gun boyunca o
-            // dugmeye hic basmiyordu; anlamayan para odeyip yarisini
-            // aliyordu. Ekranda yer kaplayan bir tuzakti.
+            // Its old form LEFT ONE OF THE THREE VERBS DEAD. The tea was
+            // below the owner's attention on every axis: 900 satisfaction
+            // against 2400, x1 patience against x2, and it did not speed the
+            // kitchen up - and on top of that it TAKES MONEY OUT OF THE TILL,
+            // while attention is free. Because they burn the same
+            // intervention allowance, there was never a day to press the tea.
+            // A player who understood never touched that button across the
+            // sixty days; one who did not paid money and got half as much. It
+            // was a trap taking up space on screen.
             //
-            // Simdi ikisi FARKLI SORUYA cevap veriyor:
-            //   ilgi -> BIR masaya derin mudahale (x2 sabir + mutfagi
-            //           one alma). Krizdeki tek masa icin.
-            //   cay  -> BEKLEYEN HERKESE sig mudahale. Zirvede, alti
-            //           masa birden sabirsizlanirken.
+            // Now the two answer DIFFERENT QUESTIONS:
+            //   attention -> a deep intervention on ONE table (x2 patience +
+            //                moving its kitchen job up). For the single table
+            //                in crisis.
+            //   tea       -> a shallow intervention for EVERYONE WAITING. At
+            //                the peak, with six tables growing impatient at
+            //                once.
             //
-            // Bedeli de oradan geliyor: cay artik salondaki BUTUN
-            // bekleyenlerin kisi sayisi kadar tutuyor. Yani kalabalikta
-            // hem en degerli hem en pahali.
+            // Its cost comes from the same place: the tea now costs as much
+            // as the head count of EVERYONE waiting in the hall. So in a
+            // crowd it is both the most valuable and the most expensive.
             //
-            // HEDEF ISTEMIYOR, o yuzden parti gecerliligi bu daldan
-            // SONRA kontrol ediliyor. Ilk yazista kontrolun altindaydi
-            // ve arayuzun secim yokken yolladigi -1 sessizce
-            // reddediliyordu: dugme hicbir sey yapmiyordu. Test yakaladi.
+            // IT WANTS NO TARGET, which is why the party's validity is
+            // checked AFTER this branch. In the first draft it was below the
+            // check, and the -1 the UI sends when nothing is selected was
+            // silently rejected: the button did nothing. A test caught it.
             if (kind == InterventionKind.FreeTea)
             {
-                int kisi = 0;
+                int people = 0;
                 for (int i = 0; i < MaxParties; i++)
-                    if (_pActive[i] && DrainRateBp(i) > 0) kisi += _pSize[i];
+                    if (_pActive[i] && DrainRateBp(i) > 0) people += _pSize[i];
 
-                // Bekleyeni olmayan salonda gonderilecek kimse yok;
-                // bos yere hak yakmasin.
-                if (kisi <= 0)
+                // In a hall with nobody waiting there is nobody to send it
+                // to; it must not burn an allowance for nothing.
+                if (people <= 0)
                 {
                     Emit(SimEventKind.CommandRejected, (int)CommandKind.Intervene, 11);
                     return;
                 }
 
-                long cost = _economy.TreatCost * kisi;
+                long cost = _economy.TreatCost * people;
                 if (_cash < cost)
                 {
                     Emit(SimEventKind.CommandRejected, (int)CommandKind.Intervene, 9);
@@ -4408,13 +4573,13 @@ namespace Lokanta.Core.Sim
                 _teaSpend += cost;
                 _interventionsLeft--;
 
-                int ekstra = _timing.SeatOrderMs * _economy.TreatPatienceMult;
+                int extra = _timing.SeatOrderMs * _economy.TreatPatienceMult;
                 for (int i = 0; i < MaxParties; i++)
                 {
                     if (!_pActive[i] || DrainRateBp(i) <= 0) continue;
                     _pTea[i] = true;
                     _pBonusCenti[i] += _economy.TreatSatisfactionCenti;
-                    _pPatienceLeftMs[i] += ekstra;
+                    _pPatienceLeftMs[i] += extra;
                 }
                 return;
             }
@@ -4427,72 +4592,75 @@ namespace Lokanta.Core.Sim
 
             _interventionsLeft--;
 
-            // ODUL MEMNUNIYETE DEGIL, ZAMANA.
+            // THE REWARD IS PAID IN TIME, NOT IN SATISFACTION.
             //
-            // Olculdu: mudahale eden bot, hic mudahale etmeyenden DAHA AZ
-            // kazaniyordu (26.526'ya 26.969). Sebep matematikti - gunde
-            // dort mudahale x yirmi grup, gruplarin %20'sine +20 puan,
-            // yani ortalamaya +4 puan; ortalama memnuniyet zaten 78 ve
-            // itibarin tek esigi 62. Odul DOYMUS bir eksene odeniyordu ve
-            // hicbir seyi degistiremiyordu.
+            // Measured: the bot that intervened earned LESS than the one that
+            // never intervened at all (26,526 against 26,969). The reason was
+            // arithmetic - four interventions a day x twenty parties, +20
+            // points to 20% of the parties, so +4 points on the mean; and the
+            // mean satisfaction is already 78 while reputation's only
+            // threshold is 62. The reward was being paid into a SATURATED
+            // axis and could change nothing.
             //
-            // Sabir eklemek ise doymuyor: bekleyen masa gitmiyor, masa
-            // devir hizi artiyor, ve o dogrudan ciro demek. Patron
-            // ilgisi bir gunu KURTARIYOR, guzellestirmiyor.
+            // Adding patience, on the other hand, does not saturate: the
+            // waiting table does not leave, the table turnover rate rises,
+            // and that means revenue directly. The owner's attention SAVES a
+            // day rather than prettifying it.
             //
-            // Buraya artik yalnizca OwnerAttention geliyor: cay
-            // yukaridaki dalda kendi yolunu tamamlayip donuyor.
+            // Only OwnerAttention reaches here now: the tea finishes its own
+            // path in the branch above and returns.
             _pBonusCenti[party] += _economy.AttentionSatisfactionCenti;
 
             _pPatienceLeftMs[party] += _timing.SeatOrderMs
                                      * _economy.AttentionPatienceMult;
 
-            // Yemegi bekleyen bir masaya ilgi gostermek, mutfaktaki
-            // isini de one aliyor: patron yolu aciyor, pisirmiyor.
+            // Paying attention to a table waiting for its food moves its
+            // kitchen job up as well: the owner clears the path, they do not
+            // cook.
             HurryPartyJob(party);
 
-            // VE SALON ISINI DE PATRON USTLENIYOR.
+            // AND THE OWNER TAKES ON THE HALL WORK TOO.
             //
-            // Ilgi eskiden yalnizca sabri uzatiyor ve MUTFAGI one
-            // aliyordu; salon tarafina hic dokunmuyordu, oysa darbogaz
-            // cogu zaman orada. Olculdu: mudahale eden bot etmeyenle
-            // ayni yerde bitiyordu (18.869 / 18.670), cunku mekanik
-            // yalnizca KRIZ aninda ise yariyordu ve kriz neredeyse hic
-            // olmuyor.
+            // Attention used to lengthen patience and move THE KITCHEN up
+            // only; it did not touch the hall side at all, and yet that is
+            // usually where the bottleneck is. Measured: the bot that
+            // intervened finished in the same place as the one that did not
+            // (18,869 / 18,670), because the mechanic only helped IN A
+            // CRISIS, and a crisis hardly ever happens.
             //
-            // Siradaki salon isi kisaliyor: masa daha cabuk donuyor,
-            // yani ayni gunde daha cok musteri.
+            // The next piece of hall work is shortened: the table turns over
+            // faster, so more customers on the same day.
             _pAttended[party] = true;
         }
 
         /// <summary>
-        /// Bu grubun mutfaktaki isini kisaltir.
+        /// Shortens this party's job in the kitchen.
         ///
-        /// Patron PISIRMIYOR (docs/14 yasakliyor); onceligi degistiriyor.
-        /// Etki, isin kalan duvar saatinin ucte biri kadar.
+        /// The owner DOES NOT COOK (docs/14 forbids it); they change the
+        /// priority. The effect is a third of the job's remaining wall clock.
         /// </summary>
         private void HurryPartyJob(int party)
         {
-            // IKI HATA BIRDEN VARDI.
+            // THERE WERE TWO BUGS AT ONCE.
             //
-            // (1) INDIS UZAYI. _kitchenTaskTarget bir GRUP degil bir IS
-            //     tutuyor: DispatchKitchen "job" yaziyor ve job =
-            //     party * MaxJobsPerParty + k. Burada ham karsilastirma
-            //     yapiliyordu (target != party), yani 7 numarali grubun
-            //     isi hic hizlanmiyor, onun yerine IS INDISI 7 olan is -
-            //     1 numarali grubun dorduncu kalemi - hizlaniyordu.
-            //     0-3 numarali gruplarda hepsi 0. grubun isine gidiyordu.
-            //     CancelTasksFor bir fonksiyon asagida bolmeyi DOGRU
-            //     yapiyor; burada unutulmus.
+            // (1) THE INDEX SPACE. _kitchenTaskTarget holds not a PARTY but a
+            //     JOB: DispatchKitchen writes "job" and job =
+            //     party * MaxJobsPerParty + k. A raw comparison was being
+            //     made here (target != party), so party number 7's job was
+            //     never hurried; instead the job with JOB INDEX 7 - party
+            //     number 1's fourth item - was hurried. For parties 0-3 it
+            //     all went to party 0's job. CancelTasksFor, one function
+            //     below, does the division CORRECTLY; here it had been
+            //     forgotten.
             //
-            // (2) YANLIS SURE. Kisaltilan sey _kitchenTaskLeftMs idi:
-            //     ascinin o ise BAGLI KALMA suresi. Yemegin duvar saati
-            //     _jobMs ve musterinin bekledigi sey o. RushStation
-            //     dogrusunu yapiyor.
+            // (2) THE WRONG DURATION. What was being shortened was
+            //     _kitchenTaskLeftMs: the time the cook IS TIED UP by the
+            //     job. The dish's wall clock is _jobMs, and that is what the
+            //     customer is waiting on. RushStation does it right.
             //
-            // Ikisi birlikte sunu uretiyordu: oyuncu hakkini harciyor,
-            // "ilgi gosterildi" balonunu okuyor, mutfakta hicbir sey
-            // degismiyor.
+            // Together the two produced this: the player spends their
+            // allowance, reads the "attention given" bubble, and nothing in
+            // the kitchen changes.
             for (int j = 0; j < _jobStation.Length; j++)
             {
                 if (_jobState[j] == 0) continue;
@@ -4505,10 +4673,12 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Sabri en az kalan, henuz mudahale gormemis grup. -1 yoksa.
+        /// The party with the least patience left that has not yet had an
+        /// intervention. -1 if there is none.
         ///
-        /// "Henuz gormemis" sarti onemli: ayni masaya ust uste mudahale
-        /// etmek gunun hakkini bir masaya harcamak olurdu.
+        /// The "not yet had one" condition matters: intervening at the same
+        /// table over and over would mean spending the day's allowance on one
+        /// table.
         /// </summary>
         public int MostImpatientParty()
         {
@@ -4526,11 +4696,12 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Istasyonu acele ettirir: o istasyonda pisen butun islerin kalan
-        /// duvar saatinden pay siliniyor.
+        /// Hurries a station along: a share is wiped off the remaining wall
+        /// clock of every job cooking at that station.
         ///
-        /// Patron PISIRMIYOR (docs/14); yolu aciyor. O yuzden ascinin
-        /// bagli kaldigi sure degil, isin kalan suresi kisaliyor.
+        /// The owner DOES NOT COOK (docs/14); they clear the path. So what
+        /// shortens is the job's remaining time, not the time the cook is
+        /// tied up.
         /// </summary>
         private void RushStation(int station)
         {
@@ -4557,7 +4728,7 @@ namespace Lokanta.Core.Sim
 
             if (touched == 0)
             {
-                // Bos istasyonu acele ettirmek hakki yakmasin.
+                // Hurrying an empty station along must not burn an allowance.
                 Emit(SimEventKind.CommandRejected, (int)CommandKind.Intervene, 10);
                 return;
             }
@@ -4567,8 +4738,8 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// En sikisik istasyon: kuyrugu en uzun olan. -1 hicbiri mesgul
-        /// degilse. Mudahale hedefi secmek icin.
+        /// The most congested station: the one with the longest queue. -1 if
+        /// none is busy. For picking an intervention target.
         /// </summary>
         public int BusiestStation()
         {
@@ -4583,52 +4754,55 @@ namespace Lokanta.Core.Sim
             return best;
         }
 
-        /// <summary>Bugun kalan patron mudahalesi hakki.</summary>
+        /// <summary>The owner's intervention allowance left today.</summary>
         /// <summary>
-        /// Bugunun mudahale hakki. TAVAN MASA SAYISINA BAGLI.
+        /// Today's intervention allowance. THE CEILING DEPENDS ON THE TABLE
+        /// COUNT.
         ///
-        /// Sabit dorttu ve mekanik tam da en gerekli oldugu yerde
-        /// siliniyordu: dort masalik bir dukkanda dort hak gunun
-        /// krizlerinin cogunu kapatiyor, on dort masalik hafta sonu
-        /// zirvesinde kucuk bir kismini. Yani oyunun GEC bolumunde
-        /// oyuncu erken bolumunden DAHA AZ karar veriyordu - buyumek
-        /// ajansi arttirmiyor, eritiyordu.
+        /// It was fixed at four, and the mechanic faded out exactly where it
+        /// was most needed: in a four-table shop four allowances cover most
+        /// of the day's crises, at a fourteen-table weekend peak a small part
+        /// of them. So in the game's LATE section the player was making FEWER
+        /// decisions than in the early one - growing was not increasing their
+        /// agency but dissolving it.
         ///
-        /// Dort masada taban korunuyor (oyunun acilisi degismesin),
-        /// her dort masa basina bir hak ekleniyor: 4 masa 4, 8 masa 5,
-        /// 12 masa 6, 14 masa 6.
+        /// The floor at four tables is kept (the game's opening must not
+        /// change), and one allowance is added per four tables: 4 tables 4,
+        /// 8 tables 5, 12 tables 6, 14 tables 6.
         /// </summary>
         public int InterventionsToday
         {
             get
             {
-                // Taban masa sayisi ICERIKTEN: ilk kademe. Sabit 4
-                // yazmak, kademeler degisince sessizce yanlis olurdu.
-                int ek = (_tableCount - _economy.TierAt(0).Tables) / 4;
-                if (ek < 0) ek = 0;
-                return _economy.InterventionsPerDay + ek;
+                // The base table count comes FROM THE CONTENT: the first
+                // tier. Hard-coding 4 would be silently wrong as soon as the
+                // tiers changed.
+                int extra = (_tableCount - _economy.TierAt(0).Tables) / 4;
+                if (extra < 0) extra = 0;
+                return _economy.InterventionsPerDay + extra;
             }
         }
 
         private int _plannedPeople;
 
         /// <summary>
-        /// Bugun GERCEKTEN gelmesi planlanan kisi sayisi.
+        /// The number of people ACTUALLY planned to arrive today.
         ///
-        /// ExpectedPeopleToday BEKLENTIYI veriyor; ikisinin farki gunun
-        /// sapmasi. Oyuncu bunu goremiyor (gormemeli - gorebilseydi
-        /// oynaklik yine dekor olurdu); testler ve tur icin var.
+        /// ExpectedPeopleToday gives THE EXPECTATION; the difference between
+        /// the two is the day's variance. The player cannot see this (and
+        /// must not - if they could, the volatility would be decoration
+        /// again); it exists for the tests and the tour.
         /// </summary>
         public int PlannedPeopleToday { get { return _plannedPeople; } }
 
         public int InterventionsLeft { get { return _interventionsLeft; } }
 
         /// <summary>
-        /// Su an salonda olup kendisine cay ikram edilmis grup sayisi.
+        /// How many parties currently in the hall have been offered tea.
         ///
-        /// Cayin SALONA gittigini sinamak icin var: tek bir cay birden
-        /// cok masaya dokunmali. Bu sayi olmadan "hepsine gitti" ile
-        /// "birine gitti" ayirt edilemiyordu.
+        /// It exists to test that the tea goes TO THE HALL: one round of tea
+        /// should touch more than one table. Without this number, "it went to
+        /// all of them" and "it went to one of them" could not be told apart.
         /// </summary>
         public int PartiesWithTea
         {
@@ -4642,9 +4816,10 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Gunluk mudahale hakki. Arayuz ipucunun sayiyi ICERIKTEN
-        /// okuyabilmesi icin: metne elle yazilan bir sayi, denge araci
-        /// degeri degistirdiginde sessizce yalan soyler.
+        /// The daily intervention allowance. So that the UI's hint can read
+        /// the number FROM THE CONTENT: a number typed by hand into the text
+        /// starts lying silently the moment the balance tool changes the
+        /// value.
         /// </summary>
         public int InterventionsPerDay { get { return _economy.InterventionsPerDay; } }
 
@@ -4664,32 +4839,32 @@ namespace Lokanta.Core.Sim
             _cash -= t.Upgrade;
             _expansionSpend += t.Upgrade;
 
-            // BUYUYEN DUKKAN YENI TABAK GETIRIYOR.
+            // A GROWING SHOP BRINGS IN NEW PLATES.
             //
-            // Fark kadar, ve TEMIZ olarak. Toplami kademeye baglamak
-            // yerine fark eklemek sart: kirli yigin ve masadakiler
-            // yerinde duruyor, toplami yeniden yazmak onlari yok ederdi
-            // ve degismez bozulurdu.
-            int eskiTabak = t.Plates - _economy.TierForTables(_tableCount).Plates;
-            if (eskiTabak > 0) _platesClean += eskiTabak;
+            // As many as the difference, and CLEAN. Adding the difference
+            // rather than tying the total to the tier is essential: the dirty
+            // pile and the plates on the tables are still there, and
+            // rewriting the total would destroy them and break the invariant.
+            int newPlates = t.Plates - _economy.TierForTables(_tableCount).Plates;
+            if (newPlates > 0) _platesClean += newPlates;
 
             _tableCount = t.Tables;
 
-            // TAVANDA BIRIKEN ITIBAR BURADA ODENIYOR.
+            // THE REPUTATION BANKED AT THE CEILING IS PAID OUT HERE.
             //
-            // Genisleme yalnizca masa satin almiyor: dar tavanda
-            // verilen iyi servisin karsiligi da o gun geliyor. Boylece
-            // tavandaki gunler karsiliksiz gecmiyor ve genisleme
-            // "yeni masalar" degil "birikmis unun serbest kalmasi"
-            // gibi okunuyor.
+            // An expansion does not only buy tables: the return on the good
+            // service given under a low ceiling arrives on that day too. So
+            // the days at the ceiling do not pass unrequited, and an
+            // expansion reads not as "new tables" but as "the release of a
+            // reputation that had been building up".
             if (_reputationOverflowCenti > 0)
             {
                 _reputationCenti += _reputationOverflowCenti;
                 _reputationOverflowCenti = 0;
 
-                int yeniCap = _economy.TierForTables(_tableCount).ReputationCapCenti;
-                if (yeniCap <= 0 || yeniCap > 10000) yeniCap = 10000;
-                if (_reputationCenti > yeniCap) _reputationCenti = yeniCap;
+                int newCap = _economy.TierForTables(_tableCount).ReputationCapCenti;
+                if (newCap <= 0 || newCap > 10000) newCap = 10000;
+                if (_reputationCenti > newCap) _reputationCenti = newCap;
             }
         }
 
@@ -4709,19 +4884,19 @@ namespace Lokanta.Core.Sim
             SeatWaitingParties();
             DispatchKitchen();
             PlateUp();
-            DispatchSalon();
+            DispatchHall();
             AdvanceTasks();
             AdvanceEating();
             _serviceTick++;
         }
 
-        // ---- 1. gelisler ---------------------------------------------------
+        // ---- 1. arrivals -----------------------------------------------------
         private void SpawnArrivals()
         {
             while (_arrNext < _arrCount && _arrTick[_arrNext] <= _serviceTick)
             {
                 int slot = FindFreeParty();
-                if (slot < 0) { _arrNext++; continue; }   // havuz dolu, musteri kaybi
+                if (slot < 0) { _arrNext++; continue; }   // the pool is full, a customer is lost
 
                 int arch = _arrArchetype[_arrNext];
                 ArchetypeDef a = _content.Archetypes[arch];
@@ -4745,10 +4920,12 @@ namespace Lokanta.Core.Sim
                 _pCook[slot] = -1;
                 PickOrder(slot, a.PatienceMs);
 
-                // Menude yapabilecegi bir ana yemek yoksa musteri KAPIDAN
-                // doner. Masaya oturup sabri bitene kadar beklemez: bu hem
-                // gercek disi olurdu hem de bir stok hatasina kirk dakika
-                // bekletilmis musterinin itibar cezasini verirdi.
+                // If there is no main dish on the menu that can be made for
+                // them, the customer TURNS BACK AT THE DOOR. They do not sit
+                // down and wait until their patience runs out: that would be
+                // both unrealistic and would charge a stock mistake the
+                // reputation penalty of a customer kept waiting forty
+                // minutes.
                 if (_pDishMain[slot] < 0)
                 {
                     _pActive[slot] = false;
@@ -4775,16 +4952,19 @@ namespace Lokanta.Core.Sim
 
 
         /// <summary>
-        /// Bir kisilik siparis: ANA yemek kesin, yan ve icecek olasilikli.
+        /// One person's order: the MAIN dish is certain, the side and the
+        /// drink are by chance.
         ///
-        /// Neden tek kalem degil: denge aracinin ilk kosusunda pasif oyuncu
-        /// batmiyor, iyi oynayan bativordu. Sebep ortalama fisin cok dusuk
-        /// olmasiydi; menuden esit olasilikla tek kalem secilince musterilerin
-        /// buyuk kismi sadece icecek aliyordu. docs/07 kombo mekaniginin tabani.
+        /// Why not a single item: on the balance tool's first run the passive
+        /// player did not go under while the good player did. The cause was
+        /// that the average ticket was far too low; picking a single item
+        /// from the menu with equal probability meant most customers took
+        /// only a drink. The base of the combo mechanic of docs/07.
         ///
-        /// Aceleci musteri agir yemek siparis etmez: aday yemekler
-        /// prepMs &lt;= sabir x katsayi olanlar. Bu olmadan sabri 8 sn olan
-        /// kurye hicbir zaman servis edilemezdi.
+        /// A customer in a hurry does not order a heavy dish: the candidates
+        /// are the dishes whose prepMs &lt;= patience x the factor. Without
+        /// this, the courier with 8 seconds of patience could never have been
+        /// served.
         /// </summary>
         private void PickOrder(int slot, int patienceMs)
         {
@@ -4795,12 +4975,14 @@ namespace Lokanta.Core.Sim
 
             ArchetypeDef arch = _content.Archetypes[_pArchetype[slot]];
 
-            // Roller ICERIKTEN geliyor: fast food'da ana/yan/icecek, Turk
-            // lokantasinda sulu+izgara / corba+pilav+meze / icecek.
+            // The roles come FROM THE CONTENT: ana/yan/icecek on fast food,
+            // sulu+izgara / corba+pilav+meze / icecek in the Turkish
+            // restaurant.
             _pDishMain[slot] = PickFromRole(_content.MainGroups, limit, true, servings, arch);
 
-            // Duzenli musteri SEVDIGI yemegi ister. Menude yoksa hayal
-            // kirikligi: geldigi tek sey oydu ve bulamadi.
+            // A regular asks for the dish THEY FAVOUR. Not on the menu means
+            // disappointment: it was the one thing they came for and it was
+            // not there.
             _pMissedFavourite[slot] = false;
             int reg = _pRegular[slot];
             if (reg >= 0 && reg < RegularCount)
@@ -4818,33 +5000,35 @@ namespace Lokanta.Core.Sim
             _pDishDessert[slot] = _rngOrder.Chance(ExtrasChanceBp(arch, _economy.DessertChanceBp))
                 ? PickFromRole(_content.DessertGroups, limit, false, servings, arch) : -1;
 
-            // Veresiye isteyen musteri. Karar odeme aninda verilecek ama
-            // KIMIN soracagi burada, gelis planiyla ayni belirlenimcilikte
-            // atiliyor - servis sirasinda rastgelelik cagirmiyoruz.
+            // The customer who asks for a tab. The decision will be taken at
+            // the moment of payment, but WHO asks is rolled here, with the
+            // same determinism as the arrival plan - we do not call for
+            // randomness during service.
             _pAsksCredit[slot] = HasCredit
                 && CreditIdentityOk(slot)
                 && _rngCredit.Chance(_content.Signature.CreditAskChanceBp);
 
-            // Kombo: ana yemek HANGISI OLURSA OLSUN yan ve icecek KESIN
-            // geliyor. Fis buyuyor (ihtimal degil kesinlik), mutfak yuku de
-            // buyuyor - docs/07: "dogru kombo kurgusu ortalama fisi
-            // yukseltir AMA mutfak yukunu artirir."
+            // The combo: WHICHEVER main dish it is, the side and the drink
+            // come with it FOR CERTAIN. The ticket grows (a certainty rather
+            // than a chance) and so does the kitchen load - docs/07: "a
+            // well-built combo raises the average ticket BUT increases the
+            // kitchen load."
             //
-            // Once TEK BIR ana yemege bagliydi (kombonun kendi anasi,
-            // yani hamburger). Olculdu: siparislerin yalnizca %6'sinda
-            // tetikleniyordu, cunku menude bes ana yemek acik kaliyor ve
-            // duzenli musterinin favorisi de ana yemegi eziyor. Ortalama
-            // fise katkisi +0,7 sikke, yani %1,3 - oysa docs/12 %44
-            // vadediyor. Gruba baglamak, imza mekanigini gercekten
-            // hissedilir yapiyor.
+            // It used to be tied to ONE SINGLE main dish (the combo's own
+            // main, the hamburger). Measured: it fired on only 6% of orders,
+            // because five main dishes stay open on the menu and a regular's
+            // favourite overrides the main too. Its contribution to the
+            // average ticket was +0.7 coins, that is 1.3% - whereas docs/12
+            // promises 44%. Tying it to the group makes the signature
+            // mechanic genuinely felt.
             _pCombo[slot] = false;
-            // PAYDA YALNIZCA MEKANIK ACIKKEN SAYIYOR.
+            // THE DENOMINATOR ONLY COUNTS WHILE THE MECHANIC IS OPEN.
             //
-            // Kosulsuz sayiyordu, oysa kombo 16. gunde aciliyor: payda
-            // payin YAPISAL OLARAK SIFIR oldugu on bes gunu de
-            // iceriyordu ve eksen gercek kullanimi ucte bir oraninda
-            // eksik gosteriyordu. Olcum adiyla soylemeli: "komboya
-            // donebilecek siparislerin yuzde kaci komboya dondu".
+            // It counted unconditionally, whereas the combo opens on day 16:
+            // the denominator also took in the fifteen days on which the
+            // numerator was STRUCTURALLY ZERO, and the axis understated real
+            // usage by about a third. The measure should say what it is:
+            // "what share of the orders that COULD have become a combo did".
             if (HasCombo && IsMain(_pDishMain[slot])) _mainOrders++;
             if (ComboSellable() && IsMain(_pDishMain[slot]))
             {
@@ -4856,16 +5040,18 @@ namespace Lokanta.Core.Sim
                 Emit(SimEventKind.ComboOrdered, slot, (int)ComboPrice(slot));
             }
 
-            // Ana yemek bulunamadiysa cagiran taraf (SpawnArrivals) grubu
-            // kapidan cevirir; burada sadece -1 birakiyoruz.
+            // If no main dish could be found, the caller (SpawnArrivals)
+            // turns the party back at the door; here we only leave a -1.
         }
 
         /// <summary>
-        /// Musteri, DUYDUGU ama yapilamayan bir yemegi soruyor mu.
+        /// Does the customer ask for a dish they HAVE HEARD OF but which
+        /// cannot be made.
         ///
-        /// Aday: gunu ve itibari gelmis, ama ekipmani alinmamis ana yemek.
-        /// Yani oyuncunun ELINDE olan bir eksik; takvimin daha getirmedigi
-        /// yemek sorulmuyor, o haksizlik olurdu.
+        /// A candidate: a main dish whose day and reputation have come but
+        /// whose equipment has not been bought. That is, a shortfall IN THE
+        /// PLAYER'S HANDS; a dish the calendar has not yet brought is never
+        /// asked for, as that would be unfair.
         /// </summary>
         private int AskForMissingDish()
         {
@@ -4878,21 +5064,24 @@ namespace Lokanta.Core.Sim
             }
             if (n == 0 || total == 0) return -1;
 
-            // Sorulma olasiligi EKSIK ORANIYLA buyuyor, sayisiyla degil.
+            // The chance of being asked grows with the PROPORTION missing,
+            // not with the count.
             //
-            // Once mutlak sayiydi ve dortte doyuyordu: "dort yemek eksik"
-            // ile "on iki yemek eksik" ayni cezayi aliyordu. Ekipman
-            // eksigi birkac yemekle sinirli oldugu surece sorun degildi,
-            // ama menuden cikarilanlar da sayilmaya baslayinca ceza
-            // HERKESTE tavana vurdu: menusunu makul olcude daraltan
-            // oyuncu ile tek yemek tutan oyuncu ayni cezayi yiyordu.
-            // Olculdu - tek yemek stratejisi 27.361'den 116'ya dustu ve
-            // dukkan dokuzuncu gunde bosaldi. Dar menu "bedava"dan
-            // "olumcul"e gecti; ikisi de yanlis.
+            // It used to be an absolute count and it saturated at four: "four
+            // dishes missing" and "twelve dishes missing" took the same
+            // penalty. As long as the shortfall was limited to a few dishes'
+            // worth of equipment that was no problem, but once dishes taken
+            // off the menu started counting too, the penalty hit the ceiling
+            // FOR EVERYBODY: a player who narrowed their menu sensibly took
+            // the same penalty as one keeping a single dish. Measured - the
+            // single-dish strategy fell from 27,361 to 116 and the shop
+            // emptied on the ninth day. A narrow menu went from "free" to
+            // "fatal"; both are wrong.
             //
-            // Oran adil: acik ana yemeklerin yarisi menude degilse ceza
-            // yarim, hicbiri yoksa tam. Menu genisligi boylece SUREKLI
-            // bir eksen oluyor, esikli bir tuzak degil.
+            // A proportion is fair: if half the open main dishes are off the
+            // menu the penalty is half, and if none of them is on it, full.
+            // Menu breadth becomes a CONTINUOUS axis rather than a trap with
+            // a threshold.
             int chance = (int)Fx.MulDiv(_economy.AskChanceBp * 4, n, total);
             if (chance > Fx.One) chance = Fx.One;
             if (!_rngOrder.Chance(chance)) return -1;
@@ -4908,32 +5097,35 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Gunu ve itibari gelmis ama BUGUN YAPILAMAYAN ana yemek.
-        /// Musterinin sorup bulamadigi sey.
+        /// A main dish whose day and reputation have come but which CANNOT BE
+        /// MADE TODAY. The thing the customer asks for and does not find.
         ///
-        /// Iki sebep var ve MUSTERI ACISINDAN IKISI AYNI:
-        ///   1. ekipman alinmamis  - oyuncunun kapatabilecegi eksik
-        ///   2. menude degil       - oyuncunun BUGUN verdigi karar
+        /// There are two reasons and FROM THE CUSTOMER'S POINT OF VIEW THEY
+        /// ARE THE SAME:
+        ///   1. the equipment has not been bought - a shortfall the player
+        ///      can close
+        ///   2. it is not on the menu - a decision the player took TODAY
         ///
-        /// Ikincisi uzun sure YOKTU ve bu, oyunun en derin denge
-        /// hatasiydi: menuden cikarilan yemek hicbir zaman "sorulmus"
-        /// olmuyordu, yani menuyu daraltmanin talep tarafinda SIFIR
-        /// bedeli vardi. Olculdu - menude tek ana yemek tutan oyuncu
-        /// makul oyuncuyu fast food'da %12, Turk mutfaginda %38
-        /// geciyordu. Dar menu kesin baskin stratejiydi.
+        /// The second one WAS ABSENT for a long time, and it was the game's
+        /// deepest balance error: a dish taken off the menu was never "asked
+        /// for", so narrowing the menu had ZERO cost on the demand side.
+        /// Measured - a player keeping a single main dish on the menu beat
+        /// the reasonable player by 12% on fast food and by 38% on Turkish
+        /// cuisine. A narrow menu was strictly the dominant strategy.
         ///
-        /// Sonucu buydu: soguk hava deposunun ikinci odulu (menu
-        /// genisligi tasiyabilmek) degersizdi, yani merdivenin ust
-        /// kademeleri satin alinmiyordu; ve otuz iki yemeklik icerik
-        /// envanterinin var olma sebebi ortadan kalkiyordu. docs/32 200
-        /// "soguk hava menu genisligi satin aldiriyor" diyor - simdi
-        /// gercekten oyle.
+        /// The consequence was this: the cold store's second reward (being
+        /// able to carry menu breadth) was worthless, so the ladder's upper
+        /// tiers were never bought; and the reason the thirty-two-dish
+        /// content inventory existed vanished. docs/32 200 says "the cold
+        /// store makes you buy menu breadth" - now it really does.
         ///
-        /// Takvimin daha getirmedigi yemek sorulmuyor; o haksizlik olurdu.
+        /// A dish the calendar has not yet brought is never asked for; that
+        /// would be unfair.
         /// </summary>
         /// <summary>
-        /// Takvimi ve itibari gelmis ANA yemek. Awaited'in paydasi:
-        /// "kac yemek olabilirdi" sorusunun cevabi.
+        /// A MAIN dish whose calendar and reputation have come. Awaited's
+        /// denominator: the answer to "how many dishes could there have
+        /// been".
         /// </summary>
         private bool UnlockedMain(int dish)
         {
@@ -4950,46 +5142,49 @@ namespace Lokanta.Core.Sim
             if (_reputationCenti < d.UnlockReputationCenti) return false;
             if (!_content.IsInRole(d.Group, _content.MainGroups)) return false;
 
-            // Ekipman eksik: oyuncunun kapatabilecegi eksik.
+            // The equipment is missing: a shortfall the player can close.
             if (d.RequiresStationTier > 0
                 && _stationTier[d.StationIndex] < d.RequiresStationTier)
                 return true;
 
-            // Ekipman var ama menude degil: bugunku karar.
+            // The equipment is there but it is not on the menu: today's
+            // decision.
             return !_dishOnMenu[dish];
         }
 
         /// <summary>
-        /// Gruptan, sabire sigan yemekler arasindan esit olasilikla secer.
-        /// Hicbiri sigmiyorsa: zorunlu grupta grubun en hizlisi, degilse -1.
+        /// Picks with equal probability from the dishes in the group that fit
+        /// within the patience. If none fits: the fastest in the group for a
+        /// required role, otherwise -1.
         /// </summary>
         /// <summary>
-        /// Tatli gibi EK kalemlerin olasiligi arketipe gore degisiyor.
-        /// Bahsis egilimi, harcamaya yatkinligin vekili: cok bahsis birakan
-        /// tatli da alir, hic birakmayan almaz.
+        /// The chance of EXTRA items such as a dessert varies by archetype.
+        /// The tipping tendency is a proxy for willingness to spend: whoever
+        /// leaves a big tip takes a dessert too, whoever leaves none does not.
         ///
-        /// docs/13 arketip basina bir orderPreference tasarlamisti. Elle
-        /// yirmi dort agirlik tablosu yazmak yerine, ZATEN YUKLU olan
-        /// karakter alanlarindan turetiliyor; boylece uydurma sayi yok ve
-        /// TipChanceBp ile PriceSensitivityBp cift is goruyor.
+        /// docs/13 had designed an orderPreference per archetype. Rather than
+        /// writing twenty-four weight tables by hand, it is derived from the
+        /// character fields ALREADY LOADED; so there is no invented number
+        /// and TipChanceBp and PriceSensitivityBp do double duty.
         /// </summary>
         private static int ExtrasChanceBp(ArchetypeDef a, int baseBp)
         {
-            // Bahsis 0 -> yarisi, 3200 -> iki kati.
+            // A tip of 0 -> half, 3200 -> double.
             int scale = Fx.One / 2 + a.TipChanceBp * 3;
             if (scale > 2 * Fx.One) scale = 2 * Fx.One;
             return (int)Fx.MulDiv(baseBp, scale, Fx.One);
         }
 
         /// <summary>
-        /// Rolden yemek secer. Secim ESIT OLASILIKLI DEGIL: arketipin fiyat
-        /// duyarliligi ucuz ya da pahali tarafa yaslaniyor.
+        /// Picks a dish from a role. The choice IS NOT EQUALLY PROBABLE: the
+        /// archetype's price sensitivity leans towards the cheap or the dear
+        /// end.
         ///
-        /// Duyarlilik 10000 notr. Pazarlikci 25000 ile en ucuza, denetim
-        /// gorevlisi 5000 ile en pahaliya yaslaniyor. Bu alan zaten
-        /// yukluydu ve yalnizca memnuniyet cezasinda kullaniliyordu; yemek
-        /// SECIMINDE hic rol oynamiyordu, yani butun musteriler ayni
-        /// dagilimla siparis veriyordu.
+        /// A sensitivity of 10000 is neutral. The haggler at 25000 leans
+        /// towards the cheapest, the inspector at 5000 towards the dearest.
+        /// This field was already loaded and was used only in the
+        /// satisfaction penalty; it played no part at all in the CHOICE of
+        /// dish, so every customer ordered from the same distribution.
         /// </summary>
         private int PickFromRole(string[] role, long limit, bool required, int servings,
                                  ArchetypeDef arch)
@@ -5004,7 +5199,7 @@ namespace Lokanta.Core.Sim
                 DishDef d = _content.Dishes[i];
                 if (!_dishOnMenu[i] || !Unlocked(i)) continue;
                 if (!_content.IsInRole(d.Group, role)) continue;
-                if (!CanMake(i, servings)) continue;      // stokta yok, siparis edilemez
+                if (!CanMake(i, servings)) continue;      // not in stock, it cannot be ordered
 
                 if (d.PrepMs < fastestMs) { fastestMs = d.PrepMs; fastest = i; }
                 if (d.PrepMs > limit) continue;
@@ -5015,7 +5210,8 @@ namespace Lokanta.Core.Sim
 
             if (n == 0) return required ? fastest : -1;
 
-            // Agirliklar. Tek aday varsa ya da hepsi ayni fiyatsa esit.
+            // The weights. Equal if there is a single candidate, or if they
+            // are all the same price.
             int lean = arch != null ? arch.PriceSensitivityBp - Fx.One : 0;
             long total = 0;
             for (int i = 0; i < _content.Dishes.Length; i++)
@@ -5036,7 +5232,7 @@ namespace Lokanta.Core.Sim
             return fastest;
         }
 
-        /// <summary>Adayin agirligi; aday degilse sifir.</summary>
+        /// <summary>The candidate's weight; zero if it is not a candidate.</summary>
         private int RoleWeight(int dish, string[] role, long limit, int servings,
                                long lo, long hi, int lean)
         {
@@ -5047,13 +5243,13 @@ namespace Lokanta.Core.Sim
             if (d.PrepMs > limit) return 0;
             if (hi <= lo || lean == 0) return Fx.One;
 
-            // 0 = en ucuz, 10000 = en pahali
+            // 0 = the cheapest, 10000 = the dearest
             int rel = (int)Fx.MulDiv(_dishPrice[dish] - lo, Fx.One, hi - lo);
             int w = Fx.One + (int)Fx.MulDiv(Fx.One - 2 * rel, lean, Fx.One);
-            return w < 1000 ? 1000 : w;      // hicbir yemek tamamen dislanmasin
+            return w < 1000 ? 1000 : w;      // no dish is shut out completely
         }
 
-        /// <summary>Bir kisilik siparisin toplam pisirme suresi.</summary>
+        /// <summary>The total cooking time of one person's order.</summary>
         private int OrderPrepMs(int party)
         {
             int ms = 0;
@@ -5064,13 +5260,14 @@ namespace Lokanta.Core.Sim
             return ms;
         }
 
-        /// <summary>Bir kisilik siparisin tutari, oyuncunun belirledigi fiyatlarla.</summary>
+        /// <summary>The value of one person's order, at the prices the player set.</summary>
         private long OrderPrice(int party)
         {
             long p = 0;
             if (_pCombo[party])
             {
-                // Uc kalem tek fiyat; tatli varsa ustune tam fiyattan biniyor.
+                // Three items at one price; a dessert, if there is one, goes
+                // on top at full price.
                 p = ComboPrice(party);
                 if (_pDishDessert[party] >= 0) p += _dishPrice[_pDishDessert[party]];
                 return p;
@@ -5083,13 +5280,13 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Kombonun kisi basi fiyati: SECILEN ana yemek + kombonun yani ve
-        /// icecegi, hepsi priceBp ile indirimli.
+        /// The combo's price per head: the CHOSEN main dish + the combo's
+        /// side and drink, all discounted by priceBp.
         ///
-        /// Ana yemek artik sabit degil (bkz. PickOrder): oyuncu hangi ana
-        /// yemegi menude tutuyorsa kombo onun uzerine kuruluyor. Fiyat da
-        /// o yuzden secilen yemekten hesaplaniyor - sabit bir yemegin
-        /// fiyatini kullanmak, pahali bir ana yemegi ucuza satmak olurdu.
+        /// The main dish is no longer fixed (see PickOrder): the combo is
+        /// built on whichever main the player keeps on the menu. That is why
+        /// the price is worked out from the chosen dish - using a fixed
+        /// dish's price would mean selling an expensive main cheaply.
         /// </summary>
         public long ComboPrice(int party)
         {
@@ -5103,10 +5300,10 @@ namespace Lokanta.Core.Sim
             return Fx.MulDiv(sum, _content.Signature.ComboPriceBp, Fx.One);
         }
 
-        /// <summary>Arayuz icin: kombonun ornek fiyati (kombonun kendi anasiyla).</summary>
+        /// <summary>For the UI: the combo's sample price (with the combo's own main).</summary>
         public long ComboPrice() { return ComboPrice(-1); }
 
-        /// <summary>Bir kisilik siparisin malzeme maliyeti.</summary>
+        /// <summary>The ingredient cost of one person's order.</summary>
         private long OrderCost(int party)
         {
             long c = 0;
@@ -5118,7 +5315,7 @@ namespace Lokanta.Core.Sim
             return c;
         }
 
-        // ---- 2. sabir ------------------------------------------------------
+        // ---- 2. patience -----------------------------------------------------
         private void AdvancePatience()
         {
             for (int i = 0; i < MaxParties; i++)
@@ -5128,22 +5325,23 @@ namespace Lokanta.Core.Sim
                 int rateBp = DrainRateBp(i);
                 if (rateBp <= 0) continue;
 
-                int eksilen = (int)Fx.MulDiv(TimingConfig.TickMs, rateBp, Fx.One);
-                _pPatienceLeftMs[i] -= eksilen;
+                int drained = (int)Fx.MulDiv(TimingConfig.TickMs, rateBp, Fx.One);
+                _pPatienceLeftMs[i] -= drained;
 
-                // BEKLEME DE AGIRLIKLI SAYILIYOR.
+                // THE WAITING IS COUNTED WITH THE SAME WEIGHTING.
                 //
-                // Once her tik TAM sayiliyordu ve bu, sabir donmus
-                // oldugu surece zararsizdi. Sabir yemek piserken de
-                // isleyince ortaya cikti: bir dakikalik pisme, memnuniyet
-                // cezasini (waited/sabir x 6000) doyuruyor ve butun
-                // musteriler sifir memnuniyetle cikiyordu - referans
-                // botlarin hepsi iflas etti.
+                // Every tick used to count IN FULL, and that was harmless as
+                // long as patience was frozen. It came out once patience ran
+                // during cooking too: a minute of cooking saturated the
+                // satisfaction penalty (waited/patience x 6000) and every
+                // customer left with zero satisfaction - all the reference
+                // bots went bankrupt.
                 //
-                // Dogrusu ayni olcu: musteriyi ne kadar SINIRLENDIREN bir
-                // bekleme ise o kadar sayiliyor. Masa beklemek tam,
-                // yemek beklemek az - ikisi de ayni birimde.
-                _pWaitedMs[i] += eksilen;
+                // The right answer is the same measure: waiting counts in
+                // proportion to how much it IRKS the customer. Waiting for a
+                // table counts in full, waiting for food counts little - both
+                // in the same unit.
+                _pWaitedMs[i] += drained;
 
                 if (!_pWarned[i] && _pPatienceTotalMs[i] > 0)
                 {
@@ -5160,8 +5358,9 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Sabir tuketme hizi. Garson masadayken (_pInTask) hic tukenmez:
-        /// ilgilenilen musteri beklemis sayilmaz.
+        /// The rate at which patience drains. While a waiter is at the table
+        /// (_pInTask) it does not drain at all: a customer being seen to does
+        /// not count as waiting.
         /// </summary>
         private int DrainRateBp(int i)
         {
@@ -5178,7 +5377,8 @@ namespace Lokanta.Core.Sim
 
         private void LeaveAngry(int i)
         {
-            // Sabri biten musteri cikar ve itibari sert dusurur.
+            // A customer whose patience runs out leaves and drops reputation
+            // sharply.
             int stage = (int)_pStage[i];
             _pSatisfactionCenti[i] = 0;
             AccumulateReputation(i, 0);
@@ -5201,10 +5401,10 @@ namespace Lokanta.Core.Sim
             _tableParty[t] = -1;
             _tableDirty[t] = dirty;
 
-            // TABAKLAR MASADA KALIYOR. Garson masayi toplayana kadar
-            // "kullanimda" sayiliyorlar - lavaboya ancak toplaninca
-            // gidiyorlar. Yemeden kalkan grubun elinde tabak yoktur ve
-            // burada sifir eklenir.
+            // THE PLATES STAY ON THE TABLE. Until a waiter clears it they
+            // count as "in use" - they only go to the sink once it is
+            // cleared. A party that leaves without eating has no plates, and
+            // zero is added here.
             _tablePlates[t] += _pPlates[party];
             _pPlates[party] = 0;
 
@@ -5215,9 +5415,9 @@ namespace Lokanta.Core.Sim
         {
             for (int s = 0; s < MaxServers; s++)
             {
-                if (_salonTaskKind[s] != TaskKind.None && _salonTaskKind[s] != TaskKind.Clear
-                    && _salonTaskTarget[s] == party)
-                    _salonTaskKind[s] = TaskKind.None;
+                if (_hallTaskKind[s] != TaskKind.None && _hallTaskKind[s] != TaskKind.Clear
+                    && _hallTaskTarget[s] == party)
+                    _hallTaskKind[s] = TaskKind.None;
                 if (_kitchenTaskKind[s] != TaskKind.None
                     && _kitchenTaskTarget[s] / MaxJobsPerParty == party)
                     _kitchenTaskKind[s] = TaskKind.None;
@@ -5228,9 +5428,9 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Grubun istasyon islerini iptal eder ve YUVALARI BOSALTIR.
-        /// Bu olmadan kizip giden her grup bir yuvayi omur boyu kilitler
-        /// ve mutfak gun ilerledikce sessizce duruyordu.
+        /// Cancels the party's station jobs and FREES THE SLOTS.
+        /// Without this, every party that left in anger locked a slot for
+        /// good and the kitchen silently ground to a halt as the day went on.
         /// </summary>
         private void ReleaseJobs(int party)
         {
@@ -5247,7 +5447,7 @@ namespace Lokanta.Core.Sim
             _pJobsLeft[party] = 0;
         }
 
-        // ---- 3. masaya oturtma ---------------------------------------------
+        // ---- 3. seating ------------------------------------------------------
         private void SeatWaitingParties()
         {
             for (int t = 0; t < _tableCount; t++)
@@ -5257,23 +5457,24 @@ namespace Lokanta.Core.Sim
                 int best = MostUrgent(CustomerStage.WaitingForTable);
                 if (best < 0) return;
 
-                // TEMIZ TABAK YOKSA MASAYA OTURTULMUYOR.
+                // WITH NO CLEAN PLATE, NOBODY IS SEATED.
                 //
-                // Bu satir bir OLUM SARMALINI onluyor ve sarmal otomatik
-                // turda goruldu: on iki tabakli dort masali bir dukkanda
-                // dort kisilik iki grup stogu tuketiyordu, ucuncu grup
-                // masaya oturuyor, siparis veriyor, mutfak tabak
-                // bulamiyor, sabri bitiyor, kizgin cikiyor - ve boylece
-                // gun kimse servis edilmeden kapaniyordu.
+                // This line prevents a DEATH SPIRAL, and the spiral was seen
+                // on the automated tour: in a four-table shop with twelve
+                // plates, two parties of four used up the supply; the third
+                // party sat down, ordered, the kitchen could find no plate,
+                // their patience ran out, they left angry - and so the day
+                // closed with nobody served at all.
                 //
-                // Dogru davranis lokantanin kendisinde de bu: tabak
-                // yoksa masaya OTURTMAZSIN, oturtup ac birakmazsin.
-                // Bekleyen grup kapida bekliyor, temiz tabak cikinca
-                // giriyor - basinc goruunur, dukkan kilitlenmiyor.
+                // This is the right behaviour in a real restaurant too: with
+                // no plate you DO NOT SEAT anybody, you do not seat them and
+                // leave them hungry. The waiting party waits at the door and
+                // comes in when a clean plate appears - the pressure is
+                // visible and the shop does not lock up.
                 //
-                // Rezerve degil ESIK: tabaklar tabaklama aninda
-                // dusuluyor. Burada tutmak, siparis vermeyen bir grubun
-                // tabagi elinde tutmasi olurdu.
+                // Not a reservation but a THRESHOLD: plates are deducted at
+                // the moment of plating. Holding them here would mean a party
+                // that has not ordered keeping plates in hand.
                 if (_platesClean < _pSize[best]) return;
 
                 _tableParty[t] = best;
@@ -5284,10 +5485,11 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Verilen asamadaki, goreve baglanmamis, sabri EN AZ kalan grup.
-        /// Esitlikte kucuk indeks kazanir: kural deterministik.
-        /// "Cikmaya en yakin olana once bak" kurali, dogru onceligi
-        /// ayrica kodlamaya gerek birakmiyor.
+        /// The party at the given stage, not tied to a task, with the LEAST
+        /// patience left. On a tie the lower index wins: the rule is
+        /// deterministic. The rule "see to whoever is closest to walking out
+        /// first" means the right priority does not have to be coded
+        /// separately.
         /// </summary>
         private int MostUrgent(CustomerStage stage)
         {
@@ -5306,21 +5508,21 @@ namespace Lokanta.Core.Sim
             return best;
         }
 
-        // ---- 4. is dagitimi ------------------------------------------------
+        // ---- 4. task dispatch ------------------------------------------------
         /// <summary>
-        /// Pisirilmeyi bekleyen grup. _pEatLeftMs == 0 "pisiyor", -1 "pisti".
-        /// Bu ayrim olmadan mutfak, servis bekleyen hazir yemegi yeniden
-        /// pisirmeye baslıyordu.
+        /// A party waiting to be cooked for. _pEatLeftMs == 0 means "cooking",
+        /// -1 means "cooked". Without that distinction the kitchen started
+        /// cooking again food that was ready and waiting to be served.
         /// </summary>
         /// <summary>
-        /// Siparisi ISTASYON ISLERINE bolyor. Ayni istasyona giden kalemler
-        /// tek iste birlesiyor. Is, TEK TABAGIN suresini ve TABAK SAYISINI
-        /// ayri tutuyor; kac tabagin es zamanli pisecegi is baslarken bos
-        /// yuva sayisina gore belli oluyor (docs/27 3.3).
+        /// Splits the order into STATION JOBS. Items going to the same station
+        /// merge into one job. A job keeps the duration of ONE PLATE and the
+        /// NUMBER OF PLATES separately; how many plates cook at once is
+        /// decided by the free slots when the job starts (docs/27 3.3).
         ///
-        /// Ilk yazimda bir grubun butun tabaklari TEK yuvada sirayla
-        /// pisiyordu. O modelde ekipman almak hicbir sey degistirmiyordu,
-        /// cunku yuva sayisi sureyi etkilemiyordu.
+        /// In the first draft all of a party's plates cooked one after
+        /// another in a SINGLE slot. In that model buying equipment changed
+        /// nothing, because the slot count did not affect the duration.
         /// </summary>
         private void BuildJobs(int party)
         {
@@ -5349,8 +5551,8 @@ namespace Lokanta.Core.Sim
 
             for (int k = 0; k < MaxJobsPerParty; k++)
             {
-                // Ayni istasyona giden ikinci kalem: tek tabak suresi
-                // toplaniyor, tabak sayisi ayni kaliyor.
+                // A second item going to the same station: the single-plate
+                // duration adds up, the plate count stays the same.
                 if (_jobStation[b + k] == station)
                 {
                     _jobMs[b + k] += _content.Dishes[dish].PrepMs;
@@ -5368,22 +5570,22 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        /// <summary>Ekipman kademesine gore istasyonun yuva sayisi.</summary>
+        /// <summary>The station's slot count, per its equipment tier.</summary>
         private int StationSlots(int station)
         {
             return _content.Stations[station].Tiers[_stationTier[station]].Slots;
         }
 
-        /// <summary>Ekipman kademesine gore istasyonun attendBp degeri.</summary>
+        /// <summary>The station's attendBp value, per its equipment tier.</summary>
         private int StationAttendBp(int station)
         {
             return _content.Stations[station].Tiers[_stationTier[station]].AttendBp;
         }
 
         /// <summary>
-        /// Baslatilabilecek islerin en aceleci olani. Sabri en az kalan grup
-        /// once; ayni grubun birden fazla isi olabilir, o yuzden grup
-        /// gorevdeyken de bakiyor.
+        /// The most urgent of the jobs that can be started. The party with the
+        /// least patience left comes first; the same party may have more than
+        /// one job, which is why it looks even while the party is in a task.
         /// </summary>
         private int MostUrgentJob()
         {
@@ -5393,7 +5595,7 @@ namespace Lokanta.Core.Sim
             {
                 if (!_pActive[i]) continue;
                 if (_pStage[i] != CustomerStage.WaitingForFood) continue;
-                if (_pEatLeftMs[i] != 0) continue;      // 0 = henuz pismedi
+                if (_pEatLeftMs[i] != 0) continue;      // 0 = not yet cooked
                 if (_pPatienceLeftMs[i] >= bestPatience) continue;
 
                 int b = i * MaxJobsPerParty;
@@ -5424,18 +5626,19 @@ namespace Lokanta.Core.Sim
                 int attendBp = StationAttendBp(station);
                 int free = StationSlots(station) - _stationBusy[station];
 
-                // Kac tabak es zamanli pisiyor. Uc sinir birden:
-                //   - bos yuva sayisi
-                //   - grubun tabak sayisi
-                //   - ASCININ ayni anda bakabilecegi tabak sayisi
+                // How many plates cook at once. Three limits at once:
+                //   - the number of free slots
+                //   - the party's plate count
+                //   - the number of plates ONE COOK can see to at a time
                 //
-                // Ucuncusu sart. Onsuz dort kisilik bir grup dort yuvayi
-                // birden tutuyordu ama asci onlara sirayla bakiyordu, yani
-                // yuvalar bos bos dolu goruniyordu. Olcum bunu yakaladi:
-                // ekipman alan mutfak memnuniyeti 87'den 81'e DUSURUYORDU.
+                // The third is essential. Without it a party of four held all
+                // four slots at once while the cook saw to them one after
+                // another, so the slots sat there looking occupied for
+                // nothing. A measurement caught it: buying equipment was
+                // DROPPING kitchen satisfaction from 87 to 81.
                 //
-                // docs/27 3.3 ayni sayiyi soyluyor: kademe 4 zirvesinde
-                // 8,66 es zamanli tabak, 4 asci, yani asci basina 2,2.
+                // docs/27 3.3 gives the same number: at the tier 4 peak, 8.66
+                // concurrent plates with 4 cooks, that is 2.2 per cook.
                 int perCook = Fx.CeilDiv(Fx.One, attendBp);
                 int take = plates;
                 if (free < take) take = free;
@@ -5443,17 +5646,18 @@ namespace Lokanta.Core.Sim
                 if (take < 1) take = 1;
                 int rounds = Fx.CeilDiv(plates, take);
 
-                // Ascinin el emegi tabak basina; paralellik onu azaltmiyor.
-                // Deneyim burada isliyor: DENEYIMLI ASCI DAHA CABUK SERBEST
-                // KALIYOR, yemek daha cabuk pismiyor. wallMs asagida ayri
-                // hesaplaniyor ve ona dokunulmuyor.
+                // The cook's hands-on effort is per plate; parallelism does
+                // not reduce it. Experience works here: AN EXPERIENCED COOK IS
+                // FREED SOONER, the food does not cook faster. wallMs is
+                // worked out separately below and is left untouched.
                 int attendMs = (int)Fx.MulDiv((long)_jobMs[job] * plates,
                                               attendBp, Fx.One);
                 attendMs = XpAdjusted(0, s, attendMs);
 
-                // Kombonun bedeli MUTFAKTA odeniyor: ayni tabak asciyi daha
-                // uzun bagliyor. Indirim salonda, yuk mutfakta - imza
-                // mekaniginin takasi bu (docs/07).
+                // The combo's price is paid IN THE KITCHEN: the same plate
+                // ties the cook up for longer. The discount is in the hall,
+                // the load in the kitchen - that is the signature mechanic's
+                // trade-off (docs/07).
                 if (_pCombo[job / MaxJobsPerParty] && _content.Signature.ComboKitchenLoadBp > 0)
                     attendMs = (int)Fx.MulDiv(attendMs,
                                               _content.Signature.ComboKitchenLoadBp, Fx.One);
@@ -5476,204 +5680,216 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        private void DispatchSalon()
+        private void DispatchHall()
         {
             ClampDishwashers();
 
-            int servers = _salon + 1;   // patron da salonda calisiyor
+            int servers = _hall + 1;   // the owner works the hall too
             if (servers > MaxServers) servers = MaxServers;
 
-            // LAVABOYA ADANMIS OLANLAR: salon dizisinin SONUNDAN sayiliyor.
-            // Sifirinci patron ve patron lavaboya girmiyor.
+            // THOSE DEDICATED TO THE SINK: counted FROM THE END of the hall
+            // array. Number zero is the owner, and the owner does not go to
+            // the sink.
             int sinkFrom = servers - _dishwashers;
             if (sinkFrom < 1) sinkFrom = 1;
 
-            // BU TICK'TE KRIZ ICIN LAVABOYA GIDEN SAYISI.
-            int krizYikayan = 0;
+            // HOW MANY WENT TO THE SINK FOR THE CRISIS ON THIS TICK.
+            int crisisWashers = 0;
 
             for (int s = 0; s < servers; s++)
             {
-                if (_salonTaskKind[s] != TaskKind.None) continue;
+                if (_hallTaskKind[s] != TaskKind.None) continue;
 
-                // LAVABO PATRONUN ISI DEGIL - personel varsa.
-                // Tek yerde hesaplaniyor: iki kopya, biri gerekcesiz,
-                // digerini degistiren kisinin haberi olmadan ayrisirdi.
-                bool patron = s == 0 && _salon > 0;
+                // THE SINK IS NOT THE OWNER'S JOB - as long as there are
+                // staff. It is worked out in one place: two copies, one of
+                // them unjustified, would drift apart without whoever changed
+                // the other one knowing.
+                bool owner = s == 0 && _hall > 0;
 
                 if (s >= sinkFrom)
                 {
-                    // ADANMIS BULASIKCI: yalnizca yikiyor, masaya gitmiyor.
-                    // Kullanicinin cumlesi: "bulasikci alinca herkes kendi
-                    // isini yapar" - karsiligi tam olarak bu satir.
+                    // THE DEDICATED DISHWASHER: they only wash, they do not
+                    // go to the tables. The user's own words: "once you take
+                    // on a dishwasher everybody does their own job" - this
+                    // line is exactly that.
                     //
-                    // BU SATIR IKI KEZ ZAYIFLATILMAYA CALISILDI, OLCUM
-                    // IKISINI DE REDDETTI (docs/53):
+                    // AN ATTEMPT WAS MADE TWICE TO WEAKEN THIS LINE, AND
+                    // MEASUREMENT REJECTED BOTH (docs/53):
                     //
-                    //   yikayacak sey yokken salona donsun
-                    //       197 -> 216   (32 tohum, HEAD'e gore)
-                    //   yigin bir esigi gecmeden yikamasin
-                    //       229 -> 293   (12 tohum - AYNI OLCEKTE DEGIL,
-                    //       yalnizca yonu gosteriyor)
+                    //   let them go back to the hall when there is nothing to
+                    //   wash            197 -> 216   (32 seeds, against HEAD)
+                    //   do not let them wash until the pile passes a threshold
+                    //                   229 -> 293   (12 seeds - NOT ON THE
+                    //                   SAME SCALE, it only shows the
+                    //                   direction)
                     //
-                    // Ikisi de makul geliyordu ve ikisi de ayni seyi
-                    // bozuyor: uzmanin butun degeri ARALIKSIZ ve HEMEN
-                    // yikamasinda. Salona donen bulasikci, tabak
-                    // kirlendiginde bir musteri isine bagli kaliyor ve
-                    // lavaboya GEC donuyor.
+                    // Both sounded reasonable and both break the same thing:
+                    // the specialist's whole value is in washing WITHOUT
+                    // BREAK and AT ONCE. A dishwasher who goes back to the
+                    // hall is tied to a customer's job when a plate gets
+                    // dirty, and gets back to the sink LATE.
                     if (_platesDirty > 0)
                     {
-                        _salonTaskKind[s] = TaskKind.Wash;
-                        _salonTaskTarget[s] = -1;
-                        // UZMANIN SURESI: adanmis bulasikci daha hizli
-                        // yikiyor. Fark rol tablosunda zaten yaziyordu
-                        // (bulasikci 48 / garson 26 gunluk kapasite) ve
-                        // simulasyon onu hic kullanmiyordu.
-                        _salonTaskLeftMs[s] =
+                        _hallTaskKind[s] = TaskKind.Wash;
+                        _hallTaskTarget[s] = -1;
+                        // THE SPECIALIST'S TIME: a dedicated dishwasher
+                        // washes faster. The difference was already written
+                        // in the role table (dishwasher 48 / waiter 26 daily
+                        // capacity) and the simulation was making no use of
+                        // it.
+                        _hallTaskLeftMs[s] =
                             XpAdjusted(1, s - 1, _timing.DishwasherWashMs);
                     }
                     continue;
                 }
 
                 // ============================================================
-                // KRIZ: MUTFAK DURDU. Bu dal MUSTERI ISINDEN ONCE geliyor.
+                // THE CRISIS: THE KITCHEN HAS STOPPED. This branch comes
+                // BEFORE the customer work.
                 //
-                // Neden istisna mesru: temiz tabak bitince tabak dolum
-                // dongusu KOMPLE duruyor (bkz. `_plateStalled`), yani
-                // pismis yemek tezgahta bekliyor. O anda bir garsonun
-                // yeni siparis almasi degersiz is - servis edilecek bir
-                // sey zaten cikmiyor. Lavaboya gitmek dukkani ACIYOR.
+                // Why the exception is legitimate: when the clean plates run
+                // out the plating cycle stops COMPLETELY (see
+                // `_plateStalled`), so cooked food sits on the pass. At that
+                // moment a waiter taking a new order is worthless work -
+                // nothing is coming out to be served anyway. Going to the
+                // sink OPENS the shop.
                 //
-                // NEDEN ONCEKI DENEME TUTMADI (docs/49 §6, 351 -> 351):
-                // istisna musteri isinden SONRA yazilmisti ve "bos kisi"
-                // ariyordu; zirvede salon zaten dolu oldugu icin hic
-                // ateslenmedi. Bos kisi aramak yanlis soruydu - dogru
-                // soru "su an yapilan is degerli mi".
+                // WHY THE PREVIOUS ATTEMPT DID NOT WORK (docs/49 §6, 351 ->
+                // 351): the exception had been written AFTER the customer
+                // work and it looked for a "free person"; at the peak the
+                // hall is already full, so it never fired. Looking for a free
+                // person was the wrong question - the right question is "is
+                // the work being done right now worth anything".
                 //
-                // BULASIKCI VARKEN DE ATESLENIYOR - VE BILEREK.
+                // IT FIRES EVEN WITH A DISHWASHER ON - AND DELIBERATELY.
                 //
-                // Ilk yorumum "bulasikci varken kriz zaten olusmuyor"
-                // diyordu ve bu OLCULMEMIS bir iddiaydi; olcum tersini
-                // soyluyor (bulasikci kolu HEAD'e gore 198 -> 197
-                // oynuyor, yani dal atesleniyor). Tek bir bulasikci
-                // yeterince buyuk bir salona yetismeyebilir.
+                // My first comment said "with a dishwasher the crisis does not
+                // arise anyway", and that was an UNMEASURED claim;
+                // measurement says otherwise (the dishwasher arm moves 198 ->
+                // 197 against HEAD, so the branch does fire). A single
+                // dishwasher may not keep up with a large enough hall.
                 //
-                // Kullanicinin kurali RUTIN yikama hakkinda ve orada
-                // aynen duruyor: `WashNeeded` bulasikci varsa salona
-                // rutin yikama vermiyor. Burasi rutin degil - mutfak
-                // DURMUS. Duran bir mutfakta bulasikci zaten geride
-                // kalmis demektir; o anda salonu lavabodan uzak tutmak
-                // kurali korumak degil dukkani kilitlemek olurdu.
+                // The user's rule is about ROUTINE washing, and it stands
+                // there untouched: `WashNeeded` gives the hall no routine
+                // washing when there is a dishwasher. This is not routine -
+                // the kitchen HAS STOPPED. In a stopped kitchen the
+                // dishwasher is already behind; keeping the hall away from
+                // the sink at that moment would not be upholding the rule but
+                // locking the shop up.
                 //
-                // Arastirma (docs/53): sevk edilmis hicbir oyunda uzman
-                // almak genel havuzu sessizce kapatmiyor. RimWorld'un
-                // YANGIN davranisi tam bu kalip - nadir, agir, kapsamli
-                // bir kosul normal onceligi geciyor.
-                if (!patron && _plateStalled && _platesDirty > krizYikayan)
+                // Research (docs/53): in no shipped game does taking on a
+                // specialist silently shut the general pool off. RimWorld's
+                // FIRE behaviour is exactly this pattern - a rare, severe,
+                // all-hands condition overrides the normal priority.
+                if (!owner && _plateStalled && _platesDirty > crisisWashers)
                 {
-                    _salonTaskKind[s] = TaskKind.Wash;
-                    _salonTaskTarget[s] = -1;
-                    _salonTaskLeftMs[s] =
+                    _hallTaskKind[s] = TaskKind.Wash;
+                    _hallTaskTarget[s] = -1;
+                    _hallTaskLeftMs[s] =
                         OwnerAdjusted(s, XpAdjusted(1, s - 1, _timing.WashMs));
                     _washing = true;
 
-                    // AYRI SAYAC. `_salonRushWashes` bulasikcinin salonu
-                    // lavabodan kurtarip kurtarmadigini olcuyor
-                    // (PlateTests) ve bu dal BULASIKCIDAN BAGIMSIZ
-                    // atesleniyor - ayni sayaca katlarsa testin iki kolu
-                    // da ayni krizi sayar ve fark olculemez hale gelir.
-                    // Tam olarak o sayacin kendi yorumunun yasakladigi
-                    // sey.
-                    _salonCrisisWashes++;
+                    // A SEPARATE COUNTER. `_hallRushWashes` measures whether
+                    // the dishwasher saves the hall from the sink
+                    // (PlateTests), and this branch fires INDEPENDENTLY OF
+                    // THE DISHWASHER - folded into the same counter, both
+                    // arms of the test would count the same crisis and the
+                    // difference would become unmeasurable. Exactly what that
+                    // counter's own comment forbids.
+                    _hallCrisisWashes++;
 
-                    // BIR KIRLI TABAK BUTUN SALONU CEKMESIN.
+                    // ONE DIRTY PLATE MUST NOT PULL IN THE WHOLE HALL.
                     //
-                    // `_platesDirty` gorev BITINCE dusuyor, atanirken
-                    // degil. Esiksiz halde tek kirli tabak icin bes
-                    // sunucu birden lavaboya gidiyordu ve dordu bos
-                    // donuyordu (`_washedToday` de siserek).
-                    krizYikayan++;
+                    // `_platesDirty` drops when the task FINISHES, not when it
+                    // is assigned. Without a threshold, five servers went to
+                    // the sink at once for a single dirty plate and four came
+                    // back empty (inflating `_washedToday` as they went).
+                    crisisWashers++;
                     continue;
                 }
 
-                // Once musteriye dokunan isler, sabri en az olandan basla.
-                int party = MostUrgentSalon(out TaskKind kind, out int ms);
+                // The work that touches a customer first, starting with
+                // whoever has the least patience left.
+                int party = MostUrgentHall(out TaskKind kind, out int ms);
                 if (party >= 0)
                 {
-                    _salonTaskKind[s] = kind;
-                    _salonTaskTarget[s] = party;
+                    _hallTaskKind[s] = kind;
+                    _hallTaskTarget[s] = party;
                     _pServer[party] = s;
-                    _salonTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, ms));
+                    _hallTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, ms));
                     _pInTask[party] = true;
                     continue;
                 }
 
-                // BULASIK COK BIRIKTIYSE SALON LAVABOYA GECIYOR.
+                // WHEN THE WASHING-UP PILES UP, THE HALL MOVES TO THE SINK.
                 //
-                // Kullanicinin cumlesi: "bulasiklar cok biriktigi zaman
-                // garson bulasiklari yikamaya gecsin". Musteriye dokunan
-                // isten SONRA, masa toplamaktan ONCE: biriken bulasik
-                // kirli bir masadan daha aciledir, cunku temiz tabak
-                // bitince MUTFAK duruyor.
+                // The user's own words: "when the washing-up piles up too
+                // much, let the waiter go and wash it". AFTER the work that
+                // touches a customer, BEFORE clearing tables: a pile of
+                // washing-up is more urgent than a dirty table, because when
+                // the clean plates run out THE KITCHEN stops.
                 //
-                // Iki esik (histerezis) sart: tek esikte garson bir
-                // tabak yikayip servise donuyor, bir sonraki karede geri
-                // geliyor - "yikiyor" degil "gidip geliyor" diye
-                // okunuyordu.
-                if (!patron && WashNeeded())
+                // Two thresholds (hysteresis) are essential: with a single
+                // threshold the waiter washes one plate, goes back to
+                // service, and returns on the next frame - it read not as
+                // "washing" but as "going back and forth".
+                if (!owner && WashNeeded())
                 {
-                    _salonTaskKind[s] = TaskKind.Wash;
-                    _salonTaskTarget[s] = -1;
-                    _salonTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, _timing.WashMs));
+                    _hallTaskKind[s] = TaskKind.Wash;
+                    _hallTaskTarget[s] = -1;
+                    _hallTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, _timing.WashMs));
                     _washing = true;
 
-                    // BU SATIR OLCUM ICIN.
+                    // THIS LINE IS FOR MEASUREMENT.
                     //
-                    // Salonun bulasiga IKI yolu var: burasi (acil - isini
-                    // BIRAKIP lavaboya kosuyor) ve asagidaki bos vakit
-                    // dali. Bulasikcinin tum degeri birincisini
-                    // engellemesinde; ikincisi zaten zararsiz. Iki yol
-                    // tek sayaca katlanirsa bulasikcinin farki
-                    // olculemez - "bulasikci beklemeyi dusurdu mu"
-                    // testi tam olarak bu yuzden sifiri sifirla
-                    // karsilastiriyordu.
-                    _salonRushWashes++;
+                    // The hall has TWO routes to the washing-up: this one
+                    // (urgent - DROPPING its work and running to the sink)
+                    // and the idle-time branch below. The dishwasher's whole
+                    // value lies in preventing the first; the second is
+                    // harmless anyway. Folded into a single counter, the
+                    // dishwasher's difference cannot be measured - that is
+                    // exactly why the "did the dishwasher cut the waiting"
+                    // test was comparing zero with zero.
+                    _hallRushWashes++;
                     continue;
                 }
 
-                // Kimse beklemiyorsa kirli masa topla.
+                // If nobody is waiting, clear a dirty table.
                 int table = FirstDirtyTable();
                 if (table < 0)
                 {
-                    // Masa da yoksa bos vakitte bulasiga bakiliyor:
-                    // gercek bir garson da oyle yapar ve bu, zirveye
-                    // temiz tabakla girmeyi sagliyor.
-                    if (!patron && _platesDirty > 0)
+                    // With no table either, the idle time goes on the
+                    // washing-up: a real waiter does the same, and it is what
+                    // lets the shop go into the peak with clean plates.
+                    if (!owner && _platesDirty > 0)
                     {
-                        _salonTaskKind[s] = TaskKind.Wash;
-                        _salonTaskTarget[s] = -1;
-                        _salonTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, _timing.WashMs));
+                        _hallTaskKind[s] = TaskKind.Wash;
+                        _hallTaskTarget[s] = -1;
+                        _hallTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, _timing.WashMs));
                         _washing = true;
                         continue;
                     }
                     return;
                 }
-                // BAYRAK BURADA DUSMUYOR, GOREV BITINCE DUSUYOR.
+                // THE FLAG DOES NOT DROP HERE, IT DROPS WHEN THE TASK
+                // FINISHES.
                 //
-                // Once temizlik BASLARKEN dusuyordu ve masa o saniyede
-                // yeni musteriye aciliyordu: SeatWaitingParties yalnizca
-                // _tableDirty'ye bakiyor. Sonuc, ClearMs'in kapasiteyi
-                // hic kisitlamamasiydi - garsonu mesgul ediyor ama masayi
-                // tutmuyordu - ve salonda yeni bir grubun hala toplanan
-                // masaya oturdugu goruluyordu.
+                // It used to drop as the clearing BEGAN, and the table opened
+                // to a new customer in that same second: SeatWaitingParties
+                // looks only at _tableDirty. The result was that ClearMs
+                // constrained capacity not at all - it kept the waiter busy
+                // but did not hold the table - and a new party could be seen
+                // sitting down at a table still being cleared.
                 //
-                // Ayni masanin iki garson tarafindan secilmesini
-                // FirstDirtyTable engelliyor.
-                _salonTaskKind[s] = TaskKind.Clear;
-                _salonTaskTarget[s] = table;
-                // Temizlik huyu YALNIZCA masa toplamaya isliyor: "hizli
-                // ama dagilnik" servis ederken hizli, toplarken yavas.
-                // Etkiyi butun gorevlere yaymak, huyu ikinci bir hiz
-                // carpanina cevirir ve dagilnikligi anlamsizlastirirdi.
+                // FirstDirtyTable is what stops the same table being picked
+                // by two waiters.
+                _hallTaskKind[s] = TaskKind.Clear;
+                _hallTaskTarget[s] = table;
+                // The cleanliness trait applies ONLY to clearing tables: the
+                // "fast but messy" one is fast while serving and slow while
+                // clearing. Spreading the effect across every task would turn
+                // the trait into a second speed multiplier and make the
+                // messiness meaningless.
                 int clearMs = _timing.ClearMs;
                 if (s > 0)
                 {
@@ -5685,11 +5901,11 @@ namespace Lokanta.Core.Sim
                         clearMs = (int)Fx.MulDiv(clearMs, Fx.One, bp);
                     }
                 }
-                _salonTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, clearMs));
+                _hallTaskLeftMs[s] = OwnerAdjusted(s, XpAdjusted(1, s - 1, clearMs));
             }
         }
 
-        private int MostUrgentSalon(out TaskKind kind, out int ms)
+        private int MostUrgentHall(out TaskKind kind, out int ms)
         {
             int best = -1;
             int bestPatience = int.MaxValue;
@@ -5699,9 +5915,9 @@ namespace Lokanta.Core.Sim
             {
                 if (!_pActive[i] || _pInTask[i] || _pKitchenTask[i]) continue;
                 CustomerStage st = _pStage[i];
-                bool needsSalon = st == CustomerStage.WaitingToOrder
-                               || st == CustomerStage.WaitingToPay;
-                if (!needsSalon) continue;
+                bool needsHall = st == CustomerStage.WaitingToOrder
+                              || st == CustomerStage.WaitingToPay;
+                if (!needsHall) continue;
                 if (_pPatienceLeftMs[i] < bestPatience)
                 {
                     bestPatience = _pPatienceLeftMs[i];
@@ -5710,12 +5926,13 @@ namespace Lokanta.Core.Sim
                 }
             }
 
-            // Yemegi hazir olanlar servis bekliyor; onlar ayri isaretli.
+            // Those whose food is ready are waiting to be served; they are
+            // marked separately.
             for (int i = 0; i < MaxParties; i++)
             {
                 if (!_pActive[i] || _pInTask[i] || _pKitchenTask[i]) continue;
                 if (_pStage[i] != CustomerStage.WaitingForFood) continue;
-                if (_pEatLeftMs[i] != -1) continue;    // -1 = pisti, servis bekliyor
+                if (_pEatLeftMs[i] != -1) continue;    // -1 = cooked, waiting to be served
                 if (_pPatienceLeftMs[i] < bestPatience)
                 {
                     bestPatience = _pPatienceLeftMs[i];
@@ -5737,9 +5954,9 @@ namespace Lokanta.Core.Sim
                     kind = TaskKind.Pay; ms = _timing.PayMs * size; break;
             }
 
-            // PATRONUN ILGILENDIGI MASA: is kisaliyor ve isaret TUKENIYOR.
-            // Ilgi bir ADIM, surekli bir hal degil - yoksa bir kez
-            // ilgilenilen masa gun boyu ayricalikli olurdu.
+            // A TABLE THE OWNER HAS SEEN TO: the work shortens and the mark
+            // IS SPENT. Attention is a SINGLE STEP, not a standing condition -
+            // otherwise a table seen to once would stay privileged all day.
             if (_pAttended[best] && _economy.AttendWorkCutBp > 0)
             {
                 ms = (int)Fx.Bp(ms, Fx.One - _economy.AttendWorkCutBp);
@@ -5750,10 +5967,11 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Salonun sifirinci sunucusu PATRON. Kapasite modeli patronu
-        /// 1,4 is-gunu sayiyor (docs/14), yani bir personelden hizli.
-        /// Ayni katsayiyi burada gorev suresine uyguluyoruz; aksi halde
-        /// simulasyon kapasite modelinden dusuk verim uretirdi.
+        /// The hall's server number zero is THE OWNER. The capacity model
+        /// counts the owner as 1.4 person-days (docs/14), that is, faster
+        /// than a member of staff. We apply the same factor to the task
+        /// duration here; otherwise the simulation would produce lower output
+        /// than the capacity model.
         /// </summary>
         private int OwnerAdjusted(int serverIndex, int ms)
         {
@@ -5762,89 +5980,96 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bulasik ACIL mi - yani salon isini birakip lavaboya gecmeli mi.
+        /// Is the washing-up URGENT - that is, should the hall work be
+        /// dropped for the sink.
         ///
-        /// Iki sebep yeter:
-        ///   - temiz tabak bitti ya da bitmek uzere (mutfak duruyor),
-        ///   - kirli yigin esigi asti.
+        /// Either reason is enough:
+        ///   - the clean plates have run out or are about to (the kitchen is
+        ///     stopping),
+        ///   - the dirty pile has passed the threshold.
         ///
-        /// Histerezis: bir kez baslayinca yigin ALT esige inene kadar
-        /// suruyor. Tek esikle garson her karede gidip geliyordu.
+        /// Hysteresis: once it has begun it carries on until the pile falls
+        /// to the LOWER threshold. With a single threshold the waiter went
+        /// back and forth on every frame.
         /// </summary>
         private bool WashNeeded()
         {
             if (_platesDirty <= 0) return false;
 
-            // BULASIKCI VARSA SALON KARISMAZ.
+            // WITH A DISHWASHER ON, THE HALL DOES NOT GET INVOLVED.
             //
-            // Kuralin gerekcesi kullanicinin cumlesi: "bulasikci alinca
-            // herkes kendi isini yapar".
+            // The rule's justification is the user's own words: "once you
+            // take on a dishwasher everybody does their own job".
             //
-            // BUNU BIR KEZ GEVSETTIM VE GERI ALDIM. Adanmis bulasikci
-            // tabak darbogazini acmiyor, kotulestiriyordu (tabaksiz
-            // bekleme 263 -> 351), ve "temiz tabak bitmek uzereyken salon
-            // imdada kossun" istisnasi hicbir sey degistirmedi: 351 ->
-            // 351. Sebep, istisnanin ateslenecek BOS KISI bulamamasi -
-            // yikamaya musteri isinden SONRA bakiliyor ve zirvede salon
-            // zaten dolu.
+            // I LOOSENED THIS ONCE AND PUT IT BACK. The dedicated dishwasher
+            // was not opening the plate bottleneck but making it worse
+            // (waiting without plates 263 -> 351), and the exception "let the
+            // hall come to the rescue when the clean plates are about to run
+            // out" changed nothing at all: 351 -> 351. The reason was that the
+            // exception could find no FREE PERSON to fire for - washing is
+            // looked at AFTER the customer work and at the peak the hall is
+            // already full.
             //
-            // Olculmemis bir gerekceyle kullanicinin tasarim kuralini
-            // zayiflatmak yanlis olurdu; kural duruyor. Asil sebep ve
-            // acik karar docs/49 §5'te.
+            // Weakening the user's design rule on an unmeasured justification
+            // would have been wrong; the rule stands. The real cause and the
+            // explicit decision are in docs/49 §5.
             if (_dishwashers > 0) return false;
 
-            int toplam = _economy.TierForTables(_tableCount).Plates;
-            if (_platesClean * 4 <= toplam) return true;        // temizin dortte biri kaldi
-            if (_washing && _platesDirty * 4 > toplam) return true;   // alt esige inmedi
-            return _platesDirty * 2 >= toplam;                  // yarisi kirli
+            int total = _economy.TierForTables(_tableCount).Plates;
+            if (_platesClean * 4 <= total) return true;        // a quarter of the clean ones left
+            if (_washing && _platesDirty * 4 > total) return true;   // not down to the lower threshold
+            return _platesDirty * 2 >= total;                  // half of them dirty
         }
 
-        /// <summary>Su an salondan biri lavaboda mi (histerezis icin).</summary>
+        /// <summary>Is somebody from the hall at the sink right now (for the hysteresis).</summary>
         private bool _washing;
 
-        /// <summary>Lavaboya adanmis salon calisani sayisi.</summary>
+        /// <summary>How many hall staff are dedicated to the sink.</summary>
         private int _dishwashers;
 
-        /// <summary>Bugun yikanan tabak sayisi. Rapor ve tani icin.</summary>
+        /// <summary>The plates washed today. For the report and for diagnostics.</summary>
         private int _washedToday;
 
         /// <summary>
-        /// Bugun KIRLENEN tabak sayisi - birikmeli.
+        /// The plates DIRTIED today - cumulative.
         ///
-        /// Anlik kirli sayisi ("su an lavaboda kac tabak var") dongunun
-        /// isleyip islemedigini SOYLEMIYOR: gunun basinda kimse yemegini
-        /// bitirmemistir ve sayi sifirdir. Birikmeli sayac, "bugun
-        /// dongu dondu mu" sorusunun dogru olcusu.
+        /// The instantaneous dirty count ("how many plates are at the sink
+        /// right now") DOES NOT SAY whether the cycle is turning: at the
+        /// start of the day nobody has finished eating and the number is
+        /// zero. A cumulative counter is the right measure of "did the cycle
+        /// turn today".
         /// </summary>
         private int _dirtiedToday;
 
         /// <summary>
-        /// Tabak bittigi bildirimi verildi mi.
+        /// Has the "out of plates" notification been given.
         ///
-        /// Her tick'te duyurmak bildirim seridini tek bir cumleyle
-        /// doldururdu; bayrak tabak cikinca dusuyor, yani her YENI
-        /// tikanma bir kez soyleniyor.
+        /// Announcing it on every tick would fill the notification strip with
+        /// a single sentence; the flag drops when a plate appears, so each
+        /// NEW blockage is said once.
         /// </summary>
         private bool _plateWarned;
 
         /// <summary>
-        /// MUTFAK SU AN TABAK YOKLUGUNDAN DURDU MU.
+        /// IS THE KITCHEN STOPPED RIGHT NOW FOR WANT OF PLATES.
         ///
-        /// `_plateWarned` ile ayni omurde ama isi ayri: o BILDIRIM
-        /// bayragi, bu KARAR girdisi. Ikisini tek alana bindirmek,
-        /// bildirimi susturan bir degisikligin sessizce salonun kriz
-        /// davranisini de kapatmasi demekti.
+        /// It lives the same life as `_plateWarned` but its job is different:
+        /// that one is a NOTIFICATION flag, this one is a DECISION input.
+        /// Folding the two into a single field would mean a change that
+        /// silenced the notification silently switching off the hall's crisis
+        /// behaviour as well.
         /// </summary>
         private bool _plateStalled;
 
         /// <summary>
-        /// Mutfak durdugu icin lavaboya kosan salon gorevi sayisi.
+        /// The hall tasks that ran to the sink because the kitchen had
+        /// stopped.
         ///
-        /// `_salonRushWashes`ten AYRI: o, bulasikci varken salonun
-        /// lavabodan kurtulup kurtulmadigini olcuyor ve kriz dali
-        /// bulasikcidan bagimsiz atesleniyor.
+        /// SEPARATE from `_hallRushWashes`: that one measures whether the
+        /// hall gets free of the sink when a dishwasher is on, and the crisis
+        /// branch fires independently of the dishwasher.
         /// </summary>
-        private int _salonCrisisWashes;
+        private int _hallCrisisWashes;
 
         private int FirstDirtyTable()
         {
@@ -5858,26 +6083,27 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Bu masayi toplayan bir garson var mi.
+        /// Is there a waiter clearing this table.
         ///
-        /// Kirli bayragi artik gorev BITINCE dusuyor, yani ayni masa iki
-        /// garson tarafindan secilebilirdi. Ayri bir "toplaniyor" dizisi
-        /// tutmak yerine gorev listesine bakiliyor: yeni bir durum alani
-        /// kayda, dogrulamaya ve tekrar oynatmaya da girerdi.
+        /// The dirty flag now drops when the task FINISHES, which means the
+        /// same table could be picked by two waiters. Rather than keeping a
+        /// separate "being cleared" array, the task list is consulted: a new
+        /// state field would have to go into the save, the validation and the
+        /// replay as well.
         /// </summary>
         private bool BeingCleared(int table)
         {
             for (int s = 0; s < MaxServers; s++)
-                if (_salonTaskKind[s] == TaskKind.Clear && _salonTaskTarget[s] == table)
+                if (_hallTaskKind[s] == TaskKind.Clear && _hallTaskTarget[s] == table)
                     return true;
             return false;
         }
 
-        // ---- 5. gorevleri ilerlet -------------------------------------------
+        // ---- 5. advance the tasks --------------------------------------------
         private void AdvanceTasks()
         {
-            // Ascinin bagli kaldigi sure. Bittiginde asci serbest, ama
-            // yemek ISTASYONDA pismeye devam ediyor.
+            // The time the cook is tied up. When it ends the cook is free,
+            // but the food goes on cooking AT THE STATION.
             for (int s = 0; s < MaxServers; s++)
             {
                 if (_kitchenTaskKind[s] == TaskKind.None) continue;
@@ -5886,17 +6112,17 @@ namespace Lokanta.Core.Sim
                 _kitchenTaskKind[s] = TaskKind.None;
             }
 
-            // Istasyondaki isler. Yuva, is bitince bosaliyor.
+            // The jobs at the stations. A slot frees when its job finishes.
             //
-            // DIZI DEGIL GRUPLAR taraniyor. _jobStation.Length =
-            // MaxParties * MaxJobsPerParty = 1024 ve bu dongu her tick
-            // KOSULSUZ doniyordu; oysa aktif is sayisi hicbir zaman
-            // 14 masa x 4 = 56'yi gecemez. Grup basina tek bir kontrol,
-            // 1024 yinelemeyi 256'ya indiriyor ve gruplarin cogunda
-            // dortlu ic dongu hic acilmiyor.
+            // PARTIES are scanned, NOT THE ARRAY. _jobStation.Length =
+            // MaxParties * MaxJobsPerParty = 1024, and this loop used to run
+            // UNCONDITIONALLY on every tick; whereas the number of active
+            // jobs can never exceed 14 tables x 4 = 56. A single check per
+            // party brings 1024 iterations down to 256, and for most parties
+            // the inner loop of four never opens at all.
             //
-            // Tick saniyede 10 kez (en yuksek hizda 160 kez) calisiyor,
-            // yani buradaki her yineleme kare butcesinden yiyor.
+            // Tick runs ten times a second (160 times at the highest speed),
+            // so every iteration here eats into the frame budget.
             for (int p = 0; p < MaxParties; p++)
             {
                 if (_pJobsLeft[p] <= 0) continue;
@@ -5918,40 +6144,41 @@ namespace Lokanta.Core.Sim
 
                     _pKitchenTask[p] = false;
 
-                    // PISTI AMA HENUZ TABAKTA DEGIL.
+                    // COOKED, BUT NOT YET ON A PLATE.
                     //
-                    // Eskiden burada dogrudan servis bekliyor isaretleniyordu.
-                    // Simdi arada bir adim var: asci temiz tabak almadan
-                    // yemegi cikaramiyor (PlateUp). Temiz tabak yoksa
-                    // yemek tezgahta bekliyor - tabak darbogazinin
-                    // oyuncuya gorunen hali bu.
+                    // This used to mark them as waiting to be served
+                    // directly. There is now a step in between: the cook
+                    // cannot send the food out without taking a clean plate
+                    // (PlateUp). With no clean plate the food waits on the
+                    // pass - this is the plate bottleneck in the form the
+                    // player sees.
                     _pCooked[p] = true;
                 }
             }
 
             for (int s = 0; s < MaxServers; s++)
             {
-                if (_salonTaskKind[s] == TaskKind.None) continue;
-                _salonTaskLeftMs[s] -= TimingConfig.TickMs;
-                if (_salonTaskLeftMs[s] > 0) continue;
+                if (_hallTaskKind[s] == TaskKind.None) continue;
+                _hallTaskLeftMs[s] -= TimingConfig.TickMs;
+                if (_hallTaskLeftMs[s] > 0) continue;
 
-                TaskKind kind = _salonTaskKind[s];
-                int target = _salonTaskTarget[s];
-                _salonTaskKind[s] = TaskKind.None;
+                TaskKind kind = _hallTaskKind[s];
+                int target = _hallTaskTarget[s];
+                _hallTaskKind[s] = TaskKind.None;
 
                 if (kind == TaskKind.Clear)
                 {
-                    // Masa ANCAK SIMDI bosaliyor.
+                    // The table only frees up NOW.
                     if (target >= 0 && target < MaxTables)
                     {
                         _tableDirty[target] = false;
 
-                        // Kirli tabaklar garsonla birlikte lavaboya gidiyor.
-                        int tasinan = _tablePlates[target];
+                        // The dirty plates go to the sink with the waiter.
+                        int carried = _tablePlates[target];
                         _tablePlates[target] = 0;
-                        _platesInUse -= tasinan;
-                        _platesDirty += tasinan;
-                        _dirtiedToday += tasinan;
+                        _platesInUse -= carried;
+                        _platesDirty += carried;
+                        _dirtiedToday += carried;
                     }
                     Emit(SimEventKind.TableCleared, target);
                     continue;
@@ -5959,7 +6186,8 @@ namespace Lokanta.Core.Sim
 
                 if (kind == TaskKind.Wash)
                 {
-                    // Bir partide bir tabak. Yikama bitince temiz yigina.
+                    // One plate per go. When the wash finishes it joins the
+                    // clean pile.
                     if (_platesDirty > 0)
                     {
                         _platesDirty--;
@@ -5976,15 +6204,16 @@ namespace Lokanta.Core.Sim
                 switch (kind)
                 {
                     case TaskKind.SeatOrder:
-                        // Stok siparis ALINIRKEN dusuluyor. Sonradan tukenirse
-                        // musteri masada bekletilmis olurdu; hal asamasinin
-                        // baskisi siparis aninda hissedilmeli.
+                        // The stock is deducted WHEN THE ORDER IS TAKEN. Had
+                        // it run out later, the customer would have been kept
+                        // waiting at the table; the pressure of the market
+                        // stage should be felt at the moment of ordering.
                         Consume(_pDishMain[target], _pSize[target]);
                         Consume(_pDishSide[target], _pSize[target]);
                         Consume(_pDishDrink[target], _pSize[target]);
                         Consume(_pDishDessert[target], _pSize[target]);
                         _pStage[target] = CustomerStage.WaitingForFood;
-                        _pEatLeftMs[target] = 0;      // 0 = pisiyor
+                        _pEatLeftMs[target] = 0;      // 0 = cooking
                         BuildJobs(target);
                         if (_pDishMain[target] >= 0) _orderedRole[0] += _pSize[target];
                         if (_pDishSide[target] >= 0) _orderedRole[1] += _pSize[target];
@@ -6007,15 +6236,15 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// PISEN YEMEGI TEMIZ TABAGA KOYAR.
+        /// PUTS THE COOKED FOOD ON A CLEAN PLATE.
         ///
-        /// Mutfak isini bitirdiginde yemek hazir ama servis edilebilir
-        /// degil: asci temiz bir tabak almali. Tabak yoksa yemek tezgahta
-        /// bekliyor ve sayac isliyor - o sayac, "bulasikci ihmal edildi"
-        /// cumlesinin OLCUSU.
+        /// When the kitchen finishes its job the food is ready but not
+        /// servable: the cook has to take a clean plate. With no plate the
+        /// food waits on the pass and a counter runs - that counter is THE
+        /// MEASURE of the sentence "the washing-up was neglected".
         ///
-        /// Sabri en az olandan basliyor: tabak kitken kimin yemeginin
-        /// cikacagi rastgele olmamali.
+        /// It starts with whoever has the least patience: when plates are
+        /// scarce, whose food comes out must not be random.
         /// </summary>
         private void PlateUp()
         {
@@ -6032,21 +6261,22 @@ namespace Lokanta.Core.Sim
                 }
                 if (best < 0)
                 {
-                    // MANDALLANMA: BAYRAK BURADA DA DUSMELI.
+                    // A LATCH: THE FLAG HAS TO DROP HERE TOO.
                     //
-                    // Once yalnizca `return` vardi ve `_plateStalled`
-                    // TAKILI KALIYORDU: tikanan grup sabirsizlanip
-                    // kalkinca (LeaveAngry `_pCooked`'u temizlemiyor)
-                    // bu cikis her tick sessizce aliniyor, mutfak
-                    // durmuyor ama salon KRIZ dalinda kaliyor - yani
-                    // kimse siparis almiyor, yeni pismis grup olusmuyor,
-                    // ve bayrak kendi kendini besliyor.
+                    // There used to be only a `return` here and
+                    // `_plateStalled` WAS STICKING: once the blocked party
+                    // lost patience and left (LeaveAngry does not clear
+                    // `_pCooked`), this exit was taken silently on every
+                    // tick, the kitchen was not stopped and yet the hall
+                    // stayed in the CRISIS branch - so nobody took an order,
+                    // no newly cooked party appeared, and the flag fed
+                    // itself.
                     //
-                    // Bayragi burada da dusurmek onu TUREV yapiyor:
-                    // degeri her tick PlateUp'ta yeniden hesaplaniyor
-                    // (PlateUp, DispatchSalon'dan ONCE kosuyor). Bu
-                    // yuzden kayda yazilmasi da GEREKMIYOR - yuklemeden
-                    // sonraki ilk tick dogru degeri kuruyor.
+                    // Dropping the flag here too makes it DERIVED: its value
+                    // is recomputed on every tick in PlateUp (PlateUp runs
+                    // BEFORE DispatchHall). That is also why it NEED NOT be
+                    // written into the save - the first tick after a load
+                    // establishes the right value.
                     _plateStalled = false;
                     return;
                 }
@@ -6054,19 +6284,20 @@ namespace Lokanta.Core.Sim
                 int need = _pSize[best];
                 if (_platesClean < need)
                 {
-                    // TABAK YOK. Sayac isliyor ve dongu burada duruyor -
-                    // daha az tabak isteyen kucuk bir grubu araya sokmak,
-                    // sabri en az olani beklemeye birakmak olurdu.
+                    // NO PLATES. The counter runs and the loop stops here -
+                    // slipping in a smaller party that needs fewer plates
+                    // would mean leaving whoever has the least patience
+                    // waiting.
                     _plateBlockedTicks++;
                     _plateStalled = true;
 
-                    // OYUNCUYA BIR KEZ SOYLENIYOR.
+                    // THE PLAYER IS TOLD ONCE.
                     //
-                    // Her tick'te duyurmak bildirim seridini tek bir
-                    // cumleyle doldururdu; susmak ise servisin sebepsiz
-                    // yavasladigi anlamina gelir ve oyuncu bunu mekanik
-                    // degil HATA diye okur. Bayrak tabak cikinca dusuyor,
-                    // yani her YENI tikanma bir kez soyleniyor.
+                    // Announcing it on every tick would fill the notification
+                    // strip with a single sentence; saying nothing means
+                    // service slows for no reason and the player reads that
+                    // not as a mechanic but as a BUG. The flag drops when a
+                    // plate appears, so each NEW blockage is said once.
                     if (!_plateWarned)
                     {
                         _plateWarned = true;
@@ -6081,15 +6312,15 @@ namespace Lokanta.Core.Sim
                 _platesInUse += need;
                 _pPlates[best] += need;
                 _pCooked[best] = false;
-                // SELF SERVISTE SERVIS ADIMI YOK.
+                // UNDER SELF SERVICE THERE IS NO SERVING STEP.
                 //
-                // Tezgahta siparis veren musteri tepsisini KENDI aliyor;
-                // masaya kimse getirmiyor. Bu, iki mutfagi ayiran en
-                // buyuk yapisal fark (docs/51) ve salon yukunun yarisini
-                // bu adim tasiyordu.
+                // A customer who orders at the counter takes their own tray;
+                // nobody brings it to the table. This is the largest
+                // structural difference between the two cuisines (docs/51),
+                // and this step carried half the hall's workload.
                 //
-                // Muhasebeye dokunulmuyor: memnuniyet, itibar ve masanin
-                // kirli birakilmasi hala CompletePayment'ta.
+                // The accounting is untouched: satisfaction, reputation and
+                // leaving the table dirty are still in CompletePayment.
                 if (_content.SelfService)
                 {
                     _pStage[best] = CustomerStage.Eating;
@@ -6098,7 +6329,7 @@ namespace Lokanta.Core.Sim
                 }
                 else
                 {
-                    _pEatLeftMs[best] = -1;           // tabakta, servis bekliyor
+                    _pEatLeftMs[best] = -1;           // plated, waiting to be served
                 }
                 Emit(SimEventKind.FoodReady, best, _pDishMain[best]);
             }
@@ -6111,16 +6342,17 @@ namespace Lokanta.Core.Sim
                 if (!_pActive[i] || _pStage[i] != CustomerStage.Eating) continue;
                 _pEatLeftMs[i] -= TimingConfig.TickMs;
                 if (_pEatLeftMs[i] > 0) continue;
-                // SELF SERVISTE ODEME BEKLEME YOK.
+                // UNDER SELF SERVICE THERE IS NO WAITING TO PAY.
                 //
-                // Para tezgahta, siparis aninda odendi. Musteri kalkip
-                // gidiyor - masada tepsisi kaliyor ve onu TEMIZLIKCI
-                // topluyor (CompletePayment masayi kirli birakiyor).
+                // The money was paid at the counter, at the moment of
+                // ordering. The customer gets up and goes - their tray is
+                // left on the table and THE CLEANER clears it
+                // (CompletePayment leaves the table dirty).
                 //
-                // CompletePayment yine cagriliyor: memnuniyet, itibar,
-                // mudavim kaydi ve ciro orada. Degisen tek sey,
-                // oyuncunun bir garsonu masaya gondermesinin
-                // GEREKMEMESI.
+                // CompletePayment is still called: satisfaction, reputation,
+                // the regular's record and the revenue are in there. The only
+                // thing that changes is that the player NEED NOT send a
+                // waiter to the table.
                 if (_content.SelfService)
                 {
                     _pStage[i] = CustomerStage.WaitingToPay;
@@ -6129,14 +6361,15 @@ namespace Lokanta.Core.Sim
                 }
 
                 _pStage[i] = CustomerStage.WaitingToPay;
-                // Odeme beklerken sabir yeniden isliyor ama tazelenmis olarak:
-                // yemek yiyen musteri sifirdan sabirli degil, yarisiyla basliyor.
+                // Patience runs again while they wait to pay, but refreshed:
+                // a customer who has eaten does not start from full patience
+                // but from half of it.
                 _pPatienceLeftMs[i] = _pPatienceTotalMs[i] / 2;
                 _pWarned[i] = false;
             }
         }
 
-        // ---- odeme ve memnuniyet -------------------------------------------
+        // ---- payment and satisfaction ----------------------------------------
         private void CompletePayment(int party)
         {
             int size = _pSize[party];
@@ -6145,15 +6378,17 @@ namespace Lokanta.Core.Sim
 
             int satisfaction = ComputeSatisfaction(party, _pDishMain[party]);
 
-            // Masaya bakan garsonun huyu. docs/14: musteriyle iyi anlasan
-            // +8 puan, suratsiz -6. Patron (sifirinci sunucu) huysuz degil.
+            // The trait of the waiter seeing to the table. docs/14: the one
+            // who gets on well with customers +8 points, the surly one -6.
+            // The owner (server zero) has no traits.
             int server = _pServer[party];
             if (server > 0)
                 satisfaction += TraitSum(1, server - 1, t => t.SatisfactionCenti);
 
-            // Pisiren ascinin huyu: "yavas ama titiz" yemek kalitesini
-            // yukseltiyor (docs/14). Etki memnuniyetin KALAN payina
-            // uygulaniyor - zaten tavandaki bir yemegi daha iyi yapamaz.
+            // The trait of the cook who made it: "slow but meticulous"
+            // raises the food's quality (docs/14). The effect is applied to
+            // the REMAINING share of satisfaction - it cannot improve a dish
+            // already at the ceiling.
             int cook = _pCook[party];
             if (cook >= 0)
             {
@@ -6164,8 +6399,8 @@ namespace Lokanta.Core.Sim
                     satisfaction += (int)Fx.MulDiv(satisfaction, q, Fx.One);
             }
 
-            // Sevdigi yemegi bulamayan duzenli musteri, dogru sekilde
-            // agirlansa bile eksik ayriliyor.
+            // A regular who could not find their favourite dish leaves
+            // short-changed, however well they were otherwise served.
             if (_pMissedFavourite[party])
             {
                 satisfaction -= _economy.RegularMissedFavouriteCenti;
@@ -6173,19 +6408,23 @@ namespace Lokanta.Core.Sim
             }
             _pSatisfactionCenti[party] = satisfaction;
 
-            // Bahsis: memnun musteri, arketipin bahsis egilimine gore
+            // The tip: a satisfied customer, per the archetype's tipping
+            // tendency.
             ArchetypeDef a = _content.Archetypes[_pArchetype[party]];
             if (satisfaction > 8000 && _rngStaffError.Chance(a.TipChanceBp))
-                bill += Fx.Bp(bill, 1000);   // %10 bahsis
+                bill += Fx.Bp(bill, 1000);   // a 10% tip
 
-            // Malzeme SABAH halde pesin odendi (OrderIngredient); burada
-            // ikinci kez dusulmez. Hal asamasi yokken burada dusuluyordu ve
-            // o gecici satir kaldirilmadigi icin malzeme iki kez odeniyordu.
-            // Gunluk izde brut kar 476 sikke iken kasa 116 sikke artiyordu;
-            // aradaki 360 tam olarak ikinci odemeydi.
+            // The ingredients were paid for in cash AT THE MARKET IN THE
+            // MORNING (OrderIngredient); they are not deducted a second time
+            // here. Before the market stage existed they were deducted here,
+            // and because that temporary line was not removed the ingredients
+            // were being paid for twice. On the daily trace the gross profit
+            // was 476 coins while the till rose by 116; the 360 in between was
+            // exactly the second payment.
             SignatureDef sig = _content.Signature;
 
-            // Veresiye istedi ve alamadi: mahcup kalkiyor masadan.
+            // They asked for a tab and did not get one: they leave the table
+            // embarrassed.
             if (_pAsksCredit[party] && !_pCredit[party] && HasCredit)
             {
                 satisfaction -= sig.CreditRefusedPenaltyCenti;
@@ -6195,15 +6434,16 @@ namespace Lokanta.Core.Sim
 
             if (_pCredit[party] && HasCredit && _tabCount < MaxTabs)
             {
-                // Fis kasaya GIRMIYOR: veresiye defterine yaziliyor.
-                // Ciro da bugun sayilmiyor; tahsil edilince sayilacak.
-                // docs/07: "nakit akisini bozar ama sadakati yukseltir."
+                // The bill DOES NOT GO INTO the till: it is written into the
+                // tab book. Nor does it count as revenue today; it will count
+                // when it is collected.
+                // docs/07: "it upsets the cash flow but raises loyalty."
                 _tabAmount[_tabCount] = bill;
                 _tabDueDay[_tabCount] = _day + sig.CreditDueDays;
                 _tabTea[_tabCount] = _pTea[party] ? 1 : 0;
                 _tabRegular[_tabCount] = _pRegular[party];
                 _tabCount++;
-                _creditIssued += bill;      // yil sonu tahsilat orani icin
+                _creditIssued += bill;      // for the year-end collection rate
                 satisfaction += sig.CreditLoyaltyBonusCenti;
                 if (satisfaction > Fx.One) satisfaction = Fx.One;
                 _pSatisfactionCenti[party] = satisfaction;
@@ -6231,17 +6471,18 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Yemegin kalite etkisi: EN BELIRLEYICI malzeme ne diyorsa o.
+        /// A dish's quality effect: whatever THE MOST DECISIVE ingredient
+        /// says.
         ///
-        /// Once ortalama alinmisti ve olcum reddetti: Turk mutfaginda
-        /// ucuz malzeme alan oyuncu 35.200 ile iyi oyunun 26.211'ini
-        /// GECIYORDU. Sebep ortalamanin kendisi: tencereye atilan ucuz
-        /// sogan, ucuz eti gizliyordu. Alti malzemeli sulu yemek cezayi
-        /// altiya boluyor, uc malzemeli hamburger uce.
+        /// A mean was taken first and measurement rejected it: on Turkish
+        /// cuisine a player buying cheap ingredients BEAT good play, 35,200
+        /// against 26,211. The cause was the mean itself: the cheap onion
+        /// thrown into the pot hid the cheap meat. A six-ingredient stew
+        /// divides the penalty by six, a three-ingredient hamburger by three.
         ///
-        /// Musteri boyle dusunmuyor. "Etin ucuz" der; yaninda kac tane
-        /// sogan oldugunu saymaz. O yuzden mutlak degeri en buyuk olan
-        /// malzeme belirliyor.
+        /// The customer does not think that way. They say "the meat is
+        /// cheap"; they do not count how many onions came with it. So the
+        /// ingredient with the largest absolute value decides.
         /// </summary>
         private int DishQualityCenti(int dish)
         {
@@ -6260,88 +6501,90 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Fisteki butun kalemlerin piyasadan sapmasi, kalemin fisteki
-        /// PAYIYLA agirliklandirilmis, baz puan.
+        /// The deviation of every item on the bill from the market, weighted
+        /// by that item's SHARE of the bill, in basis points.
         ///
-        /// Neden agirlikli: 46 santilik bir ana yemekte %10 zam ile 16
-        /// santilik bir ayranda %10 zam ayni sey degil. Oyuncunun
-        /// hissettigi sey yuzdelerin ortalamasi degil, FISIN ne kadar
-        /// sismis oldugu.
+        /// Why weighted: a 10% rise on a 46-centi main dish and a 10% rise on
+        /// a 16-centi ayran are not the same thing. What the player feels is
+        /// not the mean of the percentages but how much THE BILL has swollen.
         ///
-        /// Kombo fisi kendi indirimini zaten tasiyor (ComboPrice) ve
-        /// oradaki fiyat karari ayri bir mekanik; kombo varken yalnizca
-        /// ana yemek olculuyor - yoksa oyuncu imza mekanigini actigi
-        /// icin cezalandirilirdi.
+        /// A combo bill already carries its own discount (ComboPrice) and the
+        /// pricing decision there is a separate mechanic; with a combo, only
+        /// the main dish is measured - otherwise the player would be punished
+        /// for switching on the signature mechanic.
         /// </summary>
         private long WeightedPriceDiffBp(int party, int main)
         {
-            // KOMBODA DA FISIN TAMAMI OLCULUYOR.
+            // WITH A COMBO, THE WHOLE BILL IS MEASURED TOO.
             //
-            // Once yalnizca ana yemege bakiliyordu ve gerekce "kombo
-            // kendi indirimini tasiyor, oyuncu imza mekanigini actigi
-            // icin cezalandirilmasin" idi. Gerekce dogru, uygulama
-            // yanlisti: kombo fisi UC kalemin fiyatini topluyor ve
-            // kombo her gruba dayatiliyor. Yani ana yemegi piyasada
-            // birakip yan ile icecegi istedigin kadar pahalilastirmak
-            // MUSTERIYE HIC YANSIMIYORDU.
+            // Only the main dish used to be looked at, and the justification
+            // was "the combo carries its own discount, the player must not be
+            // punished for switching on the signature mechanic". The
+            // justification was right and the implementation wrong: a combo
+            // bill sums the price of THREE items, and the combo is imposed on
+            // every party. So leaving the main dish at the market price and
+            // making the side and the drink as dear as you liked REACHED THE
+            // CUSTOMER NOT AT ALL.
             //
-            // Olculdu: kombo acikken ekstralari 2000 kat pahalilastiran
-            // bir bot 24,8 MILYON sikke topladi ve memnuniyet 68,9'dan
-            // yalnizca 66,8'e dustu.
+            // Measured: with the combo on, a bot that made the extras 2000
+            // times dearer piled up 24.8 MILLION coins, and satisfaction fell
+            // only from 68.9 to 66.8.
             //
-            // Dogrusu: kombonun KENDI piyasa karsiligi (uc kalemin
-            // piyasa toplami x kombo indirimi) ile oyuncunun kombo
-            // fiyati karsilastiriliyor. Indirim cezalandirilmiyor,
-            // sismanlik olculuyor.
+            // The right answer: the combo's OWN market equivalent (the market
+            // sum of the three items x the combo discount) is compared with
+            // the player's combo price. The discount is not punished; the
+            // swelling is measured.
             if (_pCombo[party])
             {
                 int[] cd = _content.Signature.ComboDishes;
                 if (cd == null || cd.Length < 3) return DishPriceDiffBp(main);
 
-                long piyasa = _content.Dishes[main].Price
+                long market = _content.Dishes[main].Price
                             + _content.Dishes[cd[1]].Price
                             + _content.Dishes[cd[2]].Price;
-                piyasa = Fx.MulDiv(piyasa, _content.Signature.ComboPriceBp, Fx.One);
-                if (piyasa <= 0) return 0;
+                market = Fx.MulDiv(market, _content.Signature.ComboPriceBp, Fx.One);
+                if (market <= 0) return 0;
 
-                long sapma = Fx.MulDiv(ComboPrice(party) - piyasa, Fx.One, piyasa);
-                long taban = _economy.UnderpriceFloorBp - Fx.One;
-                return sapma < taban ? taban : sapma;
+                long deviation = Fx.MulDiv(ComboPrice(party) - market, Fx.One, market);
+                long floor = _economy.UnderpriceFloorBp - Fx.One;
+                return deviation < floor ? floor : deviation;
             }
 
-            long toplam = 0, agirlik = 0;
-            Add(ref toplam, ref agirlik, main);
-            Add(ref toplam, ref agirlik, _pDishSide[party]);
-            Add(ref toplam, ref agirlik, _pDishDrink[party]);
-            Add(ref toplam, ref agirlik, _pDishDessert[party]);
+            long total = 0, weight = 0;
+            Add(ref total, ref weight, main);
+            Add(ref total, ref weight, _pDishSide[party]);
+            Add(ref total, ref weight, _pDishDrink[party]);
+            Add(ref total, ref weight, _pDishDessert[party]);
 
-            return agirlik > 0 ? toplam / agirlik : 0;
+            return weight > 0 ? total / weight : 0;
         }
 
-        private void Add(ref long toplam, ref long agirlik, int dish)
+        private void Add(ref long total, ref long weight, int dish)
         {
             if (dish < 0) return;
             long market = _content.Dishes[dish].Price;
             if (market <= 0) return;
-            // Agirlik PIYASA fiyati, oyuncunun fiyati degil: yoksa
-            // pahaliya satmak kalemin agirligini da buyutur ve ceza
-            // kendi kendini besler.
-            toplam += DishPriceDiffBp(dish) * market;
-            agirlik += market;
+            // The weight is THE MARKET price, not the player's: otherwise
+            // selling dearly would enlarge the item's weight as well and the
+            // penalty would feed itself.
+            total += DishPriceDiffBp(dish) * market;
+            weight += market;
         }
 
-        /// <summary>Tek yemegin piyasadan sapmasi, tabanli.</summary>
+        /// <summary>A single dish's deviation from the market, with a floor.</summary>
         /// <summary>
-        /// Menunun ORTALAMA fiyat sapmasi, baz puan. Talep kanali icin.
+        /// The menu's MEAN price deviation, in basis points. For the demand
+        /// channel.
         ///
-        /// Agirliklar siparis olasiligiyla ayni: ana yemegi herkes
-        /// aliyor, yan/icecek/tatli olasilikla. Ayni agirliklari
-        /// RecommendedRestock da kullaniyor - iki yerde iki ayri agirlik
-        /// olsaydi hal ekrani ile talep birbirini yalanlardi.
+        /// The weights are the same as the ordering probabilities: everybody
+        /// takes the main, the side/drink/dessert come by chance.
+        /// RecommendedRestock uses the same weights - with two separate sets
+        /// of weights in two places, the market screen and demand would
+        /// contradict each other.
         ///
-        /// Tek bir yemegi pahalilastirmak talebi az etkiliyor, menunun
-        /// tamamini pahalilastirmak cok: olculen sey oyuncunun FIYAT
-        /// SIYASETI, tek bir kalem degil.
+        /// Making a single dish dearer affects demand little, making the
+        /// whole menu dearer affects it greatly: what is measured is the
+        /// player's PRICING POLICY, not one item.
         /// </summary>
         private long MenuPriceDiffBp()
         {
@@ -6355,12 +6598,12 @@ namespace Lokanta.Core.Sim
                 else if (_content.IsInRole(g, _content.DrinkGroups)) drinks++;
                 else if (_content.IsInRole(g, _content.DessertGroups)) desserts++;
             }
-            if (mains == 0) return 0;          // menu bos: sapma da yok
+            if (mains == 0) return 0;          // the menu is empty: no deviation either
             if (sides == 0) sides = 1;
             if (drinks == 0) drinks = 1;
             if (desserts == 0) desserts = 1;
 
-            long toplam = 0, agirlik = 0;
+            long total = 0, weight = 0;
             for (int i = 0; i < _content.Dishes.Length; i++)
             {
                 if (!_dishOnMenu[i] || !Unlocked(i)) continue;
@@ -6378,69 +6621,73 @@ namespace Lokanta.Core.Sim
                 else continue;
 
                 if (w <= 0) continue;
-                toplam += DishPriceDiffBp(i) * w;
-                agirlik += w;
+                total += DishPriceDiffBp(i) * w;
+                weight += w;
             }
-            return agirlik > 0 ? toplam / agirlik : 0;
+            return weight > 0 ? total / weight : 0;
         }
 
         /// <summary>
-        /// Bir gunun beklenen musteri sayisi, FIYAT DAHIL.
+        /// A day's expected customer count, PRICE INCLUDED.
         ///
-        /// ALTI CAGRI YERI DE BURADAN GECIYOR. Once her biri
-        /// DemandModel.CustomersPerDay'i dogrudan cagiriyordu; fiyat
-        /// kanali eklenirken birini atlamak, hal ekraninin gercekte
-        /// gelmeyecek musteriye gore stok onermesi demekti - yani
-        /// oyuncunun parasini cope attiracak sessiz bir tutarsizlik.
+        /// ALL SIX CALL SITES GO THROUGH HERE. Each of them used to call
+        /// DemandModel.CustomersPerDay directly; missing one while adding the
+        /// price channel would mean the market screen recommending stock for
+        /// customers who would not actually arrive - a silent inconsistency
+        /// that would throw the player's money in the bin.
         /// </summary>
         private int ExpectedCustomers(int dayFactorBp)
         {
             int people = DemandModel.CustomersPerDay(
                 _tableCount, _reputationCenti, _economy.CustomerBasePerTable, dayFactorBp);
 
-            // MUTFAGIN HACMI. Fast food ayni masaya daha cok insan
-            // getiriyor - "kalabalik, dusuk fis" vaadinin sayidaki
-            // karsiligi. Carpan TEK KAPIDA uygulaniyor, yani kadro
-            // onerisi, hal onerisi ve gelis plani ayni sayiyi goruyor.
-            int carpan = _content.CustomerMultiplierBp;
-            if (carpan > 0 && carpan != Fx.One)
-                people = (int)Fx.Bp(people, carpan);
+            // THE CUISINE'S VOLUME. Fast food brings more people to the same
+            // table - the numeric form of the promise "crowded, low ticket".
+            // The multiplier is applied at A SINGLE GATE, so the crew
+            // recommendation, the market recommendation and the arrival plan
+            // all see the same number.
+            int multiplier = _content.CustomerMultiplierBp;
+            if (multiplier > 0 && multiplier != Fx.One)
+                people = (int)Fx.Bp(people, multiplier);
 
             return DemandModel.ApplyPrice(people, MenuPriceDiffBp(),
                                           _economy.PriceElasticityBp);
         }
 
         /// <summary>
-        /// Bugun GERCEKTEN gelecek musteri sayisi.
+        /// The number of customers who will ACTUALLY come today.
         ///
-        /// ExpectedCustomers BEKLENTI; bu onun uzerine gunun sapmasini
-        /// koyuyor. AYRIM KASITLI ve mekanigin tamami bu ayrimda:
+        /// ExpectedCustomers is THE EXPECTATION; this puts the day's variance
+        /// on top of it. THE DISTINCTION IS DELIBERATE and the whole mechanic
+        /// lies in it:
         ///
-        ///   tahmin  -> kadro onerisi, hal onerisi, beklenen kisi
-        ///   gercek  -> yalnizca gelis plani
+        ///   the forecast -> the crew recommendation, the market
+        ///                   recommendation, the expected covers
+        ///   the actual   -> the arrival plan alone
         ///
-        /// Sapma tahmine de yansisaydi oyuncu yine kesin bilgiye
-        /// sahip olurdu ve oynaklik dekor kalirdi. Asil kazanc
-        /// burada: sabah stok karari artik bir YARGI - fazla alirsan
-        /// coper, az alirsan musteri kapidan doner.
+        /// Had the variance shown up in the forecast too, the player would
+        /// once again hold certain knowledge and the volatility would stay
+        /// decoration. The real gain is here: the morning's stock decision is
+        /// now a JUDGEMENT - buy too much and it goes in the bin, buy too
+        /// little and customers turn back at the door.
         ///
-        /// Cekilis GUNDE BIR ve _rngEvent akisindan: o akis zaten
-        /// vardi, kayda giriyordu ve hic kullanilmiyordu. Tekrar
-        /// oynatma birebir ayni kaliyor.
+        /// The draw happens ONCE A DAY and comes from the _rngEvent stream:
+        /// that stream already existed, went into the save, and was never
+        /// used. Replay stays byte for byte the same.
         /// </summary>
         private int ActualCustomers(int dayFactorBp)
         {
-            int beklenen = ExpectedCustomers(dayFactorBp);
-            int varyans = _economy.DemandVarianceBp;
-            if (varyans <= 0 || beklenen <= 0) return beklenen;
+            int expected = ExpectedCustomers(dayFactorBp);
+            int variance = _economy.DemandVarianceBp;
+            if (variance <= 0 || expected <= 0) return expected;
 
-            // [-varyans, +varyans] araliginda tek cekilis. Tamsayi:
-            // kayan nokta cekirdekte yasak (docs/23 2.5).
-            int aralik = 2 * varyans + 1;
-            int sapma = (int)(_rngEvent.Next() % (uint)aralik) - varyans;
+            // A single draw in the range [-variance, +variance]. Integer:
+            // floating point is banned in the core (docs/23 2.5).
+            int range = 2 * variance + 1;
+            int deviation = (int)(_rngEvent.Next() % (uint)range) - variance;
 
-            int gercek = (int)Fx.MulDiv(beklenen, Fx.One + sapma, Fx.One);
-            return gercek < 0 ? 0 : gercek;
+            int actual = (int)Fx.MulDiv(expected, Fx.One + deviation, Fx.One);
+            return actual < 0 ? 0 : actual;
         }
 
         private long DishPriceDiffBp(int dish)
@@ -6450,67 +6697,68 @@ namespace Lokanta.Core.Sim
             if (market <= 0) return 0;
 
             long diffBp = Fx.MulDiv(_dishPrice[dish] - market, Fx.One, market);
-            // Piyasanin altina inmenin bir tabani var; icerikte
-            // underpriceFloorBp olarak yaziyor (8500 = %15).
+            // There is a floor on going below the market; it is written in
+            // the content as underpriceFloorBp (8500 = 15%).
             long floorBp = _economy.UnderpriceFloorBp - Fx.One;
             if (diffBp < floorBp) diffBp = floorBp;
             return diffBp;
         }
 
-        /// <summary>docs/12 5.4 memnuniyet formulu, santi-puan.</summary>
+        /// <summary>The satisfaction formula of docs/12 5.4, in centi-points.</summary>
         private int ComputeSatisfaction(int party, int dish)
         {
             int sat = 10000;
 
-            // Bekleme cezasi: (beklenen / sabir) x 60 puan
+            // The waiting penalty: (waited / patience) x 60 points
             if (_pPatienceTotalMs[party] > 0)
             {
                 long penalty = Fx.MulDiv(_pWaitedMs[party], 6000, _pPatienceTotalMs[party]);
                 sat -= (int)penalty;
             }
 
-            // FIYAT CEZASI BUTUN FISE, yalnizca ana yemege degil.
+            // THE PRICE PENALTY APPLIES TO THE WHOLE BILL, not to the main
+            // dish alone.
             //
-            // Once yalnizca ANA YEMEGIN fiyati piyasayla
-            // karsilastiriliyordu; oysa fis dort kalemi birden yaziyor
-            // (OrderPrice) ve SetPrice'in ust siniri yok. Yani her
-            // mutfakta 32 yemegin 20'si - yanlar, icecekler, tatlilar -
-            // istenildigi kadar pahali satilabiliyordu ve musteri bunu
-            // HIC gormuyordu.
+            // Only THE MAIN DISH's price used to be compared with the market;
+            // and yet the bill writes all four items (OrderPrice) and SetPrice
+            // has no upper limit. So on either cuisine 20 of the 32 dishes -
+            // the sides, the drinks, the desserts - could be sold as dearly as
+            // you liked and the customer saw NOTHING of it.
             //
-            // Olculdu: Turk mutfaginda tek icecek var (ayran, 16).
-            // Altmis gunde 1896 kisi, %40 icecek olasiligi. Ayrani
-            // 160'a cikarmak +109.000 santi getiriyor - kampanyanin
-            // butun karinin alti kati, sifir risk.
+            // Measured: Turkish cuisine has a single drink (ayran, 16). Over
+            // sixty days, 1896 people, with a 40% chance of a drink. Raising
+            // the ayran to 160 brings in +109,000 centi - six times the whole
+            // campaign's profit, at zero risk.
             //
-            // Ceza artik her kalemin FISTEKI PAYIYLA agirliklandirilmis
-            // sapmasi. Fiyatlar icerik degerindeyken her sapma sifir,
-            // yani bu degisiklik dokunulmamis bir oyunda DAVRANISI
-            // DEGISTIRMIYOR - kalibrasyonun referans botlari fiyata
-            // dokunmuyor.
-            long sapma = WeightedPriceDiffBp(party, dish);
-            if (sapma != 0)
+            // The penalty is now each item's deviation weighted by ITS SHARE
+            // OF THE BILL. With prices at their content values every deviation
+            // is zero, so this change DOES NOT ALTER BEHAVIOUR in an untouched
+            // game - the calibration's reference bots do not touch prices.
+            long deviation = WeightedPriceDiffBp(party, dish);
+            if (deviation != 0)
             {
                 int sens = _content.Archetypes[_pArchetype[party]].PriceSensitivityBp;
-                sat -= (int)Fx.MulDiv(sapma, sens, Fx.One);
+                sat -= (int)Fx.MulDiv(deviation, sens, Fx.One);
             }
 
             sat += _pBonusCenti[party];
 
-            // MALZEME KALITESI. Yemegin tarifindeki malzemelerin stoktaki
-            // ortalama kalitesi. Icerik en hassas alti malzemeyi ET yaptigi
-            // icin ayni kuresel ayar, etli yemekte agir, makarnada hafif
-            // sonuc veriyor: ucuza kacmak tuzda serbest, ette felaket.
+            // INGREDIENT QUALITY. The mean quality in stock of the
+            // ingredients in the dish's recipe. Because the content makes the
+            // six most sensitive ingredients MEAT, the same global setting
+            // gives a heavy result on a meat dish and a light one on pasta:
+            // cutting corners is free on salt and a disaster on meat.
             if (dish >= 0) sat += DishQualityCenti(dish);
 
-            // Sordugu yemegi bulamayan musteri. docs/02 "gorunur buyume":
-            // eksik ekipmanin bedeli soyut bir hiz kaybi degil, masadaki
-            // hayal kirikligi.
+            // A customer who could not get the dish they asked for. docs/02,
+            // "visible growth": the price of missing equipment is not an
+            // abstract loss of speed but disappointment at the table.
             if (_pAskedDish[party] >= 0)
             {
-                // Buyutec de ORAN. Sebebi AskForMissingDish ile ayni:
-                // mutlak sayi, menusunu makul daraltan oyuncu ile tek
-                // yemek tutani ayni kefeye koyuyordu.
+                // The magnifier is a PROPORTION too. The reason is the same
+                // as in AskForMissingDish: an absolute count put a player who
+                // narrowed their menu sensibly in the same scale as one
+                // keeping a single dish.
                 int waiting = 0, total = 0;
                 for (int i = 0; i < _content.Dishes.Length; i++)
                 {
@@ -6524,23 +6772,25 @@ namespace Lokanta.Core.Sim
                 sat -= (int)Fx.MulDiv(_economy.AskMissCenti, scale, Fx.One);
             }
 
-            // KARMASIKLIK YALNIZCA RISK, odul degil.
+            // COMPLEXITY IS ONLY RISK, never a reward.
             //
-            // Ilk yazimda sapma iki yonde de buyutuluyordu ve olcum bunu
-            // yakaladi: Turk menusunun 17'si karmasiklik 3 oldugu icin
-            // hicbir sey yapmayan "sadece_hal" oyuncusu 5.094'ten 33.488'e
-            // firladi. Musterilerin cogu zaten memnun oldugu icin buyutec
-            // pratikte tek yonlu calisti ve itibari sisirdi.
+            // In the first draft the deviation was magnified in both
+            // directions and measurement caught it: because 17 of the Turkish
+            // menu are complexity 3, the do-nothing "market only" player
+            // jumped from 5,094 to 33,488. Since most customers are satisfied
+            // anyway, the magnifier worked in one direction in practice and
+            // inflated reputation.
             //
-            // Odul zaten FIYATTA: karmasiklik 3 yemek karmasiklik 1'in iki
-            // kati fiyatli. Burada olmasi gereken sey bedeli: usta isi
-            // yemegi gec goturursen musteri daha cok kiziyor.
-            // Olcek MUTLAK degil BAGIL: yemegin karmasikligi kendi
-            // mutfaginin ortalamasina gore. Mutlak olcekte Turk lokantasinin
-            // 17 yemegi "zor" sayiliyor ve iyi oyuncunun itibari 51,6'da
-            // kaliyordu; fast food'da 99,0 idi. Bagil olcekte fast food'un
-            // birkac zor yemegi GERCEKTEN zor, Turk lokantasinin sulu
-            // yemegi ise onun icin siradan.
+            // The reward is already IN THE PRICE: a complexity 3 dish is
+            // priced at twice a complexity 1 one. What belongs here is its
+            // price: take a dish that takes real skill to the table late and
+            // the customer is angrier.
+            // The scale is RELATIVE, not ABSOLUTE: a dish's complexity against
+            // the mean of its own cuisine. On an absolute scale 17 of the
+            // Turkish restaurant's dishes count as "hard" and a good player's
+            // reputation stayed at 51.6, while on fast food it was 99.0. On a
+            // relative scale fast food's few hard dishes are GENUINELY hard,
+            // while the Turkish restaurant's stew is ordinary for it.
             int neutral = _economy.SatisfactionNeutralCenti;
             if (dish >= 0 && sat < neutral)
             {
@@ -6552,7 +6802,7 @@ namespace Lokanta.Core.Sim
                 }
                 else if (relBp < Fx.One)
                 {
-                    // Ortalamanin altindaki yemek daha bagislayici.
+                    // A dish below the mean is more forgiving.
                     int easeBp = Fx.One - (int)Fx.MulDiv(Fx.One - relBp, 4000, Fx.One);
                     sat = neutral - (int)Fx.MulDiv(neutral - sat, easeBp, Fx.One);
                 }
@@ -6564,68 +6814,71 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// docs/12 5.5: gunluk_degisim = Toplam (memnuniyet - 60) x agirlik / 100
-        /// Santi-puan ve baz puanla: (sat - 6000) x agirlikBp / 1.000.000
-        /// Ara toplam mikro-puanda tutuluyor, gun sonunda bir kez yuvarlaniyor.
+        /// docs/12 5.5: daily_change = Sum (satisfaction - 60) x weight / 100
+        /// In centi-points and basis points: (sat - 6000) x weightBp / 1,000,000
+        /// The running total is kept in micro-points and rounded once at the
+        /// end of the day.
         /// </summary>
         private void AccumulateReputation(int party, int satisfactionCenti)
         {
             ArchetypeDef a = _content.Archetypes[_pArchetype[party]];
             long delta = (long)(satisfactionCenti - _economy.SatisfactionNeutralCenti)
                          * a.ReputationWeightBp * _pSize[party];
-            _reputationDeltaMicro += delta;   // 1e6 olceginde
+            _reputationDeltaMicro += delta;   // on the 1e6 scale
         }
 
         /// <summary>
-        /// Tasma kabinin tavani: bir SONRAKI kademenin tavanina olan
-        /// fark. En ust kademede sifir - orada tavan zaten 100.
+        /// The overflow vessel's ceiling: the gap up to the NEXT tier's
+        /// ceiling. Zero at the top tier - there the ceiling is already 100.
         /// </summary>
         private int OverflowCapCenti()
         {
-            int simdiki = _economy.TierForTables(_tableCount).ReputationCapCenti;
-            if (simdiki <= 0 || simdiki > 10000) simdiki = 10000;
+            int current = _economy.TierForTables(_tableCount).ReputationCapCenti;
+            if (current <= 0 || current > 10000) current = 10000;
 
-            int ustu = simdiki;
+            int above = current;
             for (int i = 0; i < _economy.TierCount; i++)
             {
                 int c = _economy.TierAt(i).ReputationCapCenti;
-                if (c > simdiki && (ustu == simdiki || c < ustu)) ustu = c;
+                if (c > current && (above == current || c < above)) above = c;
             }
-            return ustu > simdiki ? ustu - simdiki : 0;
+            return above > current ? above - current : 0;
         }
 
         private void ApplyReputation()
         {
-            // Dogal erime: her gun 0,3 puan = 30 santi
+            // The natural erosion: 0.3 points a day = 30 centi
             long deltaCenti = _reputationDeltaMicro / 1_000_000L
                               - _economy.ReputationDecayPerDayCenti;
 
-            // Azalan getiri. Denge aracinin bulgusu: sonumsuz formulle
-            // gunde +12 puan kazaniliyor ve itibar dokuz gunde 30'dan 100'e
-            // cikiyordu; boylece altmis gunluk kampanyanin ana ilerleme
-            // ekseni ilk haftada tukeniyordu.
+            // Diminishing returns. The balance tool's finding: with the
+            // undamped formula +12 points were gained a day and reputation
+            // went from 30 to 100 in nine days; so the main progression axis
+            // of a sixty-day campaign was used up in the first week.
             //
-            // Kazanc kalan bosluga oranlanir, KAYIP oranlanmaz: itibar zor
-            // kazanilir, kolay kaybedilir. Restoran isletmeciliginin dogrusu
-            // da bu ve araştırmadaki oyuncu yorumlariyla ortusuyor.
+            // A gain is scaled by the headroom left, A LOSS IS NOT: reputation
+            // is hard to earn and easy to lose. That is also true of running a
+            // restaurant, and it matches the player comments in the research.
             if (deltaCenti > 0)
             {
                 int headroom = 10000 - _reputationCenti;
                 if (headroom < 0) headroom = 0;
 
-                // TABAN. Sonumleme, itibarin dokuz gunde tavana vurmasini
-                // engellemek icin kondu ve o isi goruyor. Ama tepeye yakin
-                // bolgede fazla sertti: olcum, iki mutfak arasindaki 3,5
-                // puanlik MEMNUNIYET farkinin 20 puanlik ITIBAR farkina
-                // donustugunu gosterdi (fast food 94,2, Turk 74,5).
+                // A FLOOR. The damping was put in to stop reputation hitting
+                // the ceiling in nine days, and it does that job. But near the
+                // top it was too harsh: measurement showed a 3.5-point
+                // difference in SATISFACTION between the two cuisines turning
+                // into a 20-point difference in REPUTATION (fast food 94.2,
+                // Turkish 74.5).
                 //
-                // Sebep sonumlemenin dogrusal olmasi: itibar 90'a gelince
-                // kazanc onda birine iniyor ve gunluk erime onu yeniyor.
-                // Taban, tepedeki bolgeyi biciak sirti olmaktan cikariyor;
-                // erken sonumleme aynen duruyor.
-                // Taban 1500. Once 3000'di ve tepedeki bolgeyi fazla
-                // yumusatiyordu: itibar 100'de bile gunluk kazanc pozitif
-                // kaliyor, yani tepede DURMAK caba istemiyordu.
+                // The cause is that the damping is linear: once reputation
+                // reaches 90 the gain drops to a tenth and the daily erosion
+                // beats it. The floor stops the region at the top being a
+                // knife edge; the early damping stands exactly as it was.
+                // The floor is 1500. It was 3000 before and softened the
+                // region at the top too much: even at a reputation of 100 the
+                // daily gain stayed positive, so STAYING at the top took no
+                // effort.
                 if (headroom < 1500) headroom = 1500;
                 deltaCenti = Fx.MulDiv(deltaCenti, headroom, 10000);
             }
@@ -6634,31 +6887,32 @@ namespace Lokanta.Core.Sim
             _reputationCenti += (int)deltaCenti;
             if (_reputationCenti < 0) _reputationCenti = 0;
 
-            // TAVAN KADEMEDEN. Dort masalik bir dukkan semtin konustugu
-            // lokanta olamaz; itibar ancak buyudukce yukari acilir.
+            // THE CEILING COMES FROM THE TIER. A four-table shop cannot be
+            // the restaurant the whole neighbourhood talks about; reputation
+            // only opens upwards as you grow.
             int cap = _economy.TierForTables(_tableCount).ReputationCapCenti;
             if (cap <= 0 || cap > 10000) cap = 10000;
             if (_reputationCenti > cap)
             {
-                // TASAN DEGER SILINMIYOR, BIRIKIYOR.
+                // THE OVERFLOW IS NOT DELETED, IT IS BANKED.
                 _reputationOverflowCenti += _reputationCenti - cap;
                 _reputationCenti = cap;
 
-                // KAP BIR KADEME KADAR: sonsuz birikim, genisleme
-                // gununde itibari dogrudan tavana firlatir ve yeni
-                // kademenin kendi emegini anlamsiz kilardi.
-                int kap = OverflowCapCenti();
-                if (_reputationOverflowCenti > kap) _reputationOverflowCenti = kap;
+                // THE VESSEL HOLDS ONE TIER'S WORTH: unbounded accumulation
+                // would fling reputation straight to the ceiling on the day of
+                // an expansion and make the new tier's own work meaningless.
+                int vessel = OverflowCapCenti();
+                if (_reputationOverflowCenti > vessel) _reputationOverflowCenti = vessel;
             }
 
             Emit(SimEventKind.ReputationChanged, _reputationCenti, _reputationCenti - before);
         }
 
-        // ---- gelis plani ---------------------------------------------------
+        // ---- the arrival plan ------------------------------------------------
         /// <summary>
-        /// Gun basinda butun gelisler onceden hesaplanir ve tick'e gore
-        /// siralanir. Boylece servis sirasinda rastgelelik cagrilmiyor ve
-        /// tekrar oynatma ucuzluyor.
+        /// At the start of the day every arrival is worked out in advance and
+        /// sorted by tick. That way no randomness is called for during
+        /// service, and replay becomes cheap.
         /// </summary>
         private void BuildArrivalPlan()
         {
@@ -6666,8 +6920,8 @@ namespace Lokanta.Core.Sim
                 ? _economy.WeekendMultiplierBp
                 : _economy.WeekdayMultiplierBp;
 
-            // GERCEK sayi: tahmin degil. Fark oyuncunun sabah verdigi
-            // stok kararinin karsiligi.
+            // The ACTUAL number, not the forecast. The difference is what
+            // the player's morning stock decision is worth.
             int people = ActualCustomers(dayFactorBp);
             _plannedPeople = people;
 
@@ -6686,8 +6940,8 @@ namespace Lokanta.Core.Sim
                 if (assigned + size > people) size = people - assigned;
                 if (size < 1) size = 1;
 
-                // Dilimler ESIT DEGIL; her mutfagin kendi gun bicimi var.
-                // docs/28-peak-decision.md Karar G.
+                // The slots are NOT EQUAL; each cuisine has its own shape of
+                // day. docs/28-peak-decision.md Decision G.
                 int slot = PickSlot(a);
                 int tick = _timing.SlotStartTick(slot)
                            + _rngArrival.NextInt(_timing.SlotTicks(slot));
@@ -6702,9 +6956,10 @@ namespace Lokanta.Core.Sim
 
             SortArrivals();
 
-            // Duzenli musteriler plan kurulup SIRALANDIKTAN sonra baglaniyor:
-            // talebe eklenmiyorlar, planin icinden yer aliyorlar. Siralamadan
-            // sonra olmasi sart - SortArrivals _arrRegular dizisini tasimiyor.
+            // The regulars are bound after the plan has been built AND
+            // SORTED: they are not added to demand, they take a place from
+            // within the plan. It has to happen after the sort - SortArrivals
+            // does not carry the _arrRegular array along.
             BindRegularsToPlan();
         }
 
@@ -6743,8 +6998,8 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Ekleme siralamasi. Kararli ve deterministik; Array.Sort'un
-        /// karsilastirma temsilcisiyle kararliligi garanti degil.
+        /// Insertion sort. Stable and deterministic; Array.Sort with a
+        /// comparison delegate is not guaranteed to be stable.
         /// </summary>
         private void SortArrivals()
         {
@@ -6765,7 +7020,7 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        // ---- gun raporu ----------------------------------------------------
+        // ---- the day report --------------------------------------------------
         public DayReport BuildDayReport()
         {
             int avgSat = _servedPeople > 0
@@ -6783,7 +7038,7 @@ namespace Lokanta.Core.Sim
         }
     }
 
-    /// <summary>Bir servis gununun ozeti.</summary>
+    /// <summary>The summary of one service day.</summary>
     public readonly struct DayReport
     {
         public readonly int Day;
@@ -6792,15 +7047,15 @@ namespace Lokanta.Core.Sim
         public readonly int AngryParties;
 
         /// <summary>
-        /// MASAYA OTURDUKTAN SONRA kizgin ayrilan grup sayisi.
+        /// The parties that left angry AFTER SITTING DOWN AT A TABLE.
         ///
-        /// AngryParties ikisini birden sayiyor: masa bulamayip kapidan
-        /// donenleri ve oturup bekleyip sinirini asanlari. Bunlar AYNI
-        /// sey degil - biri kapasite sorunu, oteki servis sorunu - ve
-        /// oyuncunun yapabilecegi sey de farkli. Ekranlar, denge
-        /// aracinin CSV'si ve uyarilari bu ayrimi tasimadigi surece
-        /// "kizgin musteri" sayisi iki farkli derdi tek sayiya
-        /// katliyordu.
+        /// AngryParties counts both: those turned back at the door for want of
+        /// a table, and those who sat, waited and ran out of patience. These
+        /// are NOT THE SAME THING - one is a capacity problem, the other a
+        /// service problem - and what the player can do about them differs
+        /// too. As long as the screens, the balance tool's CSV and its
+        /// warnings did not carry the distinction, the "angry customers"
+        /// figure folded two different troubles into one number.
         /// </summary>
         public readonly int AngrySeatedParties;
         public readonly long Revenue;
@@ -6809,39 +7064,39 @@ namespace Lokanta.Core.Sim
         public readonly int ReputationCenti;
         public readonly int PlannedParties;
         public readonly long Cash;
-        /// <summary>Menude bir sey bulamayip kapidan donen grup sayisi.</summary>
+        /// <summary>The parties turned back at the door for finding nothing on the menu.</summary>
         public readonly int TurnedAwayParties;
 
         /// <summary>
-        /// BUGUN odenen ucret ve kira. Sifir olabilir - haftada bir gun
-        /// odeniyor.
+        /// The wages and rent paid TODAY. It may be zero - they are paid on
+        /// one day a week.
         ///
-        /// Rapora eklendi cunku "Kar" diye gosterilen sayi bunlari
-        /// ICERMIYORDU: oyuncu personel alip cironun arttigini goruyor,
-        /// "kar"in da arttigini goruyor, sonra kasa bosaliyor ve sebebini
-        /// hicbir ekranda bulamiyordu. Oyunun temel gerilimi - kadro
-        /// kapasite demek ama para demek - hicbir yerde gorunmuyordu.
+        /// Added to the report because the number shown as "Profit" DID NOT
+        /// INCLUDE them: the player hired staff, saw revenue rise, saw
+        /// "profit" rise too, and then the till emptied and no screen
+        /// explained why. The game's central tension - crew means capacity,
+        /// but crew also means money - was visible nowhere.
         /// </summary>
         public readonly long WageCost;
         public readonly long RentCost;
 
         /// <summary>
-        /// Bu gece cope giden stogun degeri.
+        /// The value of the stock going into the bin tonight.
         ///
-        /// Rapora eklendi cunku GORUNMEYEN EN BUYUK GIDERDI: makul oynayan
-        /// bir oyuncu altmis gunde aldigi malzemenin yuzde elli yedisini
-        /// cope atiyor - 21.912 sikke, yilin net karindan fazla - ve bu
-        /// sayi oyunun hicbir ekraninda yoktu. Oyuncu her sabah stok
-        /// tazeliyor, aksam "kar" goruyor, kasanin neden dolmadigini
-        /// anlamiyordu.
+        /// Added to the report because it was THE LARGEST INVISIBLE OUTGOING:
+        /// a reasonable player throws away fifty-seven per cent of the
+        /// ingredients they buy across sixty days - 21,912 coins, more than
+        /// the year's net profit - and that number appeared on no screen in
+        /// the game. The player restocked every morning, saw a "profit" in the
+        /// evening, and could not understand why the till was not filling up.
         ///
-        /// NET KARA GIRMIYOR ve girmemeli: para stok alinirken cikti,
-        /// burada bir daha dusulurse iki kere sayilir. Bu bir KAYIP
-        /// kalemi, bir odeme degil.
+        /// IT DOES NOT GO INTO NET PROFIT, and it must not: the money left
+        /// when the stock was bought, and deducting it again here would count
+        /// it twice. This is a LOSS line, not a payment.
         /// </summary>
         public readonly long SpoiledValue;
 
-        /// <summary>Gunun NET kari: ciro - malzeme - ucret - kira.</summary>
+        /// <summary>The day's NET profit: revenue - ingredients - wages - rent.</summary>
         public long NetProfit
         {
             get { return Revenue - IngredientCost - WageCost - RentCost; }

@@ -1,96 +1,96 @@
-# Değerlendirme 3: Kapsam Gerçekçiliği
+# Review 3: Scope Realism
 
-**Bakış açısı:** Üç oyunu tek başına çıkarmış, ikisi mobil, kapsamdan ölen pek çok solo proje görmüş kıdemli bağımsız geliştirici
-**Sorumlu kalemler:** C1, C2, C4, C5, C8, A13, A15
-**Tarih:** 9 Eylül 2026
+**Perspective:** senior independent developer who has shipped three games alone, two of them mobile, and has watched plenty of solo projects die of scope
+**Items owned:** C1, C2, C4, C5, C8, A13, A15
+**Date:** 9 September 2026
 
 ---
 
-## Genel değerlendirme
+## Overall assessment
 
-Tek kişi bu oyunu çıkarabilir, ama bu planı çıkaramaz. Plan üç kişilik bir stüdyonun içerik listesi gibi yazılmış; "tek kişi" kararı (03) verildikten sonra yol haritası (02 §11) hiç yeniden ölçeklenmemiş. 03'ün kendisi "yol haritasındaki süreler tek kişiye göre yeniden değerlendirilmeli" diyor, 02 hâlâ v0.1 ve §13'te "tek başına mısın?" diye soruyor. Kod tarafı yapay zekayla gerçekten taşınır. Öldürecek olan, görsel yargı isteyen kalemler: 64 yemek modeli, 32 kıyafet seti, 26 portre. Ekipte göz yok: yapay zeka mesh'i göremiyor, geliştirici de düzeltemiyor. İçerik yarıya inerse çıkar; bu haliyle yedinci ayda sanatı yarım kalmış bir proje olur.
+One person can ship this game, but not this plan. The plan reads like the content list of a three-person studio; the roadmap (02 §11) was never rescaled after the "one person" decision (03) was made. 03 itself says "the durations in the roadmap must be re-evaluated for one person", and 02 is still v0.1 and asks in §13 "are you on your own?". The code side really is carried by AI. What will kill this are the items that need visual judgement: 64 dish models, 32 outfit sets, 26 portraits. There is no eye on the team: the AI cannot see a mesh and the developer cannot fix one. If the content is halved it ships; as it stands, in month seven this becomes a project with its art half done.
 
-## Varlık sayımı ve süre tahmini
+## Asset count and time estimate
 
-Dokümanlardan toplanan çıkış kapsamı (iki mutfak):
+The release scope gathered from the documents (two cuisines):
 
-| Kalem | Sayım | Kaynak |
+| Item | Count | Source |
 |---|---|---|
-| Yemek modeli | 32 × 2 = **64** | 09. Dikkat: 20 C1 tablosu "yemek görselleri dışarıdan geliyor" diyor, yani prosedürel değil |
-| Malzeme | 26 × 2 + 12 = 64 ikon | 09. 3B gerekip gerekmediği yazılmamış |
-| Mutfağa özel ekipman | 10 × 2 = 20 | 09 |
-| Paylaşılan mobilya | 24 | 09 |
-| Mimari kabuk | 2, her biri 4 genişleme kademesiyle (4/7/10/14 masa) = 8 yerleşim | 09, 10 |
-| Karakter tabanı | 1 gövde, 3 vücut tipi, 8 saç, 6 cilt, 10 aksesuar, 7 klip | 09, 10, 05 |
-| Kıyafet seti | 16 × 2 = **32** | 10 |
-| Portre | 13 × 2 = 26 | 10 |
-| Ekran | 18 | 16 |
-| Ses | 8 müzik (+1 yıl sonu parçası), 7 ortam katmanı, ~72 kısa ses (40+12+20) | 17 |
-| Metin | ~10.400 × 2 = ~20.800 kelime, 120 şablon parçası, 26 × 3-4 = 78-104 sahne | 18 |
+| Dish models | 32 × 2 = **64** | 09. Note: the 20 C1 table says "dish visuals come from outside", i.e. not procedural |
+| Ingredients | 26 × 2 + 12 = 64 icons | 09. Whether they need to be 3D is not written |
+| Cuisine-specific equipment | 10 × 2 = 20 | 09 |
+| Shared furniture | 24 | 09 |
+| Architectural shell | 2, each with 4 expansion tiers (4/7/10/14 tables) = 8 layouts | 09, 10 |
+| Character base | 1 body, 3 body types, 8 hairstyles, 6 skins, 10 accessories, 7 clips | 09, 10, 05 |
+| Outfit sets | 16 × 2 = **32** | 10 |
+| Portraits | 13 × 2 = 26 | 10 |
+| Screens | 18 | 16 |
+| Audio | 8 music tracks (+1 year-end piece), 7 ambience layers, ~72 short sounds (40+12+20) | 17 |
+| Text | ~10,400 × 2 = ~20,800 words, 120 template fragments, 26 × 3-4 = 78-104 beats | 18 |
 
-Süre tahmini. Oranlar benim varsayımım, dokümanlarda yok:
+The time estimate. The ratios are my assumption; they are not in the documents:
 
-| İş | Varsayım | Kişi-ay |
+| Work | Assumption | Person-months |
 |---|---|---|
-| Kod ve Unity entegrasyonu: 18 ekran, çekirdek, kayıt, IAP, öğretici | Yapay zeka yazar; bağlama, cihazda ayıklama ve arayüz yerleşimi geliştiricide. Ekran başına ~2 gün artı çekirdek/kayıt/IAP ~8 hafta | 4-5 |
-| Prosedürel mobilya: 24 + 20 + tabak/bardak | Betik artı beğenilene kadar döngü | 1 |
-| 64 yemek modeli | Parça başına 1,5-2 saat üretim, sadeleştirme, palete oturtma | 1-1,5 |
-| Karakter: gövde, iskelet, klipler, 8 saç, 32 kıyafet, ağırlık aktarımı | Set başına yarım-bir gün; vücut tipi ayrı mesh ise ×3 | 1,5-2,5 |
-| 2 kabuk, 8 yerleşim, mutfağa özel dekor | Mutfak başına 2-3 hafta | 1-1,5 |
-| 26 portre | Tutarlılık için portre başına 2-3 saat | 0,5 |
-| Arayüz ikonları | 3B'den ikon render eden editör aracı | 0,25-0,5 |
-| Ses: 9 müzik, 7 ortam, ~72 efekt | Üretim, döngü noktası, mixer | 0,5-0,75 |
-| Metin: 20.800 kelime düzelti, şablon testi, sahne bağlama | ~300 kelime/saat düzelti | 0,75 |
-| Faz 0 denge aracı, testler, mağaza, hukuk, video | | 1-1,5 |
-| **Toplam** | | **11,5-15,5 kişi-ay, orta 13-14** |
+| Code and Unity integration: 18 screens, core, save, IAP, tutorial | The AI writes it; wiring, on-device debugging and UI layout are on the developer. ~2 days per screen plus ~8 weeks for core/save/IAP | 4-5 |
+| Procedural furniture: 24 + 20 + plates/glasses | A script plus a loop until it looks good | 1 |
+| 64 dish models | 1.5-2 hours per piece for generation, simplification and fitting to the palette | 1-1.5 |
+| Characters: body, rig, clips, 8 hairstyles, 32 outfits, weight transfer | Half a day to a day per set; ×3 if body types are separate meshes | 1.5-2.5 |
+| 2 shells, 8 layouts, cuisine-specific décor | 2-3 weeks per cuisine | 1-1.5 |
+| 26 portraits | 2-3 hours per portrait for consistency | 0.5 |
+| UI icons | An editor tool that renders icons from 3D | 0.25-0.5 |
+| Audio: 9 music tracks, 7 ambiences, ~72 effects | Generation, loop points, mixer | 0.5-0.75 |
+| Text: 20,800 words of editing, template testing, wiring the beats | ~300 words/hour of editing | 0.75 |
+| Phase 0 balance harness, tests, store, legal, video | | 1-1.5 |
+| **Total** | | **11.5-15.5 person-months, midpoint 13-14** |
 
-Yol haritası (02 §11): 2-3 + 4-6 + 4 + 8-12 + 4 = 22-29 hafta, yani 5-7 ay. Gerçekçi tahmin bunun yaklaşık iki katı, ve bu tam zamanlı varsayımıyla. Asıl kırılma Faz 3'te: tablonun sanat satırları tek başına 6-8 kişi-ay, plan bunun için 8-12 hafta ayırmış. Faz 1'in "6 yemek, 3 personel, 10 gün" dikey dilimi doğru; çıkış içeriği onun on katı.
+The roadmap (02 §11): 2-3 + 4-6 + 4 + 8-12 + 4 = 22-29 weeks, i.e. 5-7 months. A realistic estimate is roughly twice that, and that assumes full time. The real break is in Phase 3: the art rows of the table alone are 6-8 person-months and the plan has allotted 8-12 weeks for them. Phase 1's vertical slice of "6 dishes, 3 staff, 10 days" is right; the release content is ten times that.
 
-## En riskli beş sorun
+## The five riskiest problems
 
-**1. Yol haritası solo kararından önce yazılmış ve hiç düzeltilmemiş.** Solo projeleri öldüren şey kötü kod değil, sanat yarıdayken biten moral ve para. Geliştirici yedinci ayda "plana göre çıkmış olmalıydım" hissiyle bakar ve bırakır. Düzeltme: 02 §11'i 13-14 kişi-ay üstünden yeniden yaz, Faz 3'ü 5-6 aya çıkar, "sanat tamam" için ölçülebilir bir kapı koy: bütün çıkış varlıkları LFS'te ve en düşük cihazda 30 fps.
+**1. The roadmap was written before the solo decision and never corrected.** What kills solo projects is not bad code, it is the morale and the money running out with the art half done. In month seven the developer looks at it thinking "I should have shipped by the plan" and walks away. Fix: rewrite 02 §11 on 13-14 person-months, stretch Phase 3 to 5-6 months, and put a measurable gate on "art done": every release asset in LFS and 30 fps on the lowest device.
 
-**2. Karakter hattı, yetenek boşluğunun tam üstünde.** 20 C2'deki yedek plan iskeleti kurtarıyor, klipleri kurtarmıyor: Mixamo kapanırsa "yeme" ve "masada oturma" klipleri nereden gelecek, yazılmamış. 16 kıyafet setinin her biri siluet değiştirmek zorunda (10, "ne gerçekten okunuyor"), yani renk değil mesh; her mesh iskelete ağırlık aktarımı ister ve 3 vücut tipi ayrı mesh ise 32 set 96 mesh olur. Ağırlık aktarımı Blender'da görsel yargıyla doğrulanan bir iş, tam da geliştiricinin yapamadığını söylediği şey. Düzeltme: bütün klipleri bugün indirip LFS'e koy; vücut tipini kemik ölçeğiyle yap, tek mesh; kıyafeti mutfak başına 8-10'a indir, çünkü siluetten okunması şart olan sadece "sık" kademedeki 8 arketip (11'e göre trafiğin %70'i onlar); sigorta olarak iskeleti hazır ücretli bir karakter paketini bütçeye yaz.
+**2. The character pipeline sits right on top of the skill gap.** The fallback plan in 20 C2 saves the rig, not the clips: where "eating" and "sitting at a table" come from if Mixamo shuts down is not written. Each of the 16 outfit sets has to change the silhouette (10, "what actually reads"), which means mesh, not colour; every mesh wants a weight transfer onto the rig, and if the 3 body types are separate meshes then 32 sets become 96 meshes. Weight transfer is work verified by visual judgement in Blender — exactly what the developer has said he cannot do. Fix: download every clip today and put it in LFS; do body types with bone scaling, one mesh; cut outfits to 8-10 per cuisine, because the only ones that must read from the silhouette are the 8 archetypes in the "frequent" tier (70% of the traffic, per 11); as insurance, budget a paid character pack that comes rigged.
 
-**3. 64 yemek modeli iki doküman arasındaki boşluğa düşmüş.** 09, yemek sayısını 32'ye çıkarırken "yemek modelleri prosedürel üretilebilir" gerekçesini kullanıyor; 20 C1 aynı yemekleri "dışarıdan geliyor" sütununa koyuyor. Karnıyarık, mantı, işkembe çorbası hiçbir kamu malı pakette yok; kalan yol ücretli yapay zeka üretimi artı sadeleştirme, yani 1-1,5 kişi-ay saklı iş. Düzeltme: sulu yemek, çorba, pilav ve köfteyi betiğe al (kâse artı renkli yüzey, yığın, elipsoit); Meshy'yi burger gibi 5-10 kahraman yemeğe sakla; ya da 09'un v1 sayısı olan 20 yemekle çık.
+**3. The 64 dish models have fallen into the gap between two documents.** When 09 raises the dish count to 32 it uses the argument that "dish models can be generated procedurally"; 20 C1 puts the same dishes in the "comes from outside" column. Karnıyarık, mantı and işkembe çorbası are in no public-domain pack; what is left is paid AI generation plus simplification, i.e. 1-1.5 person-months of hidden work. Fix: script the stews, soups, rice and meatballs (a bowl plus a coloured surface, a heap, an ellipsoid); save Meshy for 5-10 hero dishes such as the burger; or ship with 09's v1 number of 20 dishes.
 
-**4. İçerik, oynanabilir bir prototip yokken büyütülmüş.** 9 Eylül'de tek günde yemek 20→32, arketip 6 veya 8→20 (09 ile 11 birbirini tutmuyor), kıyafet 12→16, isimli karakter 8→13 olmuş; 12 hâlâ "dengelenmedi". 09'un kendi cümlesi: "asıl maliyet model değil, denge." 64 yemek satırı, 32 arketip ve 60 günlük eğri, hiç dokunulmamış bir ekonomi üstünde ayarlanacak. Bu, kapsam patlamasının planlama aşamasında başlamış hali. Düzeltme: v2 sayılarını şema tavanı olarak tut, çıkışı v1 sayılarında dondur, kalanını çıkış sonrası ücretsiz içerik olarak ver; tutundurma için de daha iyi.
+**4. Content was grown while there was no playable prototype.** On 9 September, in a single day, dishes went 20→32, archetypes 6 or 8→20 (09 and 11 do not agree), outfits 12→16, named characters 8→13; 12 still says "not balanced". 09's own sentence: "the real cost is not the model, it is the balance." 64 dish rows, 32 archetypes and a 60-day curve will be tuned on top of an economy nobody has touched. This is scope explosion that began in the planning phase. Fix: keep the v2 numbers as a schema ceiling, freeze the release at the v1 numbers and give the rest as free post-release content; better for retention too.
 
-**5. Doğrulama döngüsü ölçülemiyor.** 20 C8 "onuncu günde sıkılan var mı" sorusunu 5-15 kişiye soruyor ama kişilerin nereden geleceği dosyanın kendi açık sorusu. Beş kişiyle sıkılma ölçümü gürültüdür; arkadaşlar doğruyu söylemez. Onuncu güne varmak kişi başına en az 10 × 3-6 dakika, birden çok oturumda. Ayrıca iOS cihaz "mümkünse" deniyor ama 05'in maliyet tablosunda Mac yok; 21 "ucuz kullanıcı edinimi" diyor, tablo 124 dolar. Düzeltme: sıkılmayı sormak yerine ölç; kapalı testte (21, 2 hafta) "terk edilen gün numarası" olayını baştan kaydet; denge aracına "en iyi strateji onuncu günden sonra değişiyor mu" sorusunu ekle, bu otomatik plato tespiti; test kişilerini indie Discord'ları ve Türk indie topluluklarından 20-30 kişilik açık testle bul; ilk sürümü Android'e karar ver.
+**5. The validation loop cannot be measured.** 20 C8 asks 5-15 people "is anyone bored on day ten", but where those people come from is the file's own open question. Measuring boredom with five people is noise; friends do not tell the truth. Reaching day ten costs at least 10 × 3-6 minutes per person, over several sessions. And an iOS device is said to be "if possible" while there is no Mac in 05's cost table; 21 says "cheap user acquisition" and the table says $124. Fix: measure boredom instead of asking about it; record an "abandoned on day N" event from the start of the closed test (21, 2 weeks); add the question "does the best strategy change after day ten" to the balance harness, which is automatic plateau detection; find testers through indie Discords and Turkish indie communities with an open test of 20-30 people; decide that the first release is Android.
 
-## Kalem kararları
+## Item decisions
 
-| Kalem | Karar | Gerekçe |
+| Item | Decision | Reasoning |
 |---|---|---|
-| C1 Model üretim yolu | DÜZELT | Sıra tersine: dikey dilim ve eğlence testi hazır paketle (02 §11 zaten "placeholder" diyor), betik iki haftalık zaman kutusuyla. Kutu ve silindir için gerçekçi; sandalye ve "yumuşak" his için haftalar yer. Geliştirici Blender Python'u ayıklayamıyorsa yedek Kenney/Quaternius artı seçili ücretli paket. Betik her çalışmada kontak sayfası PNG üretsin ki yapay zeka sonucu görebilsin. Yemekleri "dışarıdan" sütunundan çıkar |
-| C2 Karakter ve animasyon | DÜZELT | Yedek plan klipleri kapsamıyor; vücut tipi kemik ölçeğiyle; 16 set → 8-10; 7 klip → 5 (yürüme, oturma, yeme, bekleme, tek tepki). Ağırlık aktarımı için betik artı görsel kontrol adımı yazılmalı |
-| C4 Ses kaynağı | ONAYLA | En ucuz kalem, 20 haklı. İki şart: katmanlı servis müziği (17) için aracın stem verebildiği doğrulanmalı, veremiyorsa çıkışta iki katman (temel ve dolu) ile çapraz geçiş; aylık bütçe satırı boş, doldurulsun |
-| C5 Arayüz ve yazı tipi | ONAYLA | Planın en tamam kalemi: OFL, Türkçe test cümlesi, eş genişlikli rakam, 16/24/48 piksel kuralı. Ek: yemek ve malzeme ikonlarını 3B'den render eden editör aracı; Türkçe metinler İngilizceden uzun, 18 ekran iki dilde de en düşük cihazda denensin |
-| C8 Test planı | DÜZELT | Birim testi ve denge aracı katmanları doğru; insan katmanı kaynaksız ve ölçüsüz. Sıkılma sorusunu telemetriye ve harness plato metriğine çevir; kişi kaynağını yaz; Mac yoksa iOS'u ilk sürümden çıkar |
-| A13 Hikaye ve metin | DÜZELT | Hacim yapay zeka için taşınır, darboğaz düzelti ve sahne testi. Dördüncü sahne kalksın (18 zaten isteğe bağlı diyor); 25 ziyaret eşiği 60 günde neredeyse gün aşırı geliş demek, çoğu oyuncu göremez, eşikler denge aracıyla ayarlansın; düzenli 10 → 6, personel 3 → 2; eleştirmen 5 → 3 kademe; Türkçe şablonlarda değişken yalnız yalın hâlde kalsın ("{yemek}'i" gibi ek alan biçim ünlü uyumunu kırar) |
-| A15 Mutfak kimliği | DÜZELT | İlke doğru ve güçlü: yüz değil kabuk, ışık, siluet, ritim. Ama 10'daki "üretim maliyeti" tablosu "16 kıyafet" yazıp mesh, ağırlık ve vücut tipi çarpanını gizliyor; kombinasyon sayısı aynı dosyada 23 bin ve 17 bin olarak iki farklı yerde geçiyor (17.280 = v1'in 12 setiyle çıkan sayı). Kıyafet 8-10'a insin, üniformanın 16'nın içinde mi dışında mı olduğu netleşsin |
+| C1 Model production path | REVISE | The order is backwards: do the vertical slice and the fun test with a ready-made pack (02 §11 already says "placeholder"), and box the scripting into two weeks. Realistic for boxes and cylinders; chairs and a "soft" feel can eat weeks. If the developer cannot debug Blender Python, the fallback is Kenney/Quaternius plus a selected paid pack. The script should emit a contact-sheet PNG on every run so the AI can see the result. Take the dishes out of the "from outside" column |
+| C2 Characters and animation | REVISE | The fallback plan does not cover the clips; body types by bone scaling; 16 sets → 8-10; 7 clips → 5 (walk, sit, eat, idle, one reaction). A script plus a visual check step must be written for the weight transfer |
+| C4 Audio source | APPROVE | The cheapest item, and 20 is right. Two conditions: it must be verified that the tool can produce stems for the layered service music (17), and if it cannot, ship with two layers (base and full) and a crossfade; the monthly budget line is empty and must be filled |
+| C5 UI and typeface | APPROVE | The most finished item in the plan: OFL, a Turkish test sentence, tabular figures, the 16/24/48 pixel rule. Addition: an editor tool that renders dish and ingredient icons from 3D; Turkish strings are longer than English, so all 18 screens should be tried in both languages on the lowest device |
+| C8 Test plan | REVISE | The unit-test and balance-harness layers are right; the human layer has no source and no measure. Turn the boredom question into telemetry and a harness plateau metric; write down where the people come from; if there is no Mac, take iOS out of the first release |
+| A13 Story and text | REVISE | The volume is carriable by AI; the bottleneck is editing and beat testing. Drop the fourth beat (18 already calls it optional); a threshold of 25 visits over 60 days means almost every other day, and most players will never see it, so the thresholds should be tuned with the balance harness; regulars 10 → 6, staff 3 → 2; the critic 5 → 3 tiers; in Turkish templates the variable must stay in the bare nominative ("{yemek}'i" and other suffixed forms break vowel harmony) |
+| A15 Cuisine identity | REVISE | The principle is right and strong: not faces but shell, light, silhouette, rhythm. But the "production cost" table in 10 writes "16 outfits" and hides the mesh, weight and body-type multiplier; the combination count appears twice in the same file as 23 thousand and 17 thousand (17,280 = the number that comes out of v1's 12 sets). Outfits down to 8-10, and settle whether the uniform is inside the 16 or outside it |
 
-## Önce kesilecek üç şey, asla kesilmeyecek bir şey
+## Three things to cut first, one thing never to cut
 
-**Kesilecek, sırayla:**
+**To cut, in order:**
 
-1. **Gardırop.** 16 set → 8-10 set, 3 vücut tipi → tek mesh artı kemik ölçeği. Tek başına 1-1,5 kişi-ay ve en tehlikeli yetenek boşluğunu ortadan kaldırır. Kalabalık yine binlerce görünüm üretir.
-2. **Yemek sayısı.** Mutfak başına 32 → 20 (09'un v1 sayısı). 4-8 kişilik menü için 20 hâlâ kapasitenin 2,5-5 katı, seçim anlamlı kalır. Kalan 12 yemek çıkış sonrası ücretsiz güncelleme.
-3. **İsimli karakter.** Mutfak başına 13 → 8 (6 düzenli, 2 personel), sahne 3-4 → 3. Portre 26 → 16, sahne ~91 → 48; kelime bütçesi ve unlock testi yarıya iner.
+1. **The wardrobe.** 16 sets → 8-10 sets, 3 body types → one mesh plus bone scaling. On its own that is 1-1.5 person-months and it removes the most dangerous skill gap. The crowd still produces thousands of appearances.
+2. **The dish count.** 32 → 20 per cuisine (09's v1 number). For a 4-8 dish menu, 20 is still 2.5-5 times the capacity; the choice stays meaningful. The remaining 12 dishes become a free post-release update.
+3. **Named characters.** 13 → 8 per cuisine (6 regulars, 2 staff), beats 3-4 → 3. Portraits 26 → 16, beats ~91 → 48; the word budget and the unlock testing halve.
 
-Bunlar yetmezse son çare fast food ile tek mutfak çıkıp Türk mutfağını ilk güncelleme yapmaktır; gelir modelini (D1, D3) kırdığı için ilk değil, en son kesilecek şeydir.
+If that is not enough, the last resort is to ship a single cuisine with fast food and make Turkish cuisine the first update; because it breaks the revenue model (D1, D3) it is the last thing to cut, not the first.
 
-**Asla kesilmeyecek:** Türk mutfağında veresiye defteri ile isimli düzenli müşterinin kesişimi. 18'in deyişiyle "oyunun en güçlü tasarım kesişimi", araştırmadaki en güçlü tutundurma aracı ve 4,99'luk satın almanın tek gerçek gerekçesi. Sayısı altıya iner, sistemi kalır. Süreç tarafında Faz 0 denge aracı da dokunulmaz; bütün içerik sayıları ona bağlı.
+**Never to cut:** the intersection of the tab book and the named regular in Turkish cuisine. In 18's words "the game's strongest design intersection", the strongest retention tool in the research, and the only real justification for the 4.99 purchase. The count comes down to six, the system stays. On the process side the Phase 0 balance harness is untouchable too; every content number depends on it.
 
-## Cevapsız sorular
+## Unanswered questions
 
-1. Geliştirici tam zamanlı mı, akşamları mı çalışıyor? Hiçbir dokümanda yok; kişi-ay ile takvim ayı arasındaki çarpan bu.
-2. Mac var mı? Yoksa iOS derlemesi yok; 05 maliyet tablosu ve 20 cihaz matrisi bunu görmüyor.
-3. Geliştirici Blender'ı hiç açtı mı, bir mesh'in "yanlış" olduğunu görebiliyor mu? Betik yolunun zaman kutusu ne?
-4. 3 vücut tipi ayrı mesh mi, kemik ölçeği mi? 32 ile 96 kıyafet mesh'i arasındaki fark bu.
-5. Personel üniforması 16 setin içinde mi, ek mi? (09 "üniforma mutfağa göre değişir", 10 tablosu ayrıca "personel kıyafeti" sayıyor.)
-6. Mixamo kapanırsa oturma ve yeme klipleri nereden gelecek?
-7. Hangi ses aracı, aylık ne kadar, stem verebiliyor mu?
-8. Hal ekranında malzemeler 3B mi, ikon mu?
-9. Oynanabilirlik testi kişileri ve soft launch kullanıcı edinim bütçesi nereden?
-10. Tutarsızlıklar: 23.040 ile 17.000 kombinasyon (10), 8 ile 9 müzik parçası (17), v1 arketip 6 ile 8 (09 ile 11). Küçük ama planın aynı gün içinde birkaç kez büyüdüğünün izi.
+1. Is the developer full time or working evenings? It is in no document; this is the multiplier between person-months and calendar months.
+2. Is there a Mac? Without one there is no iOS build; 05's cost table and 20's device matrix do not see this.
+3. Has the developer ever opened Blender, can he see that a mesh is "wrong"? What is the time box on the scripting path?
+4. Are the 3 body types separate meshes or bone scaling? That is the difference between 32 and 96 outfit meshes.
+5. Is the staff uniform inside the 16 sets or extra? (09 says "the uniform changes with the cuisine", and 10's table counts "staff clothing" separately.)
+6. If Mixamo shuts down, where do the sitting and eating clips come from?
+7. Which audio tool, how much a month, can it produce stems?
+8. On the Market screen, are ingredients 3D or icons?
+9. Where do the playtesters and the soft-launch user acquisition budget come from?
+10. Inconsistencies: 23,040 vs 17,000 combinations (10), 8 vs 9 music tracks (17), v1 archetypes 6 vs 8 (09 vs 11). Small, but the trace of a plan that grew several times in a single day.

@@ -1,40 +1,42 @@
 # -*- coding: utf-8 -*-
 """
-Parametre arayicisi - Parti A
+Parameter search - Batch A
 ============================================================================
-model.py formulleri tutar; bu betik o formullere verilecek PARAMETRELERI
-tasarim hedeflerinden arar. Elle ayar yok.
+model.py holds the formulae; this script searches for the PARAMETERS to feed
+those formulae, starting from the design targets. No tuning by hand.
 
-Aranan parametreler:
-    s  - rol kapasitelerinin olcek carpani
-    o  - patronun is-gunu katkisi
-    e  - genisleme bedeli olcek carpani
-Kiralar her denemede hedef marjdan analitik cozulur.
+The parameters searched for:
+    s  - the scale multiplier on the role capacities
+    o  - the owner's work-day contribution
+    e  - the scale multiplier on the expansion cost
+The rents are solved analytically from the target margin on every attempt.
 
-Calistirma:  python solve.py
+Running it:  python solve.py
 """
 from math import ceil
 import itertools
 
-# --- Sabit formul girdileri (model.py ile ayni) ------------------------------
+# --- Fixed formula inputs (the same as model.py) -----------------------------
 SEATS_TURNOVER = 4
 INGREDIENT_RATE = 0.32
-# model.py ile ayni. Simulasyondan olculen gerceklesme orani.
-# DOGRUSU model.py'DEKI DEGER. Burasi calibrate.py tarafindan yaziliyor;
-# elle degistirilirse oyunun icerigi ile bu dosya ayrilir ve bu dosyayi
-# tek basina kosturmak (docs/12'deki elle akis) YANLIS KIRA uretir.
+# The same as model.py. The realisation rate measured from the simulation.
+# THE VALUE IN model.py IS THE CORRECT ONE. This copy is written by
+# calibrate.py; if it is changed by hand this file and the game's content
+# split apart, and running this file on its own (the manual flow in docs/12)
+# produces THE WRONG RENT.
 REALISATION_BP = 7000
 WEEKEND_DAYS = 2
 XP_WAGE_GROWTH = 0.022
 START_CASH = 8000
 
-BASE_CAP = dict(asci=30, garson=26, bulasikci=48, kasiyer=70)
-WAGE = dict(asci=140, garson=110, bulasikci=90, kasiyer=100)
+BASE_CAP = dict(cook=30, waiter=26, dishwasher=48, cashier=70)
+WAGE = dict(cook=140, waiter=110, dishwasher=90, cashier=100)
 BASE_UPGRADE = {4: 0, 7: 2500, 10: 4500, 14: 8000}
-# SERMAYE GIDERI ONCESI marj: ekipman bu defterde YOK (model.py'deki
-# gerekce). "Net marj" diye okunursa oyunun en buyuk yatirim kalemi
-# gorulmemis olur - ekipman merdiveni 14 masada ~37.600 sikke ve
-# fiyatlari kapali form modelle degil, harness olcumuyle ayarlaniyor.
+# The margin BEFORE CAPITAL EXPENDITURE: equipment is NOT in this ledger (the
+# reasoning is in model.py). Read as "net margin" it would mean the game's
+# largest investment line has been left out - the equipment ladder costs about
+# 37,600 coins at 14 tables, and its prices are tuned with the harness
+# measurement, not with the closed-form model.
 MARGIN_TARGETS = {4: 0.05, 7: 0.09, 10: 0.14, 14: 0.20}
 
 PLAN = [
@@ -56,7 +58,7 @@ DEMAND_BASE_BP = 5_000
 
 
 def mul_div(a, b, c):
-    """Yarisi sifirdan uzaga. model.py ve C# Fx.MulDiv ile ayni."""
+    """Halves away from zero. The same as model.py and C# Fx.MulDiv."""
     p = a * b
     ap, ac = abs(p), abs(c)
     q = ap // ac
@@ -72,9 +74,9 @@ def customers(tables, rep, day_factor_bp=WEEKDAY_BP):
 
 def simulate(s, o, e, rents=None):
     cap = {k: v * s for k, v in BASE_CAP.items()}
-    salon_load = 1.0 / cap["garson"] + 1.0 / cap["bulasikci"] + 1.0 / cap["kasiyer"]
-    shares = {k: (1.0 / cap[k]) / salon_load for k in ("garson", "bulasikci", "kasiyer")}
-    wage_salon = sum(shares[k] * WAGE[k] for k in shares)
+    hall_load = 1.0 / cap["waiter"] + 1.0 / cap["dishwasher"] + 1.0 / cap["cashier"]
+    shares = {k: (1.0 / cap[k]) / hall_load for k in ("waiter", "dishwasher", "cashier")}
+    wage_hall = sum(shares[k] * WAGE[k] for k in shares)
 
     rows, prev, cash = [], 4, START_CASH
     for row in PLAN:
@@ -82,12 +84,12 @@ def simulate(s, o, e, rents=None):
         weekend = customers(row["tables"], row["rep"], WEEKEND_BP)
         wk = weekday * (7 - WEEKEND_DAYS) + weekend * WEEKEND_DAYS
 
-        asci = ceil(weekend / cap["asci"])
-        salon_work = weekend * salon_load
-        salon = max(0, ceil(salon_work - o))
-        crew_total = asci + salon
+        cook = ceil(weekend / cap["cook"])
+        hall_work = weekend * hall_load
+        hall = max(0, ceil(hall_work - o))
+        crew_total = cook + hall
 
-        wages = (asci * WAGE["asci"] + salon * wage_salon) * 7 * \
+        wages = (cook * WAGE["cook"] + hall * wage_hall) * 7 * \
                 ((1 + XP_WAGE_GROWTH) ** (row["week"] - 1))
         revenue = mul_div(wk * row["ticket"], REALISATION_BP, BP)
         ingredients = revenue * INGREDIENT_RATE
@@ -97,20 +99,20 @@ def simulate(s, o, e, rents=None):
         net = revenue - ingredients - wages - rent - expansion
         cash += net
         rows.append(dict(week=row["week"], tables=row["tables"], weekday=weekday,
-                         weekend=weekend, asci=asci, salon=salon, crew=crew_total,
+                         weekend=weekend, cook=cook, hall=hall, crew=crew_total,
                          revenue=revenue, ingredients=ingredients, wages=wages,
                          rent=rent, expansion=expansion, net=net, cash=cash,
                          margin=net / revenue, wage_share=wages / revenue,
                          rent_share=(rent / revenue) if revenue else 0))
         prev = row["tables"]
-    return rows, wage_salon, salon_load
+    return rows, wage_hall, hall_load
 
 
 def solve_rents(s, o, e):
     rows, _, _ = simulate(s, o, e)
     mature = {}
     for r in rows:
-        mature[r["tables"]] = r          # sonuncu = olgun hafta
+        mature[r["tables"]] = r          # the last one = the mature week
     out = {}
     for tables, r in mature.items():
         target = MARGIN_TARGETS[tables]
@@ -120,7 +122,7 @@ def solve_rents(s, o, e):
 
 
 def score(rows):
-    """Tasarim hedefleri. Ihlal basina ceza; 0 = kusursuz."""
+    """The design targets. A penalty per violation; 0 = flawless."""
     pen, fails = 0.0, []
 
     def bad(cond, weight, msg):
@@ -130,33 +132,33 @@ def score(rows):
             fails.append(msg)
 
     crews = [r["crew"] for r in rows]
-    bad(crews[0] == 1, 10, "H1 kadro 1 degil ({})".format(crews[0]))
-    bad(crews[1] == 2, 6, "H2 kadro 2 degil ({})".format(crews[1]))
-    bad(all(crews[i] >= crews[i - 1] for i in range(1, 8)), 10, "kadro geri gidiyor")
-    bad(8 <= crews[-1] <= 12, 8, "H8 kadro 8-12 disinda ({})".format(crews[-1]))
-    bad(max(crews[i] - crews[i - 1] for i in range(1, 8)) <= 3, 5, "kadro sicramasi >3")
+    bad(crews[0] == 1, 10, "W1 crew is not 1 ({})".format(crews[0]))
+    bad(crews[1] == 2, 6, "W2 crew is not 2 ({})".format(crews[1]))
+    bad(all(crews[i] >= crews[i - 1] for i in range(1, 8)), 10, "the crew goes backwards")
+    bad(8 <= crews[-1] <= 12, 8, "W8 crew outside 8-12 ({})".format(crews[-1]))
+    bad(max(crews[i] - crews[i - 1] for i in range(1, 8)) <= 3, 5, "crew jump >3")
 
     last = rows[-1]
     bad(0.22 <= last["wage_share"] <= 0.34, 6,
-        "H8 maas payi %{:.0f}".format(100 * last["wage_share"]))
+        "W8 wage share {:.0f}%".format(100 * last["wage_share"]))
     bad(last["rent_share"] <= 0.26, 6,
-        "H8 kira payi %{:.0f}".format(100 * last["rent_share"]))
+        "W8 rent share {:.0f}%".format(100 * last["rent_share"]))
     bad(0.16 <= last["margin"] <= 0.24, 6,
-        "H8 marj %{:.1f}".format(100 * last["margin"]))
+        "W8 margin {:.1f}%".format(100 * last["margin"]))
 
     for r in rows:
         if r["expansion"]:
-            bad(r["net"] < 0, 4, "H{} genisleme haftasi zarar etmiyor".format(r["week"]))
+            bad(r["net"] < 0, 4, "W{} expansion week does not make a loss".format(r["week"]))
         else:
-            bad(r["net"] > 0, 4, "H{} olgun hafta zarar ediyor".format(r["week"]))
+            bad(r["net"] > 0, 4, "W{} mature week makes a loss".format(r["week"]))
 
     mn = min(r["cash"] for r in rows)
-    bad(800 <= mn <= 4000, 8, "en dusuk kasa {:.0f}".format(mn))
-    bad(all(r["cash"] > 0 for r in rows), 12, "kasa eksiye dusuyor")
-    bad(all(r["rent"] > 0 for r in rows), 12, "kira negatif cozuldu")
+    bad(800 <= mn <= 4000, 8, "lowest cash {:.0f}".format(mn))
+    bad(all(r["cash"] > 0 for r in rows), 12, "cash goes negative")
+    bad(all(r["rent"] > 0 for r in rows), 12, "rent solved negative")
 
     rents = sorted(set(r["rent"] for r in rows))
-    bad(rents == sorted(rents), 4, "kira monoton degil")
+    bad(rents == sorted(rents), 4, "rent is not monotonic")
     return pen, fails
 
 
@@ -170,45 +172,45 @@ def main():
         rents = solve_rents(s, o, e)
         if any(v <= 0 for v in rents.values()):
             continue
-        rows, wage_salon, salon_load = simulate(s, o, e, rents)
+        rows, wage_hall, hall_load = simulate(s, o, e, rents)
         pen, fails = score(rows)
         if best is None or pen < best[0]:
-            best = (pen, s, o, e, rents, rows, fails, wage_salon, salon_load)
+            best = (pen, s, o, e, rents, rows, fails, wage_hall, hall_load)
             if pen == 0:
                 break
 
-    pen, s, o, e, rents, rows, fails, wage_salon, salon_load = best
+    pen, s, o, e, rents, rows, fails, wage_hall, hall_load = best
     print("=" * 74)
-    print("EN IYI PARAMETRE SETI      ceza = {:.1f}".format(pen))
+    print("BEST PARAMETER SET          penalty = {:.1f}".format(pen))
     print("=" * 74)
-    print("kapasite olcegi s = {}".format(s))
-    print("patron is-gunu  o = {}".format(o))
-    print("genisleme olcegi e = {}".format(e))
+    print("capacity scale  s = {}".format(s))
+    print("owner work-day  o = {}".format(o))
+    print("expansion scale e = {}".format(e))
     print()
-    print("Rol kapasiteleri (musteri/gun):")
+    print("Role capacities (customers/day):")
     for k, v in BASE_CAP.items():
         print("   {:<10} {}".format(k, int(round(v * s))))
     print()
-    print("Genisleme bedelleri:")
+    print("Expansion costs:")
     for t in (7, 10, 14):
-        print("   {:>2} masa  {}".format(t, int(BASE_UPGRADE[t] * e)))
+        print("   {:>2} tables  {}".format(t, int(BASE_UPGRADE[t] * e)))
     print()
-    print("Haftalik kiralar (hedef marjdan cozuldu):")
+    print("Weekly rents (solved from the target margin):")
     for t in sorted(rents):
-        print("   {:>2} masa  {}".format(t, rents[t]))
+        print("   {:>2} tables  {}".format(t, rents[t]))
     print()
-    print("Salon agirlikli gunluk ucret: {:.0f}".format(wage_salon))
-    print("Salon is yuku / musteri:      {:.4f} is-gunu".format(salon_load))
+    print("Hall weighted daily wage: {:.0f}".format(wage_hall))
+    print("Hall workload / customer: {:.4f} work-days".format(hall_load))
     if fails:
-        print("\nKalan ihlaller:")
+        print("\nRemaining violations:")
         for f in fails:
             print("   - " + f)
     print()
-    print("| Hafta | Masa | Asci | Salon | Kadro | Musteri ici/sonu | Ciro | Maas | Kira | Genisleme | Net | Kasa | Marj |")
+    print("| Week | Tables | Cooks | Hall | Crew | Customers weekday/weekend | Revenue | Wages | Rent | Expansion | Net | Cash | Margin |")
     print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for r in rows:
-        print("| {w} | {t} | {a} | {s} | **{c}** | {wd}/{we} | {rev:,.0f} | {wg:,.0f} | {rt:,.0f} | {ex} | **{net:+,.0f}** | {cash:,.0f} | %{mg:.1f} |".format(
-            w=r["week"], t=r["tables"], a=r["asci"], s=r["salon"], c=r["crew"],
+        print("| {w} | {t} | {a} | {s} | **{c}** | {wd}/{we} | {rev:,.0f} | {wg:,.0f} | {rt:,.0f} | {ex} | **{net:+,.0f}** | {cash:,.0f} | {mg:.1f}% |".format(
+            w=r["week"], t=r["tables"], a=r["cook"], s=r["hall"], c=r["crew"],
             wd=r["weekday"], we=r["weekend"], rev=r["revenue"], wg=r["wages"],
             rt=r["rent"], ex="{:,.0f}".format(r["expansion"]) if r["expansion"] else "—",
             net=r["net"], cash=r["cash"], mg=100 * r["margin"]).replace(",", "."))

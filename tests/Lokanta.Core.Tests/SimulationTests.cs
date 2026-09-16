@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
@@ -30,24 +30,24 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
-        /// TOPLAM kadroyu kurar, EKLENECEK sayiyi degil.
+        /// Sets up the TOTAL crew, not the number to ADD.
         ///
-        /// Oyun bir asci VE bir garsonla basliyor (devralinan kadro), o
-        /// yuzden ikisi de birden sayiliyor: salon:2 istemek BIR kisi ise
-        /// almak demek. Once yalnizca asci boyle sayiliyordu ve garson
-        /// eklenince "salon: 2" sessizce UC kisi oldu.
+        /// The game starts with one cook AND one waiter (the inherited crew), so
+        /// both are counted in: asking for hall:2 means hiring ONE person. Only the
+        /// cook used to be counted this way, and when the waiter was added
+        /// "hall: 2" silently became THREE people.
         ///
-        /// Taban da bir: baslangic kadrosunun altina inilemiyor.
+        /// The floor is one too: you cannot go below the starting crew.
         /// </summary>
-        private static Simulation NewSim(int cooks = 1, int salon = 1)
+        private static Simulation NewSim(int cooks = 1, int hall = 1)
         {
             Simulation sim = new Simulation(Economy(), Content(), Timing(), Seed);
             for (int i = 1; i < cooks; i++) sim.Apply(new Command(0, CommandKind.Hire, 0));
-            for (int i = 1; i < salon; i++) sim.Apply(new Command(0, CommandKind.Hire, 1));
+            for (int i = 1; i < hall; i++) sim.Apply(new Command(0, CommandKind.Hire, 1));
             return sim;
         }
 
-        /// <summary>Bir servis gununu bastan sona kosar ve raporu doner.</summary>
+        /// <summary>Runs one service day from start to finish and returns the report.</summary>
         private static DayReport RunOneDay(Simulation sim, int extraTicks = 4000)
         {
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
@@ -63,25 +63,25 @@ namespace Lokanta.Core.Tests
 
         // ====================================================================
         [Fact]
-        public void Icerik_yuklenir_ve_dogrulanir()
+        public void The_content_loads_and_validates()
         {
             ContentSet c = Content();
             Assert.Equal("fastfood", c.Cuisine);
             Assert.Equal(32, c.Dishes.Length);
-            Assert.Equal(20, c.Archetypes.Length);      // 8 paylasilan + 12 mutfaga ozel
+            Assert.Equal(20, c.Archetypes.Length);      // 8 shared + 12 cuisine-specific
             Assert.True(c.Ingredients.Length > 30);
 
-            // Her yemegin malzeme maliyeti hesaplanmis ve fiyatin altinda
+            // Every dish's ingredient cost is computed and below its price
             foreach (DishDef d in c.Dishes)
             {
-                Assert.True(d.IngredientCost > 0, d.Id + " maliyeti sifir");
+                Assert.True(d.IngredientCost > 0, d.Id + " has a cost of zero");
                 Assert.True(d.IngredientCost < d.Price,
-                    d.Id + " maliyeti fiyattan yuksek: " + d.IngredientCost + " / " + d.Price);
+                    d.Id + " costs more than it sells for: " + d.IngredientCost + " / " + d.Price);
             }
         }
 
         [Fact]
-        public void Malzeme_maliyeti_yuzde_otuz_iki_civarinda()
+        public void The_ingredient_cost_is_around_thirty_two_percent()
         {
             ContentSet c = Content();
             int min = int.MaxValue, max = 0;
@@ -91,41 +91,41 @@ namespace Lokanta.Core.Tests
                 if (bp < min) min = bp;
                 if (bp > max) max = bp;
             }
-            _out.WriteLine($"malzeme orani: {min} - {max} bp");
+            _out.WriteLine($"ingredient ratio: {min} - {max} bp");
             Assert.InRange(min, 2500, 3600);
             Assert.InRange(max, 2500, 3800);
         }
 
         [Fact]
-        public void Bir_gun_bastan_sona_koseuyor()
+        public void One_day_runs_from_start_to_finish()
         {
             Simulation sim = NewSim();
             Assert.Equal(DayPhase.Morning, sim.Phase);
 
             DayReport r = RunOneDay(sim);
 
-            _out.WriteLine($"planlanan grup {r.PlannedParties}, servis {r.ServedParties}, " +
-                           $"kizgin {r.AngryParties}, kisi {r.ServedPeople}, " +
-                           $"ciro {r.Revenue}, memnuniyet {r.AverageSatisfactionCenti}");
+            _out.WriteLine($"parties planned {r.PlannedParties}, served {r.ServedParties}, " +
+                           $"angry {r.AngryParties}, people {r.ServedPeople}, " +
+                           $"revenue {r.Revenue}, satisfaction {r.AverageSatisfactionCenti}");
 
             Assert.Equal(DayPhase.Evening, sim.Phase);
-            Assert.True(r.PlannedParties > 0, "hic musteri planlanmadi");
+            Assert.True(r.PlannedParties > 0, "no customer was planned at all");
             Assert.Equal(r.PlannedParties, r.ServedParties + r.AngryParties);
             Assert.Equal(0, sim.ActiveParties);
         }
 
         [Fact]
-        public void Gun_sonunda_hicbir_musteri_asili_kalmiyor()
+        public void No_customer_is_left_hanging_at_the_end_of_the_day()
         {
-            Simulation sim = NewSim(cooks: 2, salon: 2);
+            Simulation sim = NewSim(cooks: 2, hall: 2);
             RunOneDay(sim);
 
             for (int i = 0; i < Simulation.MaxParties; i++)
-                Assert.False(sim.PartyActive(i), $"grup {i} hala aktif");
+                Assert.False(sim.PartyActive(i), $"party {i} is still active");
         }
 
         [Fact]
-        public void Ayni_tohum_ayni_gunu_veriyor()
+        public void The_same_seed_gives_the_same_day()
         {
             DayReport a = RunOneDay(NewSim(2, 2));
             DayReport b = RunOneDay(NewSim(2, 2));
@@ -139,24 +139,24 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Farkli_tohum_farkli_gun_veriyor()
+        public void A_different_seed_gives_a_different_day()
         {
             Simulation s1 = new Simulation(Economy(), Content(), Timing(), 1UL);
             Simulation s2 = new Simulation(Economy(), Content(), Timing(), 2UL);
             DayReport a = RunOneDay(s1);
             DayReport b = RunOneDay(s2);
 
-            // Talep formulu ayni sayida KISI veriyor ama gruplar ve gelis
-            // zamanlari farkli olmali.
+            // The demand formula gives the same number of PEOPLE, but the parties
+            // and their arrival times must differ.
             Assert.True(a.Revenue != b.Revenue || a.PlannedParties != b.PlannedParties,
-                "iki farkli tohum ayni gunu uretti");
+                "two different seeds produced the same day");
         }
 
         [Fact]
-        public void Kare_basina_tick_sayisi_sonucu_degistirmiyor()
+        public void The_number_of_ticks_per_frame_does_not_change_the_result()
         {
-            // docs/23 1.4 kare bagimsizlik testi. Cekirdek gercek zamani
-            // gormedigi icin surucunun kac tick cagirdigi onemsiz olmali.
+            // The docs/23 1.4 frame independence test. Because the core never sees
+            // real time, how many ticks the driver calls must not matter.
             Simulation a = NewSim(2, 2);
             Simulation b = NewSim(2, 2);
 
@@ -166,7 +166,7 @@ namespace Lokanta.Core.Tests
             int limit = Timing().ServiceTicks + 4000;
             for (int t = 0; t < limit; t++) { a.Tick(); if (a.ServiceComplete) break; }
 
-            // b'yi bes'erli partiler halinde ilerlet
+            // Advance b in batches of five
             int done = 0;
             while (done < limit && !b.ServiceComplete)
             {
@@ -187,70 +187,71 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Yeterli_kadro_musterilerin_cogunu_agirliyor()
+        public void A_sufficient_crew_serves_most_of_the_customers()
         {
-            Simulation sim = NewSim(cooks: 2, salon: 2);
+            Simulation sim = NewSim(cooks: 2, hall: 2);
             DayReport r = RunOneDay(sim);
 
-            _out.WriteLine($"servis {r.ServedParties} / {r.PlannedParties}, " +
-                           $"kizgin {r.AngryParties}");
+            _out.WriteLine($"served {r.ServedParties} / {r.PlannedParties}, " +
+                           $"angry {r.AngryParties}");
 
-            Assert.True(r.ServedParties > 0, "hicbir musteri agirlanmadi");
-            // Ilk gun kucuk restoran; en az yarisi agirlanmali
+            Assert.True(r.ServedParties > 0, "not a single customer was served");
+            // A small restaurant on day one; at least half should be served
             Assert.True(r.ServedParties * 2 >= r.PlannedParties,
-                $"cogunluk kaybedildi: {r.ServedParties}/{r.PlannedParties}");
+                $"the majority were lost: {r.ServedParties}/{r.PlannedParties}");
         }
 
         [Fact]
-        public void Kadrosuz_restoran_musteri_kaybediyor()
+        public void An_understaffed_restaurant_loses_customers()
         {
-            // Tek asci, salonda sadece patron: yogun bir gunde kayip olmali.
-            Simulation weak = NewSim(cooks: 1, salon: 1);
-            Simulation strong = NewSim(cooks: 3, salon: 4);
+            // One cook, only the owner in the hall: on a busy day there must be
+            // losses.
+            Simulation weak = NewSim(cooks: 1, hall: 1);
+            Simulation strong = NewSim(cooks: 3, hall: 4);
 
             DayReport w = RunOneDay(weak);
             DayReport s = RunOneDay(strong);
 
-            _out.WriteLine($"zayif kadro: {w.ServedParties} servis, {w.AngryParties} kizgin");
-            _out.WriteLine($"guclu kadro: {s.ServedParties} servis, {s.AngryParties} kizgin");
+            _out.WriteLine($"weak crew  : {w.ServedParties} served, {w.AngryParties} angry");
+            _out.WriteLine($"strong crew: {s.ServedParties} served, {s.AngryParties} angry");
 
             Assert.True(s.ServedParties >= w.ServedParties,
-                "kadro artinca servis edilen musteri azaldi");
+                "fewer customers were served once the crew grew");
             Assert.True(s.AngryParties <= w.AngryParties,
-                "kadro artinca kizgin musteri artti");
+                "more customers went away angry once the crew grew");
         }
 
         [Fact]
-        public void Kizgin_musteri_itibar_kazancini_dusuruyor()
+        public void An_angry_customer_lowers_the_reputation_gain()
         {
-            // Bir kizgin musteri, bes memnun musterinin kazancini SILMEK
-            // zorunda degil; ilk hali bunu iddia ediyordu ve yanlisti.
-            // Dogru iddia: kayip yasayan gun, yasamayan gunden az kazandirir.
+            // One angry customer does not have to WIPE OUT the gain from five happy
+            // ones; the first version claimed that and it was wrong. The correct
+            // claim: a day with losses earns less than a day without.
             //
-            // Ikinci duzeltme (istasyon yuvalari yazilinca): test
-            // "cooks: 3, salon: 4" istiyordu ama dort masada kadro tavani
-            // UC. Dort salon isesi sessizce reddediliyordu ve "guclu kadro"
-            // aslinda yalnizca fazladan iki ASCI demekti. Fazladan asci ise
-            // tek yuvali istasyonda ise yaramiyor, hatta zarar veriyor:
-            // erken baslayan acelesi olmayan is yuvayi tutuyor ve sonradan
-            // gelen aceleci musteri sirada bekliyor.
+            // The second correction (once the station slots were written): the test
+            // asked for "cooks: 3, hall: 4" but at four tables the crew cap is
+            // THREE. The fourth hall hire was being silently rejected and the
+            // "strong crew" really meant nothing but two extra COOKS. And an extra
+            // cook does not help at a single-slot station, it actually hurts: an
+            // unhurried job that starts early holds the slot and the customer in a
+            // hurry who arrives later waits in the queue.
             //
-            // Guclu kadro artik SALON kadrosu: masaya oturtma ve servis
-            // hizlaniyor, kayip dusuyor. Tavan da acikca dogrulaniyor.
-            // Zayif kadro = DEVRALINAN kadro (bir asci, bir garson);
-            // guclu kadro onun ustune iki garson daha.
-            // Guclu kadro devralinanin ustune BIR garson: birinci kademe
-            // kadro tavani UC ve oyun ikiyle basliyor, yani bu kademede
-            // tek bir ise alim siginyor. Tavanin ustundeki komut sessizce
-            // reddedilir ve test "guclu kadro" kurdugunu sanip devraldigi
-            // kadroyu olcerdi.
-            Simulation weak = NewSim(cooks: 1, salon: 1);
-            Simulation strong = NewSim(cooks: 1, salon: 2);
+            // The strong crew is now a HALL crew: seating and service get faster and
+            // the losses fall. The cap is verified explicitly too.
+            // Weak crew = the INHERITED crew (one cook, one waiter); the strong crew
+            // is that plus two more waiters.
+            // The strong crew is the inherited crew plus ONE waiter: the first tier's
+            // crew cap is THREE and the game starts with two, so only a single hire
+            // fits at this tier. A command above the cap is silently rejected and
+            // the test would have believed it had built a "strong crew" while
+            // measuring the crew it inherited.
+            Simulation weak = NewSim(cooks: 1, hall: 1);
+            Simulation strong = NewSim(cooks: 1, hall: 2);
 
             Assert.Equal(1, weak.Cooks);
-            Assert.Equal(1, weak.SalonStaff);
+            Assert.Equal(1, weak.HallStaff);
             Assert.Equal(1, strong.Cooks);
-            Assert.Equal(2, strong.SalonStaff);
+            Assert.Equal(2, strong.HallStaff);
 
             int start = weak.ReputationCenti;
             DayReport w = RunOneDay(weak);
@@ -258,24 +259,23 @@ namespace Lokanta.Core.Tests
 
             int weakGain = w.ReputationCenti - start;
             int strongGain = s.ReputationCenti - start;
-            _out.WriteLine($"zayif kadro itibar {weakGain:+#;-#;0} ({w.AngryParties} kizgin), " +
-                           $"guclu kadro {strongGain:+#;-#;0} ({s.AngryParties} kizgin)");
+            _out.WriteLine($"weak crew reputation {weakGain:+#;-#;0} ({w.AngryParties} angry), " +
+                           $"strong crew {strongGain:+#;-#;0} ({s.AngryParties} angry)");
 
             if (w.AngryParties > s.AngryParties)
                 Assert.True(weakGain < strongGain,
-                    $"daha cok musteri kaybedilen gun daha cok itibar kazandirdi: " +
+                    $"the day that lost more customers earned more reputation: " +
                     $"{weakGain} >= {strongGain}");
         }
 
         [Fact]
-        public void Patron_mudahalesi_gun_basina_sinirli()
+        public void The_owners_intervention_is_limited_per_day()
         {
-            // docs/02 59: "sinirli sayida patron mudahalesi hakkin var
-            // (gun basina 3-5)". Icerikte interventionsPerDay yaziliydi ve
-            // HICBIR SEY onu zorlamiyordu: her kizgin musteri bedava
-            // kurtarilabiliyordu, yani kriz yonetimi bir kaynak degil
-            // sinirsiz bir dugmeydi.
-            Simulation sim = NewSim(cooks: 2, salon: 2);
+            // docs/02 59: "you have a limited number of owner interventions (3-5
+            // per day)". interventionsPerDay was written in the content and NOTHING
+            // enforced it: every angry customer could be rescued for free, so crisis
+            // management was not a resource but an unlimited button.
+            Simulation sim = NewSim(cooks: 2, hall: 2);
             EconomyConfig eco = Economy();
 
             Assert.Equal(eco.InterventionsPerDay, sim.InterventionsLeft);
@@ -283,12 +283,13 @@ namespace Lokanta.Core.Tests
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
             for (int t = 0; t < 2000; t++) sim.Tick();
 
-            // AYNI masaya tekrar tekrar mudahale ediliyor. MostImpatientParty
-            // mudahale gormus masayi eliyor, yani onunla olcmeye calismak
-            // "yeterli musteri yok" yuzunden erken bitiyordu; olculmek
-            // istenen sey musteri sayisi degil HAK sayisi.
+            // THE SAME table is intervened on over and over. MostImpatientParty
+            // filters out a table that has already been intervened on, so trying to
+            // measure with it ran out early for want of customers; what is meant to
+            // be measured is not the number of customers but the number of
+            // INTERVENTIONS.
             int party = sim.MostImpatientParty();
-            Assert.True(party >= 0, "olculecek musteri yok");
+            Assert.True(party >= 0, "there is no customer to measure");
 
             int used = 0;
             for (int i = 0; i < eco.InterventionsPerDay + 3; i++)
@@ -299,46 +300,46 @@ namespace Lokanta.Core.Tests
                 if (sim.InterventionsLeft < before) used++;
             }
 
-            _out.WriteLine($"hak {eco.InterventionsPerDay}, kullanilan {used}, " +
-                           $"kalan {sim.InterventionsLeft}");
+            _out.WriteLine($"budget {eco.InterventionsPerDay}, used {used}, " +
+                           $"left {sim.InterventionsLeft}");
             Assert.True(used <= eco.InterventionsPerDay,
-                $"gun basina {eco.InterventionsPerDay} hak varken {used} mudahale gecti");
+                $"{used} interventions went through against a budget of {eco.InterventionsPerDay} a day");
             Assert.Equal(0, sim.InterventionsLeft);
         }
 
         [Fact]
-        public void Istasyon_acele_ettirme_isi_kisaltiyor()
+        public void Rushing_a_station_shortens_the_job()
         {
-            // docs/02 59'un ucuncu mudahalesi: "bir istasyonu hizlandir".
-            // Diger iki tur SALON tarafinda; mutfak darbogaz oldugunda
-            // patronun servis sirasinda yapabilecegi hicbir sey yoktu.
+            // The third intervention in docs/02 59: "speed up a station". The other
+            // two kinds are on the HALL side; when the kitchen was the bottleneck
+            // there was nothing at all the owner could do during service.
             //
-            // Patron PISIRMIYOR (docs/14 bunu yasakliyor); yolu aciyor,
-            // yani isin kalan DUVAR SAATI kisaliyor.
-            Simulation sim = NewSim(cooks: 2, salon: 2);
+            // The owner DOES NOT COOK (docs/14 forbids it); they clear the way, so
+            // the job's remaining WALL CLOCK time shortens.
+            Simulation sim = NewSim(cooks: 2, hall: 2);
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
             for (int t = 0; t < 2000; t++) sim.Tick();
 
             int station = sim.BusiestStation();
-            Assert.True(station >= 0, "mesgul istasyon yok");
+            Assert.True(station >= 0, "there is no busy station");
 
             int before = sim.InterventionsLeft;
             sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
                                   station, (int)InterventionKind.RushStation));
 
-            _out.WriteLine($"istasyon {station} acele ettirildi, hak {before} -> {sim.InterventionsLeft}");
+            _out.WriteLine($"station {station} was rushed, budget {before} -> {sim.InterventionsLeft}");
             Assert.Equal(before - 1, sim.InterventionsLeft);
         }
 
         [Fact]
-        public void Bos_istasyonu_acele_ettirmek_hakki_yakmiyor()
+        public void Rushing_an_empty_station_does_not_burn_the_budget()
         {
-            // Hak kit bir kaynak. Bos bir istasyona basmak onu harcamamali,
-            // yoksa yanlis dokunus gunun butun butcesini goturur.
-            Simulation sim = NewSim(cooks: 1, salon: 0);
+            // The budget is a scarce resource. Pressing an empty station must not
+            // spend it, otherwise one wrong tap costs the whole day's budget.
+            Simulation sim = NewSim(cooks: 1, hall: 0);
             int before = sim.InterventionsLeft;
 
-            // Servis hic acilmadi: hicbir istasyonda is yok.
+            // The service was never opened: no station has any work.
             for (int st = 0; st < 6; st++)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
                                       st, (int)InterventionKind.RushStation));
@@ -347,26 +348,26 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Cay_ikrami_bedava_degil()
+        public void The_free_tea_is_not_free_to_the_owner()
         {
-            // docs/12 3: "porsiyon basina 2 maliyet, bedava verilir".
-            // Bedeli olmayan ikram, bedava bir memnuniyet muslugu olurdu.
-            Simulation sim = NewSim(cooks: 2, salon: 2);
+            // docs/12 3: "a cost of 2 per serving, given away free". A giveaway with
+            // no cost would be a free tap of satisfaction.
+            Simulation sim = NewSim(cooks: 2, hall: 2);
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
             for (int t = 0; t < 2000; t++) sim.Tick();
 
             int party = sim.MostImpatientParty();
-            Assert.True(party >= 0, "olculecek musteri yok");
+            Assert.True(party >= 0, "there is no customer to measure");
 
             long before = sim.Cash;
             sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
                                   party, (int)InterventionKind.FreeTea));
             long after = sim.Cash;
 
-            _out.WriteLine($"ikram maliyeti {(before - after) / 100.0:0.00} sikke");
-            Assert.True(after < before, "cay ikrami kasadan hic para dusurmedi");
+            _out.WriteLine($"the giveaway cost {(before - after) / 100.0:0.00} coins");
+            Assert.True(after < before, "the free tea took no money out of the till at all");
 
-            // Patron ilgisi ise para degil ZAMAN harciyor: ucretsiz olmali.
+            // The owner's attention spends TIME, not money: it must be free.
             int other = sim.MostImpatientParty();
             if (other >= 0)
             {
@@ -378,24 +379,25 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Itibar_bir_haftada_tavana_vurmuyor()
+        public void The_reputation_does_not_hit_the_ceiling_in_a_week()
         {
-            // Denge aracinin bulgusu: sonumsuz formulle itibar 30'dan 100'e
-            // dokuz gunde ciktigi icin uzun vadeli ilerleme ekseni olmaktan
-            // cikiyordu. Sonumleme sonrasi bu test onu koruyor.
-            Simulation sim = NewSim(cooks: 3, salon: 4);
+            // A finding of the balance harness: with the undamped formula the
+            // reputation climbed from 30 to 100 in nine days, which stopped it being
+            // a long-term progression axis. Since the damping was added this test
+            // protects it.
+            Simulation sim = NewSim(cooks: 3, hall: 4);
             for (int day = 1; day <= 7; day++)
             {
                 RunOneDay(sim);
                 sim.AdvanceToNextDay();
             }
-            _out.WriteLine($"yedi gun sonunda itibar {sim.ReputationCenti / 100.0:0.0}");
+            _out.WriteLine($"reputation after seven days {sim.ReputationCenti / 100.0:0.0}");
             Assert.True(sim.ReputationCenti < 8500,
-                $"itibar bir haftada {sim.ReputationCenti / 100.0:0.0} oldu; cok hizli");
+                $"the reputation reached {sim.ReputationCenti / 100.0:0.0} in a week; far too fast");
         }
 
         [Fact]
-        public void Yuksek_fiyat_memnuniyeti_dusuruyor()
+        public void A_high_price_lowers_satisfaction()
         {
             ContentSet c = Content();
 
@@ -405,19 +407,19 @@ namespace Lokanta.Core.Tests
             Simulation pricey = NewSim(3, 4);
             for (int i = 0; i < c.Dishes.Length; i++)
                 pricey.Apply(new Command(0, CommandKind.SetPrice, i,
-                                         (int)(c.Dishes[i].Price * 13 / 10)));   // %30 zam
+                                         (int)(c.Dishes[i].Price * 13 / 10)));   // a 30% markup
             DayReport rp = RunOneDay(pricey);
 
-            _out.WriteLine($"normal fiyat memnuniyet {rn.AverageSatisfactionCenti}, " +
-                           $"zamli {rp.AverageSatisfactionCenti}");
+            _out.WriteLine($"satisfaction at the normal price {rn.AverageSatisfactionCenti}, " +
+                           $"marked up {rp.AverageSatisfactionCenti}");
 
             Assert.True(rp.AverageSatisfactionCenti < rn.AverageSatisfactionCenti,
-                "fiyat artti ama memnuniyet dusmedi");
+                "the price went up but the satisfaction did not go down");
             Assert.True(rp.Revenue > 0);
         }
 
         [Fact]
-        public void Ardisik_gunler_isliyor()
+        public void Consecutive_days_run()
         {
             Simulation sim = NewSim(2, 2);
             List<int> reputations = new List<int>();
@@ -430,29 +432,29 @@ namespace Lokanta.Core.Tests
                 sim.AdvanceToNextDay();
             }
 
-            _out.WriteLine("itibar: " + string.Join(", ", reputations));
+            _out.WriteLine("reputation: " + string.Join(", ", reputations));
             Assert.Equal(8, sim.Day);
             Assert.Equal(DayPhase.Morning, sim.Phase);
         }
 
         [Fact]
-        public void Hafta_sonu_hafta_icinden_kalabalik()
+        public void The_weekend_is_busier_than_a_weekday()
         {
-            // 6. ve 7. gunler hafta sonu (WeekendDaysPerWeek = 2)
+            // Days 6 and 7 are the weekend (WeekendDaysPerWeek = 2)
             Simulation sim = NewSim(3, 4);
             int weekdayPeople = 0, weekendPeople = 0;
 
             for (int day = 1; day <= 7; day++)
             {
-                // STOK TAZELENIYOR - yoksa olculen sey hafta sonu degil
-                // ACLIK oluyor.
+                // THE STOCK IS REPLENISHED - otherwise what is measured is not the
+                // weekend but STARVATION.
                 //
-                // Once tazelenmiyordu ve test, gunun sivriltilmesiyle
-                // birlikte kirildi: uzayan bekleme memnuniyeti dusurdu,
-                // itibar yedi gunde 33'ten 11'e indi ve dusen talep hafta
-                // sonu carpanini yuttu (6. gun 9 grup, 7. gun 4). Yani
-                // test "hafta sonu kalabalik mi" diye sorarken aslinda
-                // "itibar spirali carpandan hizli mi" diye soruyordu.
+                // It used not to be replenished and the test broke when the day was
+                // sharpened: the longer wait lowered satisfaction, the reputation
+                // fell from 33 to 11 over seven days and the falling demand
+                // swallowed the weekend multiplier (9 parties on day 6, 4 on day 7).
+                // So while the test asked "is the weekend busier" it was really
+                // asking "is the reputation spiral faster than the multiplier".
                 for (int i = 0; i < sim.IngredientCount; i++)
                 {
                     int need = sim.RecommendedRestock(i);
@@ -462,10 +464,10 @@ namespace Lokanta.Core.Tests
                 }
 
                 DayReport r = RunOneDay(sim);
-                // TALEBI olcuyoruz, servisi degil: stok kisiti devreye girince
-                // hafta sonunun fazlasi kapidan donebiliyor ve servis edilen
-                // sayi talebi yansitmiyor.
-                _out.WriteLine($"gun {day}: plan {r.PlannedParties} grup, itibar {r.ReputationCenti / 100}, kizgin {r.AngrySeatedParties}");
+                // We measure the DEMAND, not the service: once the stock constraint
+                // bites, the weekend's extra customers can turn away at the door and
+                // the number served no longer reflects the demand.
+                _out.WriteLine($"day {day}: planned {r.PlannedParties} parties, reputation {r.ReputationCenti / 100}, angry {r.AngrySeatedParties}");
                 if (day <= 5) weekdayPeople += r.PlannedParties;
                 else weekendPeople += r.PlannedParties;
                 sim.AdvanceToNextDay();
@@ -473,23 +475,23 @@ namespace Lokanta.Core.Tests
 
             int weekdayAvg = weekdayPeople / 5;
             int weekendAvg = weekendPeople / 2;
-            _out.WriteLine($"hafta ici toplam {weekdayPeople} (ort {weekdayAvg}), "
-                           + $"hafta sonu toplam {weekendPeople} (ort {weekendAvg})");
+            _out.WriteLine($"weekday total {weekdayPeople} (avg {weekdayAvg}), "
+                           + $"weekend total {weekendPeople} (avg {weekendAvg})");
             Assert.True(weekendAvg > weekdayAvg,
-                $"hafta sonu kalabalik degil: {weekendAvg} <= {weekdayAvg}");
+                $"the weekend is not busier: {weekendAvg} <= {weekdayAvg}");
         }
 
         [Fact]
-        public void Olaylar_uretiliyor_ve_bosaltilabiliyor()
+        public void Events_are_produced_and_can_be_drained()
         {
             Simulation sim = NewSim(2, 2);
             RunOneDay(sim);
 
             SimEvent[] buffer = new SimEvent[4096];
             int n = sim.Events.Drain(buffer);
-            _out.WriteLine($"olay sayisi {n}, dusen {sim.Events.Dropped}");
+            _out.WriteLine($"{n} events, {sim.Events.Dropped} dropped");
 
-            Assert.True(n > 0, "hic olay uretilmedi");
+            Assert.True(n > 0, "no event was produced at all");
 
             int arrived = 0, paid = 0, seated = 0;
             for (int i = 0; i < n; i++)
@@ -508,7 +510,7 @@ namespace Lokanta.Core.Tests
         [InlineData("tr-TR")]
         [InlineData("en-US")]
         [InlineData("de-DE")]
-        public void Kultur_simulasyonu_degistirmiyor(string cultureName)
+        public void The_culture_does_not_change_the_simulation(string cultureName)
         {
             CultureInfo previous = Thread.CurrentThread.CurrentCulture;
             try
@@ -529,27 +531,28 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Kadro_tavani_asilamiyor()
+        public void The_crew_cap_cannot_be_exceeded()
         {
             Simulation sim = NewSim();
             int cap = Economy().TierAt(0).StaffCap;
 
             for (int i = 0; i < 20; i++) sim.Apply(new Command(0, CommandKind.Hire, 1));
 
-            Assert.True(sim.Cooks + sim.SalonStaff <= cap,
-                $"tavan {cap} asildi: {sim.Cooks + sim.SalonStaff}");
+            Assert.True(sim.Cooks + sim.HallStaff <= cap,
+                $"the cap of {cap} was exceeded: {sim.Cooks + sim.HallStaff}");
         }
 
         [Fact]
-        public void Zaman_ayari_kapasite_modeliyle_tutarli()
+        public void The_timing_is_consistent_with_the_capacity_model()
         {
-            // docs/27-time-model.md kurali: salon isi kapasiteden turer.
+            // The docs/27-time-model.md rule: the hall's work derives from the
+            // capacity.
             TimingConfig t = TimingConfig.Default();
             bool ok = t.MatchesCapacity(25, tolerancePercent: 2, out int expected);
-            _out.WriteLine($"salon ms/kisi: beklenen {expected}, gercek {t.SalonMsPerPerson}");
+            _out.WriteLine($"hall ms per person: expected {expected}, actual {t.HallMsPerPerson}");
             Assert.True(ok,
-                $"salon is suresi kapasite modeliyle tutmuyor: " +
-                $"{t.SalonMsPerPerson} vs {expected}");
+                $"the hall work time does not match the capacity model: " +
+                $"{t.HallMsPerPerson} vs {expected}");
         }
     }
 }

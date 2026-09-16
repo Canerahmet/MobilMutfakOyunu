@@ -1,175 +1,207 @@
-# 40 — İkinci dil: İngilizce
+# 40 — The second language: English
 
-*12 Eylül 2026.* Kullanıcının isteği: **"İngilizce de ekle."**
+*12 September 2026.* The user's request:
 
-Oyun tek dilliydi ve bu bir eksiklikten fazlası: Play Store'da Türkçe tek başına
-oyunun ulaşabileceği kitleyi ülkeyle sınırlıyor. [docs/21](21-business-and-release.md)
-yayın planında "ilk sürüm Türkçe, İngilizce hemen sonra" yazıyordu; burada
-kapanıyor.
+> **"İngilizce de ekle."**
+>
+> *("add English too")*
+
+The game was single-language, and that is more than a gap: on the Play Store,
+Turkish on its own limits the audience the game can reach to one country.
+[docs/21](21-business-and-release.md) said in the release plan "the first release
+is Turkish, English right after"; it closes here.
 
 ---
 
-## 1. Tek üreteç, iki tablo
+## 1. One generator, two tables
 
-İngilizce dizeler ayrı iki modülde (`tools/content/languages/loc_en.py`,
-`tools/content/languages/loc_en_ui.py`) ama **aynı üretecin** içinden geçiyor
-(`tools/content/gen_loc.py`). Ayrı bir araç yazmak kolay yoldu ve yanlış yoldu:
-iki tablo sessizce ayrışır, ve metinde ayrışma ekranda **`[ui.staff.hire]`
-yazan bir düğme** demek — oyuncunun gördüğü, benim görmediğim bir hata.
+The English strings live in two separate modules
+(`tools/content/languages/loc_en.py`, `tools/content/languages/loc_en_ui.py`)
+but they go through **the same generator** (`tools/content/gen_loc.py`). Writing
+a separate tool was the easy road and the wrong one: two tables drift apart
+quietly, and drift in the text means **a button on screen reading
+`[ui.staff.hire]`** — a bug the player sees and I do not.
 
-`compare(tr, en)` üç şeyi şart koşuyor ve üçü de sessiz hata üretir:
+`compare(tr, en)` insists on three things, and all three produce silent failures:
 
-| sınanan | eksikse ne olur |
+| what is checked | what happens if it is missing |
 |---|---|
-| **anahtar kümesi** aynı | eksik anahtar → ekranda köşeli parantezli anahtar |
-| **yer tutucu** kümesi aynı (`{0}`, `{1}`) | Türkçe'de `{0}` olup İngilizce'de olmayan metin biçimleme hatası **vermez**, sessizce sayıyı hiç yazmaz |
-| İngilizce metin **boş değil** | boş dize, ekranda boş bir düğme |
+| the **key set** is the same | a missing key -> the key in square brackets on screen |
+| the **placeholder** set is the same (`{0}`, `{1}`) | text that has `{0}` in Turkish and not in English does **not** raise a formatting error, it silently never prints the number |
+| the English text is **not empty** | an empty string, an empty button on screen |
 
-Ayrışma varsa üreteç **yazmadan** çıkıyor (dönüş kodu 1). 565 anahtar × 2 dil.
+If there is drift the generator exits **without writing** (return code 1).
+565 keys x 2 languages.
 
-## 2. Çeviri politikası
+## 2. The translation policy
 
-Kural tek cümle: **çevrilmesi gereken çevrilir, ad olan ad kalır.**
+The rule is one sentence: **what needs translating is translated, what is a name
+stays a name.**
 
-| tür | karar | örnek |
+| kind | decision | example |
 |---|---|---|
-| malzeme | tamamen çevrilir | `ingredient.kiyma` → "Minced Beef" |
-| dünyaca bilinen Türk yemeği | **korunur** | Lahmacun, Döner, İskender, Mantı |
-| adı tarif olan Türk yemeği | çevrilir | `mercimek_corbasi` → "Lentil Soup" |
-| korunan ama tanınmayan | ad + kısa açıklama | `karniyarik` → "Karnıyarık (Stuffed Aubergine)" |
-| müdavim adı | **korunur** | Burak, Nermin |
-| hikâye repliği | yeniden seslendirilir, birebir çevrilmez | — |
+| ingredient | translated in full | `ingredient.kiyma` -> "Minced Meat" |
+| a Turkish dish known worldwide | **kept** | `lahmacun`, `doner`, `iskender`, `manti` |
+| a Turkish dish whose name is a recipe | translated | `mercimek_corbasi` -> "Lentil Soup" |
+| kept but not recognised | name + a short explanation | `karniyarik` -> the name, then "(Stuffed Aubergine)" |
+| a regular's name | **kept** | Burak, Nermin |
+| a story line | re-voiced, not translated word for word | — |
 
-41 anahtarın iki dilde metni **aynı** ve hepsi bilinçli: özel adlar ve uluslararası
-kelimeler (hamburger, mozzarella, bulgur). `compare` bunu hata saymıyor — aynı
-olması gerekenler gerçekten aynı olmalı.
+The strings themselves, as the English table holds them:
 
-## 3. Dil bir seçim
+> *"Lahmacun", "Döner", "İskender", "Mantı", "Karnıyarık (Stuffed Aubergine)"*
+>
+> *(a name is a name in every language; the one nobody outside Turkey would
+> recognise carries a short gloss in brackets, and only that one)*
 
-`Loc` artık iki tabloyu da tanıyor. Üç karar:
+41 keys have **the same** text in both languages and every one of them is
+deliberate: proper nouns and international words (hamburger, mozzarella,
+bulgur). `compare` does not count this as an error — the ones that should be the
+same really must be the same.
 
-- **Sıra kaydediliyor, kod değil.** `Languages = { "tr", "en" }` ve
-  `PlayerPrefs`'e **dizin** yazılıyor. Yeni dil **sona** eklenir, araya değil —
-  araya eklemek eski cihazlardaki seçimi de değiştirir.
-- **İlk açılışta sorulmuyor, tahmin ediliyor.** Cihazın dili Türkçe ise Türkçe,
-  değilse İngilizce. Yanlış tahmin Ayarlar'dan tek dokunuşla düzeliyor; açılışta
-  dil soran bir ekran ise herkesin her kurulumda geçtiği bir engel.
-- **Her dil KENDİ adıyla yazıyor** ("Türkçe", "English"). "Turkish" yazan bir
-  satırı arayan kişi zaten İngilizce biliyordur.
+## 3. The language is a choice
 
-Biçimleme de dile bağlı: `tr-TR` / `en-GB`. Aynı para "8.000 ¤" ve "8,000 ¤".
-Kültür değişmezse sayılar bir dilde yanlış okunur.
+`Loc` now knows both tables. Three decisions:
 
-## 4. Turun bulduğu iki gerçek hata
+- **The order is saved, not the code.** `Languages = { "tr", "en" }` and an
+  **index** is written to `PlayerPrefs`. A new language is appended at the
+  **end**, never inserted — inserting one would also change the choice already
+  made on somebody's device.
+- **It is not asked on first launch, it is guessed.** If the device language is
+  Turkish then Turkish, otherwise English. A wrong guess is fixed from Settings
+  with one tap; a screen that asks for a language at startup is an obstacle
+  everybody walks through on every install.
+- **Every language writes its OWN name.** Somebody looking for a line that says
+  "Turkish" already reads English.
 
-Tur artık **dili Türkçe'ye sabitliyor** (düğmelere metne göre tıklıyor; İngilizce
-bir makinede ilk adımda dururdu) ve dil değişimini **ayrıca** sınıyor.
+> *"Türkçe", "English"*
+>
+> *(the two entries in the language list, each written in its own language)*
 
-**a. Şerit bütçesi İngilizce'de taşıyor.** Şerit yüksekliği artık **iki dilde de**
-ölçülüyor (`CheckStripsBothLanguages`). Akşam şeridi Türkçe'de 199 dp, İngilizce'de
-**230 dp** — bütçe 220. Tek dilde ölçen bir kontrol yeşil kalıyordu. Çözüm
-etiketleri kısaltmak oldu ("Walkouts", "Satisfaction"): şerit sıkışık bir özet,
-etiketler **iki dilde de** kısa olmalı.
+Formatting depends on the language too: `tr-TR` / `en-GB`. The same money is
+"8.000 ¤" and "8,000 ¤". If the culture does not change, the numbers are read
+wrongly in one of the languages.
 
-**b. Lavaboda kimse görünmüyor.** `Lavaboda yikayan goruldu (0 kare)`. Simülasyon
-o gün 12 tabak yıkamıştı — yani çekirdek doğru çalışıyordu. Sebep: bulaşık
-nöbetini **patron** alıyordu ve **patron çizilmiyor**. Salon sırasındaki 0
-numaralı sunucu patrondur; o yıkayınca oyuncu hiçbir şey görmez. Düzeltme,
-nöbeti patrona vermemek:
+## 4. Two real bugs the tour found
+
+The tour now **pins the language to Turkish** (it clicks buttons by their text;
+on an English machine it would have stopped at the first step) and tests the
+language switch **separately**.
+
+**a. The strip budget overflows in English.** The strip height is now measured
+**in both languages** (`CheckStripsAllLanguages`). The evening strip is 199 dp in
+Turkish and **230 dp** in English — the budget is 220. A check that measured one
+language stayed green. The fix was to shorten the labels ("Walkouts",
+"Satisfaction"): the strip is a cramped summary, and the labels have to be short
+**in both languages**.
+
+**b. Nobody is visible at the sink.** `Someone was seen washing at the sink (0
+frames)`. The simulation had washed 12 plates that day — so the core was working
+correctly. The cause: the **owner** was taking the washing-up shift, and **the
+owner is not drawn**. Hall server number 0 is the owner; when they wash, the
+player sees nothing. The fix is not to give the shift to the owner:
 
 ```csharp
-bool patron = s == 0 && _salon > 0;
+bool patron = s == 0 && _hall > 0;
 if (!patron && WashNeeded()) { ... }
 ```
 
-Bu, [docs/39](39-plate-cycle.md)'un iddiasını da tamamlıyor: darboğaz
-**görünür** olacaktı; görünmeyen bir personelin yaptığı iş darboğazı görünmez
-bırakıyordu.
+This also completes the claim in [docs/39](39-plate-cycle.md): the bottleneck was
+going to be **visible**; work done by a member of staff who is not drawn left the
+bottleneck invisible.
 
-## 5. Yeni bir kontrol, komşu kontrolleri yiyebiliyor
+## 5. A new check can eat its neighbours
 
-Şerit kontrolü İngilizce eklenene kadar tek bir ölçümdü ve ucuzdu. İki dil olunca
-**dili iki kez yüklüyor ve arayüzü iki kez baştan kuruyor** — ve o saniyeler ×16
-hızda koşuyordu: bir gerçek saniye servis gününün %3'ü.
+Until English was added, the strip check was a single measurement and it was
+cheap. With two languages it **loads the language twice and rebuilds the
+interface twice** — and those seconds were running at x16 speed: one real second
+is 3% of a service day.
 
-Sonuç, turZ1 koşusunda altı kontrolün birden kırmızıya düşmesi oldu:
-
-```
-TANI salon dolma beklemesi: 1,0 sn, servis 25%, dolu masa 1
-TANI canlilik penceresi:   11,3 sn, servis 70% -> 80% (GUN TAVANI)
-HATA : Servis dolu masa uretiyor (0)
-HATA : Musteri sokaktan geliyor (0 figur disarida)
-HATA : Lavaboda yikayan goruldu (0 kare)
-```
-
-Canlılık penceresi günün **%70'inde** açıldı, yani boşalmakta olan bir salonu
-ölçtü. Hiçbiri gerçek bir hata değildi; hepsi ölçüm penceresinin geç açılmasıydı.
-
-İki düzeltme:
-
-1. Şerit ölçümü artık **duraklatılmış** dünyada koşuyor (kamera bölümü gibi) —
-   diller de kamera da duran bir dünyada çalışıyor, duraklatmak bedava.
-2. "İkinci masa" beklemesinin artık **gün tavanı** var (%60). Bekleyen kontrol,
-   beklediği şeyi yiyemez.
-
-Düzeltmeden sonra pencere günün %10'unda açılıyor:
+The result was six checks going red at once in the turZ1 run:
 
 ```
-TANI salon dolma beklemesi: 0,3 sn, servis  7%, dolu masa 2
-TANI ikinci masa beklemesi: 0,0 sn, servis 10%, dolu masa 3
-TANI canlilik penceresi:   18,8 sn, servis 10% -> 34%
+DIAG hall fill wait:      1.0 s, service 25%, occupied tables 1
+DIAG liveliness window:  11.3 s, service 70% -> 80% (DAY CEILING)
+FAIL : The service produces occupied tables (0)
+FAIL : The customer comes in off the street (0 figures outside)
+FAIL : Someone was seen washing at the sink (0 frames)
 ```
 
-Kural, [docs/39](39-plate-cycle.md)'daki ölçüm dersinin devamı: **bir turda
-ölçümler ortak bir kaynağı — servis gününü — paylaşıyor. Yeni bir kontrol
-eklemek, komşu kontrollerin ölçtüğü şeyi tüketebilir.**
+The liveliness window opened at **70% of the day**, that is, it measured a hall
+that was emptying out. None of them was a real bug; all of them were the
+measurement window opening late.
 
-## 6. Aynı kural üçüncü hatayı da çıkardı
+Two fixes:
 
-Turu sağlamlaştırırken kalan tek kırmızı şuydu:
+1. The strip measurement now runs in a **paused** world (like the camera
+   section) — languages and the camera both work in a stopped world, so pausing
+   is free.
+2. The "second table" wait now has a **day ceiling** (60%). A check that waits
+   must not eat the thing it is waiting for.
+
+After the fix the window opens at 10% of the day:
 
 ```
-HATA : Kizgin musteri varsa kriz seridi gorundu (1 kizgin, 0 kritik masa)
+DIAG hall fill wait:      0.3 s, service  7%, occupied tables 2
+DIAG second table wait:   0.0 s, service 10%, occupied tables 3
+DIAG liveliness window:  18.8 s, service 10% -> 34%
 ```
 
-Kontrolün çıkarımı şuydu: *gün sonunda kızgın ayrılan bir grup varsa, o grup bir
-noktada kritiğe inmiş olmalı — yani "SABRI TÜKENİYOR" şeridi ekranda olmalıydı.*
-Çıkarım iki yerden birden çürüktü.
+The rule is the continuation of the measurement lesson in
+[docs/39](39-plate-cycle.md): **in a tour the measurements share a common
+resource — the service day. Adding a new check can consume what the neighbouring
+checks measure.**
 
-**a. Kapıdan dönen sayılıyordu.** `AngryParties` masa bulamayıp geri döneni de
-sayıyor; o grup **hiç oturmadı**, yani masa listesi olan kriz şeridinde
-görünemezdi. Birinci gün iki masa dolu, gelen geri döndü. Simülasyon artık
-`AngrySeatedParties` (masadan kızgın ayrılan) de veriyor ve çıkarım yalnızca onun
-üzerinden kuruluyor.
+## 6. The same rule produced a third bug as well
 
-**b. Kontrol ekrana değil simülasyona soruyordu.** `CrisisTables` çekirdekten
-hesaplanıyor — "kritik masa var mı". Şeridin **ekranda kurulup kurulmadığı** ayrı
-bir soru; sorunca da çıktı:
+While hardening the tour, the only remaining red was this:
 
-> Alt çubuk servis boyunca **hiç tazelenmiyordu**. `BuildBottom()` yalnızca aşama
-> değişince, servis bitince ya da bir düğmeye basılınca koşuyor. Yani hiçbir şeye
-> dokunmayan bir oyuncuya kriz şeridi **hiç görünmüyor** — ve şeridin kendi uyarı
-> sesi de çalmıyor (`Sfx.Upset` şerit kurulurken çalıyor). Müşteri kızgın
-> ayrılınca ses geliyordu; **önceden** uyaran kanal yoktu.
+```
+FAIL : If there is an angry customer the crisis strip appeared (1 angry, 0 critical tables)
+```
 
-Oyunun tek acil uyarı kanalı, oyuncunun zaten ekrana dokunduğu anlara bağlıydı.
-Düzeltme `Tick` içinde, **sayı değişince** (her karede değil) çubuğu yeniden
-kurmak. Ölçü de değişti: `GameScreen.CrisisBuilds` tam şeridin kurulduğu satırda
-artıyor — oyuncunun gördüğü şey budur.
+The check's inference was: *if a party left angry at the end of the day, that
+party must have dropped into the critical band at some point — so the "LOSING
+PATIENCE" strip should have been on screen.* The inference was rotten in two
+places at once.
 
-Bu üçüncü hata da [docs/39](39-plate-cycle.md)'un cümlesinin aynısı:
-***"simülasyon şunu yapıyor" ile "oyuncu şunu görüyor" iki ayrı iddiadır.***
-Bulaşıkta patron yıkıyordu ve çizilmiyordu; burada kriz vardı ve çizilmiyordu.
-İki durumda da çekirdek kusursuzdu.
+**a. The ones turned away at the door were being counted.** `AngryParties` also
+counts a party that could not find a table and turned back; that party **never
+sat down**, so it could not show up in a crisis strip that is a list of tables.
+On day one two tables were full and the arriving party turned back. The
+simulation now also reports `AngrySeatedParties` (left the table angry) and the
+inference is built on that alone.
+
+**b. The check was asking the simulation, not the screen.** `CrisisTables` is
+computed from the core — "is there a critical table". Whether the strip **was
+built on screen** is a separate question, and when it was asked, out it came:
+
+> The bottom bar was **never refreshed during service**. `BuildBottom()` only
+> runs when the phase changes, when service ends, or when a button is pressed.
+> So a player who touches nothing **never sees** the crisis strip — and the
+> strip's own warning sound does not play either (`Sfx.Upset` plays while the
+> strip is being built). The sound came when a customer left angry; there was no
+> channel that warned **beforehand**.
+
+The game's only urgent warning channel depended on the moments the player was
+already touching the screen. The fix is to rebuild the bar inside `Tick`, **when
+the number changes** (not on every frame). The measure changed too:
+`GameScreen.CrisisBuilds` increments on exactly the line where the strip is
+built — that is the thing the player sees.
+
+This third bug is the same sentence as [docs/39](39-plate-cycle.md)'s:
+***"the simulation does this" and "the player sees this" are two separate
+claims.*** At the sink the owner was washing and was not drawn; here there was a
+crisis and it was not drawn. In both cases the core was flawless.
 
 ---
 
-## Özet
+## Summary
 
 | | |
 |---|---|
-| dize | 565 anahtar × 2 dil |
-| ayrışma denetimi | anahtar, yer tutucu, boş metin — üçü de üreteçte |
-| varsayılan | cihaz dili; Ayarlar'dan değiştirilir, `PlayerPrefs`'te kalır |
-| biçimleme | `tr-TR` / `en-GB` |
-| turun bulduğu | şerit İngilizce'de 230 dp; patron yıkayınca kimse görünmüyor; kriz şeridi servis boyunca hiç tazelenmiyor |
+| strings | 565 keys x 2 languages |
+| drift check | key, placeholder, empty text — all three in the generator |
+| default | the device language; changed from Settings, kept in `PlayerPrefs` |
+| formatting | `tr-TR` / `en-GB` |
+| what the tour found | the strip is 230 dp in English; nobody is visible when the owner washes; the crisis strip is never refreshed during service |

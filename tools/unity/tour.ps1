@@ -1,63 +1,64 @@
 <#
-    Duman turu calistiricisi
+    Smoke tour runner
     ==========================================================================
-    Neden var: turu calistiran HICBIR betik yoktu. "-lokanta-tur" butun
-    projede yalnizca Autopilot.cs'in icinde geciyordu; tur elle
-    kosuluyordu ve kosulmadigi gunler kimse fark etmiyordu. Bir olcum
-    aracinin otomasyona baglanmamis olmasi, o olcumun yok olmasidir.
+    Why it exists: THERE WAS NO SCRIPT AT ALL that ran the tour. "-lokanta-tour"
+    appeared in the whole project only inside Autopilot.cs; the tour was run by
+    hand and on the days it was not run, nobody noticed. A measurement tool
+    that is not wired into automation is a measurement that does not exist.
 
-    Ne yapiyor:
-      1. (istege bagli) Windows yapisini kuruyor,
-      2. gercek telefon olcusunde (873x393 dp) turu kosuyor,
-      3. turun CIKIS KODUNU donduruyor.
+    What it does:
+      1. (optionally) builds the Windows player,
+      2. runs the tour at a real phone size (873x393 dp),
+      3. returns THE TOUR'S EXIT CODE.
 
-    Turun cikis kodu artik sonuca bagli: kalan kontrol varsa 1.
-    (Bu satira kadar tur butun kontroller HATA olsa bile 0 donuyordu.)
+    The tour's exit code now depends on the result: 1 if any check is left
+    failing. (Until this line, the tour returned 0 even when every check was an
+    ERROR.)
 
-    Kullanim:
-      .\tools\unity\tour.ps1                # yapi kur + tur kos
-      .\tools\unity\tour.ps1 -SkipBuild     # var olan yapiyla kos
-      .\tools\unity\tour.ps1 -Runs 2        # kararlilik icin iki kez
+    Usage:
+      .\tools\unity\tour.ps1                # build and run the tour
+      .\tools\unity\tour.ps1 -SkipBuild     # run against the existing build
+      .\tools\unity\tour.ps1 -Runs 2        # twice, for stability
 
-    Cikis kodu: 0 hepsi gecti, 1 kontrol kaldi, 2 yapi/calistirma hatasi,
-                3 zaman asimi.
+    Exit code: 0 all passed, 1 a check is left failing, 2 build/run error,
+               3 timeout.
 #>
 param(
     [switch]$SkipBuild,
-    # MAGAZA KIPI: tek kosu, 2,5 kat cozunurluk, ipuclari kapali.
-    # Ayni dp yerlesimi - farkli bir arayuz degil, buyuk hali.
-    # Goruntuler render/magaza altina kopyalaniyor.
-    [switch]$Magaza,
+    # STORE MODE: a single run, 2.5x resolution, hints off.
+    # The same dp layout - not a different interface, the large version of it.
+    # The images are copied under render/store.
+    [switch]$Store,
     [int]$Runs = 1,
     [int]$TimeoutSec = 900,
-    # HANGI YAPI. "windows" Mono (hizli, gunluk tur);
-    # "windows-il2cpp" Android'in derleyici + budayicisi.
-    # HANGI MUTFAK: "turk" (varsayilan) ya da "fastfood".
-    # Tur mutfagi sabit seciyordu; hizli yemegin gorunusu hic
-    # olculmuyordu.
+    # WHICH BUILD. "windows" is Mono (fast, for the daily tour);
+    # "windows-il2cpp" is Android's compiler and stripper.
+    # WHICH CUISINE: "turk" (the default) or "fastfood".
+    # The tour used to pick a fixed cuisine; how fast food looked was never
+    # measured at all.
     [ValidateSet("turk","fastfood")]
-    [string]$Mutfak = "turk",
-    [string]$Yapi = "windows",
+    [string]$Cuisine = "turk",
+    [string]$Build = "windows",
     [string]$Root = "D:\ClaudeCodeProjects\MobilOyun"
 )
 
 $ErrorActionPreference = "Stop"
 
-$exe = Join-Path $Root ("build\" + $Yapi + "\Lokanta.exe")
+$exe = Join-Path $Root ("build\" + $Build + "\Lokanta.exe")
 
 if (-not $SkipBuild) {
-    Write-Output "=== Windows yapisi kuruluyor ==="
-    $metot = if ($Yapi -eq "windows-il2cpp") { "WindowsIl2cpp" } else { "Windows" }
+    Write-Output "=== Building the Windows player ==="
+    $method = if ($Build -eq "windows-il2cpp") { "WindowsIl2cpp" } else { "Windows" }
     & (Join-Path $Root "tools\unity\run.ps1") `
-        -Method "Lokanta.EditorTools.BuildPlayer.$metot" -TimeoutSec $TimeoutSec
+        -Method "Lokanta.EditorTools.BuildPlayer.$method" -TimeoutSec $TimeoutSec
     if ($LASTEXITCODE -ne 0) {
-        Write-Output "HATA: yapi kurulamadi (kod $LASTEXITCODE)"
+        Write-Output "ERROR: the build failed (code $LASTEXITCODE)"
         exit 2
     }
 }
 
 if (-not (Test-Path $exe)) {
-    Write-Output "HATA: yapi bulunamadi: $exe"
+    Write-Output "ERROR: build not found: $exe"
     exit 2
 }
 
@@ -65,104 +66,105 @@ $fail = 0
 $crash = 0
 
 for ($i = 1; $i -le $Runs; $i++) {
-    $out = Join-Path $env:TEMP ("lokanta_tur_{0}" -f $i)
+    $out = Join-Path $env:TEMP ("lokanta_tour_{0}" -f $i)
     if (Test-Path $out) { Remove-Item $out -Recurse -Force }
     New-Item -ItemType Directory -Path $out | Out-Null
 
-    # GERCEK TELEFON OLCUSU (873x393 dp).
+    # A REAL PHONE SIZE (873x393 dp).
     #
-    # Tur masaustu penceresinde kosulunca serit butcesi ve dokunma
-    # hedefi olcumleri ANLAMSIZ: ekran iki kat genis, hicbir sey
-    # kirpilmiyor. Olcumun olctugu sey cihazdaki gorunum.
-    if ($Magaza) {
-        # 2183x983 = 873x393 dp'nin 2,5 kati. Oran ayni (20:9), yani
-        # cerceve telefonda gorunenin BIREBIR aynisi.
+    # Run in a desktop window, the tour's strip budget and touch target
+    # measurements are MEANINGLESS: the screen is twice as wide and nothing
+    # gets clipped. What the measurement measures is the view on the device.
+    if ($Store) {
+        # 2183x983 = 2.5 times 873x393 dp. The aspect ratio is the same (20:9),
+        # so the frame is EXACTLY what is seen on the phone.
         $p = Start-Process -FilePath $exe -PassThru -Wait `
-            -ArgumentList @("-lokanta-tur", "-lokanta-cikti", $out,
-                            "-lokanta-mutfak", $Mutfak,
-                            "-lokanta-olcek", "2.5",
+            -ArgumentList @("-lokanta-tour", "-lokanta-out", $out,
+                            "-lokanta-cuisine", $Cuisine,
+                            "-lokanta-scale", "2.5",
                             "-screen-width", "2183", "-screen-height", "983",
                             "-screen-fullscreen", "0")
     }
     else {
         $p = Start-Process -FilePath $exe -PassThru -Wait `
-            -ArgumentList @("-lokanta-tur", "-lokanta-cikti", $out,
-                            "-lokanta-mutfak", $Mutfak,
+            -ArgumentList @("-lokanta-tour", "-lokanta-out", $out,
+                            "-lokanta-cuisine", $Cuisine,
                             "-screen-width", "873", "-screen-height", "393",
                             "-screen-fullscreen", "0")
     }
 
-    $kod = $p.ExitCode
-    Write-Output ("kosu {0} -> cikis {1}, goruntuler: {2}" -f $i, $kod, $out)
+    $code = $p.ExitCode
+    Write-Output ("run {0} -> exit {1}, images: {2}" -f $i, $code, $out)
 
-    # Oyunun kendi gunlugu. Turun satirlarini buradan okuyoruz -
-    # "tamam"lari degil, KALANLARI ve olculemeyenleri.
+    # The game's own log. We read the tour's lines from here - not the ones
+    # that PASSED, but the ones LEFT FAILING and the ones that could not be
+    # measured.
     #
-    # Yol LOCALLOW altinda ve klasor adlari SIRKET/URUN
+    # The path is under LOCALLOW and the folder names are COMPANY/PRODUCT
     # (BuildPlayer.Company / BuildPlayer.Product).
     $log = Join-Path $env:USERPROFILE "AppData\LocalLow\Ahmet Akar\Lokanta\Player.log"
     if (Test-Path $log) {
-        Select-String -Path $log -Pattern "HATA  :|OLCULEMEDI:|ozet:" |
+        Select-String -Path $log -Pattern "FAIL :|UNMEASURED:|summary:" |
             ForEach-Object { Write-Output ("  " + $_.Line.Trim()) }
     }
 
-    # SONUC OZET DOSYASINDAN, CIKIS KODUNDAN DEGIL.
+    # THE RESULT COMES FROM THE SUMMARY FILE, NOT FROM THE EXIT CODE.
     #
-    # Olculdu: `Application.Quit(1)` bu Unity surumunun Windows
-    # oyuncusunda kapanista 0xC0000005 (-1073741819) uretiyor; sifir
-    # kodla cikan ayni yapi temiz kapaniyor. Yani sifir disi kod, tam
-    # da hata bildirmek istedigimiz anda kapanisi bozuyordu.
+    # Measured: `Application.Quit(1)` produces 0xC0000005 (-1073741819) on
+    # shutdown in this Unity version's Windows player; the same build exiting
+    # with a zero code closes cleanly. That is, a non-zero code broke the
+    # shutdown at exactly the moment we wanted to report a failure.
     #
-    # Tur artik hic kod vermiyor. Sonuc ozet dosyasinda; dosya yoksa
-    # tur bitmeden olmus demektir ve bu cok daha ciddi bir sey.
-    # Cikis kodu da bosa gitmiyor: artik yalnizca GERCEK cokmeleri
-    # isaret ediyor.
-    $ozet = Join-Path $out "ozet.txt"
-    if (Test-Path $ozet) {
-        $kaldi = (Select-String -Path $ozet -Pattern "^kaldi=(\d+)$").Matches[0].Groups[1].Value
-        if ([int]$kaldi -gt 0) {
-            Write-Output ("  -> {0} kontrol kaldi" -f $kaldi)
+    # The tour no longer returns a code at all. The result is in the summary
+    # file; if the file is missing, the tour died before it finished, and that
+    # is a far more serious thing. The exit code is not wasted either: it now
+    # marks only REAL crashes.
+    $summary = Join-Path $out "summary.txt"
+    if (Test-Path $summary) {
+        $remaining = (Select-String -Path $summary -Pattern "^failed=(\d+)$").Matches[0].Groups[1].Value
+        if ([int]$remaining -gt 0) {
+            Write-Output ("  -> {0} checks left failing" -f $remaining)
             $fail++
         }
     }
     else {
-        Write-Output "  -> COKME: tur sonuna kadar kosmadi (ozet dosyasi yok)"
+        Write-Output "  -> CRASH: the tour did not run to the end (no summary file)"
         $crash++
     }
 
-    # Tur bitti ama surec temiz kapanmadiysa da haber ver: ozet dosyasi
-    # var, yani kontroller kosmus - ama kapanista bir sey coktu ve
-    # bunu oyuncu da gorur ("Kaydet ve cik").
-    if ($kod -ne 0 -and (Test-Path $ozet)) {
-        Write-Output ("  -> UYARI: tur tamamlandi ama surec {0} ile kapandi" -f $kod)
+    # If the tour finished but the process did not close cleanly, report that
+    # too: the summary file exists, so the checks did run - but something
+    # crashed on shutdown, and the player sees that as well ("Save and quit").
+    if ($code -ne 0 -and (Test-Path $summary)) {
+        Write-Output ("  -> WARNING: the tour completed but the process closed with {0}" -f $code)
     }
 }
 
-# GORUNTULER CIKIS KONTROLLERINDEN ONCE KOPYALANIYOR.
+# THE IMAGES ARE COPIED BEFORE THE EXIT CHECKS.
 #
-# Once sonda duruyordu ve tek bir kirmizi kontrol betigi erken
-# bitiriyordu: tur kosmus, goruntuler uretilmis, ama kopyalanmadan
-# kaybolmuslardi. Kopyalamanin sonucu kontrol etmekle bir ilgisi yok.
-if ($Magaza) {
-    $hedef = Join-Path $Root "render\magaza"
-    if (-not (Test-Path $hedef)) { New-Item -ItemType Directory -Path $hedef | Out-Null }
-    Copy-Item (Join-Path (Join-Path $env:TEMP "lokanta_tur_1") "*.png") $hedef -Force
+# This used to sit at the end, and a single red check ended the script early:
+# the tour had run, the images had been produced, but they were lost before
+# they were copied. Copying has nothing to do with checking the result.
+if ($Store) {
+    $dest = Join-Path $Root "render\store"
+    if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
+    Copy-Item (Join-Path (Join-Path $env:TEMP "lokanta_tour_1") "*.png") $dest -Force
     Write-Output ""
-    Write-Output ("=== magaza goruntuleri: {0} ===" -f $hedef)
+    Write-Output ("=== store images: {0} ===" -f $dest)
 }
 
 if ($crash -gt 0) {
     Write-Output ""
-    Write-Output ("=== COKME: {0}/{1} kosu tamamlanmadi ===" -f $crash, $Runs)
+    Write-Output ("=== CRASH: {0}/{1} runs did not complete ===" -f $crash, $Runs)
     exit 2
 }
 
 if ($fail -gt 0) {
     Write-Output ""
-    Write-Output ("=== SORUN: {0}/{1} kosuda kontrol kaldi ===" -f $fail, $Runs)
+    Write-Output ("=== PROBLEM: {0}/{1} runs left a check failing ===" -f $fail, $Runs)
     exit 1
 }
 
 Write-Output ""
-Write-Output ("=== tur tamam: {0}/{0} kosu gecti ===" -f $Runs)
+Write-Output ("=== tour clean: {0}/{0} runs passed ===" -f $Runs)
 exit 0

@@ -4,26 +4,27 @@ using System.IO;
 namespace Lokanta.Content
 {
     /// <summary>
-    /// Icerik metnini NEREDEN okudugumuz. docs/26 mimarisinin "platform
-    /// portun arkasinda" kurali.
+    /// WHERE we read content text from. The docs/26 architecture rule
+    /// "the platform lives behind a port".
     ///
-    /// Sebebi somut: masaustunde ve testlerde icerik diskte bir klasor;
-    /// Android'de APK'nin icinde ve dosya yolu diye bir sey yok. Yukleyici
-    /// bunu bilmemeli - iki tarafta da AYNI dogrulamalari calistirmali,
-    /// yoksa oyun ancak telefonda acilinca bozuldugunu ogreniriz.
+    /// The reason is concrete: on the desktop and in the tests, content is
+    /// a folder on disk; on Android it is inside the APK and there is no
+    /// such thing as a file path. The loader must not know the difference -
+    /// it has to run the SAME validations on both sides, otherwise we only
+    /// find out the game is broken once it is opened on a phone.
     ///
-    /// Yollar HER ZAMAN egik cizgiyle ve icerik kokune gore:
+    /// Paths ALWAYS use forward slashes and are relative to the content root:
     ///     "economy.json", "dishes/turk.json", "archetypes/shared.json"
     /// </summary>
     public interface IContentSource
     {
         bool Exists(string relativePath);
         string ReadText(string relativePath);
-        /// <summary>Hata mesajlarinda gorunecek kaynak adi.</summary>
+        /// <summary>The source name to show in error messages.</summary>
         string Describe(string relativePath);
     }
 
-    /// <summary>Diskteki bir klasor. Testler, denge araci ve editor.</summary>
+    /// <summary>A folder on disk. Tests, the balance tool and the editor.</summary>
     public sealed class DirectoryContentSource : IContentSource
     {
         private readonly string _root;

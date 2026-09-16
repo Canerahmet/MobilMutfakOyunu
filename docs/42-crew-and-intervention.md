@@ -1,206 +1,225 @@
-# 42 — Kadro kararı ve müdahalenin değeri
+# 42 — The crew decision and the value of intervening
 
-*12 Eylül 2026.* Denge aracı bütün değişikliklerden sonra yeniden koşturuldu
-(12 tohum, 60 gün). İki bulgu çıktı; ikincisi beklenmiyordu.
+*12 September 2026.* The balance tool was run again after all the changes
+(12 seeds, 60 days). Two findings came out; the second was not expected.
 
 ---
 
-## 1. Eski açık madde kapandı: pasif oyuncu batıyor
+## 1. An old open item is closed: the passive player goes under
 
-| soru | cevap |
+| question | answer |
 |---|---|
-| Hiç müdahale etmeyen oyuncu ne oluyor | koşuların **%100'ü** borca düşüyor, ortalama **56. gün** |
-| Sürekli piyasa üstü fiyat | %75 batıyor |
-| Kombo şişirme | %67 batıyor |
-| Makul oyuncu | 19.155 kasa, 79 itibar |
-| Plancı | 24.255 kasa, 95 itibar |
+| What happens to a player who never intervenes | **100%** of the runs fall into debt, on average on **day 56** |
+| Permanently above-market prices | 75% go under |
+| Combo inflation | 67% go under |
+| A reasonable player | 19,155 in the till, 79 reputation |
+| The planner | 24,255 in the till, 95 reputation |
 
-`project-simulation` belleğinde yıllardır duran *"pasif oyuncu hâlâ batmıyor"*
-notu artık geçersiz.
+The note that had sat in the `project-simulation` memory for ages — *"the
+passive player still does not go broke"* — is no longer true.
 
 ---
 
-## 2. Müdahale nötr görünüyordu — çünkü kurtarılacak bir şey yoktu
+## 2. Intervening looked neutral — because there was nothing to rescue
 
-Müdahaleci bot, müdahale etmeyenle **aynı sayıda kişi ağırlıyordu** (2021) ve
-biraz daha az kazanıyordu. İlk şüphe doğru yerdeydi: *"reddedilen bir bot, bot
-değildir"* — bu proje fiyat tavanı geldiğinde bir botun sessizce kopyaya
-dönüştüğünü görmüştü. O yüzden önce **sayıldı**:
+The interventionist bot was seating **the same number of people** as the one
+that does not intervene (2021) and earning slightly less. The first suspicion
+was in the right place: *"a bot whose commands are rejected is not a bot"* —
+this project had already watched a bot turn quietly into a copy of another one
+when the price ceiling arrived. So the first thing was to **count**:
 
 ```
-=== mudahale (strateji basina) ===
-  mudahaleci             2880 gecti /   2880 denendi
-  baskili_mudahale       2880 gecti /   2880 denendi
+=== interventions (per strategy) ===
+  mudahaleci             2880 applied /   2880 tried
+  baskili_mudahale       2880 applied /   2880 tried
 ```
 
-*(Sayaçlar bir süre **statikti ve hiç sıfırlanmıyordu**: iki kolun toplamı tek
-satırda basılıyor ve sayaçların var oluş sebebi — kol başına "müdahale gerçekten
-oldu mu" — okunamıyordu. Artık strateji başına.)*
+*(For a while the counters were **static and never reset**: the sum of the two
+arms was printed on a single line, and the very reason the counters exist — "did
+an intervention actually happen" per arm — could not be read. Now they are per
+strategy.)*
 
-Yani mekanik çalışıyor. Sorun tavandaydı: **iyi yönetilen bir restoranda günde
-~0,3 grup kaçıyor**, yani müdahalenin kurtaracağı bir şey yok.
+So the mechanic works. The problem was the ceiling: **in a well-run restaurant
+about 0.3 parties per day walk out**, so there is nothing for an intervention to
+rescue.
 
-Bunu ayırmak için **baskı çifti** yazıldı: aynı oyuncunun bir garson eksik
-çalışan iki kopyası, aralarındaki tek fark müdahale.
+To separate that out, a **pressure pair** was written: two copies of the same
+player running one waiter short, the only difference between them being the
+intervention.
 
-| bot | son kasa | ağırlanan | masadan kızgın |
+| bot | end cash | served | left the table angry |
 |---|---:|---:|---:|
-| makul (tam kadro) | 19.155 | 2.021 | 2 |
-| baskılı (1 eksik) | 22.153 | 1.960 | 13 |
-| **baskılı + müdahale** | **22.513** | 1.967 | 11 |
+| `makul` (full crew) | 19,155 | 2,021 | 2 |
+| `baskili` (1 short) | 22,153 | 1,960 | 13 |
+| **`baskili_mudahale`** | **22,513** | 1,967 | 11 |
 
-**Müdahale baskı altında kazandırıyor** (+360 sikke) ve masadan kızgın ayrılan
-grup sayısını düşürüyor (13 → 11). Yani mekanik zayıf değil; rahat bir
-restoranda ölçülemiyor. Oyunun vaadi de tam buydu: *"patronsun,
-yetişemediğinde sen müdahale edersin".*
+**Intervening pays off under pressure** (+360 coins) and lowers the number of
+parties that leave the table angry (13 -> 11). So the mechanic is not weak; it
+cannot be measured in a comfortable restaurant. And that was exactly the game's
+promise: *"you are the owner, and when the place cannot keep up, you step in".*
 
-**Sayılar yeniden ölçüldü ve küçüldü** (eskiden +861). Sebebi bilinen bir
-düzeltme: akşam verilen kadro kararı artık `RequiredCrewTomorrow()` ile
-**yarının** gün tipine bakıyor. Eskiden biten günün tipine bakıyordu, yani
-cuma akşamı hafta içi kadrosu kurulup cumartesi zirvesine eksik giriliyordu —
-müdahalenin kurtardığı şeyin bir kısmı aslında o hatanın yarattığı baskıydı.
-Ölçüm, ölçtüğü şeyi *iyileştirince* küçülen bir sayı: iyi haber.
+**The numbers were measured again and came out smaller** (they used to be +861).
+The reason is a known fix: the crew decision taken in the evening now looks at
+**tomorrow's** day type through `RequiredCrewTomorrow()`. It used to look at the
+type of the day that was ending, so a weekday crew was set on Friday evening and
+Saturday's peak was entered short-handed — part of what the intervention was
+rescuing was in fact the pressure that bug created. A number that shrinks because
+the measurement *improved* the thing it measures: good news.
 
-**"Kayıp" sütunu artık MASADAN KIZGIN AYRILANI sayıyor**, kapıdan döneni değil.
-İkisi tek sayıya katlanıyordu; biri servis sorunu, öteki kapasite sorunu.
+**The "lost" column now counts THOSE WHO LEFT THE TABLE ANGRY**, not those
+turned away at the door. The two were being folded into a single number; one is
+a service problem, the other a capacity problem.
 
 ---
 
-## 3. Beklenmeyen bulgu: kadro tavsiyesinin adı yanlıştı
+## 3. The unexpected finding: the crew advice had the wrong name
 
-Yukarıdaki tabloda asıl çarpıcı satır şu: **bir garson eksik çalışmak yaklaşık
-3.000 sikke daha kazandırıyor** (ilk ölçümde 5.300 idi; `RequiredCrewTomorrow`
-düzeltmesinden sonra fark küçüldü ama yön değişmedi). Sebebi arayınca `RequiredCrewToday()` çıktı — adında "bugün"
-yazıyor ama her gün **hafta sonu** çarpanıyla hesaplıyordu:
+The striking row in the table above is this one: **running one waiter short
+earns roughly 3,000 more coins** (it was 5,300 in the first measurement; after
+the `RequiredCrewTomorrow` fix the gap shrank, but the direction did not change).
+Looking for the reason turned up `RequiredCrewToday()` — it says "today" in its
+name but it was calculating every day with the **weekend** multiplier:
 
 ```csharp
 int peak = DemandModel.CustomersPerDay(..., _economy.WeekendMultiplierBp);
 ```
 
-Ücret **her gün** ödeniyor, zirve ise haftada iki gün. Arayüz "bugün 3 kişi
-gerek" yazıyor, oyuncu tutuyor ve neden para kaybettiğini hiçbir yerden
-öğrenemiyordu.
+Wages are paid **every day**, the peak is two days a week. The interface said
+"you need 3 people today", the player hired them, and could not learn anywhere
+why they were losing money.
 
-**İki düzeltme:**
+**Two fixes:**
 
-1. `RequiredCrewToday()` artık gerçekten bugünü ölçüyor (hafta içi / hafta sonu
-   ayrımıyla). Zirve ayrı bir metot: `RequiredCrewPeak()`.
-2. Ekran artık **"Herkese yetişmek için: 1 + 3 · hafta sonu: 1 + 4"** yazıyor.
-   Sayı bir kapasite hesabı, kâr için en iyi sayı değil — ve bu bir **karar**:
-   *"gereken"* demek kararı gizliyordu.
+1. `RequiredCrewToday()` now really measures today (with the weekday / weekend
+   distinction). The peak is a separate method: `RequiredCrewPeak()`.
+2. The screen now says **"To keep up with everyone: 1 + 3 · weekend: 1 + 4"**.
+   The number is a capacity calculation, not the best number for profit — and
+   that is a **decision**: saying *"required"* was hiding the decision.
 
-Botun işten çıkarma kuralına da **ısrar** eklendi: eksikse hemen alıyor, fazlaysa
-üç gün üst üste fazla olmasını bekliyor. İşten çıkarma deneyimi sıfırlıyor; cuma
-tutup pazartesi kovan bir bot mekaniğin bedelini ödeyip kararını hiç vermiyordu.
+**Persistence** was added to the bot's firing rule as well: if it is short it
+hires immediately, if it is over it waits for three days in a row of being over.
+Firing resets experience; a bot that hires on Friday and fires on Monday was
+paying the mechanic's price and never actually making the decision.
 
-**Fark kapanmadı, küçüldü** (kadro 4,6 → 4,2 kişi, maaş 26.284 → 25.572).
+**The gap did not close, it shrank** (crew 4.6 -> 4.2 people, wages 26,284 ->
+25,572).
 
 ---
 
-## 4. "Puanı kaybediyor" — bunu yazdım ve ölçmemiştim
+## 4. "It loses the score" — I wrote that and I had not measured it
 
-Yukarıdaki bölümün ilk hâli şöyle bitiyordu: *"eksik kadro parayı kazanıyor,
-puanı kaybediyor."* Kulağa doğru geliyordu ve **ölçülmemişti**. Bu projenin
-kuralı açık: ölçülmemiş bir cümle, belgede duran bir tahmindir.
+The first version of the section above ended like this: *"the short crew wins
+the money and loses the score."* It sounded right and it was **unmeasured**.
+This project's rule is clear: an unmeasured sentence is a guess sitting in a
+document.
 
-Yıl sonu puanı (docs/08, yedi eksen) denge aracına eklendi. Ölçüm:
+The year-end score (docs/08, seven axes) was added to the balance tool. The
+measurement:
 
-| strateji | puan | varlık | itibar | müdavim | ekip | mekân | sağlam | imza |
+| strategy | score | wealth | rep | regulars | crew | place | resil | sig |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| pasif | 9 | 0 | 0 | 0 | 27 | 28 | 0 | 9 |
-| makul | **65** | 25 | 79 | 86 | **73** | 55 | 100 | 38 |
-| baskılı | **64** | **29** | 78 | 86 | **64** | 55 | 100 | 38 |
-| baskılı + müdahale | 64 | 30 | 79 | 85 | 64 | 55 | 100 | 38 |
-| plancı | **77** | 32 | 95 | 86 | 72 | 86 | 100 | 73 |
+| `pasif` | 9 | 0 | 0 | 0 | 27 | 28 | 0 | 9 |
+| `makul` | **65** | 25 | 79 | 86 | **73** | 55 | 100 | 38 |
+| `baskili` | **64** | **29** | 78 | 86 | **64** | 55 | 100 | 38 |
+| `baskili_mudahale` | 64 | 30 | 79 | 85 | 64 | 55 | 100 | 38 |
+| `planci` | **77** | 32 | 95 | 86 | 72 | 86 | 100 | 73 |
 
-**Cümlenin yarısı doğruydu:** eksik kadro *varlık* ekseninde kazanıyor (29 / 25)
-ve *ekip* ekseninde kaybediyor (64 / 73). Ama **itibar aynı** (78 / 79) — ben
-düşeceğini yazmıştım — ve **toplam neredeyse eşit: 64'e 65.**
+**Half of the sentence was true:** the short crew wins on the *wealth* axis
+(29 / 25) and loses on the *crew* axis (64 / 73). But **the reputation is the
+same** (78 / 79) — I had written that it would fall — and **the totals are almost
+equal: 64 to 65.**
 
-Doğru cümle şu: eksik kadro bir **takas**, bir hata değil. Oyuncu parayı ve
-varlık puanını kazanıyor, ekip puanını ve 65 kişiyi kaybediyor; terazi bir
-puanla dengede. Gerilim gerçek, ama "yanlış oynuyorsun" demiyor — *"neyi
-önemsiyorsun"* diye soruyor. Bir yönetim oyununda istenen tam da bu.
+The correct sentence is this: the short crew is a **trade**, not a mistake. The
+player wins the money and the wealth score, and loses the crew score and 65
+people; the scales balance to within one point. The tension is real, but it does
+not say "you are playing it wrong" — it asks *"what do you care about"*. In a
+management game that is exactly what you want.
 
-Puan tablosu artık her denge koşusunda basılıyor: bir sonraki "şu strateji
-kazandırıyor" cümlesi, kasaya bakıp puanı unutamayacak.
+The score table is now printed on every balance run: the next sentence of the
+form "this strategy pays off" will not be able to look at the till and forget the
+score.
 
 ---
 
-## 5. Tablonun açtığı ikinci soru: "imza" ekseni imzayı ölçmüyor
+## 5. The second question the table opened: the "signature" axis does not measure the signature
 
-Aynı tabloda şu satırlar yan yana duruyor:
+These rows sit side by side in the same table:
 
-| strateji | imza ekseni |
+| strategy | sig axis |
 |---|---:|
-| makul (komboyu hiç açmıyor) | 38 |
-| **imzacı (her sabah komboyu açıyor)** | **38** |
-| plancı (çok genişliyor) | 73 |
-| atılgan (çok genişliyor, batıyor) | 69 |
+| `makul` (never opens the combo) | 38 |
+| **`imzaci` (opens the combo every morning)** | **38** |
+| `planci` (expands a lot) | 73 |
+| `atilgan` (expands a lot, goes under) | 69 |
 
-[docs/08](08-endgame.md) mutfağa özel eksen için *"bu eksen, imza mekaniğini
-**doğrudan** ödüllendirir"* diyor. Fast food'un imza mekaniği **kombo**; ekseni
-ise `peakCovers` — **en yüksek günlük kuver**. Ölçüm gösteriyor ki eksen komboyu
-değil **genişlemeyi** izliyor: komboyu açan bot ile hiç açmayan bot aynı puanı
-alıyor, en yüksek puanlar ise en çok masa açanlarda.
+[docs/08](08-endgame.md) says of the cuisine-specific axis that *"this axis
+rewards the signature mechanic **directly**"*. Fast food's signature mechanic is
+the **combo**; its axis is `peakCovers` — **the highest daily cover count**. The
+measurement shows the axis is tracking **expansion**, not the combo: the bot that
+opens the combo and the bot that never opens it get the same score, and the
+highest scores go to whoever opens the most tables.
 
-Türk mutfağında aynı sorun yok: ekseni `creditCollected`, yani veresiye tahsilat
-oranı — mekaniğin kendisi.
+The Turkish cuisine does not have the same problem: its axis is
+`creditCollected`, the tab collection rate — the mechanic itself.
 
-Bu bir **tasarım kararı** bekliyor ve ikisi de savunulabilir:
+This is waiting on a **design decision** and both options are defensible:
 
-- **Ekseni bırak, cümleyi düzelt.** "En yüksek kuver" fast food kimliğinin
-  kendisi (hız ve hacim); yalnızca docs/08'in "doğrudan ödüllendirir" cümlesi
-  fazla iddialı.
-- **Ekseni değiştir.** Ana yemek siparişlerinin yüzde kaçı kombo oldu — o zaman
-  eksen bir *karar* ölçer (kombo mutfağı da yorar, zirvede kapatmak gerekebilir).
+- **Leave the axis, fix the sentence.** "Highest cover count" is fast food's
+  identity itself (speed and volume); only docs/08's "rewards it directly"
+  sentence is too bold a claim.
+- **Change the axis.** What percentage of main-course orders became a combo —
+  then the axis measures a *decision* (the combo also tires the kitchen out, so
+  closing it at the peak may be the right move).
 
-### Karar (13 Eylül 2026): eksen değişti
+### The decision (13 September 2026): the axis changed
 
-**İkinci seçenek seçildi.** Gerekçe ölçümde: `peakCovers` ile "Mekân" ekseni
-aynı şeyi izliyordu — plancı bot Mekân'da 86, imza ekseninde 73 alıyordu, yani
-yedi eksenden ikisi tek bir davranışı (genişleme) iki kez ödüllendiriyordu.
-Türk mutfağının ekseni ise bir *karar* ölçüyor. Asimetri tasarımın kendisinde
-değil, fast food'un ekseninde.
+**The second option was chosen.** The reason is in the measurement: `peakCovers`
+was tracking the same thing as the "Venue" axis — the `planci` bot scored 86 on
+Venue and 73 on the signature axis, so two of the seven axes were rewarding a
+single behaviour (expansion) twice. The Turkish cuisine's axis measures a
+*decision*. The asymmetry is not in the design itself, it is in fast food's axis.
 
-Hedef **ölçümden** geldi, uydurulmadı. Önce ham oran basıldı (12 tohum, 60 gün):
+The target came **from the measurement**, it was not made up. First the raw rate
+was printed (12 seeds, 60 days):
 
-| bot | kombo payı |
+| bot | combo share |
 |---|---:|
-| imzacı (her sabah açıyor) | **%17,4** |
-| kombo_şişmesi (açıyor ama batıyor) | %5,3 |
-| diğer on yedi bot | %0,0 |
+| `imzaci` (opens it every morning) | **17.4%** |
+| `kombo_sismesi` (opens it but goes under) | 5.3% |
+| the other seventeen bots | 0.0% |
 
-Hedef **%15**: "çoğu gün aç" tam puan veriyor. Kombo mutfak yükünü de
-artırdığı için zirvede kapatmak meşru bir oyun ve eksen onu cezalandırmamalı.
+The target is **15%**: "open it most days" gives full marks. Because the combo
+also raises the kitchen load, closing it at the peak is a legitimate way to play
+and the axis must not punish it.
 
-Sonuç:
+The result:
 
-| bot | imza (önce → sonra) | toplam (önce → sonra) |
+| bot | sig (before -> after) | total (before -> after) |
 |---|---|---|
-| imzacı | 38 → **100** | 65 → **74** |
-| makul | 38 → 0 | 65 → 60 |
-| plancı | 73 → 0 | 77 → 67 |
+| `imzaci` | 38 -> **100** | 65 -> **74** |
+| `makul` | 38 -> 0 | 65 -> 60 |
+| `planci` | 73 -> 0 | 77 -> 67 |
 
-Kombo kullanmak artık **14 puan** değerinde ve eksen genişlemeyi hiç izlemiyor.
-İmzacı her iki mutfakta da en yüksek puanlı strateji oldu (74) — "makul oyna ve
-mutfağının imzasını kullan" en iyi oyun olmalıydı, artık öyle.
+Using the combo is now worth **14 points** and the axis does not track expansion
+at all. `imzaci` became the highest-scoring strategy in both cuisines (74) —
+"play reasonably and use your cuisine's signature" was supposed to be the best
+game, and now it is.
 
-`peakCovers` dalı **silindi**: hiçbir mutfak kullanmıyor ve bu projenin kuralı
-açık — çağrı yerleri kalmayan bir dal bağlanmaz, silinir.
+The `peakCovers` branch was **deleted**: no cuisine uses it and this project's
+rule is clear — a branch with no call sites left is not wired up, it is deleted.
 
-### Ve eksen değişince görünmeyen bir gider ortaya çıktı
+### And when the axis changed, an invisible cost surfaced
 
-Türk mutfağını `--strateji imzaci` ile koşunca gelir tablosu **tutmadı: 134
-sikke**. Sebebi: veresiye açılırken ikram edilen çayın bedeli kasadan çıkıyor
-ve **hiçbir gider kalemine yazılmıyordu.** Veresiye açan bir oyuncunun
-mutabakatı asla kapanamazdı.
+Running the Turkish cuisine with `--strategy imzaci` made the income statement
+**not add up: 134 coins**. The cause: the cost of the tea offered when a tab is
+opened was coming out of the till and **was not being written to any expense
+line.** A player who opens tabs could never reconcile their books.
 
-Görünmemesinin sebebi de öğretici: Türk mutfağı ile `imzaci` botu **hiç birlikte
-koşulmamıştı**, çünkü `--strateji` bayrağı kabul edilip hiç okunmuyordu
-([docs/43](43-review-and-measurement.md) §4). Bir bayrağı düzeltmek, bir sızıntıyı
-ortaya çıkardı.
+Why it stayed invisible is instructive too: the Turkish cuisine and the `imzaci`
+bot **had never been run together**, because the `--strategy` flag was accepted
+and never read ([docs/43](43-review-and-measurement.md) §4). Fixing a flag
+uncovered a leak.
 
-Çay artık kendi sütununda ve mutabakat sıfır. Görünür olması da doğru:
-**veresiye bedava değil** ve bedelinin hiçbir yerde olmaması mekaniği
-olduğundan ucuz gösteriyordu.
+The tea now has its own column and the reconciliation is zero. It being visible
+is right too: **a tab is not free**, and having its price nowhere made the
+mechanic look cheaper than it is.

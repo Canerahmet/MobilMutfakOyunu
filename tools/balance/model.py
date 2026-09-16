@@ -1,97 +1,104 @@
 # -*- coding: utf-8 -*-
 """
-Lokanta denge modeli - Parti A
+Lokanta balance model - Batch A
 ============================================================================
-Amac: docs/12-economy.md ve docs/14-staff-system.md icindeki her sayiyi
-formulden turetmek. Elle yazilan tablo yok. Bu betik ne uretirse o dogrudur.
+Purpose: derive every number in docs/12-economy.md and docs/14-staff-system.md
+from a formula. No hand-written table. Whatever this script produces is the
+truth.
 
-Neden var: bes ajanli degerlendirme (docs/review/) buyume tablosunun
-formulden turemedigini buldu. Uc ayri hata vardi:
-  1. Patron ayni anda uc sutunda birden sayilmisti (tek kisi, 36 kapasite).
-  2. Kadro ZIRVE gune gore kurulmasi gerekirken ortalamaya gore kurulmustu.
-  3. Bolum 5.1 formulu 14 masa/itibar 85 icin 76 musteri veriyor,
-     bolum 6 tablosu ayni satirda 58 yaziyordu.
+Why it exists: the five-agent review (docs/review/) found that the growth
+table was not derived from the formula. There were three separate mistakes:
+  1. The owner was counted in three columns at once (one person, 36 capacity).
+  2. The crew should have been sized against the PEAK day, but it had been
+     sized against the average.
+  3. The section 5.1 formula gives 76 customers for 14 tables / reputation 85,
+     while the section 6 table said 58 on the same row.
 
-Calistirma:
-    python model.py            -> markdown tablolar (dokumana yapistirilir)
-    python model.py --check    -> tutarlilik testleri
-    python model.py --solve    -> kirayi hedef marjdan cozer
+Running it:
+    python model.py            -> markdown tables (pasted into the document)
+    python model.py --check    -> consistency tests
+    python model.py --solve    -> solves the rent from the target margin
 """
 from math import ceil
 import sys
 
 # ============================================================================
-# 1. PARAMETRELER - tek dogruluk kaynagi
+# 1. PARAMETERS - the single source of truth
 # ============================================================================
 
-SEATS_TURNOVER = 4          # masa basina gunluk musteri katsayisi (docs/12 5.1)
-INGREDIENT_RATE = 0.32      # malzeme / ciro
-# --- Gerceklesme orani ------------------------------------------------------
-# Kapali form model talebin TAMAMININ agirlandigini varsayar. Simulasyon
-# (src/Lokanta.Harness) ayni genisleme takviminde modelin cirosunun ne
-# kadarini urettigi ile olculuyor: sabir biten musteri, tukenen stok,
-# dolan masa.
+SEATS_TURNOVER = 4          # daily customer factor per table (docs/12 5.1)
+INGREDIENT_RATE = 0.32      # ingredients / revenue
+# --- Realisation rate -------------------------------------------------------
+# The closed-form model assumes that ALL of the demand is served. The
+# simulation (src/Lokanta.Harness) measures how much of the model's revenue
+# it actually produces on the same expansion schedule: customers whose
+# patience runs out, stock that runs dry, tables that fill up.
 #
-# Ilk olcum %65 idi. O olcum, ascinin yemegin BUTUN duvar saati boyunca
-# mesgul tutuldugu mutfakla alinmisti. docs/27 Karar D uygulanip asci
-# yalnizca attendBp kadar bagli kalinca mutfak darbogaz olmaktan cikti ve
-# oran %93,35'e yukseldi. Kiralar ve genisleme bedelleri o oranla yeniden
-# cozuldu: kira 650-4.000'den 1.700-9.050'ye cikti.
+# The first measurement was 65%. That measurement was taken with a kitchen
+# where the cook was held busy for the dish's ENTIRE wall clock. Once
+# docs/27 Decision D was implemented and the cook stayed tied up only for
+# attendBp, the kitchen stopped being the bottleneck and the rate rose to
+# 93.35%. Rents and expansion costs were re-solved at that rate: rent went
+# from 650-4,000 up to 1,700-9,050.
 #
-# Bu sayi OLCULEN bir degerdir, secilmis degil. Simulasyon degistikce
-# yeniden olculmeli: dotnet run --project src/Lokanta.Harness
+# This number is a MEASURED value, not a chosen one. It must be re-measured
+# whenever the simulation changes: dotnet run --project src/Lokanta.Harness
 REALISATION_BP = 7000
 
-# --- Siparis bilesimi ---------------------------------------------------------
-# Kisi basina bir ANA yemek kesin; yan, icecek ve tatli olasilikli.
-# Tatli en dusuk: sonda gelir ve herkes almaz. Bu alan yazilana kadar
-# tatli grubu OLU icerikti; dokuz tatli yemegi ve tatli istasyonunun
-# ekipman yukseltmesi hic kullanilmiyordu.
+# --- Order composition --------------------------------------------------------
+# One MAIN dish per head is certain; side, drink and dessert are probabilistic.
+# Dessert is the lowest: it comes at the end and not everybody takes one.
+# Until this field was written the dessert group was DEAD content; nine
+# dessert dishes and the dessert station's equipment upgrade were never used.
 SIDE_CHANCE_BP = 3_000
 DRINK_CHANCE_BP = 4_000
 DESSERT_CHANCE_BP = 1_800
 
-# Musteri, duydugu ama yapilamayan yemegi sorunca. Kilit sistemi
-# pasifligi odullendirmesin diye: kilitli yemegin stok masrafi yok,
-# yani yatirim yapmayan oyuncu bedavaya kar ediyordu.
+# When a customer asks for a dish they have heard of but which cannot be
+# made. So that the lock system does not reward passivity: a locked dish
+# costs nothing in stock, so a player who invested nothing was making a
+# profit for free.
 ASK_CHANCE_BP = 2_500
 ASK_MISS_CENTI = 1_500
 
-WEEKEND_DAYS = 2            # 7 gunun kaci hafta sonu
-XP_WAGE_GROWTH = 0.022      # haftalik birikimli deneyim zammi
+WEEKEND_DAYS = 2            # how many of the 7 days are weekend
+XP_WAGE_GROWTH = 0.022      # weekly compounding experience rise
 START_CASH = 8000
 
-# --- Kapasite: bir personelin BIR GUNDE karsiladigi musteri sayisi -----------
-# Seviye 1, huysuz olmayan personel. Deneyim ve huylar bunu +%30'a kadar buyutur.
-# 10 Eylul 2026: gerceklesme orani 6500'den 9335'e cikinca solve.py
-# yeniden calisti ve kapasite olcegini 1,00'dan 0,95'e, patron katkisini
-# 1,3'ten 1,4'e cekti. Kiralar ve genisleme bedelleri de o kosudan.
-CAP_ASCI = 30
-CAP_GARSON = 26
-CAP_BULASIKCI = 48
-CAP_KASIYER = 70
+# --- Capacity: how many customers ONE member of staff covers in ONE DAY ------
+# Level 1, not bad-tempered staff. Experience and traits grow this by up to +30%.
+# 10 September 2026: when the realisation rate went from 6500 to 9335, solve.py
+# was run again and pulled the capacity scale from 1.00 down to 0.95 and the
+# owner's contribution from 1.3 up to 1.4. Rents and expansion costs come from
+# that run too.
+CAP_COOK = 30
+CAP_WAITER = 26
+CAP_DISHWASHER = 48
+CAP_CASHIER = 70
 
-# Salon isi tek bir havuz: garson + bulasikci + kasiyer.
-# Kucuk lokantada ayni kisi hem servis yapar hem kasaya bakar hem tabak toplar.
-# Istasyon atamasi oyuncuya gorunur ama kapasite hesabi is-gunu uzerinden yapilir.
-SALON_LOAD = 1.0 / CAP_GARSON + 1.0 / CAP_BULASIKCI + 1.0 / CAP_KASIYER
+# Hall work is a single pool: waiter + dishwasher + cashier.
+# In a small restaurant the same person serves, minds the till and clears plates.
+# The station assignment is visible to the player, but the capacity arithmetic
+# is done in work-days.
+HALL_LOAD = 1.0 / CAP_WAITER + 1.0 / CAP_DISHWASHER + 1.0 / CAP_CASHIER
 
-WAGE = dict(asci=140, garson=110, bulasikci=90, kasiyer=100)
+WAGE = dict(cook=140, waiter=110, dishwasher=90, cashier=100)
 
-# Salon ucreti, yuk payina gore agirlikli ortalama
+# The hall wage, a weighted average by share of the load
 _shares = {
-    "garson": (1.0 / CAP_GARSON) / SALON_LOAD,
-    "bulasikci": (1.0 / CAP_BULASIKCI) / SALON_LOAD,
-    "kasiyer": (1.0 / CAP_KASIYER) / SALON_LOAD,
+    "waiter": (1.0 / CAP_WAITER) / HALL_LOAD,
+    "dishwasher": (1.0 / CAP_DISHWASHER) / HALL_LOAD,
+    "cashier": (1.0 / CAP_CASHIER) / HALL_LOAD,
 }
-WAGE_SALON = sum(_shares[k] * WAGE[k] for k in _shares)
+WAGE_HALL = sum(_shares[k] * WAGE[k] for k in _shares)
 
-# --- Patron ------------------------------------------------------------------
-# Patron salonda calisir, asci olamaz. Kendi isi oldugu icin bir personelden
-# fazla yuk kaldirir, ama ayni anda tek yerde olabilir.
-OWNER_WORK = 1.3            # is-gunu cinsinden
+# --- Owner -------------------------------------------------------------------
+# The owner works the hall, cannot be a cook. Because it is their own business
+# they carry more load than one member of staff, but they can only be in one
+# place at a time.
+OWNER_WORK = 1.3            # in work-days
 
-# --- Kademeler ---------------------------------------------------------------
+# --- Tiers -------------------------------------------------------------------
 TIERS = [
     dict(tables=4,   rent=850,   upgrade=0,     cap=3),
     dict(tables=7,   rent=1950,  upgrade=2500,  cap=5),
@@ -99,7 +106,7 @@ TIERS = [
     dict(tables=14, rent=5000,  upgrade=8000,  cap=12),
 ]
 
-# --- Hedef egri: iyi oynayan oyuncunun izledigi yol ---------------------------
+# --- Target curve: the path a player who plays well follows ------------------
 PLAN = [
     dict(week=1, tables=4,  rep=35, ticket=50),
     dict(week=2, tables=4,  rep=45, ticket=52),
@@ -111,19 +118,20 @@ PLAN = [
     dict(week=8, tables=14, rep=88, ticket=75),
 ]
 
-# Kademenin olgun haftasinda hedeflenen net marj
+# The net margin targeted in a tier's mature week
 MARGIN_TARGETS = {4: 0.05, 7: 0.09, 10: 0.14, 14: 0.20}
 
 
-# --- Istasyonlar ve ekipman (docs/27 Karar D) --------------------------------
-# attend  : duvar saatinin yuzde kaci ascinin ELINDE geciyor, baz puan.
-#           Firin 2000 cunku asci koyar, kapatir, gider. Icecek 10000
-#           cunku bardagi doldurur, bosluk yok.
-# conc    : kademe 4 zirvesinde istasyonun es zamanli tabak sayisi
-#           (docs/27 3.3, toplam 8,66 tabak / 4 asci).
-# topAttend: en ust ekipman kademesinde attendBp. Ekipman yukseltmesi
-#           prepMs'e DOKUNMAZ (docs/27 Karar D); ya yuva ekler ya asciyi
-#           daha erken birakir.
+# --- Stations and equipment (docs/27 Decision D) -----------------------------
+# attend  : what percentage of the wall clock passes in the cook's HANDS,
+#           in basis points. The oven is 2000 because the cook puts it in,
+#           closes the door and walks away. Drinks are 10000 because they
+#           fill the glass, with no gap.
+# conc    : the station's simultaneous plate count at the tier 4 peak
+#           (docs/27 3.3, 8.66 plates in total / 4 cooks).
+# topAttend: attendBp at the top equipment tier. An equipment upgrade DOES
+#           NOT TOUCH prepMs (docs/27 Decision D); it either adds a slot or
+#           releases the cook earlier.
 STATIONS = [
     dict(id="ocak",   attend=3_500,  conc=3.33, topAttend=2_800),
     dict(id="izgara", attend=5_600,  conc=3.23, topAttend=3_500),
@@ -133,69 +141,74 @@ STATIONS = [
     dict(id="tatli",  attend=8_000,  conc=0.08, topAttend=6_000),
 ]
 
-# Ekipman fiyati TAHMIN DEGIL: gerekli oldugu kademenin kirasindan
-# turetiliyor. Kira zaten olgun hafta marj hedefinden cozuldu, yani
-# ekonominin olcegini tasiyor. Carpanlar denge kosusuyla ayarlanir.
-# Baz puan: tamsayi kalsin, kayan noktada yuvarlama tartismasi acilmasin.
-EQUIP_RENT_BP = 12_000      # yuva ekleyen yukseltme
-EQUIP_TOP_BP = 20_000       # son kademe: yuva ARTI attend dususu
-EQUIP_ATTEND_BP = 12_000    # yalnizca attend dusuren yukseltme
+# The equipment price is NOT A GUESS: it is derived from the rent of the tier
+# at which it becomes necessary. The rent was itself solved from the mature-week
+# margin target, so it carries the scale of the economy. The multipliers are
+# tuned with a balance run.
+# Basis points: keep it an integer, so that no rounding argument about floating
+# point is ever opened.
+EQUIP_RENT_BP = 12_000      # an upgrade that adds a slot
+EQUIP_TOP_BP = 20_000       # the last tier: a slot PLUS a drop in attend
+EQUIP_ATTEND_BP = 12_000    # an upgrade that only lowers attend
 
 
-# Soguk hava merdiveni. keepBp: malzemenin KENDI raf omrunun yuzde kaci
-# gecerli.
+# The cold-storage ladder. keepBp: what percentage of an ingredient's OWN
+# shelf life still applies.
 #
-# Bir kademenin bir malzemeyi GERCEKTEN kurtarmasi icin omrunu 2 gune
-# cikarmasi gerekiyor - omur 1 ile omur 0 ayni gece cope gidiyor - yani
-# esik spoilDays >= 20000/keepBp. Bu esik sezgiye aykiri ve merdiveni
-# sekillendiren sey o.
+# For a tier to REALLY save an ingredient it has to push its life up to 2 days
+# - a life of 1 and a life of 0 go into the bin on the same night - so the
+# threshold is spoilDays >= 20000/keepBp. That threshold is counter-intuitive
+# and it is the thing that shapes the ladder.
 #
-# IKI BASAMAK, UC DEGIL.
+# TWO STEPS, NOT THREE.
 #
-# Ucuncu basamak uzun sure vardi ve HICBIR FIYATTA CALISMIYORDU.
-# Olculdu (botun cikabilecegi en ust kademe tek tek kapatilarak):
+# For a long time there was a third step and it DID NOT WORK AT ANY PRICE.
+# It was measured (by closing off the top tier the bot could reach, one at
+# a time):
 #
-#   8.000 sikke : hic satin alinmiyor. Temkinli kural bir kalemi
-#                 kasanin dortte biriyle sinirliyor, yani 32.000 kasa
-#                 istiyor; makul oyuncu 25.000'de zirve yapiyor.
-#                 Ekipman ekraninda duran, hicbir kosuda dokunulamayan
-#                 bir kalem.
-#   4.500 sikke : satin aliniyor ve -3.700 KAYBETTIRIYOR.
+#   8,000 coins : never bought at all. The cautious rule caps a single item
+#                 at a quarter of the cash in hand, so it wants 32,000 in
+#                 cash; a reasonable player peaks at 25,000. An item that
+#                 sits on the equipment screen and cannot be touched in any
+#                 run.
+#   4,500 coins : it is bought, and it LOSES 3,700.
 #
-# Sebep fiyat degil TAKVIM. Ikinci basamaktan sonra geriye yalnizca
-# ~4.700 sikkelik yillik zayiat kaliyor ve ucuncu basamak onun bir
-# kismini kurtariyor: altmis gunluk bir kampanyada hicbir fiyat bunu
-# odetemez. Ustelik bot ona ancak 40-45. gunlerde parasal olarak
-# ulasabiliyor, yani geriye amortisman icin on bes gun kaliyor.
+# The reason is not the price but the CALENDAR. After the second step only
+# about 4,700 coins of annual waste is left, and the third step saves part of
+# that: no price can pay for it back over a sixty-day campaign. On top of
+# that the bot can only afford it around days 40-45, which leaves fifteen
+# days to amortise it.
 #
-# Daha ucuza indirmek de cozum degil: o zaman bir KARAR olmaktan cikip
-# otomatik bir alima donusuyor.
+# Making it cheaper is no answer either: then it stops being a DECISION and
+# turns into an automatic purchase.
 #
-# Iki basamagin ikisi de kendini oduyor:
-#   t1 (2500, 1.860)  fast food +2.327, Turk +1.713
-#   t2 (7000, 2.700)  esik 4 gunden 3 gune iniyor; korunan deger
-#                     %67'den %83'e cikiyor (fast food). 7000 ile 9000
-#                     arasi ayni sonucu verdigi icin en ucuzu secildi.
+# Both of the two steps pay for themselves:
+#   t1 (2500, 1,860)  fast food +2,327, Turkish +1,713
+#   t2 (7000, 2,700)  the threshold drops from 4 days to 3; the value
+#                     preserved rises from 67% to 83% (fast food). Anything
+#                     between 7000 and 9000 gives the same result, so the
+#                     cheapest was chosen.
 #
-# Basamaklari esitlemek icin t1 de dusurulmustu (1500) ve DAHA KOTU
-# oldu: +2.720'den -234'e. Birinci basamak zaten iyi ayarliymis.
+# t1 had also been lowered (to 1500) to even the steps out, and it got WORSE:
+# from +2,720 to -234. The first step was already tuned correctly.
 STORAGE_KEEP_BP = [0, 2_500, 10_000]
-STORAGE_RENT_TIER = [0, 1, 2]           # hangi kademenin kirasindan
+STORAGE_RENT_TIER = [0, 1, 2]           # which tier's rent it comes from
 
 
 def storage():
-    """Soguk hava merdiveni: (kademe, keepBp, fiyat_sikke).
+    """The cold-storage ladder: (tier, keepBp, price_in_coins).
 
-    Fiyat, digerleri gibi KIRADAN turetiliyor: bir kademenin deposu, o
-    kademenin kirasinin 1,2 kati.
+    The price, like the others, is derived FROM THE RENT: a tier's storage
+    costs 1.2 times that tier's rent.
 
-    Son basamaga bir zamanlar ust carpan (2,0) uygulaniyordu ve gerekcesi
-    "yirmi gun dayanan sogan gercekten yirmi gun dayaniyor - bu bir esik
-    atlama" idi. O gerekce UC BASAMAKLI merdivene aitti; ikincisinde son
-    basamak artik esik atlama degil, iki basamaktan biri. Carpani
-    birakmak t2'yi 2.700'den 4.500'e cikariyordu - yani olculup dogru
-    bulunmus bir fiyati, artik var olmayan bir kademenin kuralı yuzunden
-    bozuyordu.
+    The last step once had the top multiplier (2.0) applied to it, and the
+    reasoning was "an onion that lasts twenty days really does last twenty
+    days - that is crossing a threshold". That reasoning belonged to the
+    THREE-STEP ladder; in the two-step one the last step is no longer a
+    threshold crossing, it is one of two steps. Leaving the multiplier in
+    place pushed t2 from 2,700 to 4,500 - that is, it broke a price that had
+    been measured and found correct, because of a rule belonging to a tier
+    that no longer exists.
     """
     out = [dict(tier=0, keep=0, price=0)]
     for t in range(1, len(STORAGE_KEEP_BP)):
@@ -205,19 +218,22 @@ def storage():
     return out
 
 
-# Mutfaga OZEL, ADLANDIRILMIS ekipman. docs/09: mutfak basina 10 ozel
-# pisirme istasyonu. Paylasilan alti istasyondan farki, bunlarin
-# BASLANGICTA OLMAMASI: satin alinana kadar bagli yemekler kilitli.
+# Cuisine-SPECIFIC, NAMED equipment. docs/09: 10 special cooking stations per
+# cuisine. What sets these apart from the six shared stations is that they are
+# NOT THERE AT THE START: until they are bought, the dishes attached to them
+# are locked.
 #
-# "Istasyon kademesi 2 gerekli" soyut; "tas firin al, borek acilsin"
-# okunur. Ayni mekanik, okunabilir isim.
+# "Station tier 2 required" is abstract; "buy a stone oven and borek opens up"
+# reads. The same mechanic, a readable name.
 #
-# Fiyat, gerekli oldugu kademenin kirasindan; digerleriyle ayni kural.
-# Burada "opens" listesi YOK, bilerek. Hangi yemegin hangi ekipmani
-# istedigi zaten yemegin KENDI station alaninda yaziyor
-# (tools/content/gen_dishes.py); export.py o dosyalari tarayip listeyi
-# turetiyor. Iki yerde yazilan sey sessizce ayrisir - bu projede dort kez
-# oldu, sonuncusu adlandirilmis istasyonlarin ta kendisiydi.
+# The price comes from the rent of the tier at which it becomes necessary; the
+# same rule as the others.
+#
+# There is deliberately NO "opens" list here. Which dish wants which piece of
+# equipment is already written in the dish's OWN station field
+# (tools/content/gen_dishes.py); export.py scans those files and derives the
+# list. A thing written in two places quietly diverges - in this project that
+# has happened four times, and the last one was named stations themselves.
 CUISINE_STATIONS = {
     "turk": [
         dict(id="tas_firin", attend=2_000, price_tier=2),
@@ -232,7 +248,7 @@ CUISINE_STATIONS = {
 
 
 def cuisine_stations(cuisine):
-    """Mutfaga ozel istasyonlar: (kimlik, attendBp, fiyat, actigi yemekler)."""
+    """Cuisine-specific stations: (id, attendBp, price, dishes it opens)."""
     out = []
     for st in CUISINE_STATIONS.get(cuisine, []):
         rent = TIERS[st["price_tier"]]["rent"]
@@ -245,34 +261,37 @@ def cuisine_stations(cuisine):
 
 def slots_needed(conc, tables):
     """
-    Kademede istasyonun kac yuvaya ihtiyaci var. Es zamanlilik masa
-    sayisiyla dogru orantili; kademe 4'te docs/27 3.3 tablosunu birebir
-    veriyor (izgara 4, ocak 4, firin 2, digerleri 1).
+    How many slots the station needs at this tier. Simultaneity is directly
+    proportional to the table count; at tier 4 it reproduces the docs/27 3.3
+    table exactly (grill 4, hob 4, oven 2, the rest 1).
     """
     need = conc * tables / 14.0
-    return max(1, int(-(-need // 1)))       # yukari yuvarla, en az 1
+    return max(1, int(-(-need // 1)))       # round up, at least 1
 
 
 def equipment():
     """
-    Istasyon basina ekipman merdiveni. Her basamak:
-        (kademe, yuva, attendBp, fiyat_sikke, gereken_masa)
-    Kademe 0 baslangicta var ve bedava.
+    The equipment ladder per station. Each step:
+        (tier, slots, attendBp, price_in_coins, tables_required)
+    Tier 0 is there from the start and is free.
     """
     out = []
     for st in STATIONS:
         ladder = [dict(tier=0, slots=1, attend=st["attend"], price=0, needAt=4)]
 
-        # Yuva basamaklari: yeni bir yuvanin ilk gerektigi kademeden fiyat.
+        # Slot steps: priced from the tier at which a new slot first becomes
+        # necessary.
         seen = 1
         for t in TIERS:
             need = slots_needed(st["conc"], t["tables"])
             if need <= seen:
                 continue
-            # Ust carpan yalnizca yuva ARTI attend dususu getiren basamak
-            # icin. Firinin ikinci gozu yuva ekliyor ama attend'e dokunmuyor,
-            # yani ust fiyati hak etmiyor. Bu ayrim olmadan kademe 4'te uc
-            # ayri "ust" ekipman ust uste geliyordu ve model batiyordu.
+            # The top multiplier applies only to a step that brings a slot
+            # PLUS a drop in attend. The oven's second shelf adds a slot but
+            # does not touch attend, so it does not earn the top price.
+            # Without this distinction three separate "top" pieces of
+            # equipment landed on top of each other at tier 4 and the model
+            # went under.
             last = need == slots_needed(st["conc"], TIERS[-1]["tables"])
             top = last and st["topAttend"] < st["attend"]
             bp = EQUIP_TOP_BP if top else EQUIP_RENT_BP
@@ -282,39 +301,39 @@ def equipment():
                 price=mul_div(t["rent"], bp, 10_000), needAt=t["tables"]))
             seen = need
 
-        # Hic yuva gerekmeyen istasyon (icecek, soguk, tatli) yine de
-        # asciyi mesgul ediyor. Onlara ISTEGE BAGLI bir attend yukseltmesi:
-        # yuva eklemiyor, asciyi erken birakiyor.
+        # A station that never needs a slot (drinks, cold, dessert) still ties
+        # the cook up. They get an OPTIONAL attend upgrade: it adds no slot,
+        # it releases the cook early.
         if len(ladder) == 1 and st["topAttend"] < st["attend"]:
             ladder.append(dict(
                 tier=1, slots=1, attend=st["topAttend"],
                 price=mul_div(TIERS[2]["rent"], EQUIP_ATTEND_BP, 10_000),
-                needAt=0))     # 0 = zorunlu degil
+                needAt=0))     # 0 = not compulsory
 
         out.append(dict(id=st["id"], tiers=ladder))
     return out
 
 
 # ============================================================================
-# 2. FORMULLER
+# 2. FORMULAE
 # ============================================================================
 
-BP = 10_000                 # 1,0 baz puan cinsinden
-WEEKDAY_BP = 10_000         # hafta ici gun katsayisi
-WEEKEND_BP = 12_500         # hafta sonu gun katsayisi
-DEMAND_BASE_BP = 5_000      # formuldeki 0,5 sabiti
+BP = 10_000                 # 1.0 in basis points
+WEEKDAY_BP = 10_000         # weekday factor
+WEEKEND_BP = 12_500         # weekend factor
+DEMAND_BASE_BP = 5_000      # the 0.5 constant in the formula
 
 
 def mul_div(a, b, c):
     """
-    a*b/c, yarisi SIFIRDAN UZAGA yuvarlanmis. C#'taki Fx.MulDiv ile ayni.
+    a*b/c, with halves rounded AWAY FROM ZERO. The same as Fx.MulDiv in C#.
 
-    Python'un yerlesik round()'u bankaci yuvarlamasi yapar (yarisi cifte).
-    docs/23-core-contract.md 2.3 bunu yasakliyor: iki gelistirici
-    ikisini karistirir. Ayrik kararlar bu yardimciyla verilir.
+    Python's built-in round() does banker's rounding (halves to even).
+    docs/23-core-contract.md 2.3 forbids that: two developers will mix the
+    two up. Discrete decisions are made with this helper.
     """
     if c == 0:
-        raise ZeroDivisionError("mul_div: c sifir")
+        raise ZeroDivisionError("mul_div: c is zero")
     p = a * b
     ap, ac = abs(p), abs(c)
     q = ap // ac
@@ -325,11 +344,12 @@ def mul_div(a, b, c):
 
 def customers(tables, rep, day_factor_bp=WEEKDAY_BP):
     """
-    docs/12 5.1 - musteri = masa x 4 x (0,5 + itibar/100) x gun_katsayisi
+    docs/12 5.1 - customers = tables x 4 x (0.5 + reputation/100) x day_factor
 
-    TAMSAYI hesaplanir, cunku bu ayrik bir karar ve C# cekirdegiyle BIREBIR
-    esitr olmali. Itibar santi-puan cinsinden: itibar 75 -> 7500.
-    (itibar/100) orani baz puan cinsinden tam olarak santi-puana esittir.
+    Computed in INTEGERS, because this is a discrete decision and it has to
+    match the C# core EXACTLY. Reputation is in centi-points: reputation 75
+    -> 7500. The ratio (reputation/100) in basis points is exactly equal to
+    centi-points.
     """
     demand_bp = DEMAND_BASE_BP + int(rep) * 100
     numerator = tables * SEATS_TURNOVER * demand_bp * day_factor_bp
@@ -345,19 +365,19 @@ def tier_for(tables):
 
 def staffing(peak):
     """
-    Kadro ZIRVE gune (hafta sonu) gore kurulur, ucreti 7 gun odenir.
-    Asci ayri havuz: patron pisiremez.
-    Salon tek havuz: patronun is gunu once buradan dusulur.
+    The crew is sized against the PEAK day (the weekend) and paid for 7 days.
+    Cooks are a separate pool: the owner cannot cook.
+    The hall is a single pool: the owner's work-day is deducted from it first.
     """
-    asci = ceil(peak / float(CAP_ASCI))
-    salon_work = peak * SALON_LOAD
-    salon = max(0, ceil(salon_work - OWNER_WORK))
-    return dict(asci=asci, salon=salon, total=asci + salon,
-                salon_work=salon_work)
+    cook = ceil(peak / float(CAP_COOK))
+    hall_work = peak * HALL_LOAD
+    hall = max(0, ceil(hall_work - OWNER_WORK))
+    return dict(cook=cook, hall=hall, total=cook + hall,
+                hall_work=hall_work)
 
 
 def daily_wage(crew):
-    return crew["asci"] * WAGE["asci"] + crew["salon"] * WAGE_SALON
+    return crew["cook"] * WAGE["cook"] + crew["hall"] * WAGE_HALL
 
 
 def week_pnl(row, prev_tables, rent_override=None):
@@ -371,24 +391,24 @@ def week_pnl(row, prev_tables, rent_override=None):
     crew = staffing(weekend)
     wages = daily_wage(crew) * 7 * ((1 + XP_WAGE_GROWTH) ** (row["week"] - 1))
 
-    # Talep degil, GERCEKLESEN ciro. Bkz. REALISATION_BP.
+    # Not demand, REALISED revenue. See REALISATION_BP.
     demand_revenue = week_customers * ticket
     revenue = mul_div(demand_revenue, REALISATION_BP, BP)
     ingredients = revenue * INGREDIENT_RATE
     rent = tier["rent"] if rent_override is None else rent_override
     expansion = tier["upgrade"] if tables != prev_tables else 0
 
-    # EKIPMAN BU LEDGERDE YOK, ve bu bilincli bir karar.
+    # EQUIPMENT IS NOT IN THIS LEDGER, and that is a deliberate decision.
     #
-    # Denendi ve batti: kiralar olgun hafta marj hedefinden cozuluyor, yani
-    # kapali form model zaten ince marj birakiyor; sekiz haftalik birikimli
-    # net 5.600 sikke. En ucuz ekipman merdiveni bile 16.600 tutuyor ve
-    # model 73.000 sikke borca dusuyordu.
+    # It was tried and it sank: rents are solved from the mature-week margin
+    # target, so the closed-form model already leaves a thin margin; the
+    # cumulative net over eight weeks is 5,600 coins. Even the cheapest
+    # equipment ladder costs 16,600, and the model went 73,000 coins into debt.
     #
-    # Dogru yer simulasyon: orada olgun oyuncunun altmis gunluk neti
-    # 45.000-51.000 sikke ve ekipman o birikimi emiyor. Ekipman fiyatlari
-    # bu yuzden denge aracinin "para kacinci haftada onemsizlesiyor"
-    # olcumuyle ayarlaniyor, kapali form modelle degil.
+    # The right place is the simulation: there a mature player's sixty-day net
+    # is 45,000-51,000 coins and equipment absorbs that accumulation. Equipment
+    # prices are therefore tuned with the balance tool's "in which week does
+    # money stop mattering" measurement, not with the closed-form model.
     net = revenue - ingredients - wages - rent - expansion
     return dict(
         week=row["week"], tables=tables, rep=rep, ticket=ticket,
@@ -403,9 +423,10 @@ def week_pnl(row, prev_tables, rent_override=None):
 
 def equipment_cost(prev_tables, tables):
     """
-    Masa sayisi prev_tables'tan tables'a cikarken alinmasi GEREKEN yuva
-    yukseltmelerinin toplami. Yalnizca yuva ekleyenler; attend dusuren
-    istege bagli yukseltmeler oyuncunun tercihi ve modele girmiyor.
+    The total of the slot upgrades that MUST be bought while going from
+    prev_tables tables to tables. Only the ones that add a slot; the optional
+    upgrades that lower attend are the player's choice and do not enter the
+    model.
     """
     total = 0
     for st in equipment():
@@ -429,24 +450,24 @@ def run(rents=None):
 
 def solve_rents():
     """
-    Her kademenin OLGUN haftasi (o kademedeki ikinci hafta) hedef marji
-    tutturacak kirayi analitik coz. Genisleme haftasi bilincli olarak
-    zarar etsin diye hedefe dahil edilmez.
+    Solve analytically, for each tier's MATURE week (the second week at that
+    tier), the rent that hits the target margin. The expansion week is
+    deliberately left out of the target so that it makes a loss.
     """
     mature = {}
     for i, row in enumerate(PLAN):
-        mature[row["tables"]] = row          # sonuncusu kalir = olgun hafta
+        mature[row["tables"]] = row          # the last one wins = the mature week
     rents = {}
     for tables, row in mature.items():
         r = week_pnl(row, row["tables"], rent_override=0)
         target = MARGIN_TARGETS[tables]
         rent = r["revenue"] * (1 - INGREDIENT_RATE - target) - r["wages"]
-        rents[tables] = int(round(rent / 50.0) * 50)   # 50'ye yuvarla
+        rents[tables] = int(round(rent / 50.0) * 50)   # round to 50
     return rents
 
 
 # ============================================================================
-# 3. CIKTI
+# 3. OUTPUT
 # ============================================================================
 
 def fmt(n):
@@ -454,7 +475,7 @@ def fmt(n):
 
 
 def table_growth(rows):
-    L = ["| Hafta | Masa | Kadro | Tavan | Itibar | Musteri/gun (ici / sonu) | Ort. fis | Ciro | Malzeme | Maas | Kira | Genisleme | Haftalik net | Kasa |",
+    L = ["| Week | Tables | Crew | Cap | Reputation | Customers/day (weekday / weekend) | Avg. ticket | Revenue | Ingredients | Wages | Rent | Expansion | Weekly net | Cash |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         exp = "-" + fmt(r["expansion"]) if r["expansion"] else "—"
@@ -468,23 +489,23 @@ def table_growth(rows):
 
 
 def table_crew(rows):
-    L = ["| Hafta | Zirve musteri/gun | Asci | Salon | Toplam | Tavan | Salon is yuku | Patron sonrasi |",
+    L = ["| Week | Peak customers/day | Cooks | Hall | Total | Cap | Hall workload | After the owner |",
          "|---|---|---|---|---|---|---|---|"]
     for r in rows:
         c = r["crew"]
         L.append("| {w} | {pk} | {a} | {s} | **{tot}** | {cap} | {lw:.2f} | {aft:.2f} |".format(
-            w=r["week"], pk=r["weekend"], a=c["asci"], s=c["salon"],
-            tot=c["total"], cap=r["cap"], lw=c["salon_work"],
-            aft=max(0.0, c["salon_work"] - OWNER_WORK)))
+            w=r["week"], pk=r["weekend"], a=c["cook"], s=c["hall"],
+            tot=c["total"], cap=r["cap"], lw=c["hall_work"],
+            aft=max(0.0, c["hall_work"] - OWNER_WORK)))
     return "\n".join(L)
 
 
 def table_margin(rows):
-    L = ["| Hafta | Malzeme | Maas | Kira | Genisleme | Net marj |",
+    L = ["| Week | Ingredients | Wages | Rent | Expansion | Net margin |",
          "|---|---|---|---|---|---|"]
     for r in rows:
         rev = r["revenue"]
-        L.append("| {w} | %{i:.0f} | %{m:.0f} | %{k:.0f} | %{e:.0f} | **%{n:.1f}** |".format(
+        L.append("| {w} | {i:.0f}% | {m:.0f}% | {k:.0f}% | {e:.0f}% | **{n:.1f}%** |".format(
             w=r["week"], i=100 * r["ingredients"] / rev, m=100 * r["wages"] / rev,
             k=100 * r["rent"] / rev, e=100 * r["expansion"] / rev,
             n=100 * r["margin"]))
@@ -492,70 +513,76 @@ def table_margin(rows):
 
 
 def table_capacity():
-    L = ["| Rol | Gunluk kapasite | Gunluk ucret | Musteri basina is | Yuk payi |",
+    L = ["| Role | Daily capacity | Daily wage | Work per customer | Share of load |",
          "|---|---|---|---|---|"]
-    for k, cap in (("Asci", CAP_ASCI), ("Garson", CAP_GARSON),
-                   ("Bulasikci", CAP_BULASIKCI), ("Kasiyer", CAP_KASIYER)):
-        key = k.lower().replace("ı", "i")
-        w = WAGE[{"Asci": "asci", "Garson": "garson",
-                  "Bulasikci": "bulasikci", "Kasiyer": "kasiyer"}[k]]
-        share = "" if k == "Asci" else "%{:.0f}".format(100 * (1.0 / cap) / SALON_LOAD)
-        L.append("| {} | {} musteri | {} | {:.4f} is-gunu | {} |".format(k, cap, w, 1.0 / cap, share or "ayri havuz"))
+    for label, key, cap in (("Cook", "cook", CAP_COOK),
+                            ("Waiter", "waiter", CAP_WAITER),
+                            ("Dishwasher", "dishwasher", CAP_DISHWASHER),
+                            ("Cashier", "cashier", CAP_CASHIER)):
+        w = WAGE[key]
+        share = "" if key == "cook" else "{:.0f}%".format(100 * (1.0 / cap) / HALL_LOAD)
+        L.append("| {} | {} customers | {} | {:.4f} work-days | {} |".format(
+            label, cap, w, 1.0 / cap, share or "separate pool"))
     return "\n".join(L)
 
 
 def checks(rows):
     p = []
     for r in rows:
-        p.append(("H{} kadro <= tavan ({}/{})".format(r["week"], r["crew_total"], r["cap"]),
+        p.append(("W{} crew <= cap ({}/{})".format(r["week"], r["crew_total"], r["cap"]),
                   r["crew_total"] <= r["cap"]))
-    p.append(("Kasa hicbir hafta 0 altina inmiyor", all(r["cash"] > 0 for r in rows)))
-    p.append(("Kadro monoton buyuyor",
+    p.append(("Cash never drops below 0 in any week", all(r["cash"] > 0 for r in rows)))
+    p.append(("The crew grows monotonically",
               all(rows[i]["crew_total"] >= rows[i - 1]["crew_total"] for i in range(1, len(rows)))))
-    # H1 bilincli olarak kazandiriyor: oyuncu deneyimi degerlendirmesi
-    # ogreticinin bastan sona ceza oldugunu buldu, olumlu doruk buraya konuldu.
+    # W1 makes money deliberately: the player-experience review found the
+    # tutorial was a punishment from start to finish, so a positive high point
+    # was put here.
     #
-    # Bant 8-15'ten 8-22'ye genisletildi. Sebep gol direklerini kaydirmak
-    # degil: H1 YAPISAL olarak en karli hafta, cunku ilk ise alim henuz
-    # yapilmamis ve salonu patron tek basina tasiyor. Kira her kademenin
-    # OLGUN haftasindan cozuluyor (tier 1 icin H2), o yuzden H1 her zaman
-    # olgun haftadan karli cikar. Asil olculecek sey buyumenin odullendirip
-    # odullendirmedigi ve o ayri kontrolde.
-    p.append(("H1 marji %8-22 arasi (ilk kazanc hissi)", 0.08 <= rows[0]["margin"] <= 0.22))
-    p.append(("H2 marji H1'in yarisindan az (ilk ise alim isiriyor)",
+    # The band was widened from 8-15 to 8-22. The reason is not moving the
+    # goalposts: W1 is STRUCTURALLY the most profitable week, because the
+    # first hire has not happened yet and the owner carries the hall alone.
+    # The rent is solved from each tier's MATURE week (W2 for tier 1), so W1
+    # will always come out more profitable than the mature week. The thing
+    # that actually needs measuring is whether growth is rewarded, and that
+    # is in a separate check.
+    p.append(("W1 margin between 8% and 22% (the first taste of profit)", 0.08 <= rows[0]["margin"] <= 0.22))
+    p.append(("W2 margin less than half of W1 (the first hire bites)",
               rows[1]["margin"] < rows[0]["margin"] * 0.6))
-    p.append(("Son hafta marji %16-24 arasi", 0.16 <= rows[-1]["margin"] <= 0.24))
+    p.append(("Last week's margin between 16% and 24%", 0.16 <= rows[-1]["margin"] <= 0.24))
     exp_ok = all(rows[i]["net"] < rows[i - 1]["net"] for i in range(1, len(rows)) if rows[i]["expansion"])
-    p.append(("Genisleme haftalari onceki haftadan dusuk", exp_ok))
-    # Gerilim bandi: solve.py parametreleri BU bantla arayip buldu.
-    # Onceki 3.000 esigi solve.py ile hizali degildi; ikisi ayni olmali.
+    p.append(("Expansion weeks are lower than the week before", exp_ok))
+    # The tension band: solve.py searched for and found the parameters with
+    # THIS band. The previous threshold of 3,000 was not aligned with
+    # solve.py; the two must be the same.
     mn = min(r["cash"] for r in rows)
-    p.append(("En dusuk kasa 800-4.000 bandinda (gerilim var, olum yok)",
+    p.append(("Lowest cash in the 800-4,000 band (tension, but no death)",
               800 <= mn <= 4000))
-    # H1 tek ascili, maas payi dogal olarak dusuk. Kadro kurulduktan sonra bakilir.
+    # W1 has a single cook, so its wage share is naturally low. Look at it
+    # once the crew has been assembled.
     #
-    # H2 haric tutuldu ve bant %45'e cikarildi. Iki sebep, ikisi de olculdu:
-    # (1) Gerceklesme orani ciroyu %35 dusurdu ama maas sabit; butun sabit
-    #     gider oranlari 1,54 kat yukseldi.
-    # (2) H2 ilk ise alimin haftasi: dort masalik dukkana bir salon
-    #     personeli girince maas payi %45'e ciKiyor. Bu, tasarlanan
-    #     "ilk ise alim isirir" anidir, kacamak degil.
-    p.append(("H3-H8 maas payi %22-45 arasi",
+    # W2 was excluded and the band was raised to 45%. Two reasons, both
+    # measured:
+    # (1) The realisation rate cut revenue by 35% while wages stayed fixed;
+    #     every fixed-cost ratio rose by a factor of 1.54.
+    # (2) W2 is the week of the first hire: put one hall worker into a
+    #     four-table shop and the wage share goes up to 45%. This is the
+    #     designed "the first hire bites" moment, not a loophole.
+    p.append(("W3-W8 wage share between 22% and 45%",
               all(0.22 <= r["wage_share"] <= 0.45 for r in rows[2:])))
-    # Olculen oran 1,56. Iki kat fazla sertti; onemli olan belirgin
-    # bir siçrama olmasi, tam kati degil.
-    p.append(("H2 maas payi H1'in en az %40 ustunde (ilk ise alim isiriyor)",
+    # The measured ratio is 1.56. A factor of two was too harsh; what matters
+    # is that there is a clear jump, not its exact size.
+    p.append(("W2 wage share at least 40% above W1 (the first hire bites)",
               rows[1]["wage_share"] >= rows[0]["wage_share"] * 1.4))
-    # Buyume odullendiriyor mu: her kademenin OLGUN haftasinin marji
-    # bir oncekinden yuksek olmali. Asil tasarim niyeti bu.
+    # Is growth rewarded: each tier's MATURE week must have a higher margin
+    # than the one before. This is the real design intent.
     mature = [rows[1], rows[3], rows[5], rows[7]]
-    p.append(("Olgun hafta marjlari artan (buyumek odullendiriyor)",
+    p.append(("Mature-week margins increasing (growing is rewarded)",
               all(mature[i]["margin"] < mature[i + 1]["margin"]
                   for i in range(len(mature) - 1))))
-    p.append(("Son olgun hafta marji ilkinin en az uc kati",
+    p.append(("Last mature week's margin at least three times the first",
               mature[-1]["margin"] >= mature[0]["margin"] * 3))
 
-    p.append(("Kira her genislemede buyuyor",
+    p.append(("Rent grows at every expansion",
               all(rows[i]["rent"] >= rows[i - 1]["rent"] for i in range(1, len(rows)))))
     return p
 
@@ -563,9 +590,9 @@ def checks(rows):
 if __name__ == "__main__":
     if "--solve" in sys.argv:
         rents = solve_rents()
-        print("Hedef marjdan cozulen kiralar:")
+        print("Rents solved from the target margin:")
         for t in sorted(rents):
-            print("  {:>2} masa -> {}".format(t, rents[t]))
+            print("  {:>2} tables -> {}".format(t, rents[t]))
         rows = run(rents)
         print()
         print(table_growth(rows))
@@ -579,16 +606,16 @@ if __name__ == "__main__":
             print(("PASS " if ok else "FAIL ") + name)
             bad += 0 if ok else 1
         print("---")
-        print("{} kontrol, {} basarisiz".format(len(cs), bad))
+        print("{} checks, {} failed".format(len(cs), bad))
         sys.exit(1 if bad else 0)
 
-    print("### Rol kapasiteleri\n")
+    print("### Role capacities\n")
     print(table_capacity())
-    print("\nSalon is yuku / musteri: {:.4f} is-gunu".format(SALON_LOAD))
-    print("Salon agirlikli gunluk ucret: {:.0f}".format(WAGE_SALON))
-    print("\n### Buyume egrisi\n")
+    print("\nHall workload / customer: {:.4f} work-days".format(HALL_LOAD))
+    print("Hall weighted daily wage: {:.0f}".format(WAGE_HALL))
+    print("\n### Growth curve\n")
     print(table_growth(rows))
-    print("\n### Gereken kadro\n")
+    print("\n### Crew needed\n")
     print(table_crew(rows))
-    print("\n### Ciro dagilimi\n")
+    print("\n### Revenue breakdown\n")
     print(table_margin(rows))

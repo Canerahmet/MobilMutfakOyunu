@@ -60,7 +60,7 @@ TURKISH_LETTERS = set(u"çğıöşü"
 # not guessed.
 #
 # WORDS ENGLISH ALSO USES ARE NOT ON THIS LIST: menu, model, panel, son,
-# sure, var (a C# keyword). Leaving them on it made the check shout at
+# sure, once (Turkish 'before'), var (a C# keyword). Leaving them on it made the check shout at
 # `IsOnMenu` and at ordinary English sentences - and a check that cries
 # wolf gets switched off, which is the one outcome worse than not having
 # it. `salon` and `moral` DO stay: here they are the domain's Turkish
@@ -87,7 +87,7 @@ secili gorunur gizli yerlesim olcek boyut genislik yukseklik derinlik konum
 aci donus hareket adim yon taraf sol sag ust alt orta merkez kenar kose bolge
 alan hacim agirlik yogunluk sicaklik zaman saat dakika saniye hafta ay yil
 mevsim icin olan degil yok bir bu ve ile kac nasil neden cunku ama yani
-gibi daha cok her hic sonra once kadar yapiyor ediyor oluyor geliyor veriyor
+gibi daha cok her hic sonra kadar yapiyor ediyor oluyor geliyor veriyor
 diyor bakiyor aliyor koyuyor cikiyor giriyor kaliyor gecen gecti olur olmaz
 varsa yoksa ise diye demek sadece yalnizca ayni farkli butun hepsi bazi
 kendi kendisi onun bunun sunun hangi nerede nereye buraya oraya simdi
@@ -110,6 +110,12 @@ SELF = "tools/check_english.py"
 # Paths whose Turkish is the game's Turkish string table, not source.
 CONTENT_EXEMPT = (
     "content/loc/tr.json",
+    # The Play Store listing in five languages, plus five privacy policies.
+    # Published product text, the same class as the string table above: the
+    # Turkish in it is what a Turkish shopper reads, not prose about the
+    # project. tools/content/check_store_texts.py parses this file and
+    # enforces Google's character limits on it.
+    "docs/44-store-texts.md",
     "unity/Assets/Resources/content/loc/tr.json",
     "tools/content/languages/loc_tr.py",
     "tools/content/languages/loc_tr_ui.py",
@@ -125,10 +131,21 @@ burak elif cem melis ozan sevda tolga kaan yagmur usta teyze abla amca
 hanim bey dede hoca abi sofor turk turkish adana urfa ankara
 """.split())
 
+# Proper nouns as they are actually spelled, diacritics and all. The
+# ASCII list above is what identifiers use; this one is what prose uses.
+PROPER_NOUNS_TR = set(u"""
+lahmacun döner işkembe çorbası mantı börek kadayıf karnıyarık
+imambayıldı cacık köfte ayran künefe güveç ıspanak
+ayşe İbrahim yağmur sıla şerife pınar şaban rıza şükran hakkı aslı
+tarık şevval uğur barış tuğçe niğde Şanlıurfa
+""".split())
+
 WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 CS_COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
 PY_COMMENT = re.compile(r"#[^\n]*")
 IDENT_SPLIT = re.compile(r"[^A-Za-z]+|(?<=[a-z0-9])(?=[A-Z])")
+# Inline code spans and quoted strings inside Markdown.
+MD_CODE = re.compile("`[^`" + chr(10) + "]*`")
 
 
 def relative(path):
@@ -149,16 +166,68 @@ def turkish_word(word):
 
 
 def turkish_text(text):
-    """Does this line read as Turkish? Returns the evidence, or None."""
-    for ch in text:
-        if ch in TURKISH_LETTERS:
-            return ch
+    """Does this line read as Turkish? Returns the evidence, or None.
+
+    ONE TURKISH WORD IS AN EXAMPLE; TWO ARE A SENTENCE.
+
+    The same threshold is used for both signals, and for the same
+    reason. A line that names one Turkish string is almost always an
+    English sentence quoting the game - "the label said `Hizlandir`" -
+    and CLAUDE.md asks for exactly that. A line carrying two is prose
+    nobody translated.
+
+    Single characters do not count as words at all: `(g-breve, dotless
+    i, S-cedilla)` is a list of letters being discussed, not Turkish.
+    """
+    marked = []
+    for w in text.split():
+        bare = w.strip(".,;:!?()[]{}*`\"'…’")
+        if len(bare) < 2 or not (set(bare) & TURKISH_LETTERS):
+            continue
+        # A proper noun is a proper noun with its diacritics on, too.
+        if bare.lower() in PROPER_NOUNS_TR:
+            continue
+        marked.append(bare)
+    if len(marked) >= 2:
+        return " ".join(marked[:3])
+
     hits = [w for w in WORD.findall(text) if turkish_word(w)]
     # One hit can be a coincidence: "kar" is half of "kart", "ay" shows
     # up inside a path. Two in one line is a sentence.
     if len(hits) >= 2:
         return " ".join(hits[:3])
     return None
+
+
+def strip_quotes(line, in_quote):
+    """Removes quoted text, ACROSS LINES, and says whether a quote is open.
+
+    A quotation of game text often wraps:
+
+        …says "SERVIS SIRASINDA SEN VARSIN" ("SERVICE IS WHERE YOU ARE",
+        and the four decisions follow).
+
+    Testing each line on its own flagged the second half of every wrapped
+    quotation as untranslated prose, which pushes the writer towards
+    paraphrasing the evidence - and the evidence is the whole point of
+    quoting the string. So the quote is tracked from line to line.
+    """
+    out = []
+    i = 0
+    while i < len(line):
+        ch = line[i]
+        if in_quote:
+            if ch in (u'"', u"”"):
+                in_quote = False
+            i += 1
+            continue
+        if ch in (u'"', u"“"):
+            in_quote = True
+            i += 1
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out), in_quote
 
 
 def walk_files():
@@ -195,8 +264,29 @@ def check_identifiers():
             src = io.open(path, encoding="utf-8-sig").read()
         except Exception:
             continue
-        src = CS_COMMENT.sub(" ", src)
-        src = PY_COMMENT.sub(" ", src)
+        # THE COMMENT SYNTAX FOLLOWS THE LANGUAGE, NOT BOTH AT ONCE.
+        #
+        # Both patterns used to be applied to every file. In C# that is
+        # wrong and quietly harmful: `num.ToString("0.##")` contains a
+        # `#`, so the Python rule cut the line in half INSIDE a string
+        # literal and the string stripper lost its place for the rest of
+        # the file. Words in ordinary literals were then reported as
+        # identifiers - and, far worse, real Turkish after that point
+        # could be swallowed. A measuring tool that hides what it is
+        # measuring is the worst kind.
+        if path.endswith(".cs"):
+            src = CS_COMMENT.sub(" ", src)
+        else:
+            src = PY_COMMENT.sub(" ", src)
+        # DOCSTRINGS ARE STRINGS TOO.
+        #
+        # The pass strips string literals so that a Turkish word quoted
+        # as an example is not reported as an identifier. It stripped
+        # single-quoted strings only, so the same example inside a
+        # triple-quoted docstring - `ui.evening.wages ("Ucret")` - came
+        # back as an identifier the author was told to rename.
+        src = re.sub(r'"""(?:.|' + chr(10) + r')*?"""', '""', src)
+        src = re.sub(r"'''(?:.|" + chr(10) + r")*?'''", "''", src)
         src = re.sub(r'"(?:[^"' + chr(92) * 2 + r']|' + chr(92) * 2 + r'.)*"',
                      '""', src)
         src = re.sub(r"'(?:[^'" + chr(92) * 2 + r"]|" + chr(92) * 2 + r".)*'",
@@ -226,15 +316,42 @@ def check_prose():
         except Exception:
             continue
         markdown = path.endswith(".md")
+        in_quote = False
+        # A FENCED BLOCK IS A QUOTATION BY CONSTRUCTION.
+        #
+        # It holds code, data, or a program's own output - never prose.
+        # The transcripts in docs/43 and docs/50 record what the tour
+        # printed when it still printed Turkish; asking an author to
+        # translate a transcript is asking them to falsify evidence.
+        in_fence = False
         for n, line in enumerate(text.splitlines(), 1):
             stripped = line.strip()
+            if markdown and stripped.startswith("```"):
+                in_fence = not in_fence
+                continue
+            if markdown and in_fence:
+                continue
             if markdown:
                 # A quotation of the user's own words is a record.
                 if stripped.startswith(">"):
                     continue
-                target = line
+                # SO IS A QUOTED GAME STRING.
+                #
+                # CLAUDE.md says Turkish game text quoted as an example
+                # stays, glossed in English - `ui.hud.menu` = "Menu",
+                # **"Temizlikci"** ("Cleaner"). The Turkish in those lines
+                # is the string the PLAYER reads; the sentence around it
+                # is English. Marking the whole line as untranslated would
+                # push the writer to paraphrase the evidence, which is the
+                # one thing the document must not do.
+                #
+                # So the test runs on what is LEFT after the quotations:
+                # inline code spans and quoted strings come out first.
+                target = MD_CODE.sub(" ", line)
+                target, in_quote = strip_quotes(target, in_quote)
             else:
-                comments = CS_COMMENT.findall(line) + PY_COMMENT.findall(line)
+                comments = (CS_COMMENT.findall(line) if path.endswith(".cs")
+                            else PY_COMMENT.findall(line))
                 if not comments:
                     continue
                 target = " ".join(c if isinstance(c, str) else c[0]

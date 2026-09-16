@@ -1,240 +1,241 @@
-# 32 — Ekipman sistemi ve ekonominin yeniden dengelenmesi
+# 32 — The equipment system and rebalancing the economy
 
-10 Eylül 2026. Faz 0'ın açık kalan tek denge uyarısı kapandı: **makul oyuncuda para 5,5. haftada sorun olmaktan çıkıyordu, hedef sekizinci haftadan önce olmamasıydı.** [29-phase0-simulation.md](29-phase0-simulation.md) bunun bir denge sorunu değil eksik içerik olduğunu yazmıştı. Doğruydu, ama eksik olan yalnızca içerik değildi.
+10 September 2026. Phase 0's one remaining balance warning is closed: **for the reasonable player, money was ceasing to be a problem in week 5.5, and the target was for that not to happen before week eight.** [29-phase0-simulation.md](29-phase0-simulation.md) had written that this was not a balance problem but missing content. That was right, but what was missing was not only content.
 
 ---
 
-## 1. Yazılan şey
+## 1. What was written
 
-[27-time-model.md](27-time-model.md) **Karar D**'yi Mart'ta almıştı ama simülasyon onu hiç uygulamamıştı:
+[27-time-model.md](27-time-model.md) took **Decision D** back in March, but the simulation had never implemented it:
 
 ```
-prepMs      yemeğin DUVAR SAATİ süresi, oyuncunun gördüğü sayı
-cookBusyMs  prepMs × attendBp / 10000, aşçı havuzunu tüketen sayı
+prepMs      the dish's WALL-CLOCK duration, the number the player sees
+cookBusyMs  prepMs × attendBp / 10000, the number that consumes the cook pool
 ```
 
-Simülasyon aşçıyı yemeğin **bütün duvar saati** boyunca meşgul tutuyordu. Yani fırınla ızgara arasında hiçbir fark yoktu, `station` alanı bir ikon seçicisinden ibaretti ve ekipmanın anlatacak hikâyesi yoktu.
+The simulation was keeping the cook busy for the dish's **entire wall-clock time**. So there was no difference at all between an oven and a grill, the `station` field was nothing but an icon picker, and the equipment had no story to tell.
 
-Artık üç şey var:
+Now there are three things:
 
-| Kavram | Ne | Nerede |
+| Concept | What | Where |
 |---|---|---|
-| **İstasyon yuvası** | Bir istasyonun aynı anda kaç tabak aldığı | `Simulation._stationBusy` |
-| **`attendBp`** | Duvar saatinin yüzde kaçının aşçının elinde geçtiği | `content/equipment.json` |
-| **Ekipman kademesi** | Yuva ekler ya da `attendBp` düşürür, `prepMs`'e **dokunmaz** | `CommandKind.BuyEquipment` |
+| **Station slot** | How many plates a station takes at once | `Simulation._stationBusy` |
+| **`attendBp`** | What percentage of the wall-clock time is spent in the cook's hands | `content/equipment.json` |
+| **Equipment tier** | Adds a slot or lowers `attendBp`, and **does not touch** `prepMs` | `CommandKind.BuyEquipment` |
 
-Sipariş, istasyon işlerine bölünüyor: ana yemek ızgaraya, içecek içecek istasyonuna. Aynı istasyona giden kalemler tek işte birleşiyor. İş, aynı anda kaç tabak pişireceğine üç sınırın küçüğüne göre karar veriyor:
+An order is split into station jobs: the main course to the grill, the drink to the drinks station. Items going to the same station merge into one job. A job decides how many plates to cook at once by the smallest of three limits:
 
 ```
-take = min(grubun tabak sayısı, boş yuva, aşçının aynı anda bakabileceği tabak)
+take = min(the party's plate count, free slots, the plates a cook can attend to at once)
 ```
 
-**Üçüncü sınır sonradan eklendi ve eklenmesi şarttı.** Onsuz dört kişilik bir grup dört yuvayı birden tutuyordu ama aşçı onlara sırayla bakıyordu; yuvalar boş boş dolu görünüyordu. Ölçüm bunu yakaladı: ekipman alan mutfağın memnuniyeti 87'den 81'e **düşüyordu**. Sınır `ceil(10000 / attendBp)` ve [27-time-model.md](27-time-model.md) §3.3 ile aynı sayıyı veriyor: kademe 4 zirvesinde 8,66 eş zamanlı tabak, 4 aşçı, yani aşçı başına 2,2.
+**The third limit was added later and it had to be.** Without it, a party of four held four slots at once while the cook attended to them one after another; the slots looked full while doing nothing. The measurement caught this: the satisfaction of a kitchen that bought equipment was **falling** from 87 to 81. The limit is `ceil(10000 / attendBp)` and it gives the same number as [27-time-model.md](27-time-model.md) §3.3: at the tier-4 peak, 8.66 simultaneous plates and 4 cooks, so 2.2 per cook.
 
-### Ekipman merdiveni
+### The equipment ladder
 
-`content/equipment.json` **üretilen dosya**; `tools/balance/export.py` yazıyor. Fiyatlar elle konmuyor, **gerekli olduğu kademenin kirasından** türetiliyor — kira zaten olgun hafta marj hedefinden çözüldüğü için ekonominin ölçeğini taşıyor.
+`content/equipment.json` is a **generated file**; `tools/balance/export.py` writes it. The prices are not set by hand, they are derived **from the rent of the tier at which the item becomes necessary** — and since the rent was already solved from the mature-week margin target, it carries the economy's scale.
 
-<!-- ÜRETİLEN: ekipman -->
-| İstasyon | `attendBp` | Kademe | Yuva | `attendBp` | Fiyat | Gerekli olduğu masa |
+<!-- GENERATED: equipment -->
+| Station | `attendBp` | Tier | Slots | `attendBp` | Price | Needed at tables |
 |---|---|---|---|---|---|---|
-| Ocak | 3500 | t0 | 1 | 3500 | — | 4 |
+| Stove | 3500 | t0 | 1 | 3500 | — | 4 |
 |  |  | t1 | 2 | 3500 | 2.340 | 7 |
 |  |  | t2 | 3 | 3500 | 3.480 | 10 |
 |  |  | t3 | 4 | 2800 | 10.000 | 14 |
-| Izgara | 5600 | t0 | 1 | 5600 | — | 4 |
+| Grill | 5600 | t0 | 1 | 5600 | — | 4 |
 |  |  | t1 | 2 | 5600 | 2.340 | 7 |
 |  |  | t2 | 3 | 5600 | 3.480 | 10 |
 |  |  | t3 | 4 | 3500 | 10.000 | 14 |
-| Fırın | 2000 | t0 | 1 | 2000 | — | 4 |
+| Oven | 2000 | t0 | 1 | 2000 | — | 4 |
 |  |  | t1 | 2 | 2000 | 6.000 | 14 |
-| Soğuk | 10000 | t0 | 1 | 10000 | — | 4 |
-|  |  | t1 | 1 | 8000 | 3.480 | isteğe bağlı |
-| İçecek | 10000 | t0 | 1 | 10000 | — | 4 |
-|  |  | t1 | 1 | 6500 | 3.480 | isteğe bağlı |
-| Tatlı | 8000 | t0 | 1 | 8000 | — | 4 |
-|  |  | t1 | 1 | 6000 | 3.480 | isteğe bağlı |
+| Cold | 10000 | t0 | 1 | 10000 | — | 4 |
+|  |  | t1 | 1 | 8000 | 3.480 | optional |
+| Drinks | 10000 | t0 | 1 | 10000 | — | 4 |
+|  |  | t1 | 1 | 6500 | 3.480 | optional |
+| Desserts | 8000 | t0 | 1 | 8000 | — | 4 |
+|  |  | t1 | 1 | 6000 | 3.480 | optional |
 
-Merdivenin tamamı **48.080 sikke**.
-<!-- /ÜRETİLEN: ekipman -->
+The whole ladder is **48.080 coins**.
+<!-- /GENERATED: equipment -->
 
-Son kademe 10.000 sikke — [12-economy.md](12-economy.md) §7'nin istediği 8.000–12.000 bandında. Merdivenin tamamı **48.080 sikke**; makul oyuncunun altmış günlük neti **42.627**. **Yani her şeyi alamıyor, seçmek zorunda** — ve zorunlu olanlar (yuva ekleyenler) 37.640, isteğe bağlı olanlar (asçıyı erken bırakanlar) 10.440. Hedef tam olarak buydu.
+The last tier is 10,000 coins — inside the 8,000-12,000 band §7 of [12-economy.md](12-economy.md) asks for. The whole ladder is **48,080 coins**; the reasonable player's sixty-day net is **42,627**. **So they cannot buy everything and have to choose** — and the mandatory ones (the ones that add slots) are 37,640, the optional ones (the ones that release the cook early) 10,440. That was exactly the target.
 
 ---
 
-## 2. Bu değişikliğin açtığı ikinci sorun
+## 2. The second problem this change opened
 
-Aşçı yemeğin tamamı boyunca değil yalnızca `attendBp` kadar meşgul kalınca **mutfak darboğaz olmaktan çıktı.** Bütün stratejilerin servis oranı yükseldi.
+Once the cook stayed busy only for `attendBp` rather than for the whole dish, **the kitchen stopped being the bottleneck.** Every strategy's service rate went up.
 
-Ve bu, çok tanıdık bir hataya yol açtı: [06-plan-status.md](06-plan-status.md)'nun kayıtlı en pahalı hatası, kapalı form modelin talebin tamamının ağırlandığını varsayması ve kiraların o varsayımdan çözülmesiydi. Ölçülen gerçekleşme oranı %65 çıkmış, kiralar %35 fazla olduğu için düşürülmüştü.
+And that led to a very familiar bug: the most expensive bug on record in [06-plan-status.md](06-plan-status.md) was the closed-form model assuming that all demand is served and the rents being solved from that assumption. The measured realisation rate had come out at 65%, and the rents had been lowered because they were 35% too high.
 
-Mutfak düzelince **aynı ölçüm %93,35 verdi.** Yani kiralar artık fazla değil, **eksikti**.
+Once the kitchen was fixed, **the same measurement gave 93.35%.** So the rents were no longer too high, they were **too low**.
 
-### Tek atışlık ölçüm neden yanlış
+### Why a one-shot measurement is wrong
 
-O oranı doğrudan uygulayıp kiraları yeniden çözdürdüm. Sonuç felaketti:
+I applied that rate directly and had the rents re-solved. The result was a disaster:
 
-| Strateji | Kira %65 ile | Kira %93 ile |
+| Strategy | With the rent at 65% | With the rent at 93% |
 |---|---|---|
-| makul | +32.398 | **-33.958** |
-| plancı | +10.526 | +1.084, 32. günde borç |
-| genişlemeyen | +12.537 | +11.155 |
+| reasonable | +32,398 | **−33,958** |
+| planner | +10,526 | +1,084, in debt on day 32 |
+| non-expanding | +12,537 | +11,155 |
 
-Genişlemek tuzağa dönüştü. Sebebi basit ve önemli:
+Expanding turned into a trap. The reason is simple and important:
 
-> **Oran parametreleri belirliyor, parametreler oranı belirliyor.** %93,35 ölçümü ESKİ ucuz kiralarla alınmıştı. Yeni kiralar uygulanınca aynı strateji genişleyemedi ve oran çöktü.
+> **The rate determines the parameters, and the parameters determine the rate.** The 93.35% measurement had been taken with the OLD cheap rents. Once the new rents were applied the same strategy could not expand and the rate collapsed.
 
-Bu bir sabit nokta problemi, tek atışla çözülmez.
+This is a fixed-point problem, and it cannot be solved in one shot.
 
 ### `tools/balance/calibrate.py`
 
-Bunun için yazıldı. Bir aday gerçekleşme oranı için bütün zinciri koşuyor:
+It was written for this. For a candidate realisation rate it runs the whole chain:
 
 ```
-solve.py  →  model.py  →  export.py  →  simülasyon  →  tasarım hedefleri
+solve.py  →  model.py  →  export.py  →  the simulation  →  the design targets
 ```
 
-ve sonucu puanlıyor. Hedefler mutlak sayı değil **sıralama**: pasif oyuncu batmalı, pervasız genişleyen batmalı, makul oyuncu kazanmalı, büyümek 1,8–4,0 kat ödüllendirmeli, plancı takvimi tutturabilmeli, para sekizinci haftadan önce önemsizleşmemeli.
+and scores the result. The targets are not absolute numbers but an **ordering**: the passive player must go under, the reckless expander must go under, the reasonable player must win, growing must be rewarded by 1.8-4.0×, the planner must be able to meet the schedule, and money must not become irrelevant before week eight.
 
 ```
- 6500  kira [650, 1550, 2250, 4000]   ceza 11
- 7000  kira [850, 1950, 2900, 5000]   ceza  0   TEMİZ
- 7500  kira [1050, 2350, 3600, 5250]  ceza 14
- 8000  kira [1250, 2750, 4250, 6250]  ceza 14
- 8500  kira [1400, 3150, 4900, 7300]  ceza 24
- 9000  kira [1600, 3550, 5600, 8350]  ceza 36
- 9335  kira [1700, 3800, 6050, 9050]  ceza 36
+ 6500  rent [650, 1550, 2250, 4000]   penalty 11
+ 7000  rent [850, 1950, 2900, 5000]   penalty  0   CLEAN
+ 7500  rent [1050, 2350, 3600, 5250]  penalty 14
+ 8000  rent [1250, 2750, 4250, 6250]  penalty 14
+ 8500  rent [1400, 3150, 4900, 7300]  penalty 24
+ 9000  rent [1600, 3550, 5600, 8350]  penalty 36
+ 9335  rent [1700, 3800, 6050, 9050]  penalty 36
 ```
 
-**Sabit nokta 7000.** Ne eski %65, ne ölçülen %93. Aradaki her şey ölçülerek elendi.
+**The fixed point is 7000.** Neither the old 65% nor the measured 93%. Everything in between was eliminated by measurement.
 
-Yeni parametreler: kira **850 / 1950 / 2900 / 5000**, kapasite ölçeği 1,00 (aşçı 30, garson 26, bulaşıkçı 48, kasiyer 70), patron katkısı 1,3 iş-günü, genişleme bedelleri 0 / 2500 / 4500 / 8000 — yani kapasite ve genişleme değişmedi, **yalnızca kira %31 arttı.**
+The new parameters: rent **850 / 1,950 / 2,900 / 5,000**, capacity scale 1.00 (cook 30, waiter 26, dishwasher 48, cashier 70), the owner's contribution 1.3 person-days, expansion prices 0 / 2,500 / 4,500 / 8,000 — that is, the capacity and the expansions did not change, **only the rent went up by 31%.**
 
 ---
 
-## 3. Ölçünün kendisi de yanlışmış
+## 3. The yardstick itself was wrong too
 
-"Para sorun olmaktan çıktı" ölçüsü şuydu: *kasa, en pahalı genişlemenin üç katını aşarsa.*
+The yardstick for "money stopped being a problem" was this: *the till exceeds three times the most expensive expansion.*
 
-Ekipman yazılmadan önce doğruydu. Sonrasında iki kez yanlış oldu:
+Before the equipment was written it was right. Afterwards it was wrong twice:
 
-1. Ekipmanı hiç saymıyordu. Oyuncunun biriktirdiği bir şey vardı ama ölçü "önemsizleşti" diyordu.
-2. Ekipman eklendi ama "üç kat" keyfi kaldı: elde 30.000 varken 20.000'lik iki ekipman duruyorsa para hâlâ önemli.
+1. It did not count the equipment at all. The player had something to save up for, but the yardstick said "it became irrelevant".
+2. The equipment was added but "three times" stayed arbitrary: if you have 30,000 in hand and there are two 20,000 pieces of equipment left, money is still important.
 
-Doğru tanım: **kasa, geriye kalan bütün satın alınabilirleri tek seferde ödeyebiliyorsa** biriktirecek bir şey kalmamış demektir. `Simulation.RemainingPurchaseCost()` bunu veriyor: kalan genişleme kademeleri artı kalan ekipman basamakları.
+The right definition: **if the till can pay for everything that is left to buy in one go**, then there is nothing left to save up for. `Simulation.RemainingPurchaseCost()` gives that: the remaining expansion tiers plus the remaining equipment steps.
 
-Bu tanımla ölçüm **hiçbir stratejide tetiklenmiyor.** Altmış gün boyunca her zaman alınacak bir şey kalıyor.
+With that definition the measurement **does not fire in any strategy.** Across the sixty days there is always something left to buy.
 
 ---
 
-## 4. Sonuç
+## 4. The result
 
-| strateji | son kasa | itibar | masa | servis | kayıp | ilk borç | önemsiz |
+| strategy | final till | reputation | tables | served | lost | first debt | irrelevant |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| pasif | -6.638 | 0,0 | 4 | 13 | 0 | **35** | — |
-| sadece_hal | 4.753 | 66,0 | 4 | 976 | 58 | — | — |
-| **makul** | **32.398** | 98,4 | 7 | 2.161 | 35 | — | — |
-| genişlemeyen | 12.537 | 90,4 | 4 | 1.122 | 41 | — | — |
-| atılgan | -70.952 | 0,0 | 14 | 274 | 7 | **7** | — |
-| plancı | 8.892 | 75,2 | 14 | 2.966 | 30 | — | — |
-| yüksek_fiyat | 7.009 | 0,0 | 4 | 510 | 6 | — | — |
-| fazla_kadro | 1.838 | 80,5 | 4 | 1.118 | 49 | **56** | — |
+| `pasif` | -6,638 | 0.0 | 4 | 13 | 0 | **35** | — |
+| `sadece_hal` | 4,753 | 66.0 | 4 | 976 | 58 | — | — |
+| **`makul`** | **32,398** | 98.4 | 7 | 2,161 | 35 | — | — |
+| `genislemeyen` | 12,537 | 90.4 | 4 | 1,122 | 41 | — | — |
+| `atilgan` | -70,952 | 0.0 | 14 | 274 | 7 | **7** | — |
+| `planci` | 8,892 | 75.2 | 14 | 2,966 | 30 | — | — |
+| `yuksek_fiyat` | 7,009 | 0.0 | 4 | 510 | 6 | — | — |
+| `fazla_kadro` | 1,838 | 80.5 | 4 | 1,118 | 49 | **56** | — |
 
-**Bütün tasarım hedefleri tutuyor, ceza sıfır:**
+**Every design target holds, the penalty is zero:**
 
-- İhmalin bedeli var: pasif oyuncu 35. günde batıyor.
-- Pervasız büyüme cezalandırılıyor: atılgan 7. günde borca düşüyor.
-- Büyümek **2,58 kat** ödüllendiriyor (12.537 → 32.398), [12-economy.md](12-economy.md)'nin "üç kat, on bir değil" bandında.
-- Plancı takvimi artık **tutturulabiliyor**: 14 masa, %94 servis, 2.966 kişi. Ekipman öncesinde 7,4 masada tıkanıyordu.
-- Fazla kadro 56. günde batırıyor.
-- Yüksek fiyat hayatta kalıyor ama iyi oyunun beşte birini kazanıyor ve itibarı sıfır.
-- **Para hiçbir stratejide, hiçbir haftada önemsizleşmiyor.**
+- Neglect has a price: the passive player goes under on day 35.
+- Reckless growth is punished: the bold one falls into debt on day 7.
+- Growing is rewarded by **2.58×** (12,537 → 32,398), inside [12-economy.md](12-economy.md)'s "three times, not eleven" band.
+- The planner's schedule can now be **met**: 14 tables, 94% service, 2,966 people. Before the equipment it was jamming at 7.4 tables.
+- Overstaffing sinks you on day 56.
+- A high price survives but earns a fifth of what good play earns, and its reputation is zero.
+- **Money does not become irrelevant in any strategy, in any week.**
 
-Model tutarlılık kontrolleri 20/20, testler 106/106.
+Model consistency checks 20/20, tests 106/106.
 
 ---
 
-## 5. Bu turda ölçümün yakaladığı üç hata
+## 5. The three bugs the measurement caught in this round
 
-Hiçbiri koddan bakarak görünmüyordu; üçü de sayıdan çıktı.
+Not one of them was visible by reading the code; all three came out of the numbers.
 
-| Hata | Nasıl göründü | Neden önemliydi |
+| Bug | How it showed up | Why it mattered |
 |---|---|---|
-| **İş tek yuvada sıraya diziliyordu** | Ekipman almak hiçbir şeyi değiştirmiyordu | Yuva sayısı süreyi etkilemiyorsa ekipman satmanın karşılığı yok |
-| **İş, aşçının bakamayacağı kadar yuva tutuyordu** | Ekipman alan mutfağın memnuniyeti 87 → 81 **düşüyordu** | Yükseltme oyuncuyu cezalandırıyordu |
-| **Ortalama memnuniyet yanlış ölçüydü** | Ekipmanlı mutfak daha çok grup ağırlıyor ama "memnuniyeti düşük" görünüyordu | O ortalama yalnızca **ağırlanan** müşteriler üzerinden; dar mutfak zor vakayı hiç servis etmiyor ve ortalaması yüksek çıkıyor |
+| **The job was queueing on a single slot** | Buying equipment changed nothing | If the number of slots does not affect the duration, there is nothing in return for selling equipment |
+| **A job was holding more slots than the cook could attend to** | The satisfaction of a kitchen that bought equipment was **falling** 87 → 81 | The upgrade was punishing the player |
+| **Average satisfaction was the wrong yardstick** | A kitchen with equipment serves more parties but looked like it had "low satisfaction" | That average is only over the customers who **were served**; a narrow kitchen never serves the hard cases and its average comes out high |
 
-Üçüncüsü en sinsisi: metrik yanlış olduğu için doğru davranan sistem yanlış görünüyordu. Doğru ölçü servis edilen grup sayısı ve ciro.
+The third one is the most insidious: because the metric was wrong, a system behaving correctly looked wrong. The right yardstick is the number of parties served and the revenue.
 
-Ayrıca bir test yalan söylüyormuş: `NewSim(cooks: 3, salon: 4)` diyordu ama dört masada kadro tavanı üç, yani dört salon işesi sessizce reddediliyordu ve "güçlü kadro" aslında yalnızca fazladan iki aşçı demekti. Test artık kurulumu açıkça doğruluyor.
+A test had also been lying: it said `NewSim(cooks: 3, salon: 4)`, but at four tables the crew cap is three, so the fourth hall worker was being silently rejected and "a strong crew" actually meant nothing but two extra cooks. The test now verifies its own setup explicitly.
 
 ---
 
-## 7. Depo: soğuk hava ve `spoilDays`
+## 7. The store: cold storage and `spoilDays`
 
-Depo odasının işi yoktu ve [31-rooms-and-camera.md](31-rooms-and-camera.md) "iş verilemezse yerleşimden çıkarılmalı" diyordu. İş bulundu ve zaten oradaydı.
+The store room had no job, and [31-rooms-and-camera.md](31-rooms-and-camera.md) said "if it cannot be given a job it should come out of the layout". The job was found and it had been there all along.
 
-**`spoilDays` içerikte vardı ama simülasyon onu hiç okumuyordu.** Bozulabilir malzemelerin raf ömürleri 1 ile 45 gün arasında değişiyor. Kod ise şuydu:
+**`spoilDays` was in the content but the simulation never read it.** Perishable ingredients' shelf lives range from 1 to 45 days. The code was this:
 
 ```csharp
 if (_content.Ingredients[i].Perishable) _stockGrams[i] = 0;
 ```
 
-Yirmi gün dayanan soğan ile bir gün dayanan kıyma aynı gece çöpe gidiyordu.
+An onion that keeps for twenty days and minced meat that keeps for one were going in the bin on the same night.
 
-Bu bir hata değil, **tasarlanmış temel**: [12-economy.md](12-economy.md) §3 "bozulabilir malzeme günü kapatınca değerinin tamamını kaybeder" diyor. O yüzden soğuk hava bir *düzeltme* değil, o temeli **değiştiren yükseltme**.
+This is not a bug, it is **a designed foundation**: §3 of [12-economy.md](12-economy.md) says "a perishable ingredient loses its whole value when the day closes". That is why cold storage is not a *fix* but an upgrade that **changes** that foundation.
 
-### Merdiven
+### The ladder
 
-<!-- ÜRETİLEN: depo -->
-| Kademe | `keepBp` | Kurtardığı malzeme | Fiyat |
+<!-- GENERATED: storage -->
+| Tier | `keepBp` | Ingredients saved | Price |
 |---|---:|---:|---:|
 | t0 | 0 | 0 / 36 | — |
 | t1 | 2500 | 13 / 36 | 2.340 |
 | t2 | 10000 | 33 / 36 | 3.480 |
 
-Merdivenin tamamı **5.820 sikke**. Bozulabilir malzeme **36** kalem.
+The whole ladder is **5.820 coins**. Perishable ingredients: **36** items.
 
-Bir kademe bir malzemeyi ancak ömrünü **2 güne** çıkarabiliyorsa kurtarıyor: ömür 1 ile ömür 0 aynı gece çöpe gidiyor.
-<!-- /ÜRETİLEN: depo -->
+A tier only saves an ingredient if it can raise its life to **2 days**: a life of 1 and a life of 0 go in the bin the same night.
+<!-- /GENERATED: storage -->
 
-**İki basamak, üç değil.** Merdiven bir süre üç basamaklıydı ve
-üçüncüsü **hiçbir fiyatta çalışmadı**: 8.000 sikkede hiç satın
-alınmıyordu (temkinli kural 32.000 kasa istiyor, makul oyuncu 25.000'de
-zirve yapıyor), 4.500'e indirilince alınıyor ve **−3.700 kaybettiriyor**.
+**Two steps, not three.** The ladder had three steps for a while and the
+third one **did not work at any price**: at 8,000 coins it was never
+bought (the cautious rule wants a till of 32,000, and the reasonable
+player peaks at 25,000), and when it was lowered to 4,500 it does get
+bought and **loses 3,700**.
 
-Sebep fiyat değil **takvim**. İkinci basamaktan sonra geriye yılda ~4.700
-sikkelik zayiat kalıyor ve üçüncü basamak onun bir kısmını kurtarıyor;
-altmış günlük bir kampanyada hiçbir fiyat bunu ödetemez. Daha ucuza
-indirmek de çözüm değil — o zaman bir **karar** olmaktan çıkıp otomatik
-bir alıma dönüşüyor.
+The reason is not the price but the **calendar**. After the second step there is about 4,700
+coins of annual wastage left, and the third step saves part of that; in a
+sixty-day campaign no price can make that pay. Lowering it further is not
+a solution either — at that point it stops being a **decision** and turns into
+an automatic purchase.
 
-Basamakları eşitlemek için birinci basamak da düşürülmüştü (keepBp 1500)
-ve **daha kötü** oldu: makul oyuncuya kazandırdığı +2.720'den −234'e indi.
-Birinci basamak zaten iyi ayarlıymış; bozuk olan yalnızca üst ikisiydi.
+To even out the steps, the first step had been lowered too (keepBp 1500)
+and it got **worse**: what it gained the reasonable player fell from +2,720 to −234.
+The first step had been well tuned all along; the only broken ones were the upper two.
 
-Yaş malzeme başına tutuluyor ve alım yapınca **ağırlıklı ortalama** alınıyor. Basit "alınca sıfırla" kuralı bir istismar açıyordu: her gün bir gram alıp saati sonsuza kadar sıfırda tutabiliyordun.
+Age is kept per ingredient and a purchase takes a **weighted average**. A simple "reset on purchase" rule opened an exploit: you could buy one gram a day and keep the clock at zero forever.
 
-### Neden bu iş, dekordan fazlası
+### Why this job is more than decor
 
-Menü genişliği **iki yönlü** bir eksen. Bozulabilir her şey gece öldüğü için menüde duran her yemek her gün yeniden stoklanmalı ve arta kalan çöpe gidiyor — yani geniş menü pahalı. Ama dar menü de bedava değil: açık olan ana yemeklerden menüde olmayanı müşteri **soruyor** ve bulamayınca memnuniyeti düşüyor (`Simulation.Awaited`).
+Menu width is a **two-way** axis. Because everything perishable dies at night, every dish left on the menu has to be restocked every day and whatever is left over goes in the bin — so a wide menu is expensive. But a narrow menu is not free either: of the main courses that are open, a customer **asks** for one that is not on the menu and their satisfaction drops when they cannot find it (`Simulation.Awaited`).
 
-O ikinci yarı uzun süre **yoktu** ve bu, oyunun en derin denge hatasıydı: ceza yalnızca *ekipmanı olmayan* yemekler için işliyordu, menüden çıkarılan yemek hiçbir zaman sorulmuş sayılmıyordu. Ölçüldü: menüde tek ana yemek tutan oyuncu makul oyuncuyu fast food'da %12, Türk mutfağında %38 geçiyordu. Yani dar menü **kesin baskın stratejiydi**, soğuk havanın ikinci ödülü değersizdi ve otuz iki yemeklik envanterin var olma sebebi ortadan kalkmıştı.
+That second half was **missing** for a long time, and it was the game's deepest balance bug: the penalty only applied to dishes *whose equipment you did not have*, and a dish taken off the menu was never counted as having been asked for. It was measured: a player keeping a single main course on the menu was beating the reasonable player by 12% in fast food and by 38% in Turkish cuisine. So a narrow menu was a **strictly dominant strategy**, cold storage's second reward was worthless, and the reason for a thirty-two dish inventory to exist had vanished.
 
-Ceza **oranlı**: açık ana yemeklerin yarısı menüde değilse ceza yarım, hiçbiri yoksa tam. Mutlak sayıyla denendi ve aşırıydı — menüsünü makul ölçüde daraltan oyuncu ile tek yemek tutanı aynı kefeye koyuyor, ikincisini dokuzuncu günde iflas ettiriyordu. `tek_yemek` stratejisi denge aracında bir **kabul testi** olarak duruyor.
+The penalty is **proportional**: if half of the open main courses are not on the menu the penalty is half, if none of them are it is full. An absolute number was tried and it was excessive — it put a player who narrowed their menu reasonably in the same basket as one keeping a single dish, and bankrupted the second on the ninth day. The `tek_yemek` strategy stands in the balance tool as an **acceptance test**.
 
-Soğuk hava o kısıtı gevşetiyor, yani **menü genişliği satın aldırıyor** — ve [09-content-inventory.md](09-content-inventory.md)'nin otuz iki yemeğinin var olma sebebi oluyor. İçerik envanteri, hal aşaması ve ekipman merdiveni bu parça olmadan birbirinden kopuktu.
+Cold storage loosens that constraint, which means it **buys menu width** — and it becomes the reason the thirty-two dishes of [09-content-inventory.md](09-content-inventory.md) exist. The content inventory, the market stage and the equipment ladder were disconnected from one another without this piece.
 
-Ölçülen etkisi: `plancı` stratejisi 8.892'den **16.880**'e çıktı, itibarı 100'e vurdu ve 2.966 yerine 3.114 kişi ağırladı.
+Its measured effect: the `planci` strategy went from 8,892 to **16,880**, its reputation hit 100, and it served 3,114 people instead of 2,966.
 
-### Depo odası
+### The store room
 
-Depo mutfağın sağ kenarına yapışık **13,4 m²**lik küçük bir arka oda; içinde soğuk hava odası ve kuru raf var, ikisi malzeme listesinin bozulabilir / bozulmaz ayrımına karşılık geliyor. Mutfaktaki buzdolabı kaldırıldı — soğuk saklama artık deponun işi, ikisini birden göstermek yalan olurdu.
+The store is a small **13.4 m²** back room stuck to the kitchen's right edge; inside it are the cold room and the dry shelf, and the two correspond to the perishable / non-perishable split in the ingredient list. The fridge in the kitchen was removed — cold storage is the store's job now, and showing both would have been a lie.
 
 ---
 
-## 8. Açık kalanlar
-- **Depo hâlâ dokunma sınırına yakın:** genel görünümde 51 dp, asgari 48. Daha da küçültülemez.
-- **Ekipman arayüzü yok.** [16-screens-and-tutorial.md](16-screens-and-tutorial.md) ekran 14 "Yükseltme ve ekipman" diyor ama içeriği yazılmadı. Oda görünümünde mutfağa dokunmak buraya açılmalı.
-- ~~İkinci mutfak (Türk) ölçülmedi.~~ **Ölçüldü ve kırık çıktı**; sebep ekipman değil menü gruplarıydı. Bkz. [33-second-cuisine.md](33-second-cuisine.md). Düzeltmeden sonra aynı ekipman merdiveni ayar gerektirmeden çalışıyor.
-- **`attendBp` ekipman kademesiyle düşüyor ama personel deneyimiyle düşmüyor.** [27-time-model.md](27-time-model.md) §595 bunu açık bırakmıştı, hâlâ açık.
+## 8. Open items
+- **The store is still close to the touch limit:** 51 dp in the general view against a 48 minimum. It cannot be made any smaller.
+- **There is no equipment interface.** [16-screens-and-tutorial.md](16-screens-and-tutorial.md) screen 14 says "Upgrades and equipment" but its content was never written. Touching the kitchen in the room view should open onto this.
+- ~~The second cuisine (Turkish) was not measured.~~ **It was measured and it came out broken**; the cause was not the equipment but the menu groups. See [33-second-cuisine.md](33-second-cuisine.md). After the fix the same equipment ladder works without adjustment.
+- **`attendBp` falls with the equipment tier but does not fall with staff experience.** [27-time-model.md](27-time-model.md) §595 left that open, and it is still open.

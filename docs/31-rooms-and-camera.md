@@ -1,320 +1,345 @@
-# 31 — Odalar ve iki kademeli kamera
+# 31 — Rooms and a two-step camera
 
-10 Eylül 2026. Bu belge tek bir soruyu kapatıyor: **oyuncu neye dokunuyor?**
+10 September 2026. This document closes a single question: **what is the player touching?**
 
-Soru tasarımdan değil ölçümden çıktı. [16-screens-and-tutorial.md](16-screens-and-tutorial.md) sonunda açık salon yerleşimi Unity'de kurulup gerçek telefon oranında render edildi ve masanın ekranda **15–20 dp** olduğu görüldü. Google'ın asgari dokunma hedefi 48 dp, Apple'ınki 44 pt. Yani "on dört masa ekrana sığıyor mu" sorusunun cevabı evetti ama soru yanlıştı: sığıyor, dokunulamıyor.
+The question came out of a measurement, not out of design. At the end of [16-screens-and-tutorial.md](16-screens-and-tutorial.md) the open-hall layout was built in Unity and rendered at a real phone's aspect ratio, and the table turned out to be **15-20 dp** on screen. Google's minimum touch target is 48 dp, Apple's is 44 pt. So the answer to "do fourteen tables fit on the screen" was yes, but the question was the wrong one: they fit, they cannot be touched.
 
-Ölçüm dört tur sürdü. Her turda render edilip **bakıldı**; sayıya güvenip bakmamak bu projede her seferinde yanlış çıktı.
+The measurement took four rounds. Each round was rendered and then **looked at**; trusting a number without looking has come out wrong every single time on this project.
 
 ---
 
-## 1. Önce şu soru kapansın: masa hiç 48 dp olabilir mi?
+## 1. First let this question be closed: can a table ever be 48 dp?
 
-Hayır, ve bunu ölçmeye gerek yok, aritmetik yetiyor.
+No, and there is no need to measure it, arithmetic is enough.
 
-Yatay 2400 piksellik bir telefon, yoğunluk 2,75 → **873 dp genişlik**. On dört masalık restoran en dar hâliyle 18 m eninde. Restoran kareyi kenar payı bırakmadan, perspektifsiz doldurduğunda bile:
+A 2,400-pixel landscape phone at density 2.75 → **873 dp of width**. A fourteen-table restaurant is 18 m wide at its narrowest. Even if the restaurant filled the frame with no margin and no perspective:
 
 ```
-873 dp × 0,86 m / 18 m = 41,7 dp
+873 dp × 0.86 m / 18 m = 41.7 dp
 ```
 
-Ve bu **üst sınır**: perspektif payı, kenar payı ve derinlik ekseninin kısalması bu sayıyı ancak düşürür. Derinlik yönü 34 derecelik bakışta 0,56 kat kısalıyor, yani masanın dikey ekran boyu daha da küçük.
+And that is an **upper bound**: the perspective margin, the edge margin and the foreshortening of the depth axis can only push the number down. The depth direction shortens by a factor of 0.56 at a 34-degree view, so the table's vertical extent on screen is smaller still.
 
-**Bütün restoranı gösteren hiçbir kamerada masa birincil dokunma hedefi olamaz.** Yerleşimi değiştirmek, kamerayı sıkılaştırmak, masayı büyütmek — hiçbiri 48 dp'ye ulaştırmıyor. Bu bir tasarım tercihi değil, ekranın ölçüsü.
-
----
-
-## 2. Öneri: restoran modüler olsun
-
-> "Restoran modüler yapıda olabilir yani odalar şeklinde çünkü sonuçta bulaşık yıkanılan yer, yemek yapılan mutfak gibi bölümler olması lazım. Restoran genişletildiğinde de sanki yeni bir oda eklenmiş gibi masalar gelir."
-
-İki ayrı kazancı var ve ikisi de ölçülebilir:
-
-1. **Anlam kazancı.** [14-staff-system.md](14-staff-system.md) zaten salonu iki havuza ayırıyor: aşçı havuzu ve salon havuzu (garson + bulaşıkçı + kasiyer). Oda, bu havuzun mekândaki karşılığı. Bulaşıkçıyı işe aldığında bir sayı değil **bulaşıkhane** doluyor.
-2. **Dokunma kazancı.** Açık salonda "bütün restoran" ile "tek masa" arasında dokunulabilecek hiçbir nesne yok. Oda, tam olarak o boşluğu dolduran ara hedef.
-
-## 3. Öneri: iki kademeli kamera
-
-> "Tüm her şey aynı anda görüldüğü durumda oyuncu dokunarak kamerayı o modüler kısma yaklaştırmış olur."
-
-Bu, §1'in kapattığı yoldan sonra kalan seçeneklerden birini seçiyor. Ölçüm doğruluyor — ama tek başına yetmiyor; §7'deki uzlaştırma gerekiyor.
+**On no camera that shows the whole restaurant can a table be the primary touch target.** Changing the layout, tightening the camera, enlarging the table — none of it reaches 48 dp. This is not a design preference, it is the size of the screen.
 
 ---
 
-## 4. Dört tur
+## 2. The proposal: make the restaurant modular
 
-| Tur | Yerleşim | Sonuç |
+> *"Restoran modüler yapıda olabilir yani odalar şeklinde çünkü sonuçta bulaşık yıkanılan yer, yemek yapılan mutfak gibi bölümler olması lazım. Restoran genişletildiğinde de sanki yeni bir oda eklenmiş gibi masalar gelir."*
+>
+> *("The restaurant could be modular, that is, made of rooms, because in the end there have to be sections like the place where the washing-up is done and the kitchen where the food is made. And when the restaurant is expanded, tables arrive as if a new room had been added.")*
+
+It has two separate gains and both are measurable:
+
+1. **A gain in meaning.** [14-staff-system.md](14-staff-system.md) already splits the hall into two pools: the cook pool and the hall pool (waiter + dishwasher + cashier). A room is that pool's counterpart in space. When you hire a dishwasher it is not a number that fills up, it is the **sink room**.
+2. **A gain in touch.** In the open hall there is no object at all to touch between "the whole restaurant" and "one table". A room is precisely the intermediate target that fills that gap.
+
+## 3. The proposal: a two-step camera
+
+> *"Tüm her şey aynı anda görüldüğü durumda oyuncu dokunarak kamerayı o modüler kısma yaklaştırmış olur."*
+>
+> *("With everything visible at once, the player would touch to bring the camera closer to that modular part.")*
+
+This picks one of the options left after §1 closed the other road. The measurement confirms it — but on its own it is not enough; the reconciliation in §7 is needed.
+
+---
+
+## 4. Four rounds
+
+| Round | Layout | Result |
 |---|---|---|
-| 1 | Açık salon (`RestaurantScene.cs`) | Masa her kademede 15–20 dp. **Başarısız.** |
-| 2 | Odalar tek sıra | Restoran 25 × 4,6 m bir koridora dönüştü; 20:9 karenin yarısı boş kaldı; kamera her kademede geri çekildiği için **dokunma hedefi büyümeyle küçülüyordu.** Oda fikri doğru, dizilim yanlış. |
-| 3 | Odalar 2×2 eşit ızgara | Sayılar tuttu, **render yapay durdu.** Bütün odalar aynı ölçüde, bütün ayrım çizgileri hizalı. |
-| 4 | **Farklı ölçüde dikdörtgenler** | Kabul edildi. |
+| 1 | The open hall (`RestaurantScene.cs`) | The table is 15-20 dp at every tier. **Failed.** |
+| 2 | Rooms in a single row | The restaurant turned into a 25 × 4.6 m corridor; half of the 20:9 frame stayed empty; and because the camera pulled back at every tier, **the touch target was shrinking as the business grew.** The room idea is right, the arrangement is wrong. |
+| 3 | Rooms on an equal 2×2 grid | The numbers held, **the render looked artificial.** Every room the same size, every dividing line aligned. |
+| 4 | **Rectangles of different sizes** | Accepted. |
 
-Üçüncü turdaki kusuru sayı göstermiyordu, bakış gösterdi:
+The flaw in the third round was not shown by a number, it was shown by looking:
 
-> "Restoran yerleşimi tamamen kare olmak zorunda değil, hatta şu anki görünüm biraz yapay duruyor, dikdörtgenlerden oluşabilir. Odaların boyutu birbirinden farklı olabilir."
+> *"Restoran yerleşimi tamamen kare olmak zorunda değil, hatta şu anki görünüm biraz yapay duruyor, dikdörtgenlerden oluşabilir. Odaların boyutu birbirinden farklı olabilir."*
+>
+> *("The restaurant layout does not have to be completely square — in fact the current view looks a bit artificial; it could be made of rectangles. The rooms could be different sizes from each other.")*
 
-## 5. Kabul edilen kat planı
+## 5. The accepted floor plan
 
-Arsa **18,0 × 9,6 m**, sekiz oda, 172,8 m². Odalar arsayı boşluksuz kaplıyor ama ölçüleri farklı ve ayrım çizgileri hizalı değil: sol yarının yatay çizgisi z = 4,4, sağ yarının z = 5,0.
+The plot is **18.0 × 9.6 m**, eight rooms, 172.8 m². The rooms cover the plot with no gaps, but their sizes differ and the dividing lines are not aligned: the left half's horizontal line is at z = 4.4, the right half's at z = 5.0.
 
 ```
-   0        5,2   8,4          13,4        18,0
-9,6 +--------+-----+------------+-----------+
-    |        |DEPO |            |           |
-    | MUTFAK |3,2x |  SALON 2   |  SALON 4  |
-    | 5,2x5,6| 4,2 |  5,0x5,2   |  4,6x4,6  |
-5,4 |        +-----+            |           |
-4,4 |        |     |            |           |
-4,0 +--------+BULA-+------------+-----------+ 5,0
-    | GİRİŞ  | ŞIK |            |           |
-    | 5,2x4,0|3,2x |  SALON 1   |  SALON 3  |
-    |        | 5,4 |  5,0x4,4   |  4,6x5,0  |
+   0        5.2   8.4          13.4        18.0
+9.6 +--------+-----+------------+-----------+
+    |        |STORE|            |           |
+    | KITCHEN|3.2x |   HALL 2   |  HALL 4   |
+    | 5.2x5.6| 4.2 |  5.0x5.2   |  4.6x4.6  |
+5.4 |        +-----+            |           |
+4.4 |        |     |            |           |
+4.0 +--------+SINK +------------+-----------+ 5.0
+    | ENTRY  |3.2x |            |           |
+    | 5.2x4.0| 5.4 |   HALL 1   |  HALL 3   |
+    |        |     |  5.0x4.4   |  4.6x5.0  |
   0 +--------+-----+------------+-----------+
 
-Depo mutfağın sağ kenarına yapışık: teslimat arkadan girer, depoya
-iner, mutfağa çıkar. Bulaşık önde, çünkü kirli tabak salondan geliyor.
+The store is stuck to the kitchen's right edge: a delivery comes in from
+the back, goes down into the store and up into the kitchen. The sink is
+at the front, because dirty plates come from the hall.
 ```
 
-Servis odaları her zaman var. Salonlar kademeyle açılıyor: Salon 1 (4 masa) → Salon 2 (+3) → Salon 3 (+3) → Salon 4 (+4) = **4 / 7 / 10 / 14 masa**, [12-economy.md](12-economy.md)'nin kademe tablosuyla birebir.
+The service rooms are always there. The halls open with the tiers: Hall 1 (4 tables) → Hall 2 (+3) → Hall 3 (+3) → Hall 4 (+4) = **4 / 7 / 10 / 14 tables**, one to one with the tier table in [12-economy.md](12-economy.md).
 
-**Arsa sabit, bina büyüyor.** Kamera hiçbir zaman geri çekilmiyor. Yapılmamış odalar çıplak zemin olarak duruyor ve onlara bakan kenarlar **alçak geçici duvar** alıyor — tam duvar denendi ve genişleme alanını tamamen gizledi, oyuncu nereye büyüyeceğini göremiyordu. Arsanın dış sınırındaki duvarlar tam yükseklikte.
+**The plot is fixed, the building grows.** The camera never pulls back. Rooms that have not been built stand as bare floor and the edges facing them get a **low temporary wall** — a full wall was tried and it hid the expansion area completely, so the player could not see where they were going to grow. The walls on the plot's outer boundary are at full height.
 
-İç bölmeler **0,85 m**. 2,6 m tam duvar denendi ve arka sıradaki sandalyelerin sırtını kesti; 34 derecelik bakışta tavana kadar duvar arkasını kapatıyor.
+The interior partitions are **0.85 m**. A 2.6 m full wall was tried and it cut off the backs of the chairs in the back row; at a 34-degree view a wall that goes up to the ceiling hides what is behind it.
 
-Duvarlar elle konmuyor, **odanın kenarından üretiliyor**: komşusu yapılmışsa alçak bölme (uzunsa ortasında geçit), yapılmamışsa geçici duvar, arsa sınırıysa tam duvar, kameraya bakan ön ve sağ kenarsa hiçbir şey. Bu yüzden oda ölçüleri değiştiğinde duvarları elden geçirmek gerekmiyor.
+The walls are not placed by hand, they are **generated from the room's edges**: if the neighbour is built, a low partition (with a gap in the middle if it is long); if it is not built, a temporary wall; if it is the plot boundary, a full wall; and if it is the front or right edge facing the camera, nothing at all. That is why the walls do not have to be reworked when the room sizes change.
 
-Kat planının arsayı boşluksuz kapladığı ve her odaya istenen masanın sığdığı **kodda kontrol ediliyor**. Bu kontrol ilk koşuşta bir hata yakaladı: `4,6 − 0,9 = 3,6999998` çıkıyor, `1,85`'e bölününce `1,99999` oluyor, tabanı alınca iki yerine bir sütun. Salon 3'e üç masa sığmıyordu ve render'da bu görülmeyebilirdi.
+That the floor plan covers the plot with no gaps, and that the intended tables fit in every room, **is checked in code**. That check caught a bug on its first run: `4.6 − 0.9 = 3.6999998`, which divided by `1.85` gives `1.99999`, and taking the floor gives one column instead of two. Three tables did not fit in Hall 3, and that might not have been visible in the render.
 
 ---
 
-## 6. Ölçüm sonucu
+## 6. The measurement result
 
-Her sayı hedefin ekrandaki **iki ekseninin küçüğü**. Yalnızca yatay ölçmek hedefi olduğundan büyük gösteriyor.
+Every number is the **smaller of the target's two axes** on screen. Measuring only the horizontal makes the target look bigger than it is.
 
-> **Bu bölüm 11 Eylül 2026'da yeniden ölçüldü ve sayılar değişti.** Sebebi iki hataydı; ikisi de ölçüm aracındaydı, oyunda değil:
+> **This section was re-measured on 11 September 2026 and the numbers changed.** The cause was two bugs; both of them were in the measuring tool, not in the game:
 >
-> 1. **Ölçüm kamerayı kendi eliyle kuruyordu.** `RoomLayout.Shoot` içinde `32f`, `Euler(34, -12, 0)` ve kapalı bir mesafe formülü yazılıydı. Oyun ise `CameraFit`'in ikili aramasını kullanıyordu ve o, en küçük mesafeyi buluyordu. Formül her terimde güvenli tarafa yanılıp **%30 fazla mesafe** veriyordu — yani ölçüm, oyunun gösterdiğinden küçük bir hedef bildiriyordu. `CameraFit` zaten tam bunun için yazılmıştı ve ölçüm aracı ona hiç bağlanmamıştı.
-> 2. **Arayüz çubukları hesaba katılmıyordu.** Oyunda üst şerit ve eylem çubuğu ekranın ~%30'unu alıyor ve kamera kalan şeride sığdırıyor. Çubuksuz ölçmek hedefi olduğundan büyük gösteriyordu.
+> 1. **The measurement was setting up the camera with its own hands.** `32f`, `Euler(34, -12, 0)` and a closed-form distance formula were written inside `RoomLayout.Shoot`. The game, meanwhile, was using `CameraFit`'s binary search, and that finds the smallest distance. The formula erred on the safe side in every term and gave **30% too much distance** — that is, the measurement was reporting a smaller target than the game actually shows. `CameraFit` had been written for exactly this, and the measuring tool had never been wired to it.
+> 2. **The interface bars were not being accounted for.** In the game the top strip and the action bar take about 30% of the screen and the camera fits into the strip that is left. Measuring without the bars made the target look bigger than it is.
 >
-> İkisi düzeltilince eski kamera ayarının (32°, −12°) gerçek tabanı **48 dp** çıktı — Google'ın asgarisine tam tamına değiyor, payı yok. Aşağıdaki tablolar yeni ayarın (22°, 0°) sayıları.
+> Once both were fixed, the old camera setting (32°, −12°) came out with a real floor of **48 dp** — touching Google's minimum exactly, with no margin. The tables below are the numbers for the new setting (22°, 0°).
 
-### Genel görünüm — açık odalar karede, arayüz çubukları yerinde
+### The general view — the open rooms in frame, the interface bars in place
 
-| Oda | dp (20:9) | 48 dp |
+| Room | dp (20:9) | 48 dp |
 |---|---|---|
-| Bulaşık | 121 | ✓ |
-| Salon 1 | 102 | ✓ |
-| Mutfak | 99 | ✓ |
-| Giriş | 94 | ✓ |
-| Salon 2 | 91 | ✓ |
-| **Depo** | **71** | ✓ |
-| *masa* | *23* | ✗ |
+| Sink | 121 | ✓ |
+| Hall 1 | 102 | ✓ |
+| Kitchen | 99 | ✓ |
+| Entry | 94 | ✓ |
+| Hall 2 | 91 | ✓ |
+| **Store** | **71** | ✓ |
+| *table* | *23* | ✗ |
 
-**Taban 71 dp**, %48 payla. Masa geçmiyor ve §1'e göre hiç geçemez — genel görünümde dokunma hedefi oda.
+**The floor is 71 dp**, with 48% of margin. The table does not pass and by §1 it never can — in the general view the touch target is the room.
 
-Dar kare oranında (16:9) taban **81–89 dp**; yani en kötü durum 20:9 ve o da 71. Kapalı odalar tabloda yok: artık çizilmiyorlar, dokunulamıyorlar.
+At the narrower aspect ratio (16:9) the floor is **81-89 dp**; so the worst case is 20:9 and even that is 71. Closed rooms are not in the table: they are no longer drawn and cannot be touched.
 
-> **Yukarıdaki 71, sokak eklenmeden önceki ölçüm.** 12 Eylül 2026'da sokak
-> genişletilirken yeniden ölçüldü ve arada iki basamak kaybedilmiş olduğu
-> görüldü — kimse ölçmediği için. Kamera çerçevesi açık odalara **artı
-> `CameraFit.StreetInFrame`** kadar sokağa yayılıyor ve o sayı sonradan
-> eklendi:
+> **The 71 above is the measurement from before the street was added.** On 12 September 2026 it was
+> re-measured while the street was being widened, and it turned out that two notches
+> had been lost in the meantime — because nobody measured. The camera frame spreads
+> out over the street by the open rooms **plus `CameraFit.StreetInFrame`**, and that
+> number was added later:
 >
-> | sokak çerçevede | taban 20:9 | taban 16:9 | ne zaman |
+> | street in frame | floor 20:9 | floor 16:9 | when |
 > |---|---|---|---|
-> | yok (0,00 m) | 71 dp | — | ilk ölçüm, sokaktan önce |
-> | 1,10 m | ~64 dp | — | sokak eklendi, **yeniden ölçülmedi** |
-> | **1,94 m** | **59 dp** | **74 dp** | iki yaya şeridi, ölçüldü |
+> | none (0.00 m) | 71 dp | — | the first measurement, before the street |
+> | 1.10 m | ~64 dp | — | the street was added, **not re-measured** |
+> | **1.94 m** | **59 dp** | **74 dp** | two pedestrian lanes, measured |
 >
-> 1,10 → 1,94 genişlemesinin sebebi kaldırımda **iki yaya şeridi**
-> gerekmesi: karşı yönde yürüyen figürler birbirinin içinden geçiyordu.
-> Şerit aralığı figürün ölçülen en geniş gövde bandından geliyor (baş,
-> 0,67 m — `PlacementAudit` PROFIL satırları). 59 dp, Google'ın 48 dp
-> asgarisinin **%23 üstünde**.
+> The reason for the 1.10 → 1.94 widening is that the pavement needs
+> **two pedestrian lanes**: figures walking in opposite directions were passing
+> through each other. The lane spacing comes from the figure's measured widest
+> body band (the head, 0.67 m — the `PlacementAudit` PROFIL lines). 59 dp is
+> **23% above** Google's 48 dp minimum.
 >
-> Ders 71'in yanlış olması değil, **doğruyken bırakılıp bir daha
-> sorulmaması**. Çerçeveye bir metre ekleyen değişiklik ölçümü de
-> çalıştırmalı.
+> The lesson is not that 71 was wrong, it is that it **was left standing while it
+> was right and never asked again**. A change that adds a metre to the frame has
+> to run the measurement too.
 
-### Oda görünümü — kamera bir salona yaklaşmış
+### The room view — the camera has moved in on one hall
 
-| Hedef | dp | 48 dp |
+| Target | dp | 48 dp |
 |---|---|---|
-| masa + sandalyeler | 96 | ✓ |
-| masa tablası | 44 | ✗ |
+| table + chairs | 96 | ✓ |
+| the table top | 44 | ✗ |
 
-**Dört kademede de aynı sayılar.** 4, 7, 10, 14 masa — hiç değişmiyor. Gerekçesi artık "arsa sabit" değil: kamera açık odaları çerçeveliyor, ama çerçeveyi bağlayan şey **en değil derinlik** ve mutfak bloğu arsanın bütün derinliğini birinci günden kaplıyor.
+**The same numbers at all four tiers.** 4, 7, 10, 14 tables — they never change. The reason is no longer "the plot is fixed": the camera frames the open rooms, but what binds the frame is **the depth, not the width**, and the kitchen block covers the plot's whole depth from day one.
 
-Dokunma bölgesi **masa tablası değil masa takımı**: masa artı iki sandalye, yerde 1,86 × 1,86 m. Masa aralığı da 1,85 m, yani bölgeler çakışmadan döşeniyor.
+The touch region is **not the table top but the table set**: the table plus two chairs, 1.86 × 1.86 m on the floor. The table spacing is also 1.85 m, so the regions tile without overlapping.
 
-### Kamera açısı: −12° dönme neye mal oluyordu
+### The camera angle: what the −12° rotation was costing
 
-Kullanıcı ekran görüntüsüne bakıp *"boş odalar yer kaplamasın, restoran tam ekran olan yerler gözüksün"* deyince kamera açıları ilk kez **ölçüldü**. O zamana kadar 32°/34°/−12° bir tercihtı, bir ölçüm sonucu değil.
+When the user looked at a screenshot and said:
 
-| ayar | karenin ne kadarı restoran (açılış / büyümüş) | taban dokunma hedefi |
+> *"boş odalar yer kaplamasın, restoran tam ekran olan yerler gözüksün"*
+>
+> *("do not let the empty rooms take up space, let the parts where the restaurant is full-screen show")*
+
+the camera angles were **measured** for the first time. Until then 32°/34°/−12° was a preference, not a measurement result.
+
+| setting | how much of the frame is restaurant (opening / grown) | floor touch target |
 |---|---|---|
-| 32°, −12° | %27 / %33 | 52 → **48 dp** |
-| 32°, −6° | %34 / %39 | — |
-| **22°, 0°** | **%48 / %43** | **71 → 71 dp** (sokaktan önce; bugün 59) |
+| 32°, −12° | 27% / 33% | 52 → **48 dp** |
+| 32°, −6° | 34% / 39% | — |
+| **22°, 0°** | **48% / 43%** | **71 → 71 dp** (before the street; today 59) |
 
-Dönmenin sıfırlanması karenin dolgusunu %27'den %41'e çıkarıyor; görüş açısının 32'den 22'ye inmesi perspektifi düzleyip kalanını kazanıyor. Eğim 34'te kaldı — derinlik hissi oradan geliyor ve artırmak dolguyu **düşürüyor** (42°'de %18, 50°'de %17).
+Zeroing the rotation raises the frame's fill from 27% to 41%; dropping the field of view from 32 to 22 flattens the perspective and wins the rest. The tilt stayed at 34 — the sense of depth comes from there, and increasing it **lowers** the fill (18% at 42°, 17% at 50°).
 
-Kaybedilen şey o hafif "2,5D çevrilmişlik". Render'a bakınca duruyor: eğim ve mobilyaların yan yüzleri derinliği zaten veriyor, çevirme yalnızca kareyi yiyordu.
+What was lost is that slight "2.5D turned-ness". Looking at the render it holds up: the tilt and the side faces of the furniture already give the depth, and the rotation was only eating the frame.
 
-### Boş odalar artık çizilmiyor
+### Empty rooms are no longer drawn
 
-Birinci kademede arsanın 172,8 m²'sinin yalnızca 102,6'sı açık; yani ekranın **%41'i** "henüz senin olmayan" koyu gri levhaydı. Levhaların rengi (0,16) bir zamanlar üç parlaklık ölçülerek dengelenmişti — sayılar doğruydu, **soru yanlıştı**.
+At the first tier only 102.6 of the plot's 172.8 m² is open; so **41%** of the screen was a dark grey slab of "not yours yet". The slabs' colour (0.16) had once been balanced by measuring three brightnesses — the numbers were right, **the question was wrong**.
 
-Şimdi açılmamış oda hiç kurulmuyor: ne zemin, ne dokunma çarpışanı. Genişleme artık gerçekten bir *açılış* — oda yokken beliriyor. Kamera da (`CameraFit.OpenBounds`) yalnızca açık odaları çerçeveliyor.
+Now an unopened room is not built at all: no floor, no touch collider. Expansion is now genuinely an *opening* — the room appears where there was none. The camera (`CameraFit.OpenBounds`) also frames only the open rooms.
 
-### Gölge mesafesi: yanlış birimde bir "iyileştirme"
+### Shadow distance: an "improvement" in the wrong unit
 
-Aynı turda ikinci bir hata çıktı. Performans turu URP gölge mesafesini 25'ten **14 m**'ye indirmişti, gerekçe: *"arsa 18 × 9,6 m, yani her şey gölge haritasının içinde."*
+A second bug came out in the same round. A performance pass had lowered the URP shadow distance from 25 to **14 m**, on the grounds that *"the plot is 18 × 9.6 m, so everything is inside the shadow map."*
 
-Gerekçe yanlış birimdeydi. URP bu mesafeyi **kameradan** ölçüyor, sahne boyundan değil — ve kamera 26–35 m uzakta duruyor. Yani değer bütün düşen gölgeleri sessizce kapatmıştı. Hiçbir test yakalamadı; ekran görüntüsüne bakınca görüldü.
+The reasoning was in the wrong unit. URP measures that distance **from the camera**, not from the size of the scene — and the camera stands 26-35 m away. So the value had quietly switched off every cast shadow. No test caught it; it was seen by looking at a screenshot.
 
-Yeni değer **45 m** = en kötü durumda (dar kare oranı, kalın çubuklar) sahnenin en uzak köşesi 39,4 m + pay. Gölge haritası 512 → **1024**: 45 m tek kademede 512 harita 18 cm/texel demek ve gölgeler tanınmaz oluyor.
+The new value is **45 m** = in the worst case (the narrow aspect ratio, thick bars) the scene's furthest corner at 39.4 m plus margin. The shadow map went from 512 → **1024**: 45 m in a single cascade with a 512 map means 18 cm per texel, and the shadows become unrecognisable.
 
-Ayrıca `ProjectSetup.ConfigureUrp` bütün bu sayıların **ikinci bir kopyasını** tutuyordu ve performans turundan haberi yoktu — `ApplyAll` koşturan biri MSAA'yı 1'den 4'e, gölge mesafesini 45'ten 25'e geri alıyordu. İkisi eşitlendi ve `tools/check_urp.py` ayrışmayı bundan sonra yakalıyor (12. denetim).
+Also, `ProjectSetup.ConfigureUrp` was holding a **second copy** of all these numbers and knew nothing about the performance pass — anyone running `ApplyAll` was putting MSAA back from 1 to 4 and the shadow distance back from 45 to 25. The two were made equal, and `tools/check_urp.py` catches the divergence from now on (the 12th check).
 
 ---
 
-## 7. Araştırmayla uzlaştırma
+## 7. Reconciling this with the research
 
-[30-venue-layout.md](30-venue-layout.md) yirmi altı oyunu tarayıp farklı bir sonuca vardı: **odalar sanat ve genişleme metaforu olarak benimsensin, etkileşim modeli olarak benimsenmesin.** Servis sırasında kamera sabit kalsın, birincil dokunma hedefi alt çubuktaki sabır çipleri olsun, oda çerçeveli kamera yalnızca yerleşim düzenleme ekranında yaşasın.
+[30-venue-layout.md](30-venue-layout.md) scanned twenty-six games and reached a different conclusion: **adopt rooms as an art and expansion metaphor, do not adopt them as the interaction model.** Keep the camera fixed during service, make the primary touch target the patience chips in the bottom bar, and let the room-framed camera live only on the layout-editing screen.
 
-En sert itirazı sayısal ve ciddiye alınmalı:
+Its harshest objection is numerical and has to be taken seriously:
 
-> Kademe 4'te dört salon odası var. Bir tam tur = 3 oda değişimi. Oyuncu her dilimde bir kez restoranı taramak isterse **12 dokunuş** — servis aşamasının bütün bütçesinin %120'si, karşılığında sıfır karar.
+> At tier 4 there are four hall rooms. A full tour = 3 room changes. If the player wants to scan the restaurant once per slice, that is **12 taps** — 120% of the entire budget for the service stage, in return for zero decisions.
 
-**Bu hesap bir varsayıma dayanıyor: oyuncunun ne olup bittiğini görmek için odaları gezmesi gerektiği.** Ölçüm o varsayımı ortadan kaldırıyor.
+**That calculation rests on an assumption: that the player has to walk the rooms in order to see what is going on.** The measurement removes that assumption.
 
-Genel görünümde **oda 51–95 dp**. Yani rozet odanın üstünde durabilir ve dokunulabilir. Oyuncu bir odada ne olduğunu görmek için oraya gitmiyor; genel görünüm zaten taramanın kendisi.
+In the general view **a room is 51-95 dp**. So a badge can sit on top of a room and be touched. The player does not go to a room to see what is happening in it; the general view is the scan itself.
 
-### Uzlaştırılmış karar
+### The reconciled decision
 
-| Kamera | Ne görünüyor | Birincil hedef | Gezinme dokunuşu |
+| Camera | What is visible | Primary target | Navigation taps |
 |---|---|---|---|
-| **Genel** (varsayılan, servis boyunca burada kalınabilir) | bütün restoran | **oda rozeti** (51–95 dp) | 0 |
-| **Oda** (isteğe bağlı) | bir salon ve komşuları | **masa takımı** (65 dp) | eylem başına 1 |
+| **General** (the default; you can stay here throughout service) | the whole restaurant | **the room badge** (51-95 dp) | 0 |
+| **Room** (optional) | one hall and its neighbours | **the table set** (65 dp) | 1 per action |
 
-**Yakınlaştırma zorunlu değil.** Oyun genel görünümden baştan sona oynanabiliyor: rozet odanın üstünde, dokunmak müdahaleyi açıyor. Odaya yaklaşmak bakmak için, mecburiyetten değil.
+**Zooming is not compulsory.** The game can be played from the general view from start to finish: the badge sits on the room, touching it opens the intervention. Moving in on a room is for looking, not out of necessity.
 
-Bu, araştırmanın en sert kısıtını (sıfır zorunlu gezinme dokunuşu) kabul ederken kendi saydığı **en büyük bedeli ödemiyor**: salon dekora düşmüyor, çünkü dokunulan şey alt çubuktaki bir şerit değil, sahnenin içindeki oda. `research/01` §3'ün en sevilen mekanikler sıralamasında 2. ve 3. sıradaki "yerleşim tasarımı" ve "görünür büyüme" servis boyunca ekranda kalıyor.
+This accepts the research's harshest constraint (zero compulsory navigation taps) while **not paying the biggest cost the research itself counted**: the hall does not fall to decor, because what is touched is not a strip in the bottom bar but a room inside the scene. "Layout design" and "visible growth", 2nd and 3rd in `research/01` §3's list of best-loved mechanics, stay on screen throughout service.
 
-Alt çubuk çipleri yine de yazılabilir ve `review/05`'in "sabır uyarısı üç kanaldan gelsin" maddesini karşılar — ama **ikinci kanal** olarak, birincil hedef olarak değil.
+The bottom-bar chips can still be written and would satisfy `review/05`'s item "let the patience warning come through three channels" — but as a **second channel**, not as the primary target.
 
-### Araştırmanın diğer dört maddesi kabul edildi
+### The research's other four items were accepted
 
-| # | Karar | Durum |
+| # | Decision | Status |
 |---|---|---|
-| 1 | Mekân koylardan kurulsun, kademe yeni bir salon koyu ekler | ✓ Kabul, uygulandı |
-| 4 | Yerleşim düzenleme ekranı Kairosoft kalıbıyla: kareye dokun → hayalet ızgara → onay | ✓ Kabul, [16](16-screens-and-tutorial.md) ekran 11'e yazılacak |
-| 5 | **Koylar mühürlü oda olmasın: kapı geçerliliği, koridor, yol bulma yok.** Garsonun yürüyüşü görsel | ✓ Kabul. [14-staff-system.md](14-staff-system.md) zaten "karmaşık yol bulma yok" diyor |
-| — | Restaurant Renovation kaynak listesinden düşsün (eşleştirme bulmacası) | ✓ Kabul |
+| 1 | Build the venue out of bays; a tier adds a new hall bay | ✓ Accepted, implemented |
+| 4 | The layout-editing screen in the Kairosoft pattern: tap a tile → ghost grid → confirm | ✓ Accepted, to be written into [16](16-screens-and-tutorial.md) screen 11 |
+| 5 | **The bays are not sealed rooms: no door validity, no corridors, no pathfinding.** The waiter's walk is visual | ✓ Accepted. [14-staff-system.md](14-staff-system.md) already says "no complex pathfinding" |
+| — | Restaurant Renovation should come off the source list (a match puzzle) | ✓ Accepted |
 
-5. maddenin sayısal gerekçesi yeni kat planında da geçerli: mutfak merkezi (2,6; 6,8), en uzak salon merkezi (15,7; 7,3), arası **13,1 m**. 1,2 m/s'lik yürüyüşle tek yön 10.900 ms; [27-time-model.md](27-time-model.md) garsona müşteri başına 9.000 ms veriyor. Gerçek yürüyüş servis bütçesini aşıyor. Yeni plan eski şeride göre çok daha derli toplu (20,8 m → 13,1 m) ama **yine de yürüyüş simüle edilmemeli.**
+Item 5's numerical justification holds in the new floor plan too: the kitchen's centre is at (2.6; 6.8), the furthest hall's centre at (15.7; 7.3), **13.1 m** apart. At a walk of 1.2 m/s that is 10,900 ms one way; [27-time-model.md](27-time-model.md) gives the waiter 9,000 ms per customer. A real walk exceeds the service budget. The new plan is far more compact than the old strip (20.8 m → 13.1 m) but **the walk still must not be simulated.**
 
-### Araştırmanın açık bıraktıkları, kapananlar
+### What the research left open, and what has closed
 
-| # | Soru | Durum |
+| # | Question | Status |
 |---|---|---|
-| 1 | `RoomLayout.cs` konsol satırı dosyaya yazılsın; oradaki oda dp'leri hesaptı | ✓ Kapandı, §6'daki sayılar ölçüm |
-| 2 | Kamera sığdırması düzeltilirse açık salon kaç dp'ye çıkar | ✓ Kapandı, §1: üst sınır 41,7 dp, 48'e hiç ulaşmıyor |
-| 8 | Restaurant Renovation listeden düşsün | ✓ Kapandı |
-| 3 | **Depo odasının işi ne** | Açık — ekipman şemaları yazılınca belli olacak |
-| 4 | Kaç salon koyu çeşidi gerekiyor | Kapandı sayılabilir: dört salonun **dördü de farklı ölçüde**, kopyala-yapıştır okunmuyor |
-| 5 | Kamera durumu kaydedilmiyor ([23](23-core-contract.md)) | Açık — genel görünüm varsayılan olduğu için etkisi küçük |
-| 6 | Çip çubuğu üst çubukla çatışıyor mu | Açık — çip artık ikinci kanal, baskı azaldı |
-| 7 | İkinci şube odalı düzende ne demek | Açık, ilk sürüm dışı |
+| 1 | Write `RoomLayout.cs`'s console line to a file; the room dp values there were a calculation | ✓ Closed, the numbers in §6 are measurements |
+| 2 | If the camera fit is corrected, how many dp does the open hall reach | ✓ Closed, §1: the upper bound is 41.7 dp, it never reaches 48 |
+| 8 | Restaurant Renovation comes off the list | ✓ Closed |
+| 3 | **What is the store room's job** | Open — it will become clear once the equipment schemas are written |
+| 4 | How many hall bay variants are needed | Can be counted as closed: **all four** halls are different sizes, it does not read as copy-paste |
+| 5 | The camera state is not saved ([23](23-core-contract.md)) | Open — the effect is small because the general view is the default |
+| 6 | Does the chip bar conflict with the top bar | Open — the chip is a second channel now, the pressure is off |
+| 7 | What does a second branch mean in a room layout | Open, out of scope for the first release |
 
 ---
 
-## 8. Bunun gerektirdiği üç şey
+## 8. The three things this requires
 
-1. **Rozet odanın üstünde, masanın üstünde değil.** Masa genel görünümde 16 dp; oraya rozet koymanın anlamı yok. Odanın üstünde duran "3 müşteri bekliyor" rozeti hem görünür hem dokunulabilir.
-2. **Yakınlaştırma kademeli, sürekli değil.** İki kademe: genel ve oda. Serbest zum (parmakla yakınlaştır) eklenirse ara kademelerde masa 16 ile 30 dp arasında kalıyor, yani dokunma o aralıkta çalışmıyor. Kademeli olunca dokunma kuralı her kademede belirli.
-3. **Oda görünümü bir oda değil bir ZUM KADEMESİ.** 20:9 karede 5,0 × 4,4 m'lik bir odayı dikey olarak sığdırmak, yatayda zorunlu olarak ~12 metre göstermek demek. Oyuncu bir odaya yaklaştığında komşuların bir kısmını da görüyor. Bu iyi: bağlam kaybolmuyor.
+1. **The badge sits on the room, not on the table.** A table is 16 dp in the general view; there is no point putting a badge there. A "3 customers waiting" badge sitting on the room is both visible and touchable.
+2. **The zoom is stepped, not continuous.** Two steps: general and room. If a free zoom (pinch) is added, the table stays between 16 and 30 dp in the intermediate steps, so touch does not work in that range. With steps, the touch rule is definite at each step.
+3. **The room view is not a room, it is a ZOOM STEP.** Fitting a 5.0 × 4.4 m room vertically into a 20:9 frame necessarily means showing about 12 metres horizontally. When the player moves in on a room they also see part of its neighbours. That is good: the context is not lost.
 
-## 9. Oda sözlüğü
+## 9. The room glossary
 
-| Oda | Ölçü | Alan | İçinde | Bağlı olduğu sistem |
+| Room | Size | Area | Inside it | The system it is tied to |
 |---|---|---|---|---|
-| Mutfak | 5,2 × 5,6 m | 29,1 m² | ocak, tezgâh, davlumbaz | aşçı havuzu ([14](14-staff-system.md)), istasyon yuvaları ([32](32-equipment-and-rebalance.md)) |
-| Giriş / kasa | 5,2 × 4,0 m | 20,8 m² | kasa, kapı | salon havuzu, kasiyer |
-| Bulaşıkhane | 3,2 × 5,4 m | 17,3 m² | evye, raf | salon havuzu, bulaşıkçı |
-| **Depo** | 3,2 × 4,2 m | **13,4 m²** | soğuk hava odası, kuru raf, sandık | **stok ve bozulma** ([32](32-equipment-and-rebalance.md) §7) |
-| Salon ×4 | 4,6–5,0 × 4,4–5,2 m | 20–26 m² | 3–4 masa takımı | masa kapasitesi ([12](12-economy.md)) |
+| Kitchen | 5.2 × 5.6 m | 29.1 m² | stove, counter, extractor hood | the cook pool ([14](14-staff-system.md)), station slots ([32](32-equipment-and-rebalance.md)) |
+| Entry / till | 5.2 × 4.0 m | 20.8 m² | the till, the door | the hall pool, the cashier |
+| Sink room | 3.2 × 5.4 m | 17.3 m² | sink, shelf | the hall pool, the dishwasher |
+| **Store** | 3.2 × 4.2 m | **13.4 m²** | cold room, dry shelf, crates | **stock and spoilage** ([32](32-equipment-and-rebalance.md) §7) |
+| Hall ×4 | 4.6-5.0 × 4.4-5.2 m | 20-26 m² | 3-4 table sets | table capacity ([12](12-economy.md)) |
 
-### Deponun işi bulundu
+### The store's job was found
 
-Bu belgenin ilk hâli şöyle diyordu: *"Depo boş ve bu bir risk. Arkasında simülasyon olmayan bir odaya sanat harcanmamalı; görünür bir iş verilemezse yerleşimden çıkarılmalı."*
+The first version of this document said: *"The store is empty and that is a risk. Art should not be spent on a room with no simulation behind it; if it cannot be given a visible job it should come out of the layout."*
 
-**İş bulundu ve zaten oradaydı.** İçerikteki `spoilDays` alanı yazılmıştı ama simülasyon onu hiç okumuyordu: 77 malzemenin 44'ü bozulabilir, raf ömürleri 1 ile 45 gün arasında, ve hepsi her gece siliniyordu. Soğan da kıyma gibi bir gecede çöpe gidiyordu. Depo, o alanın var olma sebebi. Ayrıntı [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md) §7.
+**The job was found and it had been there all along.** The `spoilDays` field in the content had been written but the simulation never read it: 44 of the 77 ingredients are perishable, their shelf lives run from 1 to 45 days, and all of them were being deleted every night. An onion was going in the bin overnight just like minced meat. The store is the reason that field exists. Detail in [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md) §7.
 
-**Depo mutfağa yapışık küçük bir arka oda.** Teslimat arkadan girer, depoya iner, mutfağa çıkar. Bulaşıkhane öne alındı, çünkü kirli tabak salondan geliyor ve bulaşıkçı salon havuzunda. Mutfaktaki buzdolabı kaldırıldı: soğuk saklama artık deponun işi ve orada görünür bir yükseltme merdiveni var; ikisini birden göstermek yalan olurdu.
+**The store is a small back room stuck to the kitchen.** A delivery comes in from the back, goes down into the store and up into the kitchen. The sink room was brought to the front, because dirty plates come from the hall and the dishwasher is in the hall pool. The fridge in the kitchen was removed: cold storage is the store's job now and there is a visible upgrade ladder there; showing both would have been a lie.
 
-**Ölçüm bir sınır çizdi.** Depo önce 3,2 × 3,8 m yapıldı ve genel görünümde **46 dp** ölçtü — asgari 48'in hemen altında. 4,2 m derinlikte **51 dp**. Yani "küçük oda" isteğinin bir tabanı var: 2,5B bakışta derinlik 0,56 kat kısaldığı için sığ oda dokunulamaz hâle geliyor. Depo bugün mutfağın yarısından küçük ama hâlâ dokunulabilir.
+**A measurement drew a boundary.** The store was first made 3.2 × 3.8 m and measured **46 dp** in the general view — just under the 48 minimum. At 4.2 m of depth it is **51 dp**. So the "small room" request has a floor: because depth foreshortens by a factor of 0.56 at a 2.5D view, a shallow room becomes untouchable. The store today is less than half the kitchen and still touchable.
 
 ---
 
-## Yerleşim: modeller birbirine giriyor mu
+## Layout: are the models running into each other
 
-Kullanıcı 11 Eylül'de *"restorana yerleşen modeller üst üste binmiş gibi"* dedi. Göz kararı yetmiyor — 34 derecelik bir bakışta arkadaki bir nesne öndekinin üstüne biniyormuş gibi görünebilir, gerçekten binen ikisi de masum durabilir. `unity/Assets/Lokanta/Editor/PlacementAudit.cs` soruyu ölçüye çeviriyor: sahnedeki her nesnenin **gerçek pozdaki** kutusunu çıkarıp kesişen çiftleri yazıyor.
+On 11 September the user said:
+
+> *"restorana yerleşen modeller üst üste binmiş gibi"*
+>
+> *("the models placed in the restaurant look as if they are overlapping")*
+
+The eye is not enough — at a 34-degree view an object behind another can look as though it is on top of it, while two that really do overlap can both look innocent. `unity/Assets/Lokanta/Editor/PlacementAudit.cs` turns the question into a measurement: it takes every object in the scene's box **in its real pose** and prints the intersecting pairs.
 
 ```powershell
 tools\unity\run.ps1 -Method "Lokanta.EditorTools.PlacementAudit.Run"
 ```
 
-**Neden BakeMesh:** `Renderer.bounds` derili bir mesh'te yalan söylüyor — Unity onu kök kemikten türetiyor ve poz değiştikçe güncellemiyor. İlk ölçümde **oturan** bir figür 1,68 m boyunda ve 1,66 m eninde göründü; ikisi de imkânsız.
+**Why BakeMesh:** `Renderer.bounds` lies on a skinned mesh — Unity derives it from the root bone and does not update it as the pose changes. In the first measurement a **seated** figure appeared to be 1.68 m tall and 1.66 m wide; both are impossible.
 
-**Araç iki kez yanlış ölçtü ve ikisi de kendi doğrulama satırıyla yakalandı.** `BakeMesh` mesh'i *kemiklere* göre deforme ediyor ve kemikler zaten ölçekli kökün altında duruyor — yani çıktının içinde ölçek **var**. `useScale` bayrağı yalnızca renderer'ın kendi ölçeğini ekliyor. Hem `true` + `localToWorldMatrix` hem `false` + `localToWorldMatrix` ölçeği iki kez uyguluyor. Doğrusu: bayrak kapalı ve dönüşümden ölçek çıkarılmış. Araç her koşuda ayakta bir figürün boyunu ölçüp `ArtPrefabs` hedefiyle karşılaştırıyor; tutmazsa sayılar çöp.
+**The tool measured wrong twice, and both times it was caught by its own self-verifying line.** `BakeMesh` deforms the mesh according to the *bones*, and the bones already sit under the scaled root — so the scale is **already in** the output. The `useScale` flag only adds the renderer's own scale. Both `true` + `localToWorldMatrix` and `false` + `localToWorldMatrix` apply the scale twice. The right way: the flag off and the scale taken out of the transform. On every run the tool measures the height of a standing figure and compares it with the `ArtPrefabs` target; if it does not match, the numbers are rubbish.
 
-### Bulunanlar ve sonuç
+### What was found, and the result
 
-| | önce | sonra |
+| | before | after |
 |---|---|---|
-| çakışan çift | **68** | **0** |
-| figür × figür | 67 | 0 |
-| figür × mobilya | 0,45 m | 0 |
-| en büyük | 0,54 m | — |
+| overlapping pairs | **68** | **0** |
+| figure × figure | 67 | 0 |
+| figure × furniture | 0.45 m | 0 |
+| the largest | 0.54 m | — |
 
-- **Dört kişi bu masaya hiçbir makul ölçekte sığmıyor.** Hücre 1,85 × 1,70 m, masa çapı 0,88 m, oturan figürün ayak izi 0,90 × 1,01 m. Dört oturağı doldurmak için figürün eni ≤ 0,545 m olmalı — yani **0,66 m boyunda bir insan**. Hesap her ölçekte aynı çıkıyor. Ekranda en fazla **iki** misafir çiziliyor (`RestaurantView.VisibleGuests`); simülasyon etkilenmiyor, grup yine dört kişilik ve fişi de öyle.
-- **Oturak yarıçapı 0,48 m**, iki kısıtın kesişimi: iki misafir birbirine girmemeli (2r ≥ 0,90) ve takım komşu takıma taşmamalı (r + en/2 ≤ 0,925).
-- **Karakter 1,28 → 1,10 m.** İlk indirimin ölçütü "figür/sandalye **boy** oranı" idi ve yanlış soruyu soruyordu: bu paketin figürleri boylarından çok **enleriyle** büyük (kafa gövdenin üçte biri).
+- **Four people do not fit at this table at any reasonable scale.** The cell is 1.85 × 1.70 m, the table's diameter 0.88 m, a seated figure's footprint 0.90 × 1.01 m. To fill four seats the figure's width would have to be ≤ 0.545 m — that is, **a human being 0.66 m tall**. The arithmetic comes out the same at every scale. At most **two** guests are drawn on screen (`RestaurantView.VisibleGuests`); the simulation is not affected, the party is still four people and so is the bill.
+- **The seat radius is 0.48 m**, the intersection of two constraints: two guests must not run into each other (2r ≥ 0.90) and the set must not spill over into the neighbouring set (r + width/2 ≤ 0.925).
+- **The character went from 1.28 to 1.10 m.** The yardstick for that first reduction was the "figure/chair **height** ratio" and it was asking the wrong question: this pack's figures are large in their **width** rather than their height (the head is a third of the body).
 
-> **Bu üç madde ARTIK GEÇERSİZ — sayılar [35-animation-and-camera.md](35-animation-and-camera.md)'te güncellendi.** Masa altıgen (`tableRound`, çap 0,88) idi ve dört oturak 60°'lik kenarlarla hizalanamadığı için misafirler köşeye düşüyordu; artık **kare** (`Mobilya/table`, 0,82 m, kurulumda kareleniyor). Oturak yarıçapı **0,58**, karakter **0,95 m**, masa **0,55**, sandalye **0,68**, `SitLift` **0,26**. Dört kişinin sığmaması ve ekranda iki misafir çizilmesi kuralı aynı kalıyor.
-- **Mutfakta buzdolabı ilk ocağın içindeydi** (0,30 m) — ikisi de arka sol köşedeydi. Buzdolabı arka sağa alındı, ocak sırası ona yer bırakıyor.
-- **Personel birbirine giriyordu** (0,13 m): adım 0,95 m, figür eni 0,80 m. Adım 1,10, ikinci sıra 1,30 oldu. Ayrıca aşçılar `Z0 + 1,1`'de duruyordu ve ön tezgâhlar `Z0 + 0,55`'te — aşçı tezgâhın **içinde** duruyordu. Artık odanın orta şeridinde.
+> **These three items are NO LONGER VALID — the numbers were updated in [35-animation-and-camera.md](35-animation-and-camera.md).** The table was a hexagon (`tableRound`, 0.88 diameter) and because four seats cannot be aligned with 60-degree edges the guests were landing on the corners; it is now **square** (`Furniture/table`, 0.82 m, squared at setup). The seat radius is **0.58**, the character **0.95 m**, the table **0.55**, the chair **0.68**, `SitLift` **0.26**. The rules that four people do not fit and that two guests are drawn on screen stay the same.
+- **In the kitchen the fridge was inside the first stove** (0.30 m) — both of them were in the back left corner. The fridge was moved to the back right and the stove row leaves room for it.
+- **Staff were running into each other** (0.13 m): the step was 0.95 m, the figure's width 0.80 m. The step became 1.10 and the second row 1.30. Also, the cooks were standing at `Z0 + 1.1` and the front counters at `Z0 + 0.55` — the cook was standing **inside** the counter. They are in the room's middle strip now.
 
-### Mobilya ile karakter ZIT yöne bakıyor
+### The furniture and the characters face OPPOSITE ways
 
-Kullanıcının ikinci cümlesi: *"Sandalyeler ters."* Doğruydu, ama sandalye yalnızca en görünen örneğiydi — **bütün mobilya 180° ters duruyordu**.
+The user's second sentence:
 
-Ölçüldü (`Lokanta/Figur olcek goruntusu`, her nesne yaw 0'da, kırmızı küp +Z'de, mavi küp −Z'de, yedi mobilya tek karede):
+> *"Sandalyeler ters."*
+>
+> *("The chairs are backwards.")*
 
-| | yaw 0'da "ön" yönü |
+That was true, but the chair was only the most visible example — **all of the furniture was standing 180° backwards**.
+
+It was measured (`Lokanta/Figur olcek goruntusu`, every object at yaw 0, a red cube at +Z, a blue cube at −Z, seven pieces of furniture in one frame):
+
+| | the "front" direction at yaw 0 |
 |---|---|
-| karakter | **+Z** (yüzü) |
-| sandalye, ocak, tezgâh, lavabo, buzdolabı, raf | **−Z** (minder, fırın kapağı, kulp, musluk) |
+| character | **+Z** (its face) |
+| chair, stove, counter, sink, fridge, shelf | **−Z** (the cushion, the oven door, the handle, the tap) |
 
-Kod bu farkı bilmiyordu ve bir açı yazarken "karakter gibi" düşünüyordu. Sonuç: ocaklar duvara, tezgâhlar dışarıya, sandalyeler masaya **sırtını** dönüyordu; misafir sırtlığın içine gömülmüş görünüyordu.
+The code did not know about that difference and was thinking "like a character" whenever it wrote an angle. The result: the stoves were turning their **backs** to the wall, the counters to the outside, the chairs to the table; the guest looked buried inside the backrest.
 
-Düzeltme tek sabitte: `RestaurantView.PropYaw = 180`. Çağrı yerlerindeki açılar **karakter kuralında** yazılıyor (0 = +Z'ye bak) ve sabit farkı kapatıyor — böylece her yeni eşyada ayrı bir 180 hatırlamak gerekmiyor.
+The fix is a single constant: `RestaurantView.PropYaw = 180`. The angles at the call sites are written **in the character's convention** (0 = face +Z) and the constant closes the difference — so there is no separate 180 to remember for every new item.
 
-**Kural:** yeni bir model eklerken yerel "ön" yönünü **varsayma, ölç**. İki modelin aynı yöne baktığını varsaymak bu hatanın kendisiydi.
+**The rule:** when adding a new model, do not **assume** its local "front" direction, **measure** it. Assuming that two models face the same way was the bug itself.
 
-Ayrı bir doğrulama görüntüsü de var — `Lokanta/Figur olcek goruntusu`: tek figür, tek sandalye, 1 m'lik ızgaranın üzerinde, **yandan**. "Oturuyor mu, yoksa sandalyenin önünde ayakta mı duruyor" sorusu dolu bir salonda ve tepeden bakışta cevaplanamıyor; bu görüntüde belirsizlik kalmıyor. Oturma pozunun gerçekten uygulandığı böyle doğrulandı — sorun poz değil ölçekti.
+There is a separate verification image too — `Lokanta/Figur olcek goruntusu`: one figure, one chair, on a 1 m grid, **from the side**. The question "is it sitting, or standing in front of the chair" cannot be answered in a full hall seen from above; in this image no ambiguity is left. That is how it was verified that the sitting pose really was being applied — the problem was not the pose, it was the scale.
 
 ---
 
-## Nasıl yeniden ölçülür
+## How to re-measure
 
 ```powershell
 tools\unity\shot.ps1 -Method "Lokanta.EditorTools.RoomLayout.Capture"
 ```
 
-Çıktı `tools/art/out/unity/kat_*.png` ve günlükte `OLCUM` satırları. Bakılacak satır **TABAN**: en küçük *açık* odanın, arayüz çubukları yerindeyken ekranda kapladığı kısa kenar. Masa boyutu, oda ölçüsü, kamera açısı veya kademe yerleşimi değişirse **yeniden ölç ve bak**.
+The output is `tools/art/out/unity/floor_*.png` plus the `OLCUM` (measurement) lines in the log. The line to look at is **`TABAN`** (the floor): the short edge, on screen and with the interface bars in place, of the smallest *open* room. If the table size, a room size, a camera angle or a tier layout changes, **re-measure and look**.
 
-Kamera açılarını değiştiren `unity/Assets/Lokanta/Game/CameraFit.cs`'e dokunur; ölçüm aracı aynı sabitleri okuyor, yani ikisi ayrışamaz.
+Anyone changing the camera angles touches `unity/Assets/Lokanta/Game/CameraFit.cs`; the measuring tool reads the same constants, so the two cannot diverge.

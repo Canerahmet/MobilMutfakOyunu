@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Lokanta.Game;
 using UnityEditor;
@@ -8,43 +8,47 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Her model icin, MALZEMESI - OLCEGI - DURUSU PISMIS bir prefab uretir.
+    /// Generates, for every model, a prefab with its MATERIAL - SCALE - POSE
+    /// BAKED IN.
     ///
-    /// Neden prefab: iceri alma yeniden eslemesi (ModelImporter.AddRemap)
-    /// gorunmez bir katman. Malzeme prefabin icinde durursa sonuc
-    /// okunabilir oluyor - dosyayi acip hangi malzemeyi kullandigini
-    /// gorebiliyorsun.
+    /// Why a prefab: the import remapping (ModelImporter.AddRemap) is an
+    /// invisible layer. If the material lives inside the prefab the result is
+    /// readable - you can open the file and see which material it uses.
     ///
-    /// Olcek ONCEDEN YAZILAN BIR CARPAN DEGIL, MODELIN OLCULMUS
-    /// BOYUTUNDAN turetiliyor. Once klasor basina tek carpan vardi
-    /// (Mobilya 0,20); sandalyeler dogru boydaydi ama masa 1,6 m capinda
-    /// cikti ve sandalyeleri yuttu - paketin modelleri kendi aralarinda
-    /// ayni olcekte degil. Burada her model icin GERCEK DUNYA HEDEFI
-    /// yaziliyor ve carpan olculen boyuta bolunerek bulunuyor.
+    /// The scale IS NOT A MULTIPLIER WRITTEN DOWN IN ADVANCE, it is DERIVED
+    /// FROM THE MODEL'S MEASURED SIZE. There used to be one multiplier per
+    /// folder (Furniture 0.20); the chairs were the right height but the table
+    /// came out 1.6 m across and swallowed them - the package's models are not
+    /// at the same scale as each other. Here a REAL WORLD TARGET is written for
+    /// every model and the multiplier is found by dividing it by the measured
+    /// size.
     ///
-    /// Karakterler ayrica ANIMASYON aliyor. Paket 32 klip tasiyor ve
-    /// iskelet butun figurlerde ayni; tek bir denetleyici hepsini
-    /// suruyor. Klipsiz birakildiklarinda figurler baglanma durusunda
-    /// kaliyor - kollar yana acik, 1,94 m kanat acikligi.
+    /// The characters also get ANIMATION. The package carries 32 clips and the
+    /// skeleton is the same on every figure; a single controller drives them
+    /// all. Left without clips the figures stay in the bind pose - arms out to
+    /// the sides, a 1.94 m wingspan.
     /// </summary>
     public static class ArtPrefabs
     {
         private const string Art = "Assets/Lokanta/Art";
-        private const string MatDir = Art + "/Malzeme";
+        // The folder is "Materials" on disk. It used to be "Malzeme"; a path
+        // left behind by that rename writes the materials somewhere nothing
+        // reads them, and the scene comes up magenta.
+        private const string MatDir = Art + "/Materials";
         private const string PrefabDir = Art + "/Prefab";
         private const string AnimDir = Art + "/Animator";
         private const string ControllerPath = AnimDir + "/Character.controller";
 
-        /// <summary>Klipleri ve olcegi bu modelden alinan referans figur.</summary>
+        /// <summary>The reference figure the clips and the scale are taken from.</summary>
         private const string RefCharacter = "character-male-a";
 
         // =====================================================================
-        /// <summary>Hedef boyut: olculecek eksen ve metre cinsinden deger.</summary>
+        /// <summary>A target size: the axis to measure and the value in metres.</summary>
         private struct Target
         {
-            public bool Width;      // true ise X/Z'nin buyugu, degilse Y
+            public bool Width;      // if true, the larger of X/Z, otherwise Y
             public float Metres;
-            /// <summary>Sifirdan buyukse Y bagimsiz olceklenir.</summary>
+            /// <summary>If greater than zero, Y is scaled independently.</summary>
             public float StretchY;
 
             public Target(bool width, float metres, float stretchY = 0f)
@@ -57,15 +61,15 @@ namespace Lokanta.EditorTools
         private static Target Wide(float m) { return new Target(true, m); }
 
         /// <summary>
-        /// Tabani capa, yuksekligi ayri hedefe oturtur.
+        /// Sets the base to a diameter and the height to a separate target.
         ///
-        /// Tek bir model icin gerekti: paketin yuvarlak masasi kendi
-        /// sandalyesine gore dogru oranda ama 1,4 m capinda - masa
-        /// takiminin sigmasi gereken hucre 1,85 x 1,70 m ve sandalyelere
-        /// yer kalmiyor. Capi gercekci 0,88 m'ye indirince masa 0,40 m
-        /// yuksekliginde bir sehpaya donuyordu. Bacaklarini uzatmak,
-        /// dusuk poligonlu bir modelde gorunmeyen ama oraniyla dogru
-        /// sonucu veren cozum.
+        /// It was needed for one single model: the package's round table is in
+        /// the right proportion to its own chair but 1.4 m across - while the
+        /// cell a table set has to fit into is 1.85 x 1.70 m and leaves no room
+        /// for the chairs. Bringing the diameter down to a realistic 0.88 m
+        /// turned the table into a 0.40 m coffee table. Stretching its legs is
+        /// the fix that is invisible on a low-poly model and right in its
+        /// proportions.
         /// </summary>
         private static Target WideTall(float wide, float tall)
         {
@@ -73,40 +77,40 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Model basina gercek dunya hedefi. Mobilya yuksekliklerinin cogu
-        /// standarttir ve insan boyuyla iliskilidir - tezgah 0,92 m,
-        /// buzdolabi 1,80 m - onun icin olculen eksen genelde Y. Masa
-        /// istisna: yuksekligi degil CAPI belirleyici, cunku salona kac
-        /// masa sigacagini o belirliyor (RoomPlan.CellX/CellZ).
+        /// The real world target per model. Most furniture heights are standard
+        /// and tied to human height - a counter 0.92 m, a fridge 1.80 m - which
+        /// is why the measured axis is usually Y. The table is the exception:
+        /// what matters is not its height but its DIAMETER, because that is
+        /// what decides how many tables fit in the hall (RoomPlan.CellX/CellZ).
         /// </summary>
         private static readonly Dictionary<string, Target> Targets =
             new Dictionary<string, Target>
             {
-                // --- salon ---
-                // YEMEK TAKIMI KARAKTERE GORE OLCULU.
+                // --- hall ---
+                // THE TABLE SETTING IS SIZED AGAINST THE CHARACTER.
                 //
-                // Olculdu: 0,74 m'lik tablada oturan figurun basi
-                // masanin yalnizca 0,37 m ustunde kaliyordu (gercek
-                // insanda 0,51). Mobilya gercek olcekte, karakterler
-                // yarisinda - ve bu tutarsizlik en cok masada
-                // goruunuyor, cunku oyuncunun baktigi yer orasi.
+                // Measured: at a 0.74 m top, the head of a seated figure was
+                // only 0.37 m above the table (on a real person it is 0.51).
+                // The furniture is at real scale and the characters at half of
+                // it - and that inconsistency shows up most at the table,
+                // because that is where the player is looking.
                 //
-                // Cap 0,88'de KALIYOR: masa takimi 1,85 m'lik hucreye
-                // sigmali ve capi kucultmek iki misafiri birbirine
-                // yaklastirirdi.
+                // The diameter STAYS at 0.88: a table set has to fit into the
+                // 1.85 m cell, and shrinking the diameter would move two guests
+                // closer to one another.
                 { "tableRound", WideTall(0.88f, 0.58f) },
-                // Sandalye de masayla ayni oranda: sirtligi 0,92 iken
-                // 0,94 m'lik figurle AYNI boydaydi.
+                // The chair is in the same proportion as the table: with a
+                // 0.92 backrest it was THE SAME height as a 0.94 m figure.
                 { "chairCushion", Tall(0.68f) },
                 { "chair", Tall(0.68f) },
                 { "chairRounded", Tall(0.68f) },
-                // DORTGEN MASA. Dort oturak dort KENARA oturuyor;
-                // altigende ikisi koseye dusuyordu.
+                // A SQUARE TABLE. Four seats sit on four SIDES; on a hexagon
+                // two of them landed on a corner.
                 //
-                // Yukseklik yuvarlak masayla ayni sebepten 0,55:
-                // mobilya gercek olcekte, karakterler yarisinda ve
-                // 0,74'lük bir tabla oturan figurun cenesine geliyordu
-                // (olculdu: bas masanin 0,37 m ustunde, gercekte 0,51).
+                // The height is 0.55 for the same reason as the round table:
+                // the furniture is at real scale, the characters at half of it,
+                // and a 0.74 top came up to a seated figure's chin (measured:
+                // the head 0.37 m above the table against 0.51 in reality).
                 { "table", WideTall(0.82f, 0.58f) },
                 { "tableCloth", Tall(0.76f) },
                 { "tableCrossCloth", Tall(0.76f) },
@@ -116,7 +120,7 @@ namespace Lokanta.EditorTools
                 { "pottedPlant", Tall(0.85f) },
                 { "lampSquareCeiling", Tall(0.40f) },
 
-                // --- mutfak ---
+                // --- kitchen ---
                 { "kitchenFridgeLarge", Tall(1.80f) },
                 { "kitchenFridge", Tall(1.40f) },
                 { "kitchenCabinetUpper", Tall(0.70f) },
@@ -126,22 +130,23 @@ namespace Lokanta.EditorTools
                 { "kitchenBarEnd", Tall(1.10f) },
                 { "bookcaseClosedDoors", Tall(1.80f) },
 
-                // --- yapi ---
-                // KAPI, KARAKTERE GORE.
+                // --- structure ---
+                // THE DOOR, SIZED AGAINST THE CHARACTER.
                 //
-                // 2,10 m gercek bir kapi olcusu ama bu paketin
-                // figurleri 1,10 m; yanlarinda kapi bir zafer takina
-                // donuyordu. Gercek oranda (kapi/insan = 1,17) karsiligi
-                // 1,29 m; 1,45 biraz pay birakiyor ve hala "kapi" diye
-                // okunuyor. Mobilyanin geri kalani gercekci olcude
-                // kaliyor - kapi tek istisna, cunku tek gecilen sey o.
+                // 2.10 m is a real door size, but the figures in this package
+                // are 1.10 m; next to them the door turned into a triumphal
+                // arch. At the real ratio (door/person = 1.17) the equivalent
+                // is 1.29 m; 1.45 leaves a little margin and still reads as a
+                // "door". The rest of the furniture stays at realistic size -
+                // the door is the one exception, because it is the one thing
+                // you walk through.
                 { "doorwayOpen", Tall(1.45f) },
                 { "wallDoorway", Tall(2.60f) },
 
-                // --- yemek ---
-                // Tabak capindan yola cikiliyor: bir hamburger tabaga
-                // sigmali, bir bardak tabaktan kucuk olmali. Hepsine tek
-                // hedef verildiginde yumurta tabak kadar oluyordu.
+                // --- food ---
+                // The plate diameter is the starting point: a burger has to fit
+                // on the plate, a glass has to be smaller than the plate. Given
+                // one single target, the egg came out the size of the plate.
                 { "plate", Wide(0.26f) },
                 { "plate-deep", Wide(0.26f) },
                 { "plate-dinner", Wide(0.26f) },
@@ -167,57 +172,64 @@ namespace Lokanta.EditorTools
                 { "rice-ball", Wide(0.06f) },
             };
 
-        /// <summary>Listede olmayanlar icin klasor varsayilani.</summary>
+        /// <summary>The folder default, for anything not in the list.</summary>
         private static readonly Dictionary<string, Target> FolderTarget =
             new Dictionary<string, Target>
             {
-                { "Mobilya", Tall(0.92f) },
-                // 1,28 m, gercek 1,70 m DEGIL.
+                // The folder keys are the folder names on disk. They used to be
+                // "Mobilya", "Karakter" and "Yemek"; a key left behind by that
+                // rename matches no folder and every model falls back to a
+                // scale of 1.
+                { "Furniture", Tall(0.92f) },
+                // 1.28 m, NOT a real 1.70 m.
                 //
-                // Olculdu: figurler 1,55 m'de bile mobilyanin yaninda dev
-                // duruyordu. Sebep olcek hatasi degil USLUP farki - paketin
-                // figurleri iri kafali (kafa boyun %35'i), mobilya ise
-                // gercekci oranli (sandalye 0,92 x 0,40 m). Iki uslubu
-                // birlestirmenin yolu figuru biraz kucultmek; boyuna degil
-                // HACME bakiliyor.
+                // Measured: even at 1.55 m the figures looked enormous next to
+                // the furniture. The reason is not a scale error but a
+                // difference of STYLE - the package's figures are big-headed
+                // (the head is 35% of the height) while the furniture is
+                // realistically proportioned (a chair 0.92 x 0.40 m). The way
+                // to marry the two styles is to shrink the figure a little; and
+                // what is looked at is not height but BULK.
                 //
-                // 11 Eylul 2026: 1,45 -> 1,28 -> 1,10.
+                // 11 September 2026: 1.45 -> 1.28 -> 1.10.
                 //
-                // Ilk indirimde olcut "figur/sandalye boy orani" idi ve o
-                // olcut YANLIS SORUYU soruyordu: bu paketin figurleri
-                // boylarindan cok ENLERIYLE buyuk (kafa govdenin ucte
-                // biri). Boy orani duzgun gorunurken oturan bir figurun
-                // ayak izi 1,05 x 1,18 m cikiyordu - iki oturak arasi
-                // 0,88 m, yani komsular tanim geregi birbirine giriyordu.
+                // At the first reduction the yardstick was the
+                // "figure/chair height ratio", and that yardstick WAS ASKING THE
+                // WRONG QUESTION: the figures in this package are bigger ACROSS
+                // than they are tall (the head is a third of the body). While
+                // the height ratio looked fine, a seated figure's footprint came
+                // out 1.05 x 1.18 m - against 0.88 m between two seats, so
+                // neighbours were intersecting by definition.
                 //
-                // Dogru olcut, YERLESIM DENETIMI (Editor/PlacementAudit):
-                // sahnedeki her nesnenin gercek pozdaki kutusu ve kesisen
-                // ciftler. 1,45'te 68 cakisan cift vardi; 1,10 + oturak
-                // duzeni + personel araligi ile SIFIR.
+                // The right yardstick is THE PLACEMENT AUDIT
+                // (Editor/PlacementAudit): every object in the scene's box in
+                // its real pose, and the intersecting pairs. At 1.45 there were
+                // 68 clashing pairs; with 1.10 plus the seat arrangement plus
+                // the staff spacing there are NONE.
                 //
-                // 1,10 m ayrica ayri bir goruntuyle dogrulandi
-                // (Editor/FigureShot): tek figur, tek sandalye, 1 m'lik
-                // izgaranin uzerinde, yandan. Figur sandalyeye oturuyor
-                // ve boyu sandalyeyle orantili okunuyor.
-                { "Karakter", Tall(CharacterHeight) },
-                { "Yemek", Wide(0.22f) },
+                // 1.10 m was also confirmed with a separate screenshot
+                // (Editor/FigureShot): one figure, one chair, on a 1 m grid,
+                // from the side. The figure sits on the chair and its height
+                // reads as proportional to the chair.
+                { "Characters", Tall(CharacterHeight) },
+                { "Food", Wide(0.22f) },
             };
 
         /// <summary>
-        /// Klasorun olcegini TEK BIR modelden alan referanslar.
+        /// The references that take a folder's scale from ONE SINGLE model.
         ///
-        /// Karakterlerde sart: her figuru ayri ayri 1,70 m'ye zorlamak,
-        /// saci veya sapkasi yuzunden daha yuksek olculen figuru
-        /// kucultuyor. Sonuc, hepsi ayni boyda ama govdeleri farkli
-        /// olculerde bir kadro. Hepsi ayni carpani kullanirsa paketin
-        /// kendi icindeki boy farklari korunuyor.
+        /// Essential for the characters: forcing each figure to 1.70 m on its
+        /// own shrinks a figure that measures taller because of its hair or its
+        /// hat. The result is a staff who are all the same height but whose
+        /// bodies are different sizes. If they all use the same multiplier, the
+        /// height differences within the package are preserved.
         /// </summary>
         private static readonly Dictionary<string, string> FolderReference =
-            new Dictionary<string, string> { { "Karakter", RefCharacter } };
+            new Dictionary<string, string> { { "Characters", RefCharacter } };
 
         // =====================================================================
-        // Kenney mobilya paleti. Dokusuz bir FBX'in rengi yalnizca
-        // malzemenin ADINDA duruyor.
+        // The Kenney furniture palette. The colour of an untextured FBX lives
+        // only in the material's NAME.
         private static readonly Dictionary<string, Color> Palette =
             new Dictionary<string, Color>
             {
@@ -254,25 +266,26 @@ namespace Lokanta.EditorTools
         }
 
         // =====================================================================
-        [MenuItem("Lokanta/Model prefablarini uret")]
+        [MenuItem("Lokanta/Generate the model prefabs")]
         public static void Run()
         {
             if (!AssetDatabase.IsValidFolder(Art))
             {
-                Debug.LogWarning("Art klasoru yok. 'python tools/art/import_vendor.py' calistir.");
+                Debug.LogWarning("There is no Art folder. Run 'python tools/art/import_vendor.py'.");
                 return;
             }
-            MakeFolder(Art, "Malzeme");
+            MakeFolder(Art, "Materials");
             MakeFolder(Art, "Prefab");
             MakeFolder(Art, "Animator");
             MakeFolder(Art, "Mesh");
             MakeCharactersReadable();
 
             Shader lit = Shader.Find("Universal Render Pipeline/Lit");
-            if (lit == null) { Debug.LogError("URP Lit shader yok."); return; }
+            if (lit == null) { Debug.LogError("There is no URP Lit shader."); return; }
 
-            // Malzemeler ve denetleyici ONCE ve tek seferde kaydediliyor:
-            // prefab bunlara baglanacak, yani diskte olmalilar.
+            // The materials and the controller are saved FIRST and in one go:
+            // the prefab is going to reference them, so they have to be on
+            // disk.
             Dictionary<string, Material> cache = BuildMaterials(lit);
             BuildSpecialMaterials(lit);
             AnimationClip[] clips = FindClips();
@@ -291,7 +304,7 @@ namespace Lokanta.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log(string.Format(
-                "{0} prefab uretildi, {1} URP malzemesi kuruldu, {2} klip baglandi.",
+                "{0} prefabs generated, {1} URP materials set up, {2} clips wired.",
                 made, cache.Count, ClipCount(clips)));
         }
 
@@ -305,79 +318,75 @@ namespace Lokanta.EditorTools
 
         // =====================================================================
         /// <summary>
-        /// Modellerin kullandigi her malzeme adi icin bir URP malzemesi
-        /// kurar.
+        /// TRANSPARENT AND UNLIT MATERIALS - AS ASSETS.
         ///
-        /// Adlar ALT VARLIKLARDAN DEGIL, MODELIN CIZICILERINDEN okunuyor.
-        /// Fark onemli: bir model daha once disaridaki bir malzemeye
-        /// baglandiysa gomulu malzemesi artik yok, LoadAllAssetsAtPath hic
-        /// malzeme bulamiyor ve arac "0 malzeme" deyip geciyordu. Cizici
-        /// her iki durumda da dogru adi veriyor.
-        /// </summary>
-        /// <summary>
-        /// SAYDAM VE ISIKSIZ MALZEMELER - VARLIK OLARAK.
+        /// WHY AN ASSET AND NOT AT RUN TIME:
         ///
-        /// NEDEN VARLIK, NEDEN CALISMA ANINDA DEGIL:
+        /// The walls, the door leaves, the oven glass and the street lamp's
+        /// light pool were built at run time with `new Material(...)` and
+        /// looked right IN THE EDITOR. In a real build they all came out
+        /// OPAQUE: URP DOES NOT PUT the transparent pass's shader variant into
+        /// the build unless some asset references it. The same class of bug had
+        /// already happened with URP/Unlit (the badges).
         ///
-        /// Duvarlar, kapi kanatlari, firin cami ve sokak lambasinin isik
-        /// havuzu calisma aninda `new Material(...)` ile kuruluyordu ve
-        /// EDITORDE dogru goruunuyordu. Gercek yapida hepsi OPAK cikti:
-        /// URP saydam gecisin golgelendirici varyantini, ona basvuran
-        /// bir varlik yoksa yapiya KOYMUYOR. Ayni sinif hata daha once
-        /// URP/Unlit'te yasandi (rozetler).
+        /// Once the material is a .mat asset, Unity collects the variant. These
+        /// are also wired into the scene (BuildGameScene), so they really are
+        /// "referenced" assets.
         ///
-        /// Malzeme bir .mat varligi olunca Unity varyanti topluyor.
-        /// Bunlar ayrica sahneye baglaniyor (BuildGameScene), yani
-        /// gercekten "basvurulan" varliklar.
-        ///
-        /// Bu hata sinifi EDITORDE GORUNMEZ - yalnizca yapida.
+        /// This class of bug IS INVISIBLE IN THE EDITOR - it only shows in a
+        /// build.
         /// </summary>
         private static void BuildSpecialMaterials(Shader lit)
         {
             Shader unlit = Shader.Find("Universal Render Pipeline/Unlit");
 
-            // DUVAR DAHA SILIK: 0,16 -> 0,10.
+            // THE WALL IS FAINTER: 0.16 -> 0.10.
             //
-            // Sahne suslendikce (zemin deseni, hali, sarkit, mobilya
-            // tonu) duvarlarin sutlu beyazi butun salonun uzerine bir
-            // PUS bindiriyordu: alttaki renkler soluyor, oda ayrimi ise
-            // zaten zeminden ve esyadan okunuyor. Duvarin isi siniri
-            // CIZMEK, alani boyamak degil.
+            // As the scene gained decoration (the floor pattern, the rug, the
+            // pendant lamp, the furniture tone) the milky white of the walls
+            // laid a HAZE over the whole hall: the colours underneath washed
+            // out, while the separation between rooms already reads from the
+            // floor and the props. The wall's job is to DRAW a boundary, not to
+            // paint an area.
             //
-            // Not: RestaurantView'de bir "WallColor" alani vardi ve
-            // hicbir yerden okunmuyordu - gercek renk BURADA, cunku
-            // saydam malzeme bir .mat VARLIGI olmak zorunda (docs/37).
-            Transparent(lit, "duvar", new Color(0.74f, 0.78f, 0.86f, 0.10f), 0.10f);
-            Transparent(lit, "kapi", new Color(0.52f, 0.37f, 0.24f, 0.55f), 0.15f);
-            Transparent(lit, "cam", new Color(0.14f, 0.16f, 0.18f, 0.45f), 0.75f);
-            // AKAN SU. Saydam ve parlak.
+            // Note: there was a "WallColor" field on RestaurantView and nothing
+            // read it - the real colour is HERE, because a transparent material
+            // has to be a .mat ASSET (docs/37).
             //
-            // VARLIK olmak ZORUNDA: URP saydam gecisin golgelendirici
-            // varyantini ona basvuran bir varlik yoksa yapiya koymuyor ve
-            // calisma aninda kurulan saydam malzeme cihazda OPAK
-            // ciziliyor - editorde hicbir belirti vermeden. Bu proje o
-            // hatayi duvarlarda bir kez yasadi.
-            Transparent(lit, "su", new Color(0.62f, 0.84f, 0.96f, 0.42f), 0.90f);
-            if (unlit != null) Additive(unlit, "isikhavuzu",
+            // THE NAMES ARE THE ONES ON DISK: custom_wall.mat and so on. They
+            // used to be "ozel_duvar"; a name left behind by that rename
+            // generates a second material that nothing loads.
+            Transparent(lit, "wall", new Color(0.74f, 0.78f, 0.86f, 0.10f), 0.10f);
+            Transparent(lit, "door", new Color(0.52f, 0.37f, 0.24f, 0.55f), 0.15f);
+            Transparent(lit, "glass", new Color(0.14f, 0.16f, 0.18f, 0.45f), 0.75f);
+            // RUNNING WATER. Transparent and glossy.
+            //
+            // It HAS TO be an ASSET: URP does not put the transparent pass's
+            // shader variant into the build unless an asset references it, and
+            // a transparent material built at run time is drawn OPAQUE on the
+            // device - with no symptom at all in the editor. This project hit
+            // that bug once already, with the walls.
+            Transparent(lit, "water", new Color(0.62f, 0.84f, 0.96f, 0.42f), 0.90f);
+            if (unlit != null) Additive(unlit, "lightpool",
                                         new Color(1.00f, 0.80f, 0.45f, 0.55f));
-            // TAVAN ISIGI AYRI BIR VARLIK, property block DEGIL.
+            // THE CEILING LIGHT IS A SEPARATE ASSET, NOT a property block.
             //
-            // Once ayni malzeme bir MaterialPropertyBlock ile
-            // renklendiriliyordu. Iki bedeli vardi: property block yazmak
-            // o cizicileri SRP toplu ciziminin DISINA atiyor (bu proje
-            // bunu bir kez zemin levhalarinda ogrendi) ve tam genislemis
-            // bir restoranda 25 tavan isigi var - hepsi ayri cizim.
+            // The same material used to be tinted with a
+            // MaterialPropertyBlock. That had two costs: writing a property
+            // block throws those renderers OUT of SRP batching (this project
+            // learned that once with the floor slabs), and a fully expanded
+            // restaurant has 25 ceiling lights - every one a separate draw.
             //
-            // Renk sokaktakinden farkli: sokak lambasi sodyum sarisi,
-            // icerisi sicak beyaz ve daha sonuk (sekiz odada onlarca
-            // havuzun toplami zemini beyaza doyuruyordu).
-            if (unlit != null) Additive(unlit, "tavanisigi",
+            // The colour differs from the street's: the street lamp is sodium
+            // yellow, indoors is warm white and fainter (the sum of dozens of
+            // pools across eight rooms was saturating the floor to white).
+            if (unlit != null) Additive(unlit, "ceilinglight",
                                         new Color(1.00f, 0.88f, 0.70f, 0.34f));
         }
 
-        private static Material Transparent(Shader lit, string ad, Color c, float smooth)
+        private static Material Transparent(Shader lit, string name, Color c, float smooth)
         {
-            string path = MatDir + "/ozel_" + ad + ".mat";
+            string path = MatDir + "/custom_" + name + ".mat";
             Material m = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (m == null)
             {
@@ -403,9 +412,9 @@ namespace Lokanta.EditorTools
             return m;
         }
 
-        private static Material Additive(Shader unlit, string ad, Color c)
+        private static Material Additive(Shader unlit, string name, Color c)
         {
-            string path = MatDir + "/ozel_" + ad + ".mat";
+            string path = MatDir + "/custom_" + name + ".mat";
             Material m = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (m == null)
             {
@@ -429,12 +438,11 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Isik havuzunun yumusak daire dokusu - VARLIK olarak.
+        /// The light pool's soft circular texture - AS AN ASSET.
         ///
-        /// Duz renkli bir levha KARE bir isik havuzu veriyor. Doku
-        /// calisma aninda uretilebilir ama o zaman malzeme de calisma
-        /// aninda kurulmak zorunda kalir; varlik olunca ikisi de yapiya
-        /// giriyor.
+        /// A flat-coloured quad gives a SQUARE light pool. The texture could be
+        /// generated at run time, but then the material would have to be built
+        /// at run time too; as assets, both of them go into the build.
         /// </summary>
         private static Texture2D GlowTexture()
         {
@@ -444,7 +452,7 @@ namespace Lokanta.EditorTools
 
             const int N = 64;
             t = new Texture2D(N, N, TextureFormat.RGBA32, false);
-            t.name = "isikhavuzu";
+            t.name = "lightpool";
             t.wrapMode = TextureWrapMode.Clamp;
             t.filterMode = FilterMode.Bilinear;
 
@@ -455,18 +463,19 @@ namespace Lokanta.EditorTools
                     float dx = (x + 0.5f) / N * 2f - 1f;
                     float dy = (y + 0.5f) / N * 2f - 1f;
                     float d = Mathf.Sqrt(dx * dx + dy * dy);
-                    // KENARDA TAMAMEN SIFIR. Ucuncu kuvvet, kare
-                    // olanin aksine kosede gorunur bir artik
-                    // birakmiyor - toplayici harmanlamada o artik
-                    // levhanin KARE oldugunu ele veriyordu.
-                    // SONUM RENGE DE YAZILIYOR, YALNIZCA ALFAYA DEGIL.
+                    // COMPLETELY ZERO AT THE EDGE. Unlike a square falloff,
+                    // the cubic leaves no visible residue in the corner - under
+                    // additive blending that residue gave away that the quad
+                    // was SQUARE.
+                    // THE FALLOFF IS WRITTEN INTO THE COLOUR TOO, NOT JUST THE
+                    // ALPHA.
                     //
-                    // Alfa tek basina ise yaramadi: levha kenarindan
-                    // sonmeden kare bir yama olarak ciziliyordu.
-                    // TOPLAYICI harmanlamada (SrcAlpha + One) katki
-                    // src.rgb * src.a; rengi de sondurunce kenar,
-                    // alfanin nasil ele alindigindan BAGIMSIZ olarak
-                    // siyaha gidiyor ve siyah hicbir sey eklemiyor.
+                    // Alpha alone did not work: the quad was drawn as a square
+                    // patch without fading at its edge. Under ADDITIVE blending
+                    // (SrcAlpha + One) the contribution is src.rgb * src.a; once
+                    // the colour is faded as well, the edge goes to black
+                    // REGARDLESS of how the alpha is handled, and black adds
+                    // nothing.
                     float a = Mathf.Clamp01(1f - d);
                     a = a * a;
                     byte v = (byte)(a * 255f);
@@ -526,11 +535,11 @@ namespace Lokanta.EditorTools
                     else
                     {
                         m.SetColor("_BaseColor", Hex(0xB9B2A6));
-                        Debug.LogWarning("Palette yok: " + key);
+                        Debug.LogWarning("No palette entry: " + key);
                     }
 
-                    // Parlaklik dusuk: dusuk poligonlu bir salonda parlak
-                    // yuzeyler yuzey kirilmalarini abartiyor.
+                    // Low smoothness: in a low-poly hall glossy surfaces
+                    // exaggerate the faceting.
                     m.SetFloat("_Smoothness", 0.10f);
                     m.SetFloat("_Metallic", 0f);
                     EditorUtility.SetDirty(m);
@@ -542,41 +551,38 @@ namespace Lokanta.EditorTools
 
         // =====================================================================
         /// <summary>
-        /// Referans figurun kliplerini bulur. Figure.Pose sirasinda
-        /// donuyor; bulunamayan yerde null kaliyor.
-        /// </summary>
-        /// <summary>
-        /// KLIPLERI DONGUYE ALIR.
+        /// PUTS THE CLIPS ON A LOOP.
         ///
-        /// Kullanicinin iki ayri sikayeti TEK sebepten geliyordu:
-        /// "karakterler adim atmiyor, zemin uzerinde kayiyor gibiler" ve
-        /// "asci yemekleri karistirmiyor, bulasikci ovalamiyor".
+        /// The user's two separate complaints came from ONE cause: "the
+        /// characters do not take steps, they look like they are sliding over
+        /// the floor" and "the cook does not stir the food, the dishwasher does
+        /// not scrub".
         ///
-        /// Klipler FBX'ten `clipAnimations: []` ile geliyordu, yani
-        /// Unity'nin varsayilan ice aktarma ayarlariyla - ve orada
-        /// loopTime KAPALI. Bir klip bir kez oynayip SON KARESINDE
-        /// donuyor:
+        /// The clips arrived from the FBX with `clipAnimations: []`, that is,
+        /// with Unity's default import settings - and there loopTime is OFF. A
+        /// clip plays once and then FREEZES ON ITS LAST FRAME:
         ///
-        ///   - yuruyus klibi ~1 saniye; figur dokuz saniye yuruyorsa
-        ///     sekiz saniye boyunca donmus bacaklarla KAYIYOR,
-        ///   - dograma klibi bir kez iniyor ve satir havada kaliyor,
-        ///   - yikama klibi bir kez ugrasip duruyor.
+        ///   - the walk clip is ~1 second; if a figure walks for nine seconds
+        ///     it SLIDES for eight of them on frozen legs,
+        ///   - the chopping clip comes down once and the cleaver stays in
+        ///     mid-air,
+        ///   - the washing clip scrubs once and stops.
         ///
-        /// Animator'un acik kalmasi (HoldAwake) bu sorunu cozmuyordu -
-        /// "animator calisiyor" ile "klip donguye giriyor" ayri iki sey.
-        /// Kod tarafinda aylarca aranan seyin cevabi ICE AKTARMA
-        /// ayarindaydi.
+        /// Keeping the animator awake (HoldAwake) did not fix this - "the
+        /// animator is running" and "the clip loops" are two different things.
+        /// The answer to something hunted for months on the code side was in an
+        /// IMPORT setting.
         ///
-        /// Yalnizca KULLANDIGIMIZ klipler donguye aliniyor; paketin
-        /// otuz iki klibinin geri kalanina dokunulmuyor.
+        /// Only the clips WE USE are put on a loop; the rest of the package's
+        /// thirty-two clips are left alone.
         /// </summary>
         private static void LoopClips()
         {
-            string path = Art + "/Karakter/" + RefCharacter + ".fbx";
+            string path = Art + "/Characters/" + RefCharacter + ".fbx";
             ModelImporter mi = AssetImporter.GetAtPath(path) as ModelImporter;
             if (mi == null)
             {
-                Debug.LogWarning("Ice aktarici yok: " + path);
+                Debug.LogWarning("No importer: " + path);
                 return;
             }
 
@@ -584,40 +590,44 @@ namespace Lokanta.EditorTools
             if (defs == null || defs.Length == 0) defs = mi.defaultClipAnimations;
             if (defs == null || defs.Length == 0)
             {
-                Debug.LogWarning("Klip tanimi yok: " + path);
+                Debug.LogWarning("No clip definitions: " + path);
                 return;
             }
 
-            int donen = 0;
+            int looped = 0;
             for (int i = 0; i < defs.Length; i++)
             {
-                bool bizim = false;
+                bool ours = false;
                 for (int k = 0; k < Figure.ClipNames.Length; k++)
-                    if (defs[i].name == Figure.ClipNames[k]) { bizim = true; break; }
-                if (!bizim) continue;
+                    if (defs[i].name == Figure.ClipNames[k]) { ours = true; break; }
+                if (!ours) continue;
 
-                if (defs[i].loopTime) { donen++; continue; }
+                if (defs[i].loopTime) { looped++; continue; }
                 defs[i].loopTime = true;
                 defs[i].loopPose = true;
-                donen++;
+                looped++;
             }
 
             mi.clipAnimations = defs;
             mi.SaveAndReimport();
-            Debug.Log("  klip dongusu: " + donen + " klip donguye alindi ("
-                      + Figure.ClipNames.Length + " isteniyor)");
+            Debug.Log("  clip looping: " + looped + " clips put on a loop ("
+                      + Figure.ClipNames.Length + " wanted)");
         }
 
+        /// <summary>
+        /// Finds the reference figure's clips. They come back in Figure.Pose
+        /// order; where one is not found the slot stays null.
+        /// </summary>
         private static AnimationClip[] FindClips()
         {
             LoopClips();
-            string path = Art + "/Karakter/" + RefCharacter + ".fbx";
+            string path = Art + "/Characters/" + RefCharacter + ".fbx";
             AnimationClip[] found = new AnimationClip[Figure.ClipNames.Length];
 
             Object[] all = AssetDatabase.LoadAllAssetsAtPath(path);
             if (all == null || all.Length == 0)
             {
-                Debug.LogWarning("Referans figur yok: " + path);
+                Debug.LogWarning("No reference figure: " + path);
                 return found;
             }
 
@@ -631,19 +641,19 @@ namespace Lokanta.EditorTools
 
             for (int i = 0; i < found.Length; i++)
                 if (found[i] == null)
-                    Debug.LogWarning("Klip bulunamadi: " + Figure.ClipNames[i]);
+                    Debug.LogWarning("Clip not found: " + Figure.ClipNames[i]);
             return found;
         }
 
         /// <summary>
-        /// Tek bir denetleyici: her durus bir durum, gecisler kodda
-        /// CrossFade ile yapiliyor.
+        /// A single controller: every pose is a state, and the transitions are
+        /// done in code with CrossFade.
         ///
-        /// Kosul ve parametre YOK. Once "durum" adinda bir tamsayi
-        /// parametresi ve Any State gecisleri dusunuldu; bes durus icin
-        /// bes gecis ve bes kosul, hepsi CrossFade'in zaten yaptigi seyi
-        /// yapmak icin. Ada gore CrossFade cagirmak ayni isi tek satirda
-        /// goruyor ve denetleyici okunur kaliyor.
+        /// NO conditions and NO parameters. An integer parameter called "state"
+        /// plus Any State transitions was considered first; five transitions
+        /// and five conditions for five poses, all to do what CrossFade already
+        /// does. Calling CrossFade by name does the same job in one line and
+        /// leaves the controller readable.
         /// </summary>
         private static AnimatorController BuildController(AnimationClip[] clips)
         {
@@ -668,7 +678,7 @@ namespace Lokanta.EditorTools
         }
 
         // =====================================================================
-        /// <summary>Referansi olan klasorler icin tek bir olcek hesaplar.</summary>
+        /// <summary>Works out a single scale for the folders that have a reference.</summary>
         private static Dictionary<string, float> ReferenceScales()
         {
             Dictionary<string, float> scales = new Dictionary<string, float>();
@@ -677,7 +687,7 @@ namespace Lokanta.EditorTools
             {
                 string path = Art + "/" + kv.Key + "/" + kv.Value + ".fbx";
                 GameObject src = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (src == null) { Debug.LogWarning("Referans yok: " + path); continue; }
+                if (src == null) { Debug.LogWarning("No reference: " + path); continue; }
 
                 GameObject tmp = Object.Instantiate(src);
                 tmp.transform.position = Vector3.zero;
@@ -690,8 +700,8 @@ namespace Lokanta.EditorTools
 
                 scales[kv.Key] = s;
                 Debug.Log(string.Format(
-                    "  {0} klasoru {1} referansiyla olceklendi: {2:0.000}"
-                    + "   (olculen {3:0.00} x {4:0.00} x {5:0.00} m)",
+                    "  the {0} folder was scaled from the reference {1}: {2:0.000}"
+                    + "   (measured {3:0.00} x {4:0.00} x {5:0.00} m)",
                     kv.Key, kv.Value, s, b.size.x, b.size.y, b.size.z));
             }
             return scales;
@@ -706,15 +716,15 @@ namespace Lokanta.EditorTools
 
             string folder = FolderOf(modelPath);
             string name = Path.GetFileNameWithoutExtension(modelPath);
-            bool character = folder == "Karakter";
+            bool character = folder == "Characters";
 
-            // Modelin ICINE degil, USTUNE bir kok konuyor.
+            // A root is put ON TOP OF the model, not INSIDE it.
             //
-            // Sebep olcum: bazi modellerin donme noktasi govdenin
-            // ortasinda - yuvarlak masa 0,32 m zemine gomuluyordu. Tabana
-            // oturtmak icin modeli kaydirmak gerekiyor, ama kokun kendisi
-            // kaydirilamaz: yerlestirme onu kullaniyor. Ayri bir kok ikisini
-            // birbirinden ayiriyor.
+            // The reason is measurement: some models have their pivot in the
+            // middle of the body - the round table was sinking 0.32 m into the
+            // floor. To sit it on its base the model has to be shifted, but the
+            // root itself cannot be shifted: the placement uses it. A separate
+            // root keeps the two apart.
             GameObject root = new GameObject(name);
             GameObject model = Object.Instantiate(source);
             model.name = "model";
@@ -735,9 +745,9 @@ namespace Lokanta.EditorTools
 
             model.transform.localScale = new Vector3(scale, scaleY, scale);
 
-            // Yatayda ortalama YALNIZCA esyada. Karakterlerde baglanma
-            // durusu asimetrik olabiliyor (bir figurun eli bir sey
-            // tutuyor) ve ortalamak govdeyi sandalyeden kaydiriyor.
+            // Centring horizontally applies to PROPS ONLY. On a character the
+            // bind pose can be asymmetric (a figure's hand holding something)
+            // and centring shifts the body off the chair.
             model.transform.localPosition = new Vector3(
                 character ? 0f : -b.center.x * scale,
                 -b.min.y * scaleY,
@@ -757,10 +767,10 @@ namespace Lokanta.EditorTools
                 }
                 r.sharedMaterials = mats;
 
-                // Golgeyi yalnizca insanlar veriyor. Kucuk esyalarin golgesi
-                // kat planini kirletiyor ve 34 derecelik bakista bir
-                // sandalyenin golgesi zaten okunmuyor; mobilde de her golge
-                // veren nesne ayri bir cizim demek.
+                // Only people cast a shadow. Small props' shadows dirty the
+                // floor plan and at a 34 degree view a chair's shadow does not
+                // read anyway; and on mobile every shadow caster means another
+                // draw.
                 r.shadowCastingMode = character
                     ? UnityEngine.Rendering.ShadowCastingMode.On
                     : UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -769,7 +779,7 @@ namespace Lokanta.EditorTools
             if (character) Animate(model, ctrl, clips);
 
             Debug.Log(string.Format(
-                "  {0,-24} {1:0.00} x {2:0.00} x {3:0.00} m  ->  olcek {4:0.000}"
+                "  {0,-24} {1:0.00} x {2:0.00} x {3:0.00} m  ->  scale {4:0.000}"
                 + "  ({5:0.00} x {6:0.00} x {7:0.00} m)",
                 name, b.size.x, b.size.y, b.size.z, scale,
                 b.size.x * scale, b.size.y * scaleY, b.size.z * scale));
@@ -782,27 +792,28 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Karakterin boyu (m). Yerlesim denetimi de BURADAN soruyor:
-        /// sayiyi iki yere yazmak, birinin eskimesi demek - denetim
-        /// uzun sure "hedef 1,28" diye yazdi, hedef coktan degismisti.
+        /// The character's height (m). The placement audit asks FROM HERE too:
+        /// writing the number in two places means one of them goes stale - the
+        /// audit printed "target 1.28" for a long time after the target had
+        /// already changed.
         /// </summary>
         public const float CharacterHeight = 1.00f;
 
-        /// <summary>Kafanin govdeye orani. 1 = paketin kendi orani.</summary>
+        /// <summary>The head's proportion to the body. 1 = the package's own.</summary>
         private const float HeadScale = 0.80f;
 
         /// <summary>
-        /// Kafa kemigini kucultur.
+        /// Shrinks the head bone.
         ///
-        /// Butun figuru kucultmek yerine: olculdu, figurler mobilyaya
-        /// gore zaten gercegin yarisi kadar (ayakta 0,94 m, sandalye
-        /// sirtligi 0,92 m; gercek oran 1,9). Buyuk duran sey kafa -
-        /// govdenin %36'si, gercek insanda %13.
+        /// Instead of shrinking the whole figure: it was measured, and against
+        /// the furniture the figures are already at half of reality (0.94 m
+        /// standing, a 0.92 m chair back; the real ratio is 1.9). What looks
+        /// big is the head - 36% of the body, against 13% on a real person.
         ///
-        /// Kemik olcegi derili mesh'e tasiniyor, yani yalnizca ona
-        /// bagli koseler kuculuyor: govde, kollar ve bacaklar
-        /// degismiyor. Sapka ve sac kafa kemigine bagli oldugu icin
-        /// onlar da birlikte kuculuyor - ayri ayri ele almak gerekmiyor.
+        /// The bone's scale carries into the skinned mesh, so only the vertices
+        /// bound to it shrink: the body, the arms and the legs are unchanged.
+        /// Because hats and hair are bound to the head bone they shrink with
+        /// it - no need to handle them separately.
         /// </summary>
         private static void ShrinkHead(GameObject model)
         {
@@ -812,74 +823,76 @@ namespace Lokanta.EditorTools
                 t.localScale = t.localScale * HeadScale;
                 return;
             }
-            Debug.LogWarning("head kemigi bulunamadi: " + model.name);
+            Debug.LogWarning("the head bone was not found: " + model.name);
         }
 
         // =====================================================================
-        // DIZ KEMIGI.
+        // THE KNEE BONE.
         //
-        // Paketin iskeletinde bacak basina TEK kemik var (root, leg-left,
-        // leg-right, torso, arm-left, arm-right, head) - yani bacak
-        // dizden kirilamiyor. Sandalyede bunun bedeli olculdu: kalca
-        // minderin ustunde duracaksa, kalcadan asagi inen tek parca
-        // bacak minderin icinden gecmek ZORUNDA. Paketin kendi oturma
-        // klibi bu yuzden uylugu yatay tutuyor ve ayaklar one uzaniyor -
-        // "sandalyede oturan insan" degil "yere bagdas kurmus insan".
+        // The package's skeleton has ONE bone per leg (root, leg-left,
+        // leg-right, torso, arm-left, arm-right, head) - which means the leg
+        // cannot bend at the knee. The price of that was measured on a chair:
+        // if the hip is to sit on the cushion, a single-piece leg coming down
+        // from the hip HAS TO pass through the cushion. That is why the
+        // package's own sitting clip holds the thigh horizontal with the feet
+        // stretched forward - not "a person sitting on a chair" but "a person
+        // sitting cross-legged on the floor".
         //
-        // Cozum kemigi EKLEMEK. Bacak agi buna elverisli: bacak boyunca
-        // 22 ayri kose seviyesi var, yani yeni kemik gercekten bukuyor,
-        // kutuyu carpitmiyor.
+        // The fix is to ADD a bone. The leg mesh allows it: there are 22
+        // distinct vertex levels along the leg, so the new bone really bends
+        // rather than just skewing the box.
         //
-        // NEDEN URETIM HATTINDA: tek seferlik bir duzenleme bir sonraki
-        // "Model prefablarini uret" calismasinda silinirdi. Prefab
-        // uretimi bu projede tek dogruluk kaynagi.
+        // WHY IN THE PIPELINE: a one-off edit would be wiped by the next run of
+        // "Generate the model prefabs". Prefab generation is the single source
+        // of truth on this project.
         // =====================================================================
 
-        /// <summary>Diz kemiginin adi. Figure de bunu ariyor.</summary>
+        /// <summary>The knee bone's name. Figure looks for this too.</summary>
         public const string KneeLeft = "knee-left";
 
-        /// <summary>Diz kemiginin adi. Figure de bunu ariyor.</summary>
+        /// <summary>The knee bone's name. Figure looks for this too.</summary>
         public const string KneeRight = "knee-right";
 
         private static readonly string[] LegBones = { "leg-left", "leg-right" };
         private static readonly string[] KneeBones = { KneeLeft, KneeRight };
 
         /// <summary>
-        /// Karakter modellerinde mesh okumayi acar.
+        /// Turns on mesh reading for the character models.
         ///
-        /// Agirlik ve kose okunmadan yeniden agirliklandirma yapilamaz
-        /// ve paket varsayilan olarak KAPALI geliyor (isReadable: 0) -
-        /// ilk denemede .vertices bos dondu ve sebebi buydu.
+        /// Without reading the weights and the vertices no reweighting is
+        /// possible, and the package arrives with it OFF by default
+        /// (isReadable: 0) - on the first attempt .vertices came back empty and
+        /// that was why.
         ///
-        /// Bedeli: mesh verisinin bir kopyasi bellekte kaliyor. 771
-        /// koseli bir figur icin olculemez; yalnizca Karakter klasoru
-        /// aciliyor, mobilya kapali kaliyor.
+        /// The cost: a copy of the mesh data stays in memory. For a 771-vertex
+        /// figure that is immeasurable; only the Characters folder is turned
+        /// on, the furniture stays off.
         /// </summary>
         private static void MakeCharactersReadable()
         {
-            int acilan = 0;
+            int opened = 0;
             foreach (string g in AssetDatabase.FindAssets(
-                         "t:Model", new[] { Art + "/Karakter" }))
+                         "t:Model", new[] { Art + "/Characters" }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(g);
                 ModelImporter mi = AssetImporter.GetAtPath(path) as ModelImporter;
                 if (mi == null || mi.isReadable) continue;
                 mi.isReadable = true;
                 mi.SaveAndReimport();
-                acilan++;
+                opened++;
             }
-            if (acilan > 0) Debug.Log("  mesh okuma acildi: " + acilan + " karakter");
+            if (opened > 0) Debug.Log("  mesh reading turned on: " + opened + " characters");
         }
 
         /// <summary>
-        /// Her bacaga bir diz kemigi ekler ve diz altindaki koseleri ona
-        /// baglar.
+        /// Adds a knee bone to each leg and binds the vertices below the knee
+        /// to it.
         ///
-        /// AYIRMA DUZLEMI iki kose halkasinin ARASINDAN geciyor, halkanin
-        /// uzerinden degil: halkanin uzerinden gecerse duz golgeli bir
-        /// modelde ayni noktada duran iki kose farkli kemige duser ve
-        /// yuzey ACILIR. Aralarindan gecince yalnizca TEK bir dortgen
-        /// geriliyor - low-poly bir dizin istedigi tam olarak bu.
+        /// THE SPLIT PLANE passes BETWEEN two rings of vertices, not through
+        /// one: if it went through a ring, on a flat-shaded model two vertices
+        /// at the same point would fall to different bones and the surface
+        /// would SPLIT OPEN. Passing between them stretches only ONE quad -
+        /// which is exactly what a low-poly knee wants.
         /// </summary>
         private static void AddKnees(GameObject model, string name)
         {
@@ -890,7 +903,7 @@ namespace Lokanta.EditorTools
                 if (src == null) continue;
                 if (!src.isReadable)
                 {
-                    Debug.LogWarning("Mesh okunamiyor, diz eklenemedi: " + name);
+                    Debug.LogWarning("The mesh cannot be read, no knee was added: " + name);
                     continue;
                 }
 
@@ -898,126 +911,127 @@ namespace Lokanta.EditorTools
                 if (BoneIndex(bones, KneeLeft) >= 0) continue;
 
                 int[] leg = new int[2];
-                bool tamam = true;
+                bool ok = true;
                 for (int i = 0; i < 2; i++)
                 {
                     leg[i] = BoneIndex(bones, LegBones[i]);
-                    if (leg[i] < 0) tamam = false;
+                    if (leg[i] < 0) ok = false;
                 }
-                if (!tamam) continue;
+                if (!ok) continue;
 
                 Vector3[] verts = src.vertices;
                 BoneWeight[] w = src.boneWeights;
                 Matrix4x4[] binds = src.bindposes;
                 if (w.Length != verts.Length || binds.Length != bones.Length) continue;
 
-                List<Transform> yeniKemik = new List<Transform>(bones);
-                List<Matrix4x4> yeniBind = new List<Matrix4x4>(binds);
+                List<Transform> newBones = new List<Transform>(bones);
+                List<Matrix4x4> newBinds = new List<Matrix4x4>(binds);
 
-                // FORMULU MODELIN KENDI MATRISIYLE SINA.
+                // TEST THE FORMULA AGAINST THE MODEL'S OWN MATRIX.
                 //
-                // Yeni kemigin baglanma matrisi elle kuruluyor ve yanlis
-                // kurulursa mesh SESSIZCE kayiyor - yerlesim denetimi
-                // figuru 0,90 m olctu, hedef 1,00 idi. Ayni formul
-                // paketin KENDI bacak kemigine uygulanip modelin
-                // getirdigi matrisle karsilastiriliyor: tutmuyorsa
-                // formul yanlis, uretilen kemik de yanlis olurdu.
+                // The new bone's bind matrix is built by hand, and if it is
+                // built wrongly the mesh shifts SILENTLY - the placement audit
+                // measured the figure at 0.90 m against a target of 1.00. The
+                // same formula is applied to the package's OWN leg bone and
+                // compared with the matrix the model shipped: if they do not
+                // agree the formula is wrong, and so would the generated bone
+                // be.
                 {
-                    Matrix4x4 sinama = bones[leg[0]].worldToLocalMatrix
-                                       * smr.transform.localToWorldMatrix;
-                    float enBuyuk = 0f;
+                    Matrix4x4 trial = bones[leg[0]].worldToLocalMatrix
+                                      * smr.transform.localToWorldMatrix;
+                    float worst = 0f;
                     for (int e = 0; e < 16; e++)
-                        enBuyuk = Mathf.Max(enBuyuk,
-                                            Mathf.Abs(sinama[e] - binds[leg[0]][e]));
-                    if (enBuyuk > 0.001f)
-                        Debug.LogWarning("DIZ baglanma matrisi sinamasi: sapma "
-                                         + enBuyuk.ToString("0.0000") + " (" + name + ")");
+                        worst = Mathf.Max(worst,
+                                          Mathf.Abs(trial[e] - binds[leg[0]][e]));
+                    if (worst > 0.001f)
+                        Debug.LogWarning("KNEE bind matrix test: deviation "
+                                         + worst.ToString("0.0000") + " (" + name + ")");
                     else
-                        Debug.Log("  DIZ baglanma matrisi sinamasi TAMAM (" + name + ")");
+                        Debug.Log("  KNEE bind matrix test PASSED (" + name + ")");
                 }
 
-                for (int i = 0; i < 2 && tamam; i++)
+                for (int i = 0; i < 2 && ok; i++)
                 {
-                    float duzlem = KneePlane(verts, w, leg[i]);
-                    if (float.IsNaN(duzlem)) { tamam = false; break; }
+                    float plane = KneePlane(verts, w, leg[i]);
+                    if (float.IsNaN(plane)) { ok = false; break; }
 
-                    Transform diz = NewBone(bones[leg[i]], KneeBones[i], duzlem, smr);
-                    int dizIndex = yeniKemik.Count;
-                    yeniKemik.Add(diz);
-                    yeniBind.Add(diz.worldToLocalMatrix * smr.transform.localToWorldMatrix);
+                    Transform knee = NewBone(bones[leg[i]], KneeBones[i], plane, smr);
+                    int kneeIndex = newBones.Count;
+                    newBones.Add(knee);
+                    newBinds.Add(knee.worldToLocalMatrix * smr.transform.localToWorldMatrix);
 
-                    int tasinan = 0;
+                    int moved = 0;
                     for (int v = 0; v < verts.Length; v++)
                     {
-                        if (verts[v].y >= duzlem) continue;
+                        if (verts[v].y >= plane) continue;
                         BoneWeight bw = w[v];
-                        if (Influences(bw, leg[i])) tasinan++;
-                        if (bw.boneIndex0 == leg[i]) bw.boneIndex0 = dizIndex;
-                        if (bw.boneIndex1 == leg[i]) bw.boneIndex1 = dizIndex;
-                        if (bw.boneIndex2 == leg[i]) bw.boneIndex2 = dizIndex;
-                        if (bw.boneIndex3 == leg[i]) bw.boneIndex3 = dizIndex;
+                        if (Influences(bw, leg[i])) moved++;
+                        if (bw.boneIndex0 == leg[i]) bw.boneIndex0 = kneeIndex;
+                        if (bw.boneIndex1 == leg[i]) bw.boneIndex1 = kneeIndex;
+                        if (bw.boneIndex2 == leg[i]) bw.boneIndex2 = kneeIndex;
+                        if (bw.boneIndex3 == leg[i]) bw.boneIndex3 = kneeIndex;
                         w[v] = bw;
                     }
-                    Debug.Log("  DIZ " + name + " " + KneeBones[i] + ": duzlem y "
-                        + duzlem.ToString("0.0000") + " (bacak " + LegSpan(verts, w, leg[i])
-                        + "), " + tasinan + " kose tasindi");
+                    Debug.Log("  KNEE " + name + " " + KneeBones[i] + ": plane y "
+                        + plane.ToString("0.0000") + " (leg " + LegSpan(verts, w, leg[i])
+                        + "), " + moved + " vertices moved");
                 }
-                if (!tamam) continue;
+                if (!ok) continue;
 
-                // Mesh KOPYASI: paketin varligi degistirilmiyor, ve
-                // prefab'in baglanabilmesi icin diskte bir varlik olmali.
-                Mesh kopya = Object.Instantiate(src);
-                kopya.name = src.name;
-                kopya.boneWeights = w;
-                kopya.bindposes = yeniBind.ToArray();
+                // A COPY of the mesh: the package's asset is not modified, and
+                // there has to be an asset on disk for the prefab to reference.
+                Mesh copy = Object.Instantiate(src);
+                copy.name = src.name;
+                copy.boneWeights = w;
+                copy.bindposes = newBinds.ToArray();
 
                 string mp = Art + "/Mesh/" + name + "-" + src.name + ".asset";
                 AssetDatabase.DeleteAsset(mp);
-                AssetDatabase.CreateAsset(kopya, mp);
+                AssetDatabase.CreateAsset(copy, mp);
 
-                smr.sharedMesh = kopya;
-                smr.bones = yeniKemik.ToArray();
+                smr.sharedMesh = copy;
+                smr.bones = newBones.ToArray();
             }
         }
 
         /// <summary>
-        /// Dizin yuksekligi (mesh uzayi). Bacagin kendi koselerinin
-        /// ortasina en yakin IKI HALKANIN ARASI.
+        /// The knee's height (in mesh space). THE GAP BETWEEN THE TWO RINGS
+        /// nearest the middle of the leg's own vertices.
         /// </summary>
         private static float KneePlane(Vector3[] verts, BoneWeight[] w, int leg)
         {
-            List<float> seviye = new List<float>();
-            float enAlt = float.MaxValue, enUst = float.MinValue;
+            List<float> levels = new List<float>();
+            float lowest = float.MaxValue, highest = float.MinValue;
             for (int v = 0; v < verts.Length; v++)
             {
                 if (!Influences(w[v], leg)) continue;
                 float y = verts[v].y;
-                if (y < enAlt) enAlt = y;
-                if (y > enUst) enUst = y;
+                if (y < lowest) lowest = y;
+                if (y > highest) highest = y;
 
-                bool yeni = true;
-                for (int j = 0; j < seviye.Count; j++)
-                    if (Mathf.Abs(seviye[j] - y) < 0.0005f) { yeni = false; break; }
-                if (yeni) seviye.Add(y);
+                bool isNew = true;
+                for (int j = 0; j < levels.Count; j++)
+                    if (Mathf.Abs(levels[j] - y) < 0.0005f) { isNew = false; break; }
+                if (isNew) levels.Add(y);
             }
-            if (seviye.Count < 3) return float.NaN;
+            if (levels.Count < 3) return float.NaN;
 
-            seviye.Sort();
-            float orta = (enAlt + enUst) * 0.5f;
+            levels.Sort();
+            float middle = (lowest + highest) * 0.5f;
 
-            float alt = seviye[0], ust = seviye[seviye.Count - 1];
-            for (int j = 0; j < seviye.Count - 1; j++)
-                if (seviye[j] <= orta && seviye[j + 1] >= orta)
+            float below = levels[0], above = levels[levels.Count - 1];
+            for (int j = 0; j < levels.Count - 1; j++)
+                if (levels[j] <= middle && levels[j + 1] >= middle)
                 {
-                    alt = seviye[j];
-                    ust = seviye[j + 1];
+                    below = levels[j];
+                    above = levels[j + 1];
                     break;
                 }
-            return (alt + ust) * 0.5f;
+            return (below + above) * 0.5f;
         }
 
-        /// <summary>Bacak koselerinin y araligi. Duzlemin dogru yerde
-        /// olup olmadigi ancak buna gore soylenebilir.</summary>
+        /// <summary>The y range of the leg's vertices. Only against this can
+        /// you tell whether the plane is in the right place.</summary>
         private static string LegSpan(Vector3[] verts, BoneWeight[] w, int leg)
         {
             float a = float.MaxValue, b = float.MinValue;
@@ -1029,7 +1043,7 @@ namespace Lokanta.EditorTools
                 if (verts[v].y < a) a = verts[v].y;
                 if (verts[v].y > b) b = verts[v].y;
             }
-            return a.ToString("0.000") + ".." + b.ToString("0.000") + " / " + n + " kose";
+            return a.ToString("0.000") + ".." + b.ToString("0.000") + " / " + n + " vertices";
         }
 
         private static bool Influences(BoneWeight bw, int bone)
@@ -1040,83 +1054,84 @@ namespace Lokanta.EditorTools
                 || (bw.boneIndex3 == bone && bw.weight3 > 0.01f);
         }
 
-        private static int BoneIndex(Transform[] bones, string ad)
+        private static int BoneIndex(Transform[] bones, string name)
         {
             for (int i = 0; i < bones.Length; i++)
-                if (bones[i] != null && bones[i].name == ad) return i;
+                if (bones[i] != null && bones[i].name == name) return i;
             return -1;
         }
 
         /// <summary>
-        /// Diz kemigi: bacagin cocugu, ayirma duzleminin yuksekliginde,
-        /// bacakla AYNI yone bakiyor.
+        /// The knee bone: a child of the leg, at the height of the split
+        /// plane, facing THE SAME way as the leg.
         ///
-        /// Ayni yone bakmasi onemli: Figure dizin dinlenme acisini
-        /// figure gore saklayip oturuşta geri yaziyor. Kemigin kendi
-        /// eksenlerinin nereye baktigini bilmek gerekmiyor.
+        /// Facing the same way matters: Figure stores the knee's rest angle
+        /// relative to the figure and writes it back when sitting. There is no
+        /// need to know where the bone's own axes point.
         /// </summary>
-        private static Transform NewBone(Transform bacak, string ad, float duzlemY,
+        private static Transform NewBone(Transform leg, string name, float planeY,
                                          SkinnedMeshRenderer smr)
         {
-            GameObject go = new GameObject(ad);
-            go.transform.SetParent(bacak, false);
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(leg, false);
 
-            Vector3 bacakMesh = smr.transform.InverseTransformPoint(bacak.position);
+            Vector3 legInMesh = smr.transform.InverseTransformPoint(leg.position);
             go.transform.position = smr.transform.TransformPoint(
-                new Vector3(bacakMesh.x, duzlemY, bacakMesh.z));
-            go.transform.rotation = bacak.rotation;
+                new Vector3(legInMesh.x, planeY, legInMesh.z));
+            go.transform.rotation = leg.rotation;
             return go.transform;
         }
 
         /// <summary>
-        /// Bacak kemiklerini ve BAGLANMA acilarini prefab'a yazar.
+        /// Writes the leg bones and their BIND angles into the prefab.
         ///
-        /// Buradan yazilmasinin sebebi zamanlama: model su anda
-        /// kesinlikle baglanma durusunda (bacaklar asagi). Calisma
-        /// aninda okumaya calismak, klibin coktan degistirdigi bir pozu
-        /// "baglanma acisi" sanmak demekti ve tam o oldu - baldir
-        /// asagiya degil uylugun yonune gidiyordu.
+        /// The reason it is written here is timing: right now the model is
+        /// definitely in the bind pose (legs down). Trying to read it at run
+        /// time meant mistaking a pose the clip had already changed for the
+        /// "bind angle" - and that is exactly what happened: the shin was going
+        /// in the direction of the thigh instead of downwards.
         /// </summary>
         private static void BindLegs(GameObject model, Figure f)
         {
-            List<Transform> uyluk = new List<Transform>();
-            List<Transform> baldir = new List<Transform>();
+            List<Transform> thighs = new List<Transform>();
+            List<Transform> shins = new List<Transform>();
             foreach (Transform t in model.GetComponentsInChildren<Transform>(true))
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    if (t.name == LegBones[i]) uyluk.Add(t);
-                    else if (t.name == KneeBones[i]) baldir.Add(t);
+                    if (t.name == LegBones[i]) thighs.Add(t);
+                    else if (t.name == KneeBones[i]) shins.Add(t);
                 }
             }
 
-            Quaternion kokTers = Quaternion.Inverse(model.transform.rotation);
-            f.Legs = uyluk.ToArray();
+            Quaternion invRoot = Quaternion.Inverse(model.transform.rotation);
+            f.Legs = thighs.ToArray();
             f.LegRest = new Quaternion[f.Legs.Length];
             for (int i = 0; i < f.Legs.Length; i++)
-                f.LegRest[i] = kokTers * f.Legs[i].rotation;
+                f.LegRest[i] = invRoot * f.Legs[i].rotation;
 
-            f.Knees = baldir.ToArray();
+            f.Knees = shins.ToArray();
             f.KneeRest = new Quaternion[f.Knees.Length];
             for (int i = 0; i < f.Knees.Length; i++)
-                f.KneeRest[i] = kokTers * f.Knees[i].rotation;
+                f.KneeRest[i] = invRoot * f.Knees[i].rotation;
 
             if (f.Knees.Length != 2)
-                Debug.LogWarning("Diz kemigi eksik: " + model.name
+                Debug.LogWarning("A knee bone is missing: " + model.name
                                  + " (" + f.Knees.Length + ")");
         }
 
         private static void Animate(GameObject model, AnimatorController ctrl,
                                     AnimationClip[] clips)
         {
-            // Animator MODELIN kokunde olmali: kliplerdeki yollar
-            // ("root/torso/arm-left") FBX kokune gore yazilmis.
+            // The Animator has to be on THE MODEL'S root: the paths in the
+            // clips ("root/torso/arm-left") are written relative to the FBX
+            // root.
             Animator a = model.GetComponent<Animator>();
             if (a == null) a = model.AddComponent<Animator>();
             a.runtimeAnimatorController = ctrl;
             a.applyRootMotion = false;
-            // Gorunmeyen figurun iskeletini isletmeye gerek yok; on dort
-            // masalik bir salonda bu fark ediyor.
+            // There is no need to run the skeleton of a figure that is not
+            // visible; in a hall of fourteen tables that makes a difference.
             a.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
 
             Figure f = model.GetComponent<Figure>();
@@ -1128,14 +1143,14 @@ namespace Lokanta.EditorTools
 
         // =====================================================================
         /// <summary>
-        /// Modelin sinir kutusu, KOKUNE GORE.
+        /// The model's bounding box, RELATIVE TO ITS ROOT.
         ///
-        /// Renderer.bounds KULLANILMIYOR. Deriye bagli aglarda o deger
-        /// kok kemigin uzayindan geliyor ve gercegi yansitmiyor:
-        /// karakterler 0,67 m olculdu, buna gore 2,53 ile olceklendi ve
-        /// salonda uc metre boyunda dev figurler olarak cizildi. Agin
-        /// kendi sinir kutusunu modelin kokune tasimak her iki cizici
-        /// turunde de dogru sonucu veriyor.
+        /// Renderer.bounds IS NOT USED. On skinned meshes that value comes from
+        /// the root bone's space and does not reflect reality: the characters
+        /// measured 0.67 m, were scaled by 2.53 accordingly, and were drawn in
+        /// the hall as three-metre giants. Transforming the mesh's own bounding
+        /// box into the model's root gives the right answer for both kinds of
+        /// renderer.
         /// </summary>
         private static Bounds Measure(GameObject go)
         {
@@ -1157,7 +1172,7 @@ namespace Lokanta.EditorTools
             return any ? b : new Bounds(Vector3.zero, Vector3.one);
         }
 
-        /// <summary>Yerel kutunun sekiz kosesini tasiyip birlestirir.</summary>
+        /// <summary>Transforms the local box's eight corners and merges them.</summary>
         private static void Add(ref Bounds b, ref bool any, Bounds local, Matrix4x4 m)
         {
             Vector3 c = local.center, e = local.extents;
@@ -1186,10 +1201,10 @@ namespace Lokanta.EditorTools
 
         // =====================================================================
         /// <summary>
-        /// "wood (Instance)" ve "Furniture_wood" gibi adlari sade "wood"a
-        /// indirir. Klasor onekini de atiyor ki arac kendi urettigi
-        /// malzemeyi ikinci kosuda "Mobilya_Furniture_wood" diye
-        /// cogaltmasin.
+        /// Reduces names such as "wood (Instance)" and "Furniture_wood" to a
+        /// plain "wood". It also strips the folder prefix, so that on a second
+        /// run the tool does not duplicate a material it generated itself as
+        /// "Furniture_Furniture_wood".
         /// </summary>
         private static string Clean(string name, string folder)
         {
@@ -1209,9 +1224,9 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Klasoru olusturur. Directory.CreateDirectory DEGIL - o yolla
-        /// acilan klasorun varlik veritabaninda karsiligi olmuyor ve
-        /// CreateAsset sessizce basarisiz oluyor.
+        /// Creates the folder. NOT Directory.CreateDirectory - a folder opened
+        /// that way has no counterpart in the asset database and CreateAsset
+        /// fails silently.
         /// </summary>
         private static void MakeFolder(string parent, string child)
         {

@@ -1,277 +1,277 @@
-# Ekonomi Sayıları ve Müşteri Formülleri
+# Economy Numbers and Customer Formulas
 
-**Son güncelleme:** 10 Eylül 2026
-**Kütük maddeleri:** A4 ekonomi sayıları, A7 müşteri formülleri
-**Durum:** Parti A kapandı. Bu dosyadaki bütün sayılar `tools/balance/model.py` tarafından formülden türetiliyor ve on yedi tutarlılık testinden geçiyor. Elle yazılmış tablo kalmadı.
+**Last updated:** 10 September 2026
+**Register items:** A4 economy numbers, A7 customer formulas
+**Status:** Batch A is closed. Every number in this file is derived from a formula by `tools/balance/model.py` and passes seventeen consistency tests. No hand-written table is left.
 
 ---
 
-## Bu sayılar nasıl üretiliyor
+## How these numbers are produced
 
-**Aşağıdaki tabloları elle değiştirmeyin.** `<!-- ÜRETİLEN -->` işaretçileri arasındaki her şey `tools/balance/render.py` çalıştırıldığında silinip yeniden yazılır. Bir sayıyı değiştirmek istiyorsanız `tools/balance/model.py` içindeki parametreyi değiştirip yazıcıyı çalıştırın.
+**Do not change the tables below by hand.** Everything between the generated-block comment markers is deleted and rewritten whenever `tools/balance/render.py` runs. If you want to change a number, change the parameter in `tools/balance/model.py` and run the writer.
 
 ```
 cd tools/balance
-python model.py --check     # 17 tutarlılık testi
-python solve.py             # parametreleri hedeflerden arar
-python render.py            # tabloları bu dosyaya yazar
+python model.py --check     # 17 consistency tests
+python solve.py             # searches for the parameters from the targets
+python render.py            # writes the tables into this file
 ```
 
-### Gerçekleşme oranı
+### The realisation rate
 
-**Bu dosyadaki ciro, talep değil gerçekleşen cirodur.** Model talebin tamamının ağırlandığını varsayar; simülasyon aynı genişleme takviminde bunun bir kısmını üretir. Sabrı biten müşteri, tükenen stok, dolan masa.
+**The revenue in this file is realised revenue, not demand.** The model assumes all demand is served; the simulation produces a fraction of that on the same expansion schedule. A customer whose patience ran out, stock that ran dry, a table that filled up.
 
-**Güncel değer `tools/balance/model.py` içindeki `REALISATION_BP`, kiralar da `content/economy.json` içindeki `staffing.tiers`.** Buraya sayı yazılmıyor: bu satır bir kez sayı taşıdı ve bir kalibrasyon kuşağı geride kaldı — belge 7000 ve 850/1.950/2.900/5.000 anlatırken içerikte 6500 ve 650/1.550/2.250/4.000 vardı. Tasarımın referans belgesi var olmayan bir ekonomiyi anlatıyordu. Aşağıdaki bütün tablolar üretiliyor (`python tools/balance/export.py`), elle düzenlenmiyor.
+**The current value is `REALISATION_BP` in `tools/balance/model.py`, and the rents are `staffing.tiers` in `content/economy.json`.** No number is written here: this line carried a number once and a calibration generation went by — the document was talking about 7000 and 850/1,950/2,900/5,000 while the content held 6500 and 650/1,550/2,250/4,000. The design's reference document was describing an economy that did not exist. All the tables below are generated (`python tools/balance/export.py`), not hand-edited.
 
-Bu sayı ölçülen bir değer gibi görünüyordu ama değil: **sabit noktadır.** 10 Eylül 2026'da mutfak modeli düzeltilince aynı ölçüm %65'ten %93'e fırladı, ama o ölçümü doğrudan uygulamak genişlemeyi tuzağa çevirdi: %93 ESKİ ucuz kiralarla ölçülmüştü ve yeni kiralarla aynı strateji genişleyemedi. **Oran parametreleri, parametreler oranı belirliyor.**
+This number looked like a measured value but it is not: **it is a fixed point.** On 10 September 2026, when the kitchen model was fixed, the same measurement jumped from 65% to 93% — but applying that measurement directly turned expansion into a trap: 93% had been measured with the OLD cheap rents, and with the new rents the same strategy could not expand. **The rate determines the parameters, and the parameters determine the rate.**
 
-Bu yüzden tek atışlık ölçüm yerine `python tools/balance/calibrate.py` çalıştırılır: aday oranları tek tek koşar (solve → model → export → simülasyon) ve tasarım hedeflerine göre puanlar. Ayrıntı [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md).
+That is why, instead of a one-shot measurement, `python tools/balance/calibrate.py` is run: it runs candidate rates one by one (solve → model → export → simulation) and scores them against the design targets. Detail in [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md).
 
-### Değerlendirmenin bulduğu üç hata
+### The three bugs the review found
 
-Beş ajanlı değerlendirme (bkz. [review/00-synthesis.md](review/00-synthesis.md)) bu dosyanın sayılarının kendi formüllerinden türemediğini buldu. Model kurulunca üç ayrı hata çıktı:
+The five-agent review (see [review/00-synthesis.md](review/00-synthesis.md)) found that the numbers in this file did not derive from their own formulas. Once the model was built, three separate bugs came out:
 
-| Hata | Neydi | Sonucu |
+| Bug | What it was | Its consequence |
 |---|---|---|
-| **Patron çoğaltılmıştı** | Kapasite tablosunda patron aynı anda garson, kasiyer ve bulaşıkçı sütunlarında sayılıyordu | Tek kişi 36 müşterilik kapasite veriyordu, gerçek katkısı 12'ydi |
-| **Kadro ortalamaya kuruluyordu** | Kadro hafta ortalamasına göre hesaplanmıştı | Hafta sonu %25 yoğun; kadro zirveye kurulup yedi gün ödenmeli |
-| **Tablo formülle çelişiyordu** | Bölüm 5.1 formülü 14 masa/itibar 85 için 76 müşteri veriyor, bölüm 6 tablosu aynı satırda 58 yazıyordu | Bütün büyüme eğrisi yanlış talebe dayanıyordu |
-| **Yuvarlama kuralı tutarsızdı** | 10 Eylül 2026'da C# çekirdeğiyle karşılaştırınca bulundu. Python'un `round()` fonksiyonu bankacı yuvarlaması yapıyor: altıncı haftanın hafta sonu talebi tam 62,5 ve Python 62, C# 63 veriyordu | Ayrık kararlar artık iki tarafta da tamsayı aritmetiğiyle. Bkz. [23-core-contract.md](23-core-contract.md) §2.3 |
+| **The owner was duplicated** | In the capacity table the owner was counted in the waiter, cashier and dishwasher columns at the same time | One person was providing capacity for 36 customers; the real contribution was 12 |
+| **The crew was set to the average** | The crew had been calculated against the weekly average | The weekend is 25% busier; the crew has to be set to the peak and paid for seven days |
+| **The table contradicted the formula** | The formula in section 5.1 gives 76 customers for 14 tables / reputation 85, while the table in section 6 wrote 58 on the same row | The whole growth curve was resting on the wrong demand |
+| **The rounding rule was inconsistent** | Found on 10 September 2026 when comparing against the C# core. Python's `round()` does banker's rounding: the sixth week's weekend demand is exactly 62.5 and Python gave 62 while C# gave 63 | Discrete decisions are now done with integer arithmetic on both sides. See [23-core-contract.md](23-core-contract.md) §2.3 |
 
-Üçüncü hafta zararı da bu yüzden vardı. Düzeltilmiş modelde genişleme haftaları hâlâ zarar ediyor, ama artık aritmetik kaza değil, çözülen kira ve kadro yükünün sonucu.
+The third week's loss was there for the same reason. In the corrected model the expansion weeks still lose money, but it is no longer an arithmetic accident — it is the result of the solved rent and crew load.
 
-**Para birimi:** isimsiz sikke ikonu, aşağıda ayrı bölüm var. Buradaki sayılar birimsizdir.
+**Currency:** a nameless coin icon; there is a separate section below. The numbers here are unitless.
 
 ---
 
-## 1. Başlangıç durumu
+## 1. Starting position
 
-| Değer | Miktar |
+| Value | Amount |
 |---|---|
-| Başlangıç sermayesi | 8.000 |
-| Masa | 4 |
-| Personel | 1 aşçı |
-| İtibar | 30 / 100 |
-| Açık yemek | 6 |
+| Starting capital | 8,000 |
+| Tables | 4 |
+| Staff | 1 cook |
+| Reputation | 30 / 100 |
+| Dishes unlocked | 6 |
 
 ---
 
-## 2. Sabit giderler
+## 2. Fixed costs
 
-Kira ve maaşlar **haftalık** ödenir, yedinci günün sonunda tek seferde.
+Rent and wages are paid **weekly**, in one go at the end of the seventh day.
 
-### Kira ve genişleme, kademeye göre
+### Rent and expansion, by tier
 
-<!-- ÜRETİLEN: kira -->
-| Kademe | Masa | Haftalık kira | Bu kademeye geçiş bedeli |
+<!-- GENERATED: rent -->
+| Tier | Tables | Weekly rent | Cost of moving to this tier |
 |---|---|---|---|
-| Başlangıç | 4 | 850 | — |
-| İkinci | 7 | 1.950 | 2.500 |
-| Üçüncü | 10 | 2.900 | 4.500 |
-| Dördüncü | 14 | 5.000 | 8.000 |
-<!-- /ÜRETİLEN: kira -->
+| Starting | 4 | 850 | — |
+| Second | 7 | 1.950 | 2.500 |
+| Third | 10 | 2.900 | 4.500 |
+| Fourth | 14 | 5.000 | 8.000 |
+<!-- /GENERATED: rent -->
 
-Kiralar tahmin değil: her kademenin **olgun haftası** için hedeflenen net marjdan (%5, %9, %14, %20) geriye doğru çözüldü. `tools/balance/solve.py` bu işi yapıyor.
+The rents are not guesses: they were solved backwards from the net margin targeted for each tier's **mature week** (5%, 9%, 14%, 20%). `tools/balance/solve.py` does that job.
 
-**Kural:** her genişleme kirayı da büyütür. Bu pazarlık konusu değil. Tavern Master'ın ekonomisinin çökme sebebi büyümenin sabit gideri artırmamasıydı.
+**The rule:** every expansion grows the rent too. This is not negotiable. The reason Tavern Master's economy collapsed was that growth did not raise fixed costs.
 
-### Maaşlar
+### Wages
 
-| Rol | Günlük | Haftalık |
+| Role | Daily | Weekly |
 |---|---|---|
-| Aşçı | 140 | 980 |
-| Garson | 110 | 770 |
-| Kasiyer | 100 | 700 |
-| Bulaşıkçı | 90 | 630 |
+| Cook | 140 | 980 |
+| Waiter | 110 | 770 |
+| Cashier | 100 | 700 |
+| Dishwasher | 90 | 630 |
 
-Deneyimli personel yüzde 30'a kadar daha pahalı. Huylar ücreti etkilemiyor, sadece performansı.
+Experienced staff are up to 30 per cent more expensive. Traits do not affect the wage, only the performance.
 
-### Genişleme maliyetleri
+### Expansion costs
 
-Yukarıdaki tabloda. Bedeller model tarafından, "her genişleme haftası zarar etmeli ve son genişlemeden sonra kasa 3.000'in altına inmeli" kısıtından çözüldü.
+In the table above. The prices were solved by the model from the constraint "every expansion week must lose money, and after the last expansion the till must drop below 3,000".
 
-Son genişleme bilinçli olarak pahalı: 10.400 ödeyip kasayı 2.958'e indiriyorsunuz. Batma merdivenine bir adım kalıyor.
-
----
-
-## 3. Malzeme ve yemek ekonomisi
-
-**Temel kural: malzeme maliyeti satış fiyatının yaklaşık yüzde 32'si.** Yani brüt marj yüzde 68 civarında. Bu, gerçek restoran işletmeciliğine yakın bir oran.
-
-### Fast food örnek kalemler
-
-| Yemek | Satış | Malzeme | Marj |
-|---|---|---|---|
-| Hamburger | 45 | 15 | %67 |
-| Patates Kızartması | 20 | 5 | %75 |
-| Gazoz | 15 | 3 | %80 |
-| Nugget | 25 | 8 | %68 |
-| Dondurma | 18 | 5 | %72 |
-
-**Kombo:** hamburger artı patates artı gazoz tek tek 80 eder. Kombo fiyatı 65. Malzeme 23.
-
-- Tek satış kârı: 80 - 23 = 57, ama müşteri genelde sadece burger alır, yani 30.
-- Kombo kârı: 65 - 23 = 42.
-
-Kombo, ortalama fiş tutarını 45'ten 65'e çıkarıyor. Karşılığında mutfak üç kalem hazırlıyor, yani yük artıyor. İmza mekaniğinin takası bu.
-
-### Türk mutfağı örnek kalemler
-
-| Yemek | Satış | Malzeme | Marj |
-|---|---|---|---|
-| Kuru Fasulye | 55 | 18 | %67 |
-| Pirinç Pilavı | 25 | 6 | %76 |
-| Mercimek Çorbası | 30 | 8 | %73 |
-| Köfte | 70 | 26 | %63 |
-| Ayran | 15 | 5 | %67 |
-| Sütlaç | 25 | 8 | %68 |
-
-**Tipik sipariş:** sulu yemek artı pilav artı ayran. Satış 95, malzeme 29, kâr 66.
-
-**Günün yemeği:** o günkü sulu yemek 55 yerine 45'e satılır. Marj düşer ama düzenli müşteri sadakati artar.
-
-**Çay ikramı:** porsiyon başına 2 maliyet. Bedava verilir. Karşılığında sadakat ve veresiye geri dönüş oranı yükselir.
-
-### Fiyat dalgalanması
-
-- Malzeme fiyatları her gün taban fiyatın **yüzde 25 altı ile üstü** arasında dalgalanır.
-- Mevsim kayması: bazı malzemeler bir mevsim boyunca yüzde 20 ucuz veya pahalı olur.
-- Erken alım avantajı yok, stok bozuluyor. Ucuz güne denk gelmek şans değil, takip meselesi.
-
-### Bozulma
-
-| Mutfak | Bozulabilir kalem oranı |
-|---|---|
-| Fast food | %20 |
-| Türk mutfağı | %60 |
-| İtalyan | %70 |
-| Japon | %85 |
-
-Bozulabilir malzeme günü kapatınca değerinin tamamını kaybeder. Bu oran, mutfakların risk profilini ayıran şeylerden biri.
+The last expansion is deliberately expensive: you pay 10,400 and bring the till down to 2,958. You are one step from the bankruptcy ladder.
 
 ---
 
-## 4. Kredi
+## 3. Ingredient and dish economy
 
-| Tutar | Geri ödeme | Haftalık taksit | Süre |
+**The basic rule: ingredient cost is roughly 32 per cent of the sale price.** So the gross margin is around 68 per cent. That is a ratio close to running a real restaurant.
+
+### Sample fast food items
+
+| Dish | Sale | Ingredients | Margin |
 |---|---|---|---|
-| 5.000 | 6.750 | 844 | 8 hafta |
-| 10.000 | 13.500 | 1.688 | 8 hafta |
-| 20.000 | 27.000 | 3.375 | 8 hafta |
+| Hamburger | 45 | 15 | 67% |
+| Fries | 20 | 5 | 75% |
+| Fizzy Drink | 15 | 3 | 80% |
+| Nuggets | 25 | 8 | 68% |
+| Ice Cream | 18 | 5 | 72% |
 
-Geri ödeme toplamı anaparanın 1,35 katı. Kredi hızlı büyümeyi mümkün kılıyor ama haftalık gideri kalıcı olarak artırıyor.
+**The combo:** a hamburger plus fries plus a fizzy drink comes to 80 separately. The combo price is 65. Ingredients 23.
 
-Taksit ödenemezse batma merdiveni işlemeye başlar.
+- Profit selling them separately: 80 - 23 = 57, but the customer usually only takes the burger, so 30.
+- Combo profit: 65 - 23 = 42.
+
+The combo raises the average ticket from 45 to 65. In return the kitchen prepares three items, so the load increases. That is the signature mechanic's trade-off.
+
+### Sample Turkish cuisine items
+
+| Dish | Sale | Ingredients | Margin |
+|---|---|---|---|
+| Kuru Fasulye | 55 | 18 | 67% |
+| Rice Pilaf | 25 | 6 | 76% |
+| Lentil Soup | 30 | 8 | 73% |
+| Kofte | 70 | 26 | 63% |
+| Ayran | 15 | 5 | 67% |
+| Rice Pudding | 25 | 8 | 68% |
+
+**A typical order:** a pot dish plus pilaf plus ayran. Sale 95, ingredients 29, profit 66.
+
+**The dish of the day:** that day's pot dish sells for 45 instead of 55. The margin drops but regular loyalty rises.
+
+**Offering tea:** a cost of 2 per portion. It is given free. In return, loyalty and the tab repayment rate rise.
+
+### Price fluctuation
+
+- Ingredient prices fluctuate every day between **25 per cent below and above** the base price.
+- Seasonal shift: some ingredients are 20 per cent cheap or expensive for a whole season.
+- There is no advantage in buying early, stock spoils. Catching a cheap day is not luck, it is a matter of watching.
+
+### Spoilage
+
+| Cuisine | Share of perishable items |
+|---|---|
+| Fast food | 20% |
+| Turkish cuisine | 60% |
+| Italian | 70% |
+| Japanese | 85% |
+
+A perishable ingredient loses its whole value when the day closes. That ratio is one of the things that separates the cuisines' risk profiles.
 
 ---
 
-## 5. Müşteri formülleri
+## 4. Loans
 
-### 5.1 Günlük müşteri sayısı
-
-```
-temel     = masa_sayısı × 4
-müşteri   = temel × (0,5 + itibar / 100) × gün_katsayısı
-```
-
-<!-- ÜRETİLEN: talep -->
-| Durum | Hesap | Hafta içi | Hafta sonu |
+| Amount | Repayment | Weekly instalment | Term |
 |---|---|---|---|
-| 4 masa, itibar 35 | 4 × 4 × 0.85 | 14 | 17 |
-| 7 masa, itibar 52 | 7 × 4 × 1.02 | 29 | 36 |
-| 10 masa, itibar 68 | 10 × 4 × 1.18 | 47 | 59 |
-| 14 masa, itibar 88 | 14 × 4 × 1.38 | 77 | 97 |
-<!-- /ÜRETİLEN: talep -->
+| 5,000 | 6,750 | 844 | 8 weeks |
+| 10,000 | 13,500 | 1,688 | 8 weeks |
+| 20,000 | 27,000 | 3,375 | 8 weeks |
 
-`gün_katsayısı` hafta içi 1,0 ve hafta sonu 1,25. Mevsim de hafif oynatır.
+Total repayment is 1.35 times the principal. A loan makes fast growth possible but permanently raises the weekly outgoings.
 
-**Kadro hafta sonu sütununa göre kurulur, ücret yedi gün ödenir.** Bu, personel giderinin neden ciroya göre yüksek durduğunu açıklıyor ve bilinçli: zirveyi karşılayamayan restoran itibar kaybediyor.
+If an instalment cannot be paid, the bankruptcy ladder starts running.
 
-**İtibar hem tavanı hem tabanı belirliyor.** Mekânı büyütüp itibarı ihmal etmek masaları boş bırakıyor.
+---
 
-### 5.2 Sabır
+## 5. Customer formulas
 
-Sabır saniye cinsinden ve servis süresi içinde tükeniyor. Bir servis yaklaşık 120 saniye sürüyor.
-
-| Arketip örneği | Sabır |
-|---|---|
-| Kurye | 8 sn |
-| Aceleci öğrenci | 10 sn |
-| Öğle molası çalışanı | 12 sn |
-| Ofis grubu | 18 sn |
-| Aile | 30 sn |
-| Emekli | 40 sn |
-
-Sabır; oturmayı, siparişin alınmasını ve yemeğin gelmesini beklerken azalır. Sıfıra inerse müşteri çıkıp gider ve itibarı sert düşürür.
-
-### 5.3 Fiyat duyarlılığı
+### 5.1 Daily customer count
 
 ```
-fiyat_cezası = (fiyat / piyasa_fiyatı - 1) × 100 × duyarlılık
+base       = table_count × 4
+customers  = base × (0.5 + reputation / 100) × day_factor
 ```
 
-`duyarlılık` katsayısı arketipe göre 0,4 ile 2,5 arasında.
-
-| Fiyat | Toleranslı (0,4) | Ortalama (1,0) | Pazarlıkçı (2,5) |
+<!-- GENERATED: demand -->
+| Case | Sum | Weekday | Weekend |
 |---|---|---|---|
-| Piyasa fiyatı | 0 | 0 | 0 |
-| %10 üstü | -4 | -10 | -25 |
-| %20 üstü | -8 | -20 | -50 |
-| %30 üstü | -12 | -30 | -75 |
+| 4 tables, reputation 35 | 4 × 4 × 0.85 | 14 | 17 |
+| 7 tables, reputation 52 | 7 × 4 × 1.02 | 29 | 36 |
+| 10 tables, reputation 68 | 10 × 4 × 1.18 | 47 | 59 |
+| 14 tables, reputation 88 | 14 × 4 × 1.38 | 77 | 97 |
+<!-- /GENERATED: demand -->
 
-Piyasanın yüzde 15'inden fazla altına inmek de işe yaramıyor: memnuniyet artmıyor, sadece marj eriyor.
+`day_factor` is 1.0 on weekdays and 1.25 at the weekend. The season moves it slightly too.
 
-### 5.4 Memnuniyet
+**The crew is set to the weekend column, and the wage is paid for seven days.** That explains why the staff cost looks high against revenue, and it is deliberate: a restaurant that cannot cover the peak loses reputation.
 
-Her müşteri 100 puanla başlar.
+**Reputation determines both the ceiling and the floor.** Growing the venue and neglecting reputation leaves the tables empty.
 
-| Etken | Değişim |
+### 5.2 Patience
+
+Patience is in seconds and drains during the service. A service takes roughly 120 seconds.
+
+| Archetype example | Patience |
 |---|---|
-| Bekleme | `- (beklenen / sabır) × 60` |
-| Fiyat | Yukarıdaki formül |
-| Düşük kaliteli malzeme | -15 |
-| Yüksek kaliteli malzeme | +10 |
-| İstediği yemek tükendi | -30 |
-| Çay veya özür ikramı | +15 |
-| Patron bizzat ilgilendi | +20 |
+| Courier | 8 s |
+| Student in a Hurry | 10 s |
+| Lunch-Break Worker | 12 s |
+| Office Group | 18 s |
+| Family | 30 s |
+| Pensioner | 40 s |
 
-Memnuniyet 60'ın üstündeyse müşteri memnun ayrılır, altındaysa şikayet eder.
+Patience drains while waiting to be seated, waiting for the order to be taken and waiting for the food to arrive. If it reaches zero the customer walks out and reputation drops hard.
 
-### 5.5 İtibar
+### 5.3 Price sensitivity
 
 ```
-günlük_değişim = Σ (memnuniyet - 60) × itibar_ağırlığı / 100
+price_penalty = (price / market_price - 1) × 100 × sensitivity
 ```
 
-| Örnek | Sonuç |
+The `sensitivity` coefficient is between 0.4 and 2.5 depending on the archetype.
+
+| Price | Tolerant (0.4) | Average (1.0) | Haggler (2.5) |
+|---|---|---|---|
+| Market price | 0 | 0 | 0 |
+| 10% above | -4 | -10 | -25 |
+| 20% above | -8 | -20 | -50 |
+| 30% above | -12 | -30 | -75 |
+
+Going more than 15 per cent below the market does not work either: satisfaction does not rise, only the margin melts.
+
+### 5.4 Satisfaction
+
+Every customer starts with 100 points.
+
+| Factor | Change |
 |---|---|
-| 40 müşteri, ortalama 80 memnuniyet | +8 |
-| 40 müşteri, ortalama 50 memnuniyet | -4 |
-| Yemek eleştirmeni, 90 memnuniyet, ağırlık 8 | +2,4 tek başına |
+| Waiting | `- (waited / patience) × 60` |
+| Price | The formula above |
+| Low-quality ingredients | -15 |
+| High-quality ingredients | +10 |
+| The dish they wanted ran out | -30 |
+| Tea or an apology offered | +15 |
+| The owner attended to them personally | +20 |
 
-İtibar 0 ile 100 arasında, 30'dan başlıyor. Her gün doğal olarak 0,3 puan düşüyor, yani ihmal ederseniz eriyor.
+If satisfaction is above 60 the customer leaves happy; below it, they complain.
 
-### 5.6 Arketiplerin saat dağılımı
+### 5.5 Reputation
 
-Servis günü dört dilime ayrılıyor. Mutfakların ritmi burada somutlaşıyor.
+```
+daily_change = Σ (satisfaction - 60) × reputation_weight / 100
+```
 
-| Mutfak | Açılış | Öğle zirvesi | Öğleden sonra | Akşam |
+| Example | Result |
+|---|---|
+| 40 customers, average satisfaction 80 | +8 |
+| 40 customers, average satisfaction 50 | -4 |
+| Food critic, satisfaction 90, weight 8 | +2.4 on its own |
+
+Reputation runs from 0 to 100 and starts at 30. It falls naturally by 0.3 points a day, so it melts away if you neglect it.
+
+### 5.6 The hourly distribution of archetypes
+
+The service day is split into four slices. The rhythm of the cuisines becomes concrete here.
+
+| Cuisine | Opening | Lunch peak | Afternoon | Evening |
 |---|---|---|---|---|
-| Fast food | %15 | %35 | %15 | %35 |
-| Türk mutfağı | %10 | %60 | %20 | %10 |
-| İtalyan | %5 | %20 | %10 | %65 |
-| Japon ramen | %15 | %50 | %15 | %20 |
+| Fast food | 15% | 35% | 15% | 35% |
+| Turkish cuisine | 10% | 60% | 20% | 10% |
+| Italian | 5% | 20% | 10% | 65% |
+| Japanese ramen | 15% | 50% | 15% | 20% |
 
-Lokantada müşterilerin yüzde altmışı tek dilimde geliyor. Bu, öğle zirvesini gerçek bir kriz anına çeviriyor ve akşamı boş bırakıyor. İtalyan'da tam tersi.
+In the lokanta sixty per cent of the customers come in a single slice. That turns the lunch peak into a real crisis moment and leaves the evening empty. In Italian it is exactly the reverse.
 
 ---
 
-## 6. Hedeflenen büyüme eğrisi
+## 6. The targeted growth curve
 
-Bu, iyi oynayan bir oyuncunun izlemesi beklenen yol. **Doğrulanmadı.**
+This is the path a player who plays well is expected to follow. **Not verified.**
 
-<!-- ÜRETİLEN: buyume -->
-| Hafta | Masa | Kadro | Tavan | İtibar | Müşteri/gün (içi / sonu) | Ort. fiş | Ciro | Malzeme | Maaş | Kira | Genişleme | Haftalık net | Kasa |
+<!-- GENERATED: growth -->
+| Week | Tables | Crew | Cap | Reputation | Guests/day (weekday / weekend) | Avg ticket | Revenue | Stock | Wages | Rent | Expansion | Weekly net | Till |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | 4 | 1 | 3 | 35 | 14 / 17 | 50 | 3.640 | −1.165 | −980 | −850 | — | **+645** | 8.645 |
 | 2 | 4 | 2 | 3 | 45 | 15 / 19 | 52 | 4.113 | −1.316 | −1.734 | −850 | — | **+213** | 8.858 |
@@ -281,288 +281,289 @@ Bu, iyi oynayan bir oyuncunun izlemesi beklenen yol. **Doğrulanmadı.**
 | 6 | 10 | 7 | 8 | 75 | 50 / 63 | 66 | 17.371 | −5.559 | −6.475 | −2.900 | — | **+2.438** | 7.865 |
 | 7 | 14 | 10 | 12 | 82 | 74 / 92 | 70 | 27.146 | −8.687 | −9.367 | −5.000 | −8.000 | **−3.908** | 3.957 |
 | 8 | 14 | 10 | 12 | 88 | 77 / 97 | 75 | 30.398 | −9.727 | −9.573 | −5.000 | — | **+6.097** | 10.054 |
-<!-- /ÜRETİLEN: buyume -->
+<!-- /GENERATED: growth -->
 
-**Personel sayıları kapasite modelinden geliyor**, tahmin değil. Bkz. [14-staff-system.md](14-staff-system.md).
+**The staff counts come from the capacity model**, they are not guesses. See [14-staff-system.md](14-staff-system.md).
 
-| Hafta | Ne oluyor |
+| Week | What happens |
 |---|---|
-| 1 | Tek aşçı, patron salonda. Marj %11,7 — oyunun tek rahat haftası ve öğreticinin olumlu doruğu |
-| 2 | İlk işe alım. Marj %5,3'e düşüyor. Ders: personel bedava değil |
-| 3 | Birinci genişleme. Kadro ikiye katlanıyor, hafta 2.881 zararla kapanıyor |
-| 4 | Kadro oturuyor, marj %9 |
-| 5 | İkinci genişleme. En sert hafta: 3.912 zarar, kasa 3.342'ye iniyor |
-| 6 | Nefes. Marj %14 |
-| 7 | Son genişleme. Kasa 2.958, batma merdivenine bir adım |
-| 8 | Marj %20. Büyümenin karşılığı burada alınıyor |
+| 1 | One cook, the owner in the hall. Margin 11.7% — the game's only comfortable week and the tutorial's positive peak |
+| 2 | The first hire. The margin drops to 5.3%. The lesson: staff are not free |
+| 3 | The first expansion. The crew doubles, the week closes with a 2,881 loss |
+| 4 | The crew settles, margin 9% |
+| 5 | The second expansion. The hardest week: a 3,912 loss, the till drops to 3,342 |
+| 6 | A breath. Margin 14% |
+| 7 | The last expansion. The till is at 2,958, one step from the bankruptcy ladder |
+| 8 | Margin 20%. This is where the payoff for growing is collected |
 
-**Ortalama fiş tutarı da büyüyor:** 50'den 75'e. Menü genişledikçe pahalı yemekler açılıyor ve kombo gibi mekanikler devreye giriyor. Gizli bir büyüme kaldıracı.
+**The average ticket grows too:** from 50 to 75. As the menu widens, expensive dishes open and mechanics like the combo come into play. A hidden growth lever.
 
-**Tasarım niyeti:** net marj birinci haftada %11,7, sekizinci haftada %20,0. Büyümek kazandırıyor ama iki kat, on bir kat değil. Kadro ve kira aynı anda büyüdüğü için gelir artışının çoğu geri gidiyor.
+**Design intent:** net margin is 11.7% in the first week and 20.0% in the eighth. Growing pays, but by a factor of two, not eleven. Because the crew and the rent grow at the same time, most of the revenue increase goes straight back out.
 
-**Üç genişleme haftasının üçü de zarar ediyor.** −2.881, −3.912, −3.846. Genişlerken kira ve kadro hemen büyüyor, itibar ise henüz yetişmemiş oluyor. Büyümek anında ödüllendirmiyor, önce bedelini ödetiyor. Bu artık aritmetik kaza değil, modele kısıt olarak yazıldı.
+**All three expansion weeks lose money.** −2,881, −3,912, −3,846. When you expand, the rent and the crew grow immediately while the reputation has not caught up yet. Growing does not reward you at once; it makes you pay first. This is no longer an arithmetic accident — it was written into the model as a constraint.
 
-**Son genişleme bilinçli bir kumar.** 10.400 ödeyip kasayı 2.958'e indiriyorsun. Karşılığında yıl sonunda çok daha yüksek puan alıyorsun.
+**The last expansion is a deliberate gamble.** You pay 10,400 and bring the till down to 2,958. In return you get a far higher score at the end of the year.
 
-**Kadro 1'den 11'e çıkıyor**, müşteri ise 14'ten 77'ye. Kadro müşteriden hızlı büyüyor. Restoranı büyütmenin bedeli bu.
-
----
-
-## 7. Ekonominin önemsizleşmemesi için
-
-Araştırmadaki en büyük ikinci ölüm sebebi buydu. Üç önlem:
-
-1. **Her genişleme kirayı büyütüyor.** Gelir artıyor ama gider de artıyor.
-2. **Son kademe ekipmanlar pahalı.** 8.000 ile 12.000 arası. Sekizinci haftada bile bir şey için biriktiriyorsun.
-3. **Yıl sonu puanı net varlığa bakıyor.** Para biriktirmenin her zaman bir sebebi var.
-
-Denge aracının ölçmesi gereken ilk şey şu: **kaçıncı haftada oyuncu "artık para sorun değil" diyor?** O hafta 8'den önceyse ekonomi çökmüş demektir.
+**The crew goes from 1 to 11**, while customers go from 14 to 77. The crew grows faster than the customers. That is the price of growing the restaurant.
 
 ---
 
-## 7.5 Para birimi: karar bekliyor
+## 7. Keeping the economy from becoming trivial
 
-Gerçek para birimi kullanmayacağız. Üç sebebi var ve üçüncüsü belirleyici.
+This was the second biggest cause of death in the research. Three countermeasures:
 
-**1. Enflasyon çapası.** Bugün makul görünen bir fiyat iki yıl sonra saçma görünür. Oyun eskir.
+1. **Every expansion grows the rent.** Revenue rises, but so do the outgoings.
+2. **The last tier of equipment is expensive.** Between 8,000 and 12,000. Even in the eighth week you are saving up for something.
+3. **The end-of-year score looks at net worth.** There is always a reason to save money.
 
-**2. Yerelleştirme.** ₺ Türkçe sürümde doğru, İngilizce sürümde yabancı. $ tersi. Her ikisi de bir kesimi dışarıda bırakır.
+The first thing the balance tool has to measure is this: **in which week does the player say "money is no longer a problem"?** If that week is before 8, the economy has collapsed.
 
-**3. Gerçek parayla karışma riski.** Belirleyici olan bu. Oyunda gerçek parayla yapılan satın almalar var, mutfak kilidi açma. Oyun içi para gerçek bir para birimi sembolü taşırsa oyuncu ikisini karıştırır.
+---
 
-Bu teorik bir risk değil. Araştırmamızda Good Pizza, Great Pizza tam olarak bundan eleştirilmişti: oyun içi para banknot ikonuyla gösteriliyor, mağaza satın almaları ise dolar işareti taşımıyor, ve oyuncular ilk başta hangisinin gerçek para olduğunu ayırt edemiyor. Mağaza kuralları da sanal paranın gerçek paradan net ayrılmasını istiyor.
+## 7.5 Currency: awaiting a decision
 
-### Diğer oyunlar ne yapıyor
+We will not use a real currency. There are three reasons and the third is decisive.
 
-| Yaklaşım | Örnekler | Değerlendirme |
+**1. An inflation anchor.** A price that looks reasonable today looks absurd in two years. The game ages.
+
+**2. Localisation.** ₺ is right in the Turkish version and foreign in the English one. $ is the reverse. Both leave a segment out.
+
+**3. The risk of being confused with real money.** This is the decisive one. The game has purchases made with real money — unlocking cuisines. If the in-game money carries a real currency symbol, the player confuses the two.
+
+This is not a theoretical risk. In our research Good Pizza, Great Pizza was criticised for exactly this: the in-game money is shown with a banknote icon while store purchases do not carry a dollar sign, and at first players cannot tell which one is real money. Store rules also require virtual currency to be clearly separated from real money.
+
+### What other games do
+
+| Approach | Examples | Assessment |
 |---|---|---|
-| **Kurgusal isim** | Animal Crossing "Bell", The Sims "Simoleon", Zelda "Rupee" | Akılda kalır, marka değeri taşır, enflasyona bağışık |
-| **Jenerik altın veya jeton** | Stardew Valley "g", PlateUp jeton | Görünmez, sürtünmesiz, herkes anlar |
-| **Gerçek para birimi** | Supermarket Simulator, çoğu gerçekçi simülasyon | Daldırıcı ama eskir ve karışır |
+| **A fictional name** | Animal Crossing "Bell", The Sims "Simoleon", Zelda "Rupee" | Memorable, carries brand value, immune to inflation |
+| **Generic gold or a token** | Stardew Valley "g", PlateUp's token | Invisible, frictionless, everyone understands it |
+| **A real currency** | Supermarket Simulator, most realistic simulations | Immersive but it ages and it gets confused |
 
-Kurgusal para birimlerinin bir kuralı var: **çevrilmezler.** Bell her dilde Bell kalır. İsim seçilirse Türkçe ve İngilizce sürümde aynı kalmalı.
+Fictional currencies have one rule: **they are not translated.** Bell stays Bell in every language. If a name is chosen it has to stay the same in the Turkish and English versions.
 
-### Bizim avantajımız: tek para birimi
+### Our advantage: a single currency
 
-Çoğu mobil oyunda iki para birimi vardır. Yumuşak para oyunla kazanılır, sert para gerçek parayla alınır. Karışıklık çoğunlukla buradan doğar.
+Most mobile games have two currencies. Soft currency is earned by playing, hard currency is bought with real money. The confusion mostly comes from there.
 
-**Bizde sert para yok.** Gelir modeli tek seferlik mutfak satın alması, yani doğrudan satın alma. Oyun içinde tek bir para birimi var ve hiçbir zaman gerçek parayla satılmıyor.
+**We have no hard currency.** The revenue model is a one-off cuisine purchase, that is, a direct purchase. There is a single currency inside the game and it is never sold for real money.
 
-Bu tek başına Good Pizza'nın düştüğü tuzağı ortadan kaldırıyor ve "enerji yok, sayaç yok, ikinci para birimi yok" mesajına bir madde daha ekliyor.
+That alone removes the trap Good Pizza fell into, and adds one more item to the message "no energy, no timers, no second currency".
 
-### Dolar neden çözüm değil
+### Why the dollar is not the answer
 
-"Küresel oyun yapıyoruz, o zaman dolar kullanalım" mantığı sezgisel olarak doğru duruyor ama iki yerde ters çalışıyor.
+The logic "we are making a global game, so let us use dollars" looks intuitively right but works backwards in two places.
 
-**1. Dolar küresel değil, Amerikan.**
+**1. The dollar is not global, it is American.**
 
-App Store ve Google Play, gerçek fiyatları oyuncunun kendi para biriminde gösterir. Alman oyuncu €, Japon ¥, Türk ₺ görür. Oyun içinde $ yazarsak, oyuncunun gerçekte ödediği para biriminden farklı bir sembol göstermiş oluruz.
+The App Store and Google Play show real prices in the player's own currency. A German player sees €, a Japanese one ¥, a Turkish one ₺. If we write $ inside the game, we show a symbol different from the currency the player actually pays in.
 
-Yani dolar, dünyanın çoğunluğu için zaten yanlış sembol. Anlaşılırlık kazanmıyoruz.
+So the dollar is already the wrong symbol for most of the world. We gain no clarity.
 
-**2. Dolar, karışma riskini azaltmıyor, en üst seviyeye çıkarıyor.**
+**2. The dollar does not reduce the confusion risk, it maximises it.**
 
-Sorun anlaşılırlık değildi, gerçek parayla karışmaktı. Ve bu risk dolarda ₺'den daha büyük.
+The problem was never clarity, it was confusion with real money. And that risk is bigger with the dollar than with ₺.
 
-Oyun kasasında "$8.000" yazarken mağazada Türk mutfağı "$4,99" ise, aynı sembol tamamen farklı iki şeyi gösteriyor demektir. ₺ kullansaydık en azından Türkçe konuşmayan oyuncu için uyumsuzluk görünür olurdu. Dolarda uyumsuzluk görünmez ve tamdır.
+If the game's till reads "$8,000" while Turkish cuisine in the store is "$4.99", the same symbol is showing two completely different things. If we used ₺ at least the mismatch would be visible to a non-Turkish-speaking player. With the dollar the mismatch is invisible and complete.
 
-Mağaza kuralları da sanal paranın gerçek paradan net ayrılmasını istiyor. Gerçek işlemin sembolünü sanal paraya vermek, bu ayrımı yapmanın en zor yolu.
+Store rules also require virtual currency to be clearly separated from real money. Giving the symbol of the real transaction to the virtual money is the hardest possible way to make that separation.
 
-### Asıl küresel olan şey: sikke ikonu
+### What is actually global: a coin icon
 
-Sıfır dil, sıfır para birimi, herkes okur. Stardew Valley'nin "g"si ve Animal Crossing'in çan ikonu bu yüzden var.
+Zero language, zero currency, everyone reads it. That is why Stardew Valley's "g" and Animal Crossing's bell icon exist.
 
-Anlaşılırlık hiçbir zaman engel olmadı. Oyunlar otuz yıldır kurgusal para birimleriyle küresel olarak satılıyor. Kimse Bell'in ne olduğunu sormuyor, iki dakikada öğreniyor.
+Clarity was never the obstacle. Games have been selling globally with fictional currencies for thirty years. Nobody asks what a Bell is; they learn it in two minutes.
 
-### Seçenekler
+### The options
 
-| Aday | Küresel okunabilirlik | Kimlik | Karışma riski |
+| Candidate | Global readability | Identity | Confusion risk |
 |---|---|---|---|
-| **İsimsiz sikke ikonu** | En yüksek | Yok | Yok |
-| **Mangır** artı sikke ikonu | Yüksek | En yüksek, esnaf lokantasına çok uygun | Yok |
-| **Akçe** artı sikke ikonu | Yüksek | Orta, nötr tınlıyor | Yok |
-| Jeton | Yüksek | Düşük | Yok |
-| $ veya ₺ | Yanıltıcı | Yok | **Yüksek** |
+| **A nameless coin icon** | Highest | None | None |
+| **Mangir** plus a coin icon | High | Highest, very fitting for a tradesman's lokanta | None |
+| **Akce** plus a coin icon | High | Medium, sounds neutral | None |
+| A token | High | Low | None |
+| $ or ₺ | Misleading | None | **High** |
 
-**Ek karar:** hangi isim seçilirse seçilsin, dar arayüz alanlarında metin yerine küçük bir sikke ikonu kullanılacak. İsim tam haliyle ipuçlarında ve gün sonu hesabında görünecek.
+(Mangir and akce are old Ottoman coin names; they are written here without their Turkish diacritics.)
 
-### ✅ Karar: isimsiz sikke ikonu
+**An additional decision:** whichever name is chosen, in narrow interface areas a small coin icon will be used instead of text. The name will appear in full in tooltips and in the end-of-day accounts.
 
-9 Eylül 2026'da karar verildi. Para birimi adlandırılmıyor, gerçek para birimi sembolü kullanılmıyor. Ekranda küçük bir sikke ikonu ve yanında sayı görünüyor.
+### ✅ Decision: a nameless coin icon
 
-**İkon şablonu: B, düz sikke yığını.** ✅ Karar verildi 9 Eylül 2026. Yedi aday çizildi ve gerçek boyutlarda karşılaştırıldı: https://claude.ai/code/artifact/a90e6a88-de82-429b-b03c-f5552451a8f1
+Decided on 9 September 2026. The currency is not named and no real currency symbol is used. A small coin icon appears on screen with a number beside it.
 
-| Aday | Değerlendirme |
+**Icon template: B, a flat stack of coins.** ✅ Decided 9 September 2026. Seven candidates were drawn and compared at real size: https://claude.ai/code/artifact/a90e6a88-de82-429b-b03c-f5552451a8f1
+
+| Candidate | Assessment |
 |---|---|
-| A · Düz sikke | Sade ve net ama daire tek başına "para" demiyor |
-| **B · Sikke yığını, düz** | ✅ **Seçildi.** Basamaklı siluet küçük boyutta okunuyor, en sade form |
-| C · Eğik sikke | Low-poly hacim hissiyle uyumlu |
-| D · Sikke artı çatal | 16 pikselde çatal kayboluyor. Önerilmiyor |
-| E · Sikke yığını, izometrik | Referansın izometrik tarzı. Değerlendirildi, düz olan tercih edildi |
-| F · Banknot destesi, altın | Referansın dolardan arındırılmış hali. 16 pikselde zayıf |
-| G · Referansın birebir hali | Önerilmiyor. Dolar çağrışımı ve renk çakışması |
+| A · A flat coin | Plain and clear, but a circle on its own does not say "money" |
+| **B · A stack of coins, flat** | ✅ **Chosen.** The stepped silhouette reads at small size, the plainest form |
+| C · A tilted coin | Fits the low-poly sense of volume |
+| D · A coin plus a fork | At 16 pixels the fork disappears. Not recommended |
+| E · A stack of coins, isometric | The reference's isometric style. Considered; the flat one was preferred |
+| F · A stack of banknotes, gold | The reference stripped of the dollar. Weak at 16 pixels |
+| G · The reference exactly as it is | Not recommended. Dollar association and a colour clash |
 
-**Referans görseli değerlendirmesi.** Kullanıcının paylaştığı görsel yeşil banknot destesiydi. Tarzı doğru: kalın form, düz renk, izometrik hacim. Ama iki sorunu var:
+**Assessment of the reference image.** The image the user shared was a stack of green banknotes. Its style is right: thick form, flat colour, isometric volume. But it has two problems:
 
-1. **Dolar çağrışımı.** Yeşil banknot ve oval portre penceresi Amerikan parası demek. Gerçek para sembollerinden kaçınma kararımızla çelişiyor.
-2. **Renk çakışması.** Yeşil bizim ana arayüz rengimiz. Para yeşil olursa arayüze karışıyor, öne çıkmıyor.
+1. **Dollar association.** A green banknote and an oval portrait window means American money. It contradicts our decision to avoid real currency symbols.
+2. **Colour clash.** Green is our main interface colour. If money is green it blends into the interface instead of standing out.
 
-Ek olarak dikdörtgen siluet 16 pikselde yatay bir lekeye dönüşüyor, yuvarlak siluet ise ayakta kalıyor.
+On top of that, at 16 pixels a rectangular silhouette turns into a horizontal smudge, while a round silhouette survives.
 
-**Çözüm:** tarzı koru, nesneyi değiştir. E adayı bunu yapıyor.
+**The solution:** keep the style, change the object. Candidate E does that.
 
-### İkon şartnamesi
+### The icon specification
 
-| Kural | Karar |
+| Rule | Decision |
 |---|---|
-| İsim | Yok. Hiçbir yerde adlandırılmıyor, çeviri gerekmiyor |
-| Sembol | Gerçek para birimi sembolü yok. $, ₺, € kullanılmıyor |
-| Renk | Sıcak altın. Arayüzün ana paletinden ayrı, sadece paraya ait |
-| Sayı biçimi | Eş genişlikli rakam, binlik ayracı nokta. 8.240 gibi |
-| Yerleşim | İkon solda, sayı sağda. Sıralama hiç değişmiyor |
-| En küçük boyut | 16 piksel. Altında ikon kullanılmıyor, sadece sayı |
-| Gerçek para | Mağaza ekranında bu ikon asla kullanılmıyor. Gerçek fiyatlar farklı renk ve yerleşimde |
-| Üretim | Vektör tek dosya, Unity'de UI sprite |
+| Name | None. It is not named anywhere, no translation needed |
+| Symbol | No real currency symbol. $, ₺, € are not used |
+| Colour | Warm gold. Separate from the interface's main palette, belonging to money alone |
+| Number format | Monospaced digits, a full stop as the thousands separator. Like 8.240 |
+| Layout | Icon on the left, number on the right. The order never changes |
+| Smallest size | 16 pixels. Below that no icon is used, only the number |
+| Real money | This icon is never used on the store screen. Real prices are in a different colour and layout |
+| Production | A single vector file, a UI sprite in Unity |
 
 ---
 
-### Yine de para birimi sembolü istenirse
+### If a currency symbol is wanted anyway
 
-Karar sembol yönünde olursa şu üç önlem zorunlu hale gelir:
+If the decision goes towards a symbol, these three measures become mandatory:
 
-1. Mağaza ekranında gerçek fiyatlar **hiçbir zaman** oyun içi para birimiyle aynı görsel dilde gösterilmez. Farklı renk, farklı ikon, farklı yerleşim.
-2. Satın alma ekranında "gerçek para" ibaresi açıkça yazılır.
-3. Kullanım şartlarında sanal paranın gerçek paraya çevrilemeyeceği belirtilir.
+1. On the store screen, real prices are **never** shown in the same visual language as the in-game currency. Different colour, different icon, different layout.
+2. On the purchase screen the words "real money" are written explicitly.
+3. The terms of use state that virtual currency cannot be converted into real money.
 
-Bunlar zaten iyi uygulamalar ama sembol kullanılırsa pazarlık konusu olmaktan çıkarlar.
-
----
-
-## 8. Denge aracının test edeceği sorular
-
-1. Hiç müdahale etmeyen bir oyuncu kaçıncı günde batar
-2. İyi oynayan bir oyuncu yılı hangi net varlıkla bitirir
-3. Ekonomi kaçıncı haftada önemsizleşiyor
-4. Fiyatı sürekli piyasa üstü tutan strateji kazanıyor mu
-5. Hiç genişlemeyen bir oyuncu ne kadar kazanıyor
-6. Kredi çekmek işe yarıyor mu, yoksa tuzak mı
-7. Personel ne zaman kâra geçiyor
-8. Altmış gün doğru uzunluk mu
+These are good practice anyway, but if a symbol is used they stop being negotiable.
 
 ---
 
-## 8b. "Makul oyuncu 60 günde ne kazanmalı" — değerlendirildi, **değiştirilmedi**
+## 8. The questions the balance tool will test
 
-Bir ekonomi incelemesi somut bir hedef bant önerdi: makul oyuncu 60. günü
-**32.000–40.000** sikke ve **en az 10 masa** ile bitirsin, ve `calibrate.py`
-bunu bir kontrol olarak koşsun. Ölçülen değerler 22–25.000 ve 7,2 masa;
-`plancı` aynı ekonomide 13,7 masaya çıkıyor ve **benzer** kasayla bitiriyor.
-
-**Öneri uygulanmadı ve sebebi şu: para bu oyunun hedefi değil.** [08](08-endgame.md)
-kampanyayı **yedi eksenli bir plaketle** kapatıyor; servet onlardan yalnızca
-biri. `makul` ile `plancı` aynı parayla bitiyor ama `plancı` **iki kat**
-büyüklükte bir dükkân ve 99 itibar taşıyor — yıl sonu puanında aradaki fark
-**mekân** ve **itibar** eksenlerinde görünüyor, kasada değil. Temkinli oynamak
-"daha az para" değil "daha küçük plaket" demeli, ve öyle.
-
-Kasaya mutlak bir bant koymak, puanlama sistemini kurarken bilinçli olarak
-reddedilen şeyi geri getirirdi: tek eksenli bir başarı ölçüsü.
-
-Önerinin **doğru** olan yarısı ayrıca uygulandı: yıl sonu **servet** ekseninin
-paydası (`RemainingPurchaseCostTotal`) soğuk hava merdivenini saymıyordu, oysa
-aynı soruyu soran öteki fonksiyon (`RemainingPurchaseCost`) sayıyordu — iki
-fonksiyon "geriye ne satın alınacak kaldı" sorusuna iki farklı cevap veriyordu.
-Şimdi ikisi de sayıyor.
+1. On which day does a player who never intervenes go bankrupt
+2. What net worth does a player who plays well finish the year with
+3. In which week does the economy become trivial
+4. Does the strategy of keeping prices permanently above market win
+5. How much does a player who never expands earn
+6. Does taking a loan work, or is it a trap
+7. When do staff turn profitable
+8. Is sixty days the right length
 
 ---
 
-## 8c. Açık kalan tek denge hedefi: geç kampanyada para sinki
+## 8b. "What should a reasonable player earn in 60 days" — considered, **not changed**
 
-`calibrate.py` **7,3. haftada** "Türk mutfağında plancı için para önemsizleşiyor"
-diyor; hedef **8,0**. 32 tohumla doğrulandı, yani gürültü değil. Diğer bütün
-kontroller ve `makul` oyuncu iki mutfakta da temiz.
+An economy review proposed a concrete target band: the reasonable player should finish
+day 60 with **32,000–40,000** coins and **at least 10 tables**, and `calibrate.py`
+should run that as a check. The measured values are 22–25,000 and 7.2 tables;
+`planci` climbs to 13.7 tables in the same economy and finishes with a **similar** till.
 
-**Sebebi biliniyor ve bilinçli bir düzeltmenin yan etkisi.** Ölçü şu:
-`Cash > RemainingPurchaseCost()` — kasadaki para, geriye kalan bütün satın
-alınabilirleri tek seferde ödeyebiliyor mu. Soğuk hava merdiveni üç
-basamaktan ikiye indi ve katalog **8.000 sikke** küçüldü. Ama o basamak
-**hiçbir koşuda satın alınamıyordu** (§8'deki ölçüm): eşik 8,0, alınamayan
-bir kalemin üzerine kurulmuştu. Katalog küçülünce ölçü gerçeği gösterdi.
+**The proposal was not applied, and the reason is this: money is not this game's goal.**
+[08](08-endgame.md) closes the campaign with a **seven-axis plaque**; wealth is only one
+of them. `makul` and `planci` finish with the same money, but `planci` carries a shop
+**twice** the size and 99 reputation — in the end-of-year score the difference shows up
+on the **venue** and **reputation** axes, not in the till. Playing cautiously should mean
+"a smaller plaque", not "less money", and it does.
 
-**Kapatmanın doğru yolu fiyat yükseltmek değil, satın alınacak şey eklemek.**
-Fiyatları şişirmek ölçüyü yeşile çevirir ama oynanışta hiçbir şeyi
-değiştirmez — plancı yine her şeyi alır, sadece bir hafta geç alır.
+Putting an absolute band on the till would bring back the thing that was deliberately
+rejected when the scoring system was built: a single-axis measure of success.
 
-Eksik olan şey zaten adı konmuş: **iş yükseltmeleri**
-(`content/upgrades.json`, [13](13-data-schemas.md); erteleme gerekçesi
-[06](06-plan-status.md)). Bugün bütün satın almalar **kapasite** satıyor —
-ekipman, masa, depo — ve hiçbiri bir müşteriyi daha değerli yapmıyor. Tabela
-gibi bir yükseltme hem o boşluğu doldurur hem de geç kampanyaya biriktirilecek
-bir hedef koyar.
-
-**Şu an kapatılmadı**, çünkü altıncı bir harcama ekseni eklemek dengeyi baştan
-kalibre etmek demek ve oyun bu eksen olmadan **oynanabilir ve dengeli**. Açık
-bir hedef ıskası olarak burada duruyor; kapatılınca `calibrate.py` kendiliğinden
-yeşile döner.
+The half of the proposal that was **right** was applied as well: the denominator of the
+end-of-year **wealth** axis (`RemainingPurchaseCostTotal`) was not counting the cold
+store ladder, while the other function asking the same question (`RemainingPurchaseCost`)
+was — two functions were giving two different answers to "what is left to buy".
+Now both of them count it.
 
 ---
 
-## 8d. Ölçüm aracının referansı kendi eliyle sakat: kredi kapısı
+## 8c. The one balance target still open: a money sink in the late campaign
 
-Denge aracının bütün hedefleri `makul` oyuncuya göre ayarlı. O oyuncunun
-genişleme kuralı şu:
+`calibrate.py` says "money becomes trivial for `planci` in Turkish cuisine" in
+**week 7.3**; the target is **8.0**. Verified with 32 seeds, so it is not noise. Every
+other check and the `makul` player are clean in both cuisines.
+
+**The reason is known and it is a side effect of a deliberate fix.** The measure is this:
+`Cash > RemainingPurchaseCost()` — can the money in the till pay for every remaining
+purchasable in one go. The cold store ladder went from three steps to two and the
+catalogue shrank by **8,000 coins**. But that step **could not be bought in any run**
+(the measurement in §8): the threshold of 8.0 had been built on top of an item nobody
+could buy. When the catalogue shrank, the measure showed the truth.
+
+**The right way to close it is not to raise prices but to add something to buy.**
+Inflating prices turns the measure green but changes nothing in play — `planci`
+still buys everything, it just buys it a week later.
+
+The missing thing already has a name: **business upgrades**
+(`content/upgrades.json`, [13](13-data-schemas.md); the reason for deferring it is in
+[06](06-plan-status.md)). Today every purchase sells **capacity** — equipment, tables,
+storage — and none of them makes a customer more valuable. An upgrade like a shop sign
+would both fill that gap and give the late campaign a goal to save towards.
+
+**It was not closed now**, because adding a sixth spending axis means recalibrating the
+balance from scratch, and the game is **playable and balanced** without that axis. It
+stands here as an open missed target; once it is closed `calibrate.py` will go green
+on its own.
+
+---
+
+## 8d. The measuring tool's reference is crippled by its own hand: the loan gate
+
+All of the balance tool's targets are tuned against the `makul` player. That player's
+expansion rule is this:
 
 ```csharp
 if (sim.Cash > cost * 2 && sim.ReputationCenti > 4500 && canServe
-    && !sim.HasLoan)                      // <-- borcu varken HİÇ genişlemiyor
+    && !sim.HasLoan)                      // <-- it NEVER expands while it has a debt
 ```
 
-11 Eylül'de `kredisiz` stratejisi yazıldı ([12](12-economy.md) §8'in altıncı
-sorusunu ilk kez ölçmek için) ve şunu gösterdi:
+On 11 September the `kredisiz` strategy was written (to measure the sixth question in
+[12](12-economy.md) §8 for the first time) and it showed this:
 
-| strateji | son kasa | masa | itibar |
+| strategy | final till | tables | reputation |
 |---|---:|---:|---:|
-| `makul` | 25.424 | 7,4 | 75,8 |
-| **`kredisiz`** (tek fark: kredi çekmiyor) | **27.853** | **14,0** | **100,0** |
+| `makul` | 25,424 | 7.4 | 75.8 |
+| **`kredisiz`** (the only difference: it takes no loan) | **27,853** | **14.0** | **100.0** |
 
-Yani **kredi çekmek büyüme eğrisini sekiz hafta kapatıyor** — ve bunu yapan
-ekonomi değil, botun kendi kuralı. `makul`, aracın "iyi oynayan oyuncu"
-referansı; o referans kendi eliyle yarı boyutta kalıyor.
+So **taking a loan shuts down the growth curve for eight weeks** — and what does that
+is not the economy, it is the bot's own rule. `makul` is the tool's "player who plays
+well" reference; that reference stays half-size by its own hand.
 
-### Denendi, ölçüldü, **uygulanmadı**
+### Tried, measured, **not applied**
 
-Kapı "borcu var mı"dan "karşılayabiliyor mu"ya çevrildi:
+The gate was turned from "does it have a debt" into "can it afford it":
 
-| pay | sonuç |
+| share | result |
 |---|---|
-| 4 taksit | `makul` 14 masa, **43.746** — `plancı`'yı (36.289) geçiyor |
-| kalan borcun tamamı | `makul` 14 masa, **39.877** — yine geçiyor |
-| kalibrasyon | ceza **9 → 32**, dört hedef daha kırılıyor |
+| 4 instalments | `makul` 14 tables, **43,746** — it beats `planci` (36,289) |
+| the whole remaining debt | `makul` 14 tables, **39,877** — it still beats it |
+| calibration | penalty **9 → 32**, four more targets break |
 
-Kırılanlar: `imzacı/makul` 0,84 ve 0,82 (taban 0,90), Türk büyüme çarpanı 4,20
-(tavan 4,0), ve para artık `makul`'de de önemsizleşiyor.
+What breaks: `imzaci/makul` 0.84 and 0.82 (floor 0.90), the Turkish growth multiplier
+4.20 (ceiling 4.0), and money now becomes trivial for `makul` too.
 
-**Sebebi açık: hedefler sakat referansa göre demirlenmiş.** Referansı düzeltmek
-sabit noktayı, kiraları ve hedef bantlarını yeniden türetmeyi gerektiriyor —
-yani tek satırlık bir düzeltme değil, tam bir yeniden ayarlama. Yarım ayarlanmış
-bir denge, belgelenmiş bir kusurdan kötüdür; o yüzden kural **olduğu gibi
-bırakıldı** ve gerekçesi `Strategies.cs`'te kuralın yanında duruyor.
+**The reason is clear: the targets are anchored to a crippled reference.** Fixing the
+reference requires re-deriving the fixed point, the rents and the target bands — that is,
+not a one-line fix but a complete retune. A half-tuned balance is worse than a documented
+flaw; so the rule was **left as it is** and its reasoning sits next to the rule in
+`Strategies.cs`.
 
-### Kapatma sırası
+### The order in which to close it
 
-1. Kapıyı "karşılayabiliyor mu"ya çevir (`cost * 2 + kalan borç`).
-2. `calibrate.py` sabit noktayı yeniden arasın — `makul` artık daha güçlü,
-   yani gerçekleşme oranı ve kiralar yukarı gidecek.
-3. `imzacı/makul` bandı yeniden türetilsin: `makul` güçlenince imza mekaniği
-   **tabanın** altına düşüyor, yani bant da o referansa aitti.
-4. §8c'deki para sinki bu değişiklikle **daha da** belirginleşiyor (düzgün
-   büyüyen oyuncu kataloğu daha erken bitiriyor) — ikisi birlikte ele alınmalı.
+1. Turn the gate into "can it afford it" (`cost * 2 + remaining debt`).
+2. Let `calibrate.py` search for the fixed point again — `makul` is stronger now, so the
+   realisation rate and the rents will go up.
+3. Re-derive the `imzaci/makul` band: once `makul` gets stronger the signature mechanic
+   falls **below the floor**, so the band belonged to that reference too.
+4. The money sink in §8c becomes **even more** pronounced with this change (a player who
+   grows properly finishes the catalogue earlier) — the two have to be handled together.
 
 ---
 
-## 9. Kalan boşluk
+## 9. The remaining gaps
 
-- Ekipman ve yükseltme fiyat listesi tam yazılmadı
-- Bahşiş sistemi olacak mı, karar verilmedi
-- İtalyan ve Japon mutfaklarının kalem fiyatları yazılmadı, o mutfaklar güncelleme olarak geleceği için ertelendi
-- Mevsim katsayılarının kesin değerleri yok
+- The equipment and upgrade price list has not been fully written
+- Whether there will be a tipping system has not been decided
+- Item prices for Italian and Japanese cuisine have not been written; they were deferred because those cuisines arrive as updates
+- There are no exact values for the seasonal coefficients

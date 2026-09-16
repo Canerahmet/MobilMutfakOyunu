@@ -3,58 +3,59 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// ASCININ YEMEK YAPMA SIRASI: malzemeyi al, yika, dogra, pisir,
-    /// tabaga cek.
+    /// THE COOK'S COOKING SEQUENCE: fetch the ingredient, wash it, chop
+    /// it, cook it, put it on the plate.
     ///
-    /// NEDEN BIR SIRA, NEDEN HER KAREDE SIMULASYONA BAKMIYOR:
+    /// WHY A SEQUENCE, AND WHY IT DOES NOT LOOK AT THE SIMULATION EVERY
+    /// FRAME:
     ///
-    /// Olculdu (Autopilot, "simulasyon is verdi 145 kez"): cekirdek
-    /// ascinin isini karelerin ancak %10'unda acik tutuyor - bir is
-    /// birkac yuz milisaniye suruyor. Gorunum bunu dogrudan izleyince
-    /// asci buzdolabina dogru iki adim atip geri donuyordu; hicbir
-    /// istasyona VARAMIYOR, dolayisiyla hicbir calisma duruşuna
-    /// giremiyordu. Mutfak bombostu ve sebebi buydu.
+    /// It was measured (Autopilot, "the simulation gave work 145 times"):
+    /// the core keeps the cook's job open on only 10% of the frames - a
+    /// job lasts a few hundred milliseconds. When the view followed that
+    /// directly, the cook took two steps towards the fridge and turned
+    /// back; it could NEVER REACH a station, and so could never enter a
+    /// working pose. The kitchen was completely empty, and this was why.
     ///
-    /// Cozum: cekirdek bir is verdiginde gorunum BIR SIRA BASLATIYOR ve
-    /// o sirayi sonuna kadar oynatiyor. Ekonomi degismiyor - burasi
-    /// cekirdege hicbir sey yazmiyor, yalnizca okudugunu insan hizinda
-    /// anlatiyor.
+    /// The answer: when the core gives a job the view STARTS A SEQUENCE
+    /// and plays that sequence through to the end. The economy does not
+    /// change - nothing here is written back to the core, it only tells
+    /// what it reads at human speed.
     ///
-    /// Bu ayni zamanda "asamalari gorelim" isteginin karsiligi: her
-    /// asamanin kendi yeri, kendi duruşu ve kendi nesnesi var.
+    /// It is also the answer to the "let us see the stages" request: every
+    /// stage has its own place, its own pose and its own object.
     /// </summary>
     public sealed class CookRoutine : MonoBehaviour
     {
         public enum Stage
         {
-            Bosta, TabagaGit, TabagiAl, DolabaGit, Al, TezgahaGit, Yika, Dogra,
-            OcagaGit, Pisir, Tabakla, PasaGit
+            Idle, ToPlate, TakePlate, ToFridge, Take, ToCounter, Wash, Chop,
+            ToStove, Cook, Plate, ToPass
         }
 
         private Walker _walk;
         private Figure _fig;
-        private int _post;          // ascinin sirasi (tezgah dagitimi)
+        private int _post;          // the cook's index (how the counters are shared out)
         private int _posts = 3;
 
-        private Stage _stage = Stage.Bosta;
+        private Stage _stage = Stage.Idle;
         private float _left;
         private int _station = -1;
-        private bool _issued;       // bu asamanin yurume emri verildi mi
+        private bool _issued;       // has this stage's walk order been given?
 
-        private GameObject _held;   // elindeki malzeme/tabak
-        private GameObject _pan;    // ocaktaki tava
-        private Transform _stove;   // tavanin konacagi ocak
+        private GameObject _held;   // the ingredient/plate in its hand
+        private GameObject _pan;    // the pan on the stove
+        private Transform _stove;   // the stove the pan goes on
 
         private GameObject[] _ingredients;
         private GameObject _platePrefab;
 
-        /// <summary>Temiz tabak yiginin onu. Gorunumden geliyor.</summary>
+        /// <summary>The front of the clean plate stack. It comes from the view.</summary>
         private Vector3 _plateSpot;
 
-        /// <summary>Su an bir sira isliyor mu.</summary>
-        public bool Busy { get { return _stage != Stage.Bosta; } }
+        /// <summary>Is a sequence running right now?</summary>
+        public bool Busy { get { return _stage != Stage.Idle; } }
 
-        /// <summary>Su anki asama. Turun sorabilmesi icin.</summary>
+        /// <summary>The current stage. So the tour can ask.</summary>
         public Stage Current { get { return _stage; } }
 
         // =====================================================================
@@ -72,23 +73,24 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Yeni is. Sira zaten isliyorsa DOKUNULMUYOR: yarim kalmis bir
-        /// pisirme, yeni bir siparis geldi diye bastan baslamamali.
+        /// A new job. If the sequence is already running it IS NOT TOUCHED:
+        /// a half-finished cook must not start again because a new order has
+        /// come in.
         /// </summary>
         public void Begin(int station, Transform stove)
         {
-            if (_stage != Stage.Bosta) return;
+            if (_stage != Stage.Idle) return;
             _station = station;
             _stove = stove;
-            Go(Stage.TabagaGit);
+            Go(Stage.ToPlate);
         }
 
-        /// <summary>Sirayi keser ve elindekini birakir. Gun bitince.</summary>
+        /// <summary>Cuts the sequence off and drops what it is holding. At the end of the day.</summary>
         public void Cancel()
         {
-            _stage = Stage.Bosta;
-            // YURUYUSU DE KES: yarim kalmis bir yol, figuru sirasi
-            // iptal edilmis halde yurumeye devam ettiriyordu.
+            _stage = Stage.Idle;
+            // CUT THE WALK TOO: a half-finished path kept the figure walking
+            // with its sequence already cancelled.
             if (_walk != null) _walk.Stop();
             Drop();
             Pan(false);
@@ -97,29 +99,28 @@ namespace Lokanta.Game
         // =====================================================================
         private void Update()
         {
-            if (_stage == Stage.Bosta) return;
-            if (_walk == null || _fig == null) { _stage = Stage.Bosta; return; }
+            if (_stage == Stage.Idle) return;
+            if (_walk == null || _fig == null) { _stage = Stage.Idle; return; }
 
-            // DURAKLATINCA MUTFAK DA DURUYOR.
+            // WHEN THE GAME IS PAUSED THE KITCHEN STOPS TOO.
             //
-            // Asagidaki Mathf.Max(0.25f, ...) tabani sifiri YUTUYORDU:
-            // duraklatilmis bir dunyada asci ceyrek hizda dogramaya
-            // devam ediyordu. Duraklatma ekrani oyunun buyuk bir
-            // kismini kapliyor (sabah, aksam, ayarlar), yani bu surekli
-            // ekrandaydi.
+            // The Mathf.Max(0.25f, ...) floor below was SWALLOWING the zero:
+            // in a paused world the cook went on chopping at quarter speed.
+            // The pause screen covers a large part of the game (the morning,
+            // the evening, the settings), so this was on screen constantly.
             if (Walker.GameSpeed <= 0.001f) return;
 
-            // Calisan figurun Animator'u acik kalmali: Figure gecisten
-            // ~1 sn sonra kapatiyor ve dograma klibi ilk karesinde
-            // donuyor.
+            // A working figure's Animator has to stay awake: Figure switches
+            // it off ~1 s after the transition and the chopping clip freezes
+            // on its first frame.
             _fig.HoldAwake();
 
             _stageAge += Time.deltaTime;
             if (_stageAge > StageTimeout)
             {
-                // Sira takildi: birak, temizle, bosta kal. Bir sonraki
-                // is yeniden baslatir. Sessizce kilitli kalmaktan iyi.
-                Debug.LogWarning("Asci sirasi zaman asimina ugradi: " + _stage);
+                // The sequence is stuck: drop it, clean up, go idle. The next
+                // job starts it again. Better than staying silently locked.
+                Debug.LogWarning("the cook sequence timed out: " + _stage);
                 Cancel();
                 Pose(Figure.Pose.Idle);
                 return;
@@ -127,88 +128,89 @@ namespace Lokanta.Game
 
             switch (_stage)
             {
-                case Stage.TabagaGit:
-                    // TEMIZ TABAK ONCE ALINIYOR.
+                case Stage.ToPlate:
+                    // THE CLEAN PLATE IS FETCHED FIRST.
                     //
-                    // Kullanicinin cumlesi: "asci oradan tabagi alip
-                    // yemek koysun". Sirada EN BASA konuyor, pisirmenin
-                    // ortasina degil: sicak tavayi birakip odadan cikan
-                    // bir asci, "tabagi aliyor" degil "bir yere gitti"
-                    // diye okunur. Gercek bir mutfakta da tabak onceden
-                    // hazirlanir.
+                    // The user's sentence: "let the cook take the plate from there
+                    // and put the food on it". It goes at the VERY START of the
+                    // sequence, not in the middle of the cooking: a cook who leaves
+                    // a hot pan and walks out of the room does not read as
+                    // "fetching a plate" but as "went off somewhere". In a real
+                    // kitchen the plate is got ready beforehand too.
                     //
-                    // Bu yol Mutfak-Bulasik gecidinden geciyor ve o
-                    // gecit kil payi var: ortak kenar 1,40 m, esik de tam
-                    // 1,40 (bkz. RestaurantView.MinJamb). Kat plani
-                    // degisirse asci buraya Giris'ten dolasmaya baslar.
+                    // This path goes through the kitchen-wash doorway, and that
+                    // doorway is a close thing: the shared edge is 1.40 m and the
+                    // threshold is exactly 1.40 (see RestaurantView.MinJamb). If the
+                    // floor plan changes, the cook will start going round through
+                    // the entrance.
                     if (Walk(_plateSpot, _plateSpot + new Vector3(0f, 0f, 1f)))
-                        Go(Stage.TabagiAl);
+                        Go(Stage.TakePlate);
                     break;
 
-                case Stage.TabagiAl:
+                case Stage.TakePlate:
                     if (Enter()) Pose(Figure.Pose.Pick);
-                    if (Tick(0.8f)) Go(Stage.DolabaGit);
+                    if (Tick(0.8f)) Go(Stage.ToFridge);
                     break;
 
-                case Stage.DolabaGit:
-                    // Buzdolabi sag duvarda ve odaya (-X) bakiyor
-                    // (RestaurantView.BuildRoomProps); asci ona donuk
-                    // durmali. Bakis hedefi +Z yazilmisti, yani asci
-                    // dolaba 90 derece YAN dururken "alma" oynatiyordu.
-                    if (Walk(Paths.Fridge, Paths.FridgeFace)) Go(Stage.Al);
+                case Stage.ToFridge:
+                    // The fridge is on the right wall and faces into the room (-X)
+                    // (RestaurantView.BuildRoomProps); the cook has to stand facing
+                    // it. The look target had been written as +Z, so the cook played
+                    // "pick up" while standing 90 degrees SIDE-ON to the cupboard.
+                    if (Walk(Paths.Fridge, Paths.FridgeFace)) Go(Stage.Take);
                     break;
 
-                case Stage.Al:
+                case Stage.Take:
                     if (Enter()) { Pose(Figure.Pose.Pick); Hold(Ingredient()); }
-                    if (Tick(1.0f)) Go(Stage.TezgahaGit);
+                    if (Tick(1.0f)) Go(Stage.ToCounter);
                     break;
 
-                case Stage.TezgahaGit:
+                case Stage.ToCounter:
                     if (Walk(Paths.PrepPost(_post, _posts),
-                             Paths.PrepCounter(_post, _posts))) Go(Stage.Yika);
+                             Paths.PrepCounter(_post, _posts))) Go(Stage.Wash);
                     break;
 
-                case Stage.Yika:
+                case Stage.Wash:
                     if (Enter()) Pose(Figure.Pose.Wash);
-                    if (Tick(1.5f)) Go(Stage.Dogra);
+                    if (Tick(1.5f)) Go(Stage.Chop);
                     break;
 
-                case Stage.Dogra:
+                case Stage.Chop:
                     if (Enter()) Pose(Figure.Pose.Chop);
-                    if (Tick(1.9f)) Go(Stage.OcagaGit);
+                    if (Tick(1.9f)) Go(Stage.ToStove);
                     break;
 
-                case Stage.OcagaGit:
+                case Stage.ToStove:
                     if (Walk(Paths.KitchenPost(_station, _posts), StovePos()))
                     {
                         Drop();
                         Pan(true);
-                        Go(Stage.Pisir);
+                        Go(Stage.Cook);
                     }
                     break;
 
-                case Stage.Pisir:
+                case Stage.Cook:
                     if (Enter()) Pose(Figure.Pose.Serve);
-                    if (Tick(2.8f)) Go(Stage.Tabakla);
+                    if (Tick(2.8f)) Go(Stage.Plate);
                     break;
 
-                case Stage.Tabakla:
+                case Stage.Plate:
                     if (Enter()) { Pose(Figure.Pose.Pick); }
                     if (Tick(1.0f))
                     {
                         Pan(false);
                         Hold(_platePrefab);
-                        Go(Stage.PasaGit);
+                        Go(Stage.ToPass);
                     }
                     break;
 
-                case Stage.PasaGit:
+                case Stage.ToPass:
                     if (Walk(Paths.PrepPost(_post, _posts),
                              Paths.PrepCounter(_post, _posts)))
                     {
                         Drop();
                         Pose(Figure.Pose.Idle);
-                        _stage = Stage.Bosta;
+                        _stage = Stage.Idle;
                     }
                     break;
             }
@@ -223,7 +225,7 @@ namespace Lokanta.Game
             _stageAge = 0f;
         }
 
-        /// <summary>Bu asamaya YENI mi girildi. Duruş bir kez veriliyor.</summary>
+        /// <summary>Has this stage just been ENTERED? The pose is given once.</summary>
         private bool Enter()
         {
             if (_issued) return false;
@@ -239,16 +241,17 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Hedefe yurur; varinca true. Emir BIR KEZ veriliyor, yoksa
-        /// figur her karede bastan baslar ve hic varmaz.
+        /// Walks to the target; true on arrival. The order is given ONCE,
+        /// otherwise the figure starts again every frame and never arrives.
         /// </summary>
         /// <summary>
-        /// Asamanin BAKILAN hedefi. Denetim buna gore olcuyor.
+        /// The stage's LOOK target. The check measures against this.
         ///
-        /// Once "calisan asci ocaga bakar" varsayiliyordu ve asamalar
-        /// eklenince o varsayim yanlis oldu: yikarken ve dograrken
-        /// tezgaha bakiyor, ocaga degil. Denetim 176 derece sapma
-        /// olctu ve HAKLIYDI - yanlis hedefe bakiyordu.
+        /// It used to be assumed that "a working cook faces the stove", and
+        /// once the stages were added that assumption became wrong: while
+        /// washing and chopping it faces the counter, not the stove. The
+        /// check measured a 176 degree deviation and it was RIGHT - it was
+        /// looking at the wrong target.
         /// </summary>
         public Vector3 LookTarget { get; private set; }
 
@@ -267,25 +270,25 @@ namespace Lokanta.Game
                 return false;
             }
 
-            // VARIS MESAFEYLE OLCULUYOR, BAYRAKLA DEGIL.
+            // ARRIVAL IS MEASURED BY DISTANCE, NOT BY A FLAG.
             //
-            // Once yalnizca !Moving'e bakiliyordu ve Warp (kadro yeniden
-            // dizilince) yolu temizleyip Moving'i false yapiyor - yani
-            // EVINE isinlanan asci "ocaga vardim" diyor, tava bos ocaga
-            // konuyor ve pisirme duruşu evde oynuyordu.
+            // Only !Moving used to be checked, and Warp (when the crew is
+            // laid out again) clears the path and makes Moving false - so a
+            // cook teleported HOME said "I have reached the stove", the pan
+            // was put on an empty stove and the cooking pose played at home.
             if (_walk.Moving) return false;
             return (transform.localPosition - _target).sqrMagnitude < 0.16f;
         }
 
         /// <summary>
-        /// Bu asamada gecen sure. Zaman asimi icin: hic varamayan bir
-        /// yuruyus sirayi sonsuza kadar kilitlerdi ve asci o ana kadar
-        /// ne yapiyorsa oyle donup kalirdi.
+        /// How long has been spent in this stage. For the timeout: a walk
+        /// that never arrives would lock the sequence for ever, and the cook
+        /// would freeze in whatever it was doing at that moment.
         /// </summary>
         private float _stageAge;
         private Vector3 _target;
 
-        /// <summary>Bir asamanin en fazla suresi (sn).</summary>
+        /// <summary>The longest a stage may take (s).</summary>
         private const float StageTimeout = 18f;
 
         private static readonly System.Collections.Generic.List<Vector3> _path =
@@ -306,13 +309,13 @@ namespace Lokanta.Game
             return _ingredients[i];
         }
 
-        /// <summary>Eline bir sey verir. Oncekini siler.</summary>
+        /// <summary>Puts something in its hand. Deletes the previous one.</summary>
         private void Hold(GameObject prefab)
         {
             Drop();
             if (prefab == null) return;
             _held = Instantiate(prefab, transform);
-            _held.name = "Elinde";
+            _held.name = "InHand";
             _held.transform.localPosition = new Vector3(0f, 0.60f, 0.26f);
             _held.transform.localRotation = Quaternion.identity;
         }
@@ -325,22 +328,23 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// OCAGA TAVA. Paket tava modeli tasimiyor; iki kutudan
-        /// yapiliyor - govde ve sap. Ustunde de pisen sey: kucuk,
-        /// sicak renkli bir kutu.
+        /// A PAN ON THE STOVE. The pack carries no pan model; it is made
+        /// from two boxes - a body and a handle. And on top of it, what is
+        /// cooking: a small, warm-coloured box.
         /// </summary>
         private void Pan(bool on)
         {
-            // TAVA BIR KEZ KURULUYOR, SONRA ACILIP KAPANIYOR.
+            // THE PAN IS BUILT ONCE, THEN SWITCHED ON AND OFF.
             //
-            // Once her pisirmede `new GameObject` + uc `CreatePrimitive`
-            // ile kuruluyor, `Tabakla` asamasinda yok ediliyordu.
-            // Malzeme sizintisi bu dosyada zaten duzeltilmisti ama NESNE
-            // copu duruyordu: uc asci x dakikada birkac tabak = duzenli
-            // GC baskisi. Projenin geri kalani (tabak yigini, masa
-            // tabagi, tepsi, musteri figuru) hep havuz kullaniyor ve
-            // gerekcesini yaziyor - "her karede nesne yaratip yok etmek
-            // zirvede saniyede onlarca ayirma demek".
+            // It used to be built with a `new GameObject` + three
+            // `CreatePrimitive` on every cook and destroyed at the plating
+            // stage. The material leak had already been fixed in this file,
+            // but the OBJECT rubbish was still there: three cooks x a few
+            // plates a minute = steady GC pressure. The rest of the project
+            // (the plate stack, the table's plate, the tray, the guest figure)
+            // all use a pool and write down why - "creating and destroying
+            // objects every frame means dozens of allocations a second at the
+            // peak".
             if (!on)
             {
                 if (_pan != null && _pan.activeSelf) _pan.SetActive(false);
@@ -351,7 +355,7 @@ namespace Lokanta.Game
             if (_pan == null)
             {
                 if (PanMaterial == null) return;
-                _pan = new GameObject("Tava");
+                _pan = new GameObject("Pan");
                 Box(_pan.transform, new Vector3(0f, 0.02f, 0f),
                     new Vector3(0.26f, 0.04f, 0.26f), new Color(0.16f, 0.16f, 0.18f));
                 Box(_pan.transform, new Vector3(0f, 0.02f, -0.22f),
@@ -360,33 +364,33 @@ namespace Lokanta.Game
                     new Vector3(0.18f, 0.03f, 0.18f), new Color(0.85f, 0.50f, 0.22f));
             }
 
-            // OCAK HER ISTE DEGISEBILIR (Begin yeni bir ocak veriyor),
-            // o yuzden havuzdan cikan tava her seferinde YENIDEN
-            // konumlaniyor. Bu satirlar olmadan tava ilk ocakta kalir
-            // ve asci baska ocakta bos tencere karistirirdi.
+            // THE STOVE CAN CHANGE WITH EVERY JOB (Begin gives a new stove),
+            // so a pan coming out of the pool is positioned AGAIN every
+            // time. Without these lines the pan would stay on the first
+            // stove and the cook would stir an empty pot on another one.
             _pan.transform.SetParent(_stove.parent, false);
             Vector3 p = _stove.localPosition;
             _pan.transform.localPosition = new Vector3(p.x, StoveTop, p.z - 0.05f);
             if (!_pan.activeSelf) _pan.SetActive(true);
         }
 
-        /// <summary>Ocak tablasinin yuksekligi (m). ArtPrefabs hedefi 0,92.</summary>
+        /// <summary>The height of the stove top (m). The ArtPrefabs target is 0.92.</summary>
         private const float StoveTop = 0.94f;
 
         /// <summary>
-        /// Tavanin bir parcasi.
+        /// A part of the pan.
         ///
-        /// MALZEME PAYLASILIYOR, HER KUTUDA YENI URETILMIYOR.
+        /// THE MATERIAL IS SHARED, NOT CREATED AFRESH FOR EVERY BOX.
         ///
-        /// Ilk yazim her kutu icin `Shader.Find` + `new Material`
-        /// yapiyordu: tava basina uc malzeme, ve `Pan(false)` yalnizca
-        /// nesneyi yok ettigi icin malzemeler yetim kaliyordu. Bu, asci
-        /// basina HER TABAKTA uc sizinti demek - altmis gunluk bir
-        /// kampanyada binlerce malzeme ornegi. Dusuk seviye bir
-        /// Adreno'da bu yavas bir bellek tukenmesi.
+        /// The first version did a `Shader.Find` + `new Material` for every
+        /// box: three materials per pan, and because `Pan(false)` only
+        /// destroyed the object, the materials were left orphaned. That
+        /// means three leaks per cook FOR EVERY PLATE - thousands of
+        /// material instances over a sixty-day campaign. On a low-end
+        /// Adreno that is a slow exhaustion of memory.
         ///
-        /// Renk MaterialPropertyBlock ile veriliyor; projenin geri
-        /// kalani zaten boyle yapiyor (Appliance.Paint).
+        /// The colour is given with a MaterialPropertyBlock; the rest of the
+        /// project already does it that way (Appliance.Paint).
         /// </summary>
         private static void Box(Transform parent, Vector3 pos, Vector3 size, Color c)
         {
@@ -416,11 +420,11 @@ namespace Lokanta.Game
         private static Material _panMat;
 
         /// <summary>
-        /// Tavanin paylasilan malzemesi. Bir kez kuruluyor.
+        /// The pan's shared material. Built once.
         ///
-        /// Gorunum katmaninin kendi malzemesini kurdugu son yer;
-        /// saydam degil, yani golgelendirici varyanti budanmiyor
-        /// (saydam malzemeler varlik olmak zorunda - bkz. docs/36).
+        /// The last place where the view layer builds a material of its own;
+        /// it is not transparent, so its shader variant is not stripped
+        /// (transparent materials have to be assets - see docs/36).
         /// </summary>
         private static Material PanMaterial
         {
@@ -430,20 +434,19 @@ namespace Lokanta.Game
                 Shader sh = Shader.Find("Universal Render Pipeline/Lit");
                 if (sh == null)
                 {
-                    // SESSIZ GERI DONUS YOK.
+                    // NO SILENT FALLBACK.
                     //
-                    // Once `return null` deniyordu ve Box() malzemeyi
-                    // null yaziyordu: cihazda tava VARSAYILAN (magenta)
-                    // ciziliyor, editorde asla gorulmuyor.
-                    // RestaurantView.Awake ayni durumda LogError basip
-                    // kendini kapatiyor ve gerekcesini yaziyor:
-                    // "sessiz geri donus, bir sonraki sefer kimsenin
-                    // fark etmeyecegi sey".
-                    Debug.LogError("SORUNLAR: URP/Lit golgelendiricisi bulunamadi, "
-                                   + "tava cizilemiyor");
+                    // It used to try `return null` and Box() then wrote a null
+                    // material: on the device the pan is drawn in the DEFAULT
+                    // (magenta) and it is never seen in the editor.
+                    // RestaurantView.Awake logs an error in the same situation and
+                    // switches itself off, and writes down why: "a silent fallback
+                    // is the thing nobody will notice next time round".
+                    Debug.LogError("PROBLEMS: the URP/Lit shader was not found, "
+                                   + "the pan cannot be drawn");
                     return null;
                 }
-                _panMat = new Material(sh) { name = "TavaPaylasilan" };
+                _panMat = new Material(sh) { name = "PanShared" };
                 return _panMat;
             }
         }

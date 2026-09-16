@@ -5,22 +5,24 @@ using UnityEngine.UIElements;
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// NISANLAR - kazanilmis olanlar ve henuz kazanilmamislar.
+    /// ACCOLADES - the ones already earned and the ones still open.
     ///
-    /// Bu bir GOREV LISTESI DEGIL, ve ayrim oyunun tek cumlelik vaadine
-    /// dayaniyor: "Patronsun, asci degil." Bir gorev listesi oyuncuya
-    /// yarin ne yapacagini soyler ve onu gorunmez bir patronun calisani
-    /// yapar. Buradaki hicbir satir "bugun sunu yap" demiyor, hicbirinin
-    /// suresi yok ve hicbiri kacirilabilir degil.
+    /// This is NOT A TASK LIST, and the distinction rests on the game's
+    /// one-sentence promise: "You are the owner, not the chef." A task
+    /// list tells the player what to do tomorrow and turns them into the
+    /// employee of an invisible boss. Not one line here says "do this
+    /// today", none of them has a deadline and none of them can be
+    /// missed.
     ///
-    /// Peki neden kazanilmamislar da gorunuyor: oyuncunun KENDI hedefini
-    /// secebilmesi icin neyin mumkun oldugunu bilmesi gerekiyor. Gizli
-    /// bir nisan, kazanildiginda surpriz olur ama oyun boyunca hicbir sey
-    /// yapmaz.
+    /// So why are the unearned ones visible at all: to choose their OWN
+    /// goal the player has to know what is possible. A hidden accolade
+    /// is a surprise on the day it lands, but it does nothing for the
+    /// whole game before that.
     ///
-    /// Odul PARA DEGIL. Bu projenin yasasi: doymus bir eksene odenen odul
-    /// gorunmez, ve harness'a gore iyi oyuncu altmisinci gunu ~21.000
-    /// kasayla bitiriyor. Nisanin odulu gorulmek.
+    /// The reward is NOT MONEY. This project's law: a reward paid into a
+    /// saturated axis is invisible, and by the harness a good player
+    /// ends day sixty with roughly 21,000 in the till. The reward for an
+    /// accolade is being seen.
     /// </summary>
     public sealed class BadgeScreen : ListScreen
     {
@@ -41,7 +43,7 @@ namespace Lokanta.Game.Ui
 
             for (int i = 0; i < sim.BadgeCount; i++)
             {
-                bool kazanildi = sim.HasBadge(i);
+                bool earned = sim.HasBadge(i);
 
                 VisualElement card = Theme.PanelBox();
 
@@ -49,26 +51,27 @@ namespace Lokanta.Game.Ui
                 head.style.justifyContent = Justify.SpaceBetween;
                 head.style.alignItems = Align.Center;
 
-                // KAZANILMAMIS NISANIN ADI DA GORUNUYOR, yalnizca soluk.
+                // AN UNEARNED ACCOLADE STILL SHOWS ITS NAME, only faded.
                 //
-                // Adi gizleyip "???" yazmak, oyuncunun hedef
-                // secebilmesini engellerdi - ve bu ekranin tek isi o.
-                Label ad = Theme.Text(Loc.T(Badges.NameKey(i)), Theme.FontBody,
-                                      kazanildi ? Theme.Accent : Theme.InkFaint);
-                if (kazanildi) ad.style.unityFontStyleAndWeight = FontStyle.Bold;
-                ad.style.whiteSpace = WhiteSpace.Normal;
-                ad.style.flexShrink = 1;
-                head.Add(ad);
+                // Hiding the name behind "???" would stop the player
+                // picking a goal - and picking a goal is this screen's
+                // only job.
+                Label name = Theme.Text(Loc.T(Badges.NameKey(i)), Theme.FontBody,
+                                        earned ? Theme.Accent : Theme.InkFaint);
+                if (earned) name.style.unityFontStyleAndWeight = FontStyle.Bold;
+                name.style.whiteSpace = WhiteSpace.Normal;
+                name.style.flexShrink = 1;
+                head.Add(name);
 
                 head.Add(Theme.Text(
-                    Loc.T(kazanildi ? "ui.badge.have" : "ui.badge.open"),
-                    Theme.FontSmall, kazanildi ? Theme.Good : Theme.InkFaint));
+                    Loc.T(earned ? "ui.badge.have" : "ui.badge.open"),
+                    Theme.FontSmall, earned ? Theme.Good : Theme.InkFaint));
                 card.Add(head);
 
-                Label not = Theme.Text(Loc.T(Badges.NoteKey(i)), Theme.FontSmall,
-                                       kazanildi ? Theme.InkDim : Theme.InkFaint);
-                not.style.whiteSpace = WhiteSpace.Normal;
-                card.Add(not);
+                Label note = Theme.Text(Loc.T(Badges.NoteKey(i)), Theme.FontSmall,
+                                        earned ? Theme.InkDim : Theme.InkFaint);
+                note.style.whiteSpace = WhiteSpace.Normal;
+                card.Add(note);
 
                 list.Add(card);
             }

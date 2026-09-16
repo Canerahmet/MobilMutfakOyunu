@@ -1,4 +1,4 @@
-using Lokanta.Content;
+﻿using Lokanta.Content;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 using Lokanta.Core.Save;
@@ -9,17 +9,17 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// NISANLAR VE HAFTALIK KARNE.
+    /// BADGES AND THE WEEKLY REPORT CARD.
     ///
-    /// Ikisi ayni bosluğu kapatiyor: oyun yedi eksende puan veriyordu ve
-    /// oyuncu onlari TAM BIR KEZ goruyordu - altmisinci gunde.
+    /// The two of them close the same gap: the game scored on seven axes and the
+    /// player saw them EXACTLY ONCE - on the sixtieth day.
     ///
-    /// Bu dosyanin asil isi bir SESSIZ HATA sinifini tutmak. Nisanlarin
-    /// tehlikesi kirilmalari degil, HAK EDILMEDEN DAGITILMALARI: bir
-    /// kosul yanlis yazilirsa oyun daha birinci gunde nisan verir, hicbir
-    /// sey hata vermez, ve tanima degersizlesir. "Defter kapandi" tam da
-    /// bu tuzagi tasiyor - hic veresiye vermemis oyuncunun da acik
-    /// veresiyesi sifirdir.
+    /// This file's real job is to hold down a class of SILENT BUG. The danger with
+    /// badges is not that they break but that they are HANDED OUT UNEARNED: if one
+    /// condition is written wrongly the game awards a badge on day one, nothing
+    /// errors, and the recognition becomes worthless. "The tab book is closed"
+    /// carries exactly that trap - a player who has never opened a tab also has an
+    /// open balance of zero.
     /// </summary>
     public sealed class BadgeTests
     {
@@ -44,7 +44,7 @@ namespace Lokanta.Core.Tests
         private static Simulation NewSim(string cuisine = "fastfood") =>
             new Simulation(Economy(), Content(cuisine), Timing(cuisine), Seed);
 
-        /// <summary>Hicbir sey yapmadan gun gun ilerler.</summary>
+        /// <summary>Advances day by day without doing anything.</summary>
         private static void RunTo(Simulation sim, int day)
         {
             while (sim.Day < day)
@@ -61,79 +61,77 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
-        /// DEFTER NISANI HAK EDILMEDEN DAGITILMIYOR.
+        /// THE TAB BOOK BADGE IS NOT HANDED OUT UNEARNED.
         ///
-        /// Bu testin tuttugu hata sessiz: kosul yalnizca "acik veresiye
-        /// sifir" olsaydi, hic veresiye vermemis oyuncu nisani BIRINCI
-        /// GUNUN sonunda alirdi. Hicbir sey kirilmaz, hicbir istisna
-        /// atilmaz - yalnizca tanima degersizlesir.
+        /// The bug this test holds down is silent: if the condition were only "the
+        /// open balance is zero", a player who never opened a tab would get the
+        /// badge at the end of DAY ONE. Nothing breaks, no exception is thrown -
+        /// only the recognition becomes worthless.
         /// </summary>
         [Fact]
-        public void Defter_acilmadan_kapanmis_sayilmiyor()
+        public void A_book_that_was_never_opened_does_not_count_as_closed()
         {
             Simulation sim = NewSim("turk");
             RunTo(sim, 5);
 
-            _out.WriteLine($"gun {sim.Day}, acik veresiye {sim.OpenCredit}");
+            _out.WriteLine($"day {sim.Day}, open tab {sim.OpenCredit}");
 
-            // ONCE CANLILIK: defter gercekten bos olmali, yoksa test
-            // dogru sebepten degil yanlis sebepten gecerdi.
+            // LIVENESS FIRST: the book really must be empty, otherwise the test
+            // would pass for the wrong reason rather than the right one.
             Assert.Equal(0, sim.OpenCredit);
-            Assert.False(sim.HasBadge(Badges.DefterKapandi),
-                "veresiye hic verilmeden 'defter kapandi' nisani dagitildi");
+            Assert.False(sim.HasBadge(Badges.TabBookClosed),
+                "the 'tab book closed' badge was handed out without a tab ever being opened");
         }
 
         /// <summary>
-        /// Nisan IKINCI kez "bugun kazanildi" diye isaretlenmiyor.
+        /// A badge is not marked "earned today" a SECOND time.
         ///
-        /// Aksam ekrani yalnizca bugun kazanilani gosteriyor; kosul her
-        /// gun saglanmaya devam ettigi icin (ornegin kasa on binin
-        /// ustunde kaldigi surece) nisan her aksam yeniden "yeni" diye
-        /// cikardi.
+        /// The evening screen only shows what was earned today; because the
+        /// condition keeps being met every day (for example as long as the till
+        /// stays above ten thousand) the badge would come up as "new" again every
+        /// evening.
         /// </summary>
         [Fact]
-        public void Nisan_bir_kez_kazaniliyor()
+        public void A_badge_is_earned_a_single_time()
         {
             Simulation sim = NewSim();
 
-            // "BUGUN KAZANILDI" YALNIZCA AKSAM OKUNABILIYOR.
+            // "EARNED TODAY" CAN ONLY BE READ IN THE EVENING.
             //
-            // AdvanceToNextDay onu sifirliyor, yani deger CloseDay ile
-            // ertesi gunun acilisi arasinda - tam da aksam ekraninin
-            // gorundugu aralikta - yasiyor. Ilk yazdigim test bunu
-            // atlayip gun ilerledikten SONRA bakiyordu ve hep sifir
-            // goruyordu: nisan dogru calisiyordu, olcum yanlis yerden
-            // bakiyordu.
-            int kazanildigiGun = 0;
-            for (int gun = 1; gun <= 40 && kazanildigiGun == 0; gun++)
+            // AdvanceToNextDay resets it, so the value lives between CloseDay and
+            // the opening of the next day - exactly the window in which the evening
+            // screen is shown. The first test I wrote skipped that and looked AFTER
+            // the day had advanced, and it always saw zero: the badge was working
+            // correctly, the measurement was looking in the wrong place.
+            int earnedOnDay = 0;
+            for (int day = 1; day <= 40 && earnedOnDay == 0; day++)
             {
-                MakulSabah(sim);
-                GunuKos(sim);
-                if (sim.BadgeEarnedToday(Badges.IlkOnBin)) kazanildigiGun = sim.Day;
+                ReasonableMorning(sim);
+                RunTheDay(sim);
+                if (sim.BadgeEarnedToday(Badges.FirstTenThousand)) earnedOnDay = sim.Day;
                 sim.AdvanceToNextDay();
             }
 
-            _out.WriteLine($"on bin nisani {kazanildigiGun}. gunde, kasa {sim.Cash}");
-            Assert.True(kazanildigiGun > 0,
-                "kirk gunde kasa hic on bini gormedi - olcum kosmamis");
+            _out.WriteLine($"the ten thousand badge on day {earnedOnDay}, till {sim.Cash}");
+            Assert.True(earnedOnDay > 0,
+                "the till never reached ten thousand in forty days - the measurement did not run");
 
-            // Ertesi gun: nisan DURUYOR ama artik "bugun" degil.
-            GunuKos(sim);
-            Assert.True(sim.HasBadge(Badges.IlkOnBin), "kazanilmis nisan kayboldu");
-            Assert.False(sim.BadgeEarnedToday(Badges.IlkOnBin),
-                "nisan ikinci kez 'bugun kazanildi' diye isaretlendi");
+            // The next day: the badge IS STILL THERE but is no longer "today's".
+            RunTheDay(sim);
+            Assert.True(sim.HasBadge(Badges.FirstTenThousand), "an earned badge disappeared");
+            Assert.False(sim.BadgeEarnedToday(Badges.FirstTenThousand),
+                "the badge was marked 'earned today' a second time");
         }
 
         /// <summary>
-        /// MAKUL OYUNCU: stok alir ve yarina gereken kadroyu kurar.
+        /// THE REASONABLE PLAYER: buys stock and builds the crew tomorrow needs.
         ///
-        /// Pasif bot ile olcmek yaniltiyordu: hicbir sey yapmayan oyuncu
-        /// zirveyi tek asci tek garsonla karsiliyor ve elbette kimse
-        /// mutlu ayrilmiyor. "Hicbir nisan kazanilmadi" sonucu nisanlarin
-        /// ulasilamaz oldugunu DEGIL, olcen oyuncunun kotu oynadigini
-        /// gosteriyordu.
+        /// Measuring with the passive bot misled: a player who does nothing meets
+        /// the peak with one cook and one waiter and, naturally, nobody leaves
+        /// happy. A result of "no badge was earned" showed NOT that the badges were
+        /// unreachable but that the measuring player was playing badly.
         /// </summary>
-        private static void MakulSabah(Simulation sim)
+        private static void ReasonableMorning(Simulation sim)
         {
             for (int i = 0; i < sim.IngredientCount; i++)
             {
@@ -143,53 +141,55 @@ namespace Lokanta.Core.Tests
                                           CommandKind.OrderIngredient, i, need));
             }
 
-            // GENISLEME DE MAKUL OYUNUN PARCASI.
+            // EXPANDING IS PART OF REASONABLE PLAY TOO.
             //
-            // Ilk olcumde yoktu ve "genisleme" ile "itibar 90" nisanlari
-            // HIC kazanilmiyor gorundu. Sebep nisanlar degil olcen
-            // oyuncuydu: hic buyumeyen bir dukkanda itibar masa
-            // kademesinin tavanina kirpiliyor, yani 90 zaten imkansiz.
-            // Kural turdaki ile ayni: bedelin uc kati kasada varsa.
-            // BIRINCI HAFTA GENISLEME YOK.
+            // It was missing in the first measurement and the "expansion" and
+            // "reputation 90" badges appeared NEVER to be earned. The reason was
+            // not the badges but the measuring player: in a restaurant that never
+            // grows, the reputation is clamped to the table tier's ceiling, so 90 is
+            // impossible from the start.
+            // The rule is the same as the tour's: if three times the cost is in the
+            // till.
+            // NO EXPANSION IN THE FIRST WEEK.
             //
-            // Olculdu: 3x kurali birinci gunde ZATEN saglaniyor (baslangic
-            // 8.000 sikke, ilk kademe 2.500) ve bu olcum oyuncusu o gun
-            // genisleyince altmisinci gunu dort masa, sifir itibar, sifir
-            // kasa ile bitiriyor - kira 850'den 1.950'ye ciktigi halde
-            // dolduracak musteri henuz yok.
+            // Measured: the 3x rule is ALREADY met on day one (8,000 coins to start,
+            // the first tier 2,500), and when this measuring player expands that day
+            // it finishes the sixtieth day on four tables, zero reputation and zero
+            // in the till - the rent has gone from 850 to 1,950 while there are not
+            // yet the customers to fill it.
             //
-            // Bu bir DENGE bulgusu degil olcum aracinin sinirini gosteren
-            // bir sonuc: tur de ayni 3x kuralini kullaniyor ve kirkinci
-            // gunde 14 masaya, 96,8 itibara ulasiyor - cunku baska seyleri
-            // de dogru yapiyor. Buradaki oyuncu yalnizca stok ve kadro
-            // biliyor, o yuzden ona bir haftalik sabir veriliyor.
+            // This is not a BALANCE finding but a result that shows the measuring
+            // tool's limits: the tour uses the same 3x rule and reaches 14 tables and
+            // 96.8 reputation by the fortieth day - because it does other things
+            // right as well. The player here only knows about stock and crew, so it
+            // is given a week's patience.
             if (sim.Day >= 8)
                 for (int i = 1; i < sim.TierCount; i++)
                 {
                     if (sim.TablesAtTier(i) <= sim.TableCount) continue;
-                    long bedel = sim.UpgradeCostFor(i);
-                    if (bedel > 0 && sim.Cash >= bedel * 3)
+                    long cost = sim.UpgradeCostFor(i);
+                    if (cost > 0 && sim.Cash >= cost * 3)
                         sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, i));
                     break;
                 }
 
-            Crew gereken = sim.RequiredCrewTomorrow();
-            while (sim.Cooks < gereken.Cooks && sim.Cooks < sim.StaffCap)
+            Crew needed = sim.RequiredCrewTomorrow();
+            while (sim.Cooks < needed.Cooks && sim.Cooks < sim.StaffCap)
             {
-                int once = sim.Cooks;
+                int before = sim.Cooks;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, 0));
-                if (sim.Cooks == once) break;         // tavan ya da para
+                if (sim.Cooks == before) break;         // the cap, or the money
             }
-            while (sim.SalonStaff < gereken.Salon && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            while (sim.HallStaff < needed.Hall && sim.Cooks + sim.HallStaff < sim.StaffCap)
             {
-                int once = sim.SalonStaff;
+                int before = sim.HallStaff;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, 0));
-                if (sim.SalonStaff == once) break;
+                if (sim.HallStaff == before) break;
             }
         }
 
-        /// <summary>Gunu acar, servisi bitirir, kapatir - ILERLETMEZ.</summary>
-        private static void GunuKos(Simulation sim)
+        /// <summary>Opens the day, finishes the service, closes it - DOES NOT ADVANCE.</summary>
+        private static void RunTheDay(Simulation sim)
         {
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
             for (int t = 0; t < 5000; t++) { sim.Tick(); if (sim.ServiceComplete) break; }
@@ -197,11 +197,11 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
-        /// Haftalik karne yedinci gunun KAPANISINDA cikiyor - altinci ya
-        /// da sekizinci gunde degil.
+        /// The weekly report card comes out AT THE CLOSE of the seventh day - not on
+        /// the sixth and not on the eighth.
         /// </summary>
         [Fact]
-        public void Karne_yedinci_gunde_cikiyor()
+        public void The_report_card_comes_out_on_the_seventh_day()
         {
             Simulation sim = NewSim();
 
@@ -209,7 +209,7 @@ namespace Lokanta.Core.Tests
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
             for (int t = 0; t < 5000; t++) { sim.Tick(); if (sim.ServiceComplete) break; }
             sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
-            Assert.False(sim.WeekReportReady, "altinci gunde karne cikti");
+            Assert.False(sim.WeekReportReady, "the report card came out on the sixth day");
 
             sim.AdvanceToNextDay();
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
@@ -217,21 +217,20 @@ namespace Lokanta.Core.Tests
             sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
 
             Assert.Equal(7, sim.Day);
-            Assert.True(sim.WeekReportReady, "yedinci gunde karne cikmadi");
+            Assert.True(sim.WeekReportReady, "the report card did not come out on the seventh day");
             Assert.Equal(1, sim.WeekNumber);
         }
 
         /// <summary>
-        /// ILK HAFTANIN FARKI DEVRALINAN DUKKANI SAYMIYOR.
+        /// THE FIRST REPORT CARD'S DELTA DOES NOT COUNT WHAT WAS INHERITED.
         ///
-        /// Bu da sessiz bir hata olurdu: sifirinci gun fotografi
-        /// cekilmeseydi gecen hafta sifir sayilir ve oyuncu yedinci
-        /// gunde "Mekan +33" gibi, KENDISININ YAPMADIGI bir sicrama
-        /// gorurdu. Devraldigi dort masali dukkanin puani onun kazanci
-        /// degil.
+        /// This too would have been a silent bug: without the day-zero snapshot,
+        /// last week would count as zero and on the seventh day the player would see
+        /// a jump such as "Place +33" that THEY DID NOT MAKE. The score of the
+        /// four-table restaurant they inherited is not their gain.
         /// </summary>
         [Fact]
-        public void Ilk_karnenin_farki_devralinani_saymiyor()
+        public void The_first_report_cards_delta_does_not_count_what_was_inherited()
         {
             Simulation sim = NewSim();
             RunTo(sim, 7);
@@ -239,87 +238,88 @@ namespace Lokanta.Core.Tests
             for (int t = 0; t < 5000; t++) { sim.Tick(); if (sim.ServiceComplete) break; }
             sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
 
-            Assert.True(sim.WeekReportReady, "karne cikmadi - olcum kosmamis");
+            Assert.True(sim.WeekReportReady, "the report card did not come out - the measurement did not run");
 
-            // Mekan ekseni ilk haftada degismiyor (genisleme olmadi):
-            // fark SIFIR olmali. Sifirinci fotograf cekilmeseydi
-            // buradaki deger ekseni'n kendisi olurdu.
-            int mekan = sim.WeekAxis(4);
-            int fark = sim.WeekAxisDelta(4);
-            _out.WriteLine($"mekan ekseni {mekan}, ilk hafta farki {fark}");
+            // The place axis does not change in the first week (there was no
+            // expansion): the delta must be ZERO. Without the day-zero snapshot the
+            // value here would be the axis itself.
+            int place = sim.WeekAxis(4);
+            int delta = sim.WeekAxisDelta(4);
+            _out.WriteLine($"place axis {place}, first week delta {delta}");
 
-            Assert.True(mekan > 0, "mekan ekseni sifir - olcum kosmamis");
-            Assert.Equal(0, fark);
+            Assert.True(place > 0, "the place axis is zero - the measurement did not run");
+            Assert.Equal(0, delta);
         }
 
         /// <summary>
-        /// NISANLAR AYIRT EDIYOR MU.
+        /// DO THE BADGES DISCRIMINATE.
         ///
-        /// Tanimanin tehlikesi kirilmasi degil DEGERSIZLESMESI: hepsi
-        /// ilk haftada kendiliginden dagiliyorsa oyuncu bes bildirim
-        /// gorur ve kampanyanin kalan elli uc gunu bos kalir. Bu, bu
-        /// projenin yasasinin ayni yuzu - doymus bir eksene odenen odul
-        /// gorunmez.
+        /// The danger with recognition is not that it breaks but that it BECOMES
+        /// WORTHLESS: if they all fall out by themselves in the first week the
+        /// player sees five notifications and the campaign's remaining fifty-three
+        /// days are empty. This is the same face of this project's law - a reward
+        /// paid into a saturated axis is invisible.
         ///
-        /// Test bir DEGER degil bir DAGILIM sinifiyor: pasif oyuncu
-        /// hepsini almamali.
+        /// The test checks a DISTRIBUTION, not a value: the passive player must not
+        /// collect them all.
         /// </summary>
         [Fact]
-        public void Nisanlar_ilk_haftada_toptan_dagilmiyor()
+        public void The_badges_are_not_all_handed_out_in_the_first_week()
         {
             Simulation sim = NewSim();
-            int[] gun = new int[sim.BadgeCount];
+            int[] earnedOn = new int[sim.BadgeCount];
 
             for (int g = 1; g <= sim.CampaignDays; g++)
             {
-                MakulSabah(sim);
-                GunuKos(sim);
+                ReasonableMorning(sim);
+                RunTheDay(sim);
                 for (int i = 0; i < sim.BadgeCount; i++)
-                    if (gun[i] == 0 && sim.BadgeEarnedToday(i)) gun[i] = sim.Day;
+                    if (earnedOn[i] == 0 && sim.BadgeEarnedToday(i)) earnedOn[i] = sim.Day;
                 sim.AdvanceToNextDay();
             }
 
             for (int i = 0; i < sim.BadgeCount; i++)
-                _out.WriteLine($"{Badges.NameKey(i),-22} {(gun[i] == 0 ? "hic" : gun[i] + ". gun")}");
-            _out.WriteLine($"son: masa {sim.TableCount}, itibar {sim.ReputationCenti / 100}, kasa {sim.Cash / 100}");
+                _out.WriteLine($"{Badges.NameKey(i),-22} {(earnedOn[i] == 0 ? "never" : "day " + earnedOn[i])}");
+            _out.WriteLine($"final: tables {sim.TableCount}, reputation {sim.ReputationCenti / 100}, till {sim.Cash / 100}");
 
-            int ilkHafta = 0;
+            int inFirstWeek = 0;
             for (int i = 0; i < sim.BadgeCount; i++)
-                if (gun[i] > 0 && gun[i] <= 7) ilkHafta++;
+                if (earnedOn[i] > 0 && earnedOn[i] <= 7) inFirstWeek++;
 
-            Assert.True(ilkHafta < sim.BadgeCount,
-                "butun nisanlar ilk haftada dagitildi - tanima degersiz");
+            Assert.True(inFirstWeek < sim.BadgeCount,
+                "every badge was handed out in the first week - the recognition is worthless");
         }
 
         /// <summary>
-        /// Nisanlar ve karne kayitta tasiniyor.
+        /// The badges and the report card survive a save.
         ///
-        /// Kaydedilmeselerdi belirti sessiz olurdu: oyuncu oyunu kapatip
-        /// acinca nisanlarini kaybeder, ve kosullar hala saglandigi icin
-        /// bir kismi yeniden "yeni nisan" diye cikardi.
+        /// If they were not saved the symptom would be silent: the player would lose
+        /// their badges on closing and reopening the game, and because the
+        /// conditions still hold some of them would come up as a "new badge" all
+        /// over again.
         /// </summary>
         [Fact]
-        public void Nisanlar_kayitta_tasiniyor()
+        public void The_badges_survive_a_save()
         {
             Simulation sim = NewSim();
             RunTo(sim, 8);
 
-            int nisan = sim.BadgesEarned;
-            int hafta = sim.WeekNumber;
-            int eksen0 = sim.WeekAxis(0);
-            _out.WriteLine($"kayit oncesi: {nisan} nisan, {hafta}. hafta, eksen0 {eksen0}");
+            int badges = sim.BadgesEarned;
+            int week = sim.WeekNumber;
+            int axis0 = sim.WeekAxis(0);
+            _out.WriteLine($"before the save: {badges} badges, week {week}, axis0 {axis0}");
 
             JsonStateWriter w = new JsonStateWriter();
             sim.Write(w);
 
-            Simulation geri = NewSim();
-            geri.Restore(new JsonStateReader(w.ToJson()));
+            Simulation restored = NewSim();
+            restored.Restore(new JsonStateReader(w.ToJson()));
 
-            Assert.Equal(nisan, geri.BadgesEarned);
-            Assert.Equal(hafta, geri.WeekNumber);
-            Assert.Equal(eksen0, geri.WeekAxis(0));
+            Assert.Equal(badges, restored.BadgesEarned);
+            Assert.Equal(week, restored.WeekNumber);
+            Assert.Equal(axis0, restored.WeekAxis(0));
             for (int i = 0; i < sim.BadgeCount; i++)
-                Assert.Equal(sim.HasBadge(i), geri.HasBadge(i));
+                Assert.Equal(sim.HasBadge(i), restored.HasBadge(i));
         }
     }
 }

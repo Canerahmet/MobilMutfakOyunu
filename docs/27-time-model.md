@@ -1,597 +1,597 @@
-# Zaman Modeli
+# The Time Model
 
-**Son güncelleme:** 10 Eylül 2026
-**Kütük maddeleri:** [23-core-contract.md](23-core-contract.md) karar bekleyen madde 1, A4 ekonomi sayıları, A8 personel kapasitesi
-**Durum:** Parti B. Bu dosya bağlayıcıdır. Bütün süreler `tools/balance/timing.py` tarafından türetiliyor; elle yazılmış milisaniye yok.
+**Last updated:** 10 September 2026
+**Register items:** [23-core-contract.md](23-core-contract.md) pending decision item 1, A4 economy numbers, A8 staff capacity
+**Status:** Batch B. This file is binding. Every duration is derived by `tools/balance/timing.py`; there is no hand-written millisecond.
 
-**Doğrulama:** `python tools/balance/timing.py --check` — 47 tutarlılık testi.
-
----
-
-## Neden bu dosya var
-
-Üç dosya birbiriyle çelişiyordu.
-
-| Kaynak | İddia |
-|---|---|
-| [23-core-contract.md](23-core-contract.md) §1.3 | Servis günü 4.800 tick = 480.000 ms |
-| [14-staff-system.md](14-staff-system.md) | Aşçı kapasitesi 28 müşteri/gün |
-| `content/dishes/fastfood.json` | Hamburger `prepMs` = 75.000 |
-
-Aritmetik: 480.000 ÷ 28 = **17.143 ms**, bir müşterinin aşçıdan aldığı toplam mesai. Tek bir hamburger 75.000 ms tutuyorsa bir aşçı günde 480.000 ÷ 75.000 = **6,4 hamburger** yapar, 28 müşterilik iş değil. Üretilen `prepMs` değerleri ile kapasite modeli menü ortalamasında **4,35 kat**, hamburgerde **7,5 kat** ayrıydı.
-
-İkinci çelişki: zirve günde 97 müşteri, 14 masa, 4 aşçı, 7 salon personeli. Hiçbir yerde 97 müşterinin 480.000 ms'ye sığıp sığmadığı hesaplanmamıştı.
-
-Üçüncü çelişki: kurye arketipinin sabrı 8.000 ms. Oturma + sipariş + pişirme + servis sıfır yükte 26.000 ms sürüyor. Kurye her seferinde sinirli çıkıp gidiyordu.
-
-Bu dosya üçünü tek bir aritmetiğe bağlıyor.
+**Verification:** `python tools/balance/timing.py --check` — 47 consistency tests.
 
 ---
 
-## 1. Servis günü uzunluğu
+## Why this file exists
 
-### 1.1 Gün uzunluğu doluluğu değiştirmez
+Three files contradicted each other.
 
-Önce yanlış bir sezgiyi kapatmak gerekiyor: "gün kısa geliyorsa uzatalım."
-
-Aşağıdaki bölüm 2 bütün görev sürelerini **günün oranı olarak** tanımlıyor: garson mesaisi gün ÷ 25, aşçı mesaisi gün ÷ 28. Gün iki katına çıkarsa bütün süreler iki katına çıkar ve doluluk yüzdeleri **aynı kalır**. Yani gün uzunluğu fizibiliteyi ne düzeltir ne bozar.
-
-Gün uzunluğunun gerçekten belirlediği üç şey var:
-
-| Ne | Nasıl bağlı |
+| Source | Claim |
 |---|---|
-| Oturum uzunluğu | Bir gün bir oturuşta bitmeli |
-| Kampanya süresi | 60 gün × gün uzunluğu |
-| Mutlak içerik sabitleriyle oran | `patienceMs` (8.000–30.000) ve `prepMs` mutlak sayılar; gün büyürse türetilen süreler büyür, sabır büyümez |
+| [23-core-contract.md](23-core-contract.md) §1.3 | A service day is 4,800 ticks = 480,000 ms |
+| [14-staff-system.md](14-staff-system.md) | A cook's capacity is 28 customers/day |
+| `content/dishes/fastfood.json` | Hamburger `prepMs` = 75,000 |
 
-Üçüncü satır kritik ve gün uzunluğunu **her iki yönden** sınırlıyor.
+The arithmetic: 480,000 ÷ 28 = **17,143 ms**, the total cook-time a single customer takes. If one hamburger takes 75,000 ms, a cook makes 480,000 ÷ 75,000 = **6.4 hamburgers** a day, which is not 28 customers' worth of work. The generated `prepMs` values and the capacity model were **4.35×** apart on the menu average and **7.5×** apart on the hamburger.
 
-### 1.2 Üst sınır: sabır
+The second contradiction: on the peak day there are 97 customers, 14 tables, 4 cooks, 7 hall staff. Nowhere had anyone calculated whether 97 customers fit into 480,000 ms.
 
-Zirve dilimde harcanan ortalama sabır (bölüm 6) 480.000 ms'lik günde 11.288 ms. Bu sayı gün uzunluğuyla doğru orantılı: 11.288 ÷ 480.000 = **0,023517 × gün**.
+The third contradiction: the courier archetype's patience is 8,000 ms. Seating + ordering + cooking + serving takes 26,000 ms at zero load. The courier walked out angry every single time.
 
-Arketip sabır basamaklarında 10.000 ms'den sonraki basamak 13.000 ms. Zirvede kaybedilen kitlenin 10.000 ms bandında kalması için:
+This file binds the three to a single arithmetic.
+
+---
+
+## 1. The length of the service day
+
+### 1.1 The length of the day does not change the utilisation
+
+First a wrong instinct has to be closed off: "if the day feels short, let us make it longer."
+
+Section 2 below defines all the task durations **as a fraction of the day**: the waiter's time is day ÷ 25, the cook's time is day ÷ 28. If the day doubles, all the durations double and the utilisation percentages **stay the same**. So the day's length neither fixes nor breaks feasibility.
+
+There are three things the day's length really does determine:
+
+| What | How it is bound |
+|---|---|
+| Session length | One day has to finish in one sitting |
+| Campaign length | 60 days × the length of a day |
+| The ratio to absolute content constants | `patienceMs` (8,000–30,000) and `prepMs` are absolute numbers; if the day grows, the derived durations grow, patience does not |
+
+The third row is critical and it bounds the day's length **from both sides**.
+
+### 1.2 The upper bound: patience
+
+The average patience spent in the peak slot (section 6) is 11,288 ms on a 480,000 ms day. That number is directly proportional to the day's length: 11,288 ÷ 480,000 = **0.023517 × day**.
+
+In the archetypes' patience steps, the step after 10,000 ms is 13,000 ms. For the crowd lost at the peak to stay in the 10,000 ms band:
 
 ```
-0,023517 × gün < 13.000  →  gün < 552.800 ms
+0.023517 × day < 13,000  →  day < 552,800 ms
 ```
 
-Gün 552.800 ms'yi aşarsa 13.000 ms sabırlı arketipler de (çocuklu ebeveyn, %3,8 pay) zirvede kaybedilmeye başlar ve zirve dilimi kaybı %10,2'den %14,0'a çıkar.
+If the day exceeds 552,800 ms, the archetypes with 13,000 ms of patience (the parent with children, 3.8% of heads) also start being lost at the peak, and the peak slot's loss rises from 10.2% to 14.0%.
 
-### 1.3 Alt sınır: okunabilirlik
+### 1.3 The lower bound: legibility
 
-En basit yemeğin (ızgara, karmaşıklık 1) `prepMs` değeri 10.000 ms, yani 0,0208333 × gün. Bir pişirme animasyonunun okunabilmesi için alt sınır 8.000 ms kabul edildi:
+The simplest dish (grill, complexity 1) has a `prepMs` of 10,000 ms, that is, 0.0208333 × day. For a cooking animation to be legible, a lower bound of 8,000 ms was accepted:
 
 ```
-0,0208333 × gün ≥ 8.000  →  gün ≥ 384.000 ms
+0.0208333 × day ≥ 8,000  →  day ≥ 384,000 ms
 ```
 
-Bunun altında ızgara animasyonu bir çakma oluyor ve `station` alanı görsel olarak anlamsızlaşıyor.
+Below that the grill animation becomes a flash and the `station` field becomes visually meaningless.
 
-### 1.4 Karar
+### 1.4 The decision
 
-Bant **384.000 – 552.800 ms**. Mevcut değer 480.000 ms bandın ortasında ve şu üç ölçütü de tutturuyor:
+The band is **384,000 – 552,800 ms**. The current value of 480,000 ms is in the middle of the band and also meets these three criteria:
 
-| Ölçüt | Değer | Hedef | Sonuç |
+| Criterion | Value | Target | Result |
 |---|---|---|---|
-| Servis günü | 480.000 ms = 8,0 dk | — | — |
-| Gün toplamı (servis + sabah/akşam 1.200 tick) | 6.000 tick = 10,0 dk | ≤ 12 dk, tek oturuş | Geçti |
-| Dokunuş aralığı (60 dokunuş) | 480.000 ÷ 60 = 8.000 ms | 6.000–12.000 ms | Geçti |
-| Kampanya, 1x | 60 × 6.000 tick = 360.000 tick = **10,00 saat** | 8–14 saat | Geçti |
-| Kampanya, 2x | **5,00 saat** | — | — |
+| Service day | 480,000 ms = 8.0 min | — | — |
+| Day total (service + 1,200 ticks of morning/evening) | 6,000 ticks = 10.0 min | ≤ 12 min, one sitting | Passed |
+| Touch interval (60 touches) | 480,000 ÷ 60 = 8,000 ms | 6,000–12,000 ms | Passed |
+| Campaign, 1x | 60 × 6,000 ticks = 360,000 ticks = **10.00 hours** | 8–14 hours | Passed |
+| Campaign, 2x | **5.00 hours** | — | — |
 
-Kampanya süresi tam 10 saat çıkıyor çünkü 60 × 600.000 ms = 36.000.000 ms.
+The campaign length comes out at exactly 10 hours because 60 × 600,000 ms = 36,000,000 ms.
 
-**Karar A: servis günü 4.800 tick (480.000 ms) olarak kalıyor. 60 günlük kampanya oyuncuya 1x hızda 10 saat 0 dakika, 2x hızda 5 saat 0 dakika oynanış veriyor. Gün uzunluğu değişmediği için kimseye yeni bir maliyet çıkmıyor. [23-core-contract.md](23-core-contract.md) karar bekleyen madde 1 kapandı.**
+**Decision A: the service day stays at 4,800 ticks (480,000 ms). The 60-day campaign gives the player 10 hours 0 minutes of play at 1x and 5 hours 0 minutes at 2x. Because the day's length did not change, nobody incurs a new cost. [23-core-contract.md](23-core-contract.md) pending decision item 1 is closed.**
 
 ---
 
-## 2. Görev süreleri
+## 2. Task durations
 
-### 2.1 Türetme kuralı
+### 2.1 The derivation rule
 
-Tek kural: **bir rolün bir müşteri için harcadığı toplam milisaniye = servis günü ÷ o rolün kapasitesi.** Böylece "günde 25 müşteri" cümlesi ile "müşteri başına 19.200 ms" cümlesi aynı cümle olur.
+One rule: **the total milliseconds a role spends on one customer = the service day ÷ that role's capacity.** That way the sentence "25 customers a day" and the sentence "19,200 ms per customer" become the same sentence.
 
-| Rol | Havuz | Kapasite | Gün ÷ kapasite | Kullanılan ms | Geri çarpım | Artık |
+| Role | Pool | Capacity | Day ÷ capacity | Ms used | Multiplied back | Residue |
 |---|---|---|---|---|---|---|
-| Aşçı | mutfak | 28 | 17.142,857 | **17.143** | 480.004 | +4 ms |
-| Garson | salon | 25 | 19.200,000 | **19.200** | 480.000 | **0** |
-| Bulaşıkçı | salon | 46 | 10.434,783 | **10.435** | 480.010 | +10 ms |
-| Kasiyer | salon | 66 | 7.272,727 | **7.273** | 480.018 | +18 ms |
+| Cook | kitchen | 28 | 17,142.857 | **17,143** | 480,004 | +4 ms |
+| Waiter | hall | 25 | 19,200.000 | **19,200** | 480,000 | **0** |
+| Dishwasher | hall | 46 | 10,434.783 | **10,435** | 480,010 | +10 ms |
+| Cashier | hall | 66 | 7,272.727 | **7,273** | 480,018 | +18 ms |
 
-Yuvarlama [23-core-contract.md](23-core-contract.md) §2.3 kuralıyla: yarısı sıfırdan uzağa. Artıklar müşteri başına 1 ms'nin altında; 28 müşteride 4 ms, günün on binde birinden küçük. Doğrulama testleri bu payı `± kapasite` toleransıyla kabul ediyor.
+The rounding follows the [23-core-contract.md](23-core-contract.md) §2.3 rule: half away from zero. The residues are under 1 ms per customer; 4 ms over 28 customers, smaller than a ten-thousandth of the day. The verification tests accept this slack with a `± capacity` tolerance.
 
-Salon havuzu toplamı:
+The hall pool total:
 
 ```
-19.200 + 10.435 + 7.273 = 36.908 ms
-480.000 × 0,0768907 (model.py SALON_LOAD) = 36.907,5 → 36.908, birebir
+19,200 + 10,435 + 7,273 = 36,908 ms
+480,000 × 0.0768907 (model.py HALL_LOAD) = 36,907.5 → 36,908, exactly
 ```
 
-### 2.2 Müşterinin yolculuğu
+### 2.2 The customer's journey
 
-| Görev | Birim | Havuz | ms | Masayı bloke eder mi |
+| Task | Unit | Pool | ms | Does it block the table |
 |---|---|---|---|---|
-| Masa bekleme | — | yok | 0 | Hayır, henüz masası yok |
-| Karşılama ve oturtma | kişi | salon / garson | 3.200 | Evet |
-| Sipariş alma | kişi | salon / garson | 7.000 | Evet |
-| Pişirme beklemesi | masa | mutfak / aşçı | 20.000 | Evet |
-| Servis | kişi | salon / garson | 9.000 | Evet |
-| Yeme | masa | yok | 38.000 | Evet |
-| Ödeme | kişi | salon / kasiyer | 7.273 | Evet |
-| Masayı toplama | kişi | salon / bulaşıkçı | 4.435 | Evet |
-| Bulaşık | kişi | salon / bulaşıkçı | 6.000 | **Hayır**, evyede |
+| Waiting for a table | — | none | 0 | No, they do not have a table yet |
+| Greeting and seating | person | hall / waiter | 3,200 | Yes |
+| Taking the order | person | hall / waiter | 7,000 | Yes |
+| Waiting for the cooking | table | kitchen / cook | 20,000 | Yes |
+| Serving | person | hall / waiter | 9,000 | Yes |
+| Eating | table | none | 38,000 | Yes |
+| Paying | person | hall / cashier | 7,273 | Yes |
+| Clearing the table | person | hall / dishwasher | 4,435 | Yes |
+| Washing up | person | hall / dishwasher | 6,000 | **No**, at the sink |
 
-Toplamlar:
-
-```
-garson     : 3.200 + 7.000 + 9.000        = 19.200 = gün ÷ 25   TAM
-bulaşıkçı  : 4.435 + 6.000                = 10.435 = gün ÷ 46
-kasiyer    : 7.273                        =  7.273 = gün ÷ 66
-salon      : 19.200 + 10.435 + 7.273      = 36.908 = gün × 0,0768907
-mutfak     : 2,2 kalem × ortalama pişirme = 17.127 ≈ gün ÷ 28   (bölüm 4)
-```
-
-**Bulaşığın masadan ayrılması bilinçli.** Tabak masadan kalkınca masa boşalır, yıkama arkada devam eder. Bu, [14-staff-system.md](14-staff-system.md)'deki "tabak biterse servis durur" darboğazını korurken masa devrini serbest bırakıyor. Masayı bloke eden personel süresi:
+The totals:
 
 ```
-36.908 − 6.000 = 30.908 ms/kişi
+waiter     : 3,200 + 7,000 + 9,000        = 19,200 = day ÷ 25   EXACT
+dishwasher : 4,435 + 6,000                = 10,435 = day ÷ 46
+cashier    : 7,273                        =  7,273 = day ÷ 66
+hall       : 19,200 + 10,435 + 7,273      = 36,908 = day × 0.0768907
+kitchen    : 2.2 items × average cooking  = 17,127 ≈ day ÷ 28   (section 4)
 ```
 
-### 2.3 Masa devri
+**Separating the washing-up from the table is deliberate.** Once the plates come off the table the table frees up, and the washing carries on in the back. This preserves the "if the plates run out, service stops" bottleneck from [14-staff-system.md](14-staff-system.md) while letting the table turn freely. The staff time that blocks the table:
 
-Bir masa bir kişiyi değil bir **grubu** ağırlıyor. `content/archetypes/*.json` ölçümü (ağırlık × ortalama grup büyüklüğü):
+```
+36,908 − 6,000 = 30,908 ms/person
+```
 
-| Ölçüm | Değer |
+### 2.3 The table turn
+
+A table hosts not a person but a **party**. The `content/archetypes/*.json` measurement (weight × average party size):
+
+| Measurement | Value |
 |---|---|
-| Ortalama grup büyüklüğü, tüm arketipler | 2,1195 kişi |
-| Ortalama grup büyüklüğü, oturanlar (kurye hariç) | **2,1847 kişi** |
-| Kurye kafa payı (masa işgal etmez) | %2,59 |
+| Average party size, all archetypes | 2.1195 heads |
+| Average party size, seated (excluding the courier) | **2.1847 heads** |
+| The courier's share of heads (takes no table) | 2.59% |
 
-Kurye [11-customer-system.md](11-customer-system.md)'de "paket alan, masa işgal etmez" olarak tanımlı; masa hesabından düşülüyor.
+The courier is defined in [11-customer-system.md](11-customer-system.md) as "takeaway, occupies no table"; it is subtracted from the table arithmetic.
 
 ```
-masa devri = 2,1847 × 30.908 + 20.000 + 38.000
-           = 67.525 + 20.000 + 38.000
-           = 125.525 ms  (1.255 tick)
+table turn = 2.1847 × 30,908 + 20,000 + 38,000
+           = 67,525 + 20,000 + 38,000
+           = 125,525 ms  (1,255 ticks)
 ```
 
-Kişi başına masa süresi 125.525 ÷ 2,1847 = **57.457 ms**.
+Table time per head is 125,525 ÷ 2.1847 = **57,457 ms**.
 
-**Karar B: görev süreleri yukarıdaki tabloda. Garson mesaisi × 25, bulaşıkçı × 46, kasiyer × 66 ve aşçı × 28 servis gününü ±1 ms/müşteri hatayla geri veriyor. Bir masa devri 125.525 ms.**
+**Decision B: the task durations are in the table above. The waiter's time × 25, the dishwasher's × 46, the cashier's × 66 and the cook's × 28 give the service day back with an error of ±1 ms/customer. One table turn is 125,525 ms.**
 
-### 2.4 "~120 saniyelik servis" ne demekti
+### 2.4 What "~120 seconds of service" meant
 
-[23-core-contract.md](23-core-contract.md) §1.3 "bir müşteri servisi ~1.200 tick, 120 s" diyor ve `content/economy.json` `serviceMs: 120000` yazıyor. Bu sayı **müşteri başına değil, masa devri başına** doğru:
+[23-core-contract.md](23-core-contract.md) §1.3 says "one customer service ~1,200 ticks, 120 s" and `content/economy.json` writes `serviceMs: 120000`. That number is correct **per table turn, not per customer**:
 
-| Okuma | Değer | Doğru mu |
+| Reading | Value | Is it correct |
 |---|---|---|
-| Müşteri başına | 57.457 ms (575 tick) | 120 s iki kat fazla |
-| Masa devri başına | 125.525 ms (1.255 tick) | 120 s ile %4,6 fark |
+| Per customer | 57,457 ms (575 ticks) | 120 s is twice too much |
+| Per table turn | 125,525 ms (1,255 ticks) | 4.6% off 120 s |
 
-§1.3'teki satır "bir masa devri ~1.255 tick" olarak düzeltilmeli, `serviceMs` alanı `tableTurnMs: 125525` olmalı.
+The line in §1.3 should be corrected to "one table turn ~1,255 ticks", and the `serviceMs` field should become `tableTurnMs: 125525`.
 
 ---
 
-## 3. Eş zamanlılık
+## 3. Concurrency
 
-### 3.1 Karar noktası
+### 3.1 The decision point
 
-Bir aşçı aynı anda tek yemekle mi ilgilenir, yoksa fırın pişirirken doğrama yapabilir mi? Bu, `prepMs`'in ne olduğunu belirliyor.
+Does a cook deal with one dish at a time, or can they chop while the oven bakes? This determines what `prepMs` is.
 
-| Model | `prepMs` ne | Sonuç |
+| Model | What `prepMs` is | Consequence |
 |---|---|---|
-| Tek yemek | Aşçının meşgul süresi | Ortalama `prepMs` = 17.143 ÷ 2,2 = **7.792 ms** |
-| Eş zamanlı | Duvar saati; meşguliyet ayrı | Ortalama `prepMs` ≈ 21.306 ms, meşguliyet 7.788 ms |
+| One dish | The cook's busy time | Average `prepMs` = 17,143 ÷ 2.2 = **7,792 ms** |
+| Concurrent | Wall clock; busy time is separate | Average `prepMs` ≈ 21,306 ms, busy time 7,788 ms |
 
-Tek yemek modelinde bütün yemekler 8 saniyenin altına iniyor. O ölçekte fırınla ızgara arasında görsel fark kalmıyor, `station` alanı yalnızca bir ikon seçicisine dönüşüyor ve ekipman yükseltmesinin anlatacağı hikaye kalmıyor.
+In the one-dish model every dish drops below 8 seconds. At that scale there is no visual difference left between an oven and a grill, the `station` field turns into nothing but an icon picker, and the equipment upgrade has no story left to tell.
 
-### 3.2 Seçilen model
+### 3.2 The chosen model
 
 ```
-cookBusyMs = prepMs × attendBp / 10000        aşçı havuzunu tüketen sayı
-prepMs     = yemeğin duvar saati süresi        oyuncunun gördüğü sayı
+cookBusyMs = prepMs × attendBp / 10000        the number that consumes the cook pool
+prepMs     = the dish's wall-clock duration    the number the player sees
 ```
 
-`attendBp` istasyonun fiziksel doğası: duvar saatinin yüzde kaçı aşçının **elinde** geçiyor.
+`attendBp` is the physical nature of the station: what percentage of the wall clock is spent **in the cook's hands**.
 
-| İstasyon | `attendBp` | Neden |
+| Station | `attendBp` | Why |
 |---|---|---|
-| İçecek | 10000 | Bardağı doldurur, boşluk yok |
-| Soğuk | 10000 | Doğrama, tamamen elde |
-| Tatlı | 8000 | Tabak süsleme |
-| Izgara | 5600 | Koymak, çevirmek, almak; arada boşluk var |
-| Ocak | 3500 | Sepeti daldırır, bırakır |
-| Fırın | 2000 | Koyar, kapatır, gider |
+| Drinks (`icecek`) | 10000 | They fill the glass, there is no gap |
+| Cold (`soguk`) | 10000 | Chopping, entirely by hand |
+| Dessert (`tatli`) | 8000 | Plating and decorating |
+| Grill (`izgara`) | 5600 | Put it on, turn it, take it off; there are gaps in between |
+| Stove (`ocak`) | 3500 | They lower the basket and leave it |
+| Oven (`firin`) | 2000 | They put it in, close it, walk away |
 
-### 3.3 Sonuçları
+### 3.3 The consequences
 
-**`station` alanı yük taşıyor.** Artık üç şeyi birden söylüyor: hangi ekipman gerekli, aşçıyı ne kadar bağlıyor (`attendBp`), ve aynı anda kaç tabak alabiliyor (yuva sayısı).
+**The `station` field carries load.** It now says three things at once: which equipment is needed, how much of the cook it ties up (`attendBp`), and how many plates it can take at a time (the slot count).
 
-**Ekipman yükseltmesi iki eksende çalışıyor, ve hiçbiri `prepMs`'i kısaltmıyor:**
+**The equipment upgrade works on two axes, and neither of them shortens `prepMs`:**
 
-| Eksen | Ne yapar | Örnek |
+| Axis | What it does | Example |
 |---|---|---|
-| Yuva | İstasyonun eş zamanlı tabak sayısını artırır | İkinci fritöz |
-| `attendBp` | Aşçıyı daha erken serbest bırakır | Çift taraflı ızgara: çevirme yok, 5600 → 3500 |
+| Slot | Raises the station's concurrent plate count | A second fryer |
+| `attendBp` | Frees the cook earlier | A double-sided grill: no turning, 5600 → 3500 |
 
-Yemeğin pişme süresi fizik; yükseltme paralelliği satın alıyor, zamanı değil. Bu, "ekipman satın alınca her şey hızlanır" enflasyonunu baştan kapatıyor.
+A dish's cooking time is physics; the upgrade buys parallelism, not time. This shuts down the "everything speeds up when you buy equipment" inflation from the start.
 
-**Zirvede gereken yuva sayısı** (dilim payı %30, 97 müşteri):
+**The slot count needed at the peak** (slot share 30%, 97 customers):
 
-| İstasyon | Eş zamanlı tabak | Gereken yuva |
+| Station | Concurrent plates | Slots needed |
 |---|---|---|
-| Izgara | 3,23 | 4 |
-| Ocak | 3,33 | 4 |
-| Fırın | 1,13 | 2 |
-| İçecek | 0,68 | 1 |
-| Soğuk | 0,20 | 1 |
-| Tatlı | 0,08 | 1 |
+| Grill (`izgara`) | 3.23 | 4 |
+| Stove (`ocak`) | 3.33 | 4 |
+| Oven (`firin`) | 1.13 | 2 |
+| Drinks (`icecek`) | 0.68 | 1 |
+| Cold (`soguk`) | 0.20 | 1 |
+| Dessert (`tatli`) | 0.08 | 1 |
 
-Toplam 8,66 eş zamanlı tabak, 4 aşçı ile. Yani her aşçı ortalama 2,2 tabak taşıyor; eş zamanlılığın görünür karşılığı bu. Meşguliyet toplamı 4,15 aşçı-birimi, dilim doluluğu %103,9 ile birebir tutuyor.
+8.66 concurrent plates in total, with 4 cooks. So each cook carries 2.2 plates on average; that is the visible counterpart of concurrency. The total busy time is 4.15 cook-units, matching the slot utilisation of 103.9% exactly.
 
-**Karar D: bir aşçı birden fazla istasyonu eş zamanlı yürütür. `prepMs` duvar saatidir, aşçı meşguliyeti `prepMs × attendBp / 10000`'dir. `station` alanı `attendBp` ve yuva sayısını taşır. Ekipman yükseltmesi yuva ekler veya `attendBp` düşürür, `prepMs`'e dokunmaz. Kademe 4'te ızgara ve ocak 4'er, fırın 2, diğerleri 1'er yuva ister.**
+**Decision D: one cook runs more than one station concurrently. `prepMs` is the wall clock, the cook's busy time is `prepMs × attendBp / 10000`. The `station` field carries `attendBp` and the slot count. An equipment upgrade adds a slot or lowers `attendBp`, it does not touch `prepMs`. At tier 4 the grill and the stove each want 4 slots, the oven 2, the rest 1 each.**
 
 ---
 
-## 4. prepMs formülü
+## 4. The prepMs formula
 
-### 4.1 Müşteri başına kaç kalem
+### 4.1 How many items per customer
 
-Formülün girdisi. `content/dishes/fastfood.json` menü yapısı 12 ana + 8 yan + 6 içecek + 6 tatlı. İmza mekaniği kombo ([07-cuisine-system.md](07-cuisine-system.md), `economy.json` `combo.items`) üç kalem: ana + yan + içecek. Kombo herkesin aldığı şey değil; kurye "tek kalem", yalnız müşteri 1–2 kalem alıyor.
+The formula's input. The `content/dishes/fastfood.json` menu structure is 12 mains + 8 sides + 6 drinks + 6 desserts. The signature mechanic, the combo ([07-cuisine-system.md](07-cuisine-system.md), `economy.json` `combo.items`), is three items: main + side + drink. Not everyone takes the combo; the courier takes "one item", the lone customer takes 1–2 items.
 
-Kabul edilen karışım:
+The accepted mix:
 
-| Grup | Kalem/müşteri | Menü ortalama karmaşıklık | Menü ortalama fiyat |
+| Group | Items/customer | Menu average complexity | Menu average price |
 |---|---|---|---|
-| Ana | 1,0 | 1,6667 | 4.516,7 |
-| Yan | 0,6 | 1,1250 | 2.618,8 |
-| İçecek | 0,5 | 1,0000 | 1.883,3 |
-| Tatlı | 0,1 | 2,1667 | 3.925,0 |
-| **Toplam** | **2,2** | — | — |
+| Main | 1.0 | 1.6667 | 4,516.7 |
+| Side | 0.6 | 1.1250 | 2,618.8 |
+| Drink | 0.5 | 1.0000 | 1,883.3 |
+| Dessert | 0.1 | 2.1667 | 3,925.0 |
+| **Total** | **2.2** | — | — |
 
-**Doğrulaması fiş tutarı.** Karışımı menü fiyatlarıyla çarpınca:
-
-```
-1,0 × 4.516,7 + 0,6 × 2.618,8 + 0,5 × 1.883,3 + 0,1 × 3.925,0
-= 4.516,7 + 1.571,3 + 941,7 + 392,5
-= 7.422,2 santi-sikke = 74,2 sikke
-```
-
-`model.py` sekizinci hafta hedef fişi 75 sikke. Sapma %1,0. Kombo indirimi (`priceBp` 8125) ile kombo fiş primi (`ticketBonusBp` 1500) birbirini yaklaşık götürüyor. **2,2 kalem tahmin değil, fişten okunan sayı.**
-
-### 4.2 Formül
-
-Ağırlıklı karmaşıklık birimi:
+**The ticket total is what verifies it.** Multiplying the mix by the menu prices:
 
 ```
-1,0 × 1,6667 + 0,6 × 1,1250 + 0,5 × 1,0000 + 0,1 × 2,1667 = 3,0584 birim/müşteri
+1.0 × 4,516.7 + 0.6 × 2,618.8 + 0.5 × 1,883.3 + 0.1 × 3,925.0
+= 4,516.7 + 1,571.3 + 941.7 + 392.5
+= 7,422.2 centi-coins = 74.2 coins
 ```
 
-Aşçı mesaisi bu birimlere dağıtılacak:
+`model.py`'s eighth-week target ticket is 75 coins. The deviation is 1.0%. The combo discount (`priceBp` 8125) and the combo ticket premium (`ticketBonusBp` 1500) roughly cancel each other out. **2.2 items is not a guess, it is a number read off the ticket.**
+
+### 4.2 The formula
+
+The weighted complexity unit:
 
 ```
-3,0584 × UNIT_BUSY = 17.143  →  UNIT_BUSY = 5.605,2
+1.0 × 1.6667 + 0.6 × 1.1250 + 0.5 × 1.0000 + 0.1 × 2.1667 = 3.0584 units/customer
 ```
 
-**`UNIT_BUSY = 5.600 ms` seçildi.** Sebep: bu değerle bütün istasyonlarda `prepMs` tamsayı çıkıyor (`5.600 × 10000 / attendBp` her `attendBp` için bölünüyor). Sapma 5.600 × 3,0584 = 17.127 ms, hedef 17.143 ms, **%0,09**.
+The cook's time is to be distributed across those units:
 
 ```
-cookBusyMs(karmaşıklık) = 5.600 × karmaşıklık
-prepMs(istasyon, karmaşıklık) = 5.600 × karmaşıklık × 10000 / attendBp(istasyon)
+3.0584 × UNIT_BUSY = 17,143  →  UNIT_BUSY = 5,605.2
 ```
 
-### 4.3 Sonuç tablosu
+**`UNIT_BUSY = 5,600 ms` was chosen.** The reason: with this value `prepMs` comes out as an integer at every station (`5,600 × 10000 / attendBp` divides for every `attendBp`). The deviation is 5,600 × 3.0584 = 17,127 ms against a target of 17,143 ms, **0.09%**.
 
-| İstasyon | `attendBp` | Karmaşıklık 1 | Karmaşıklık 2 | Karmaşıklık 3 |
+```
+cookBusyMs(complexity) = 5,600 × complexity
+prepMs(station, complexity) = 5,600 × complexity × 10000 / attendBp(station)
+```
+
+### 4.3 The result table
+
+| Station | `attendBp` | Complexity 1 | Complexity 2 | Complexity 3 |
 |---|---|---|---|---|
-| İçecek | 10000 | 5.600 | 11.200 | 16.800 |
-| Soğuk | 10000 | 5.600 | 11.200 | 16.800 |
-| Tatlı | 8000 | 7.000 | 14.000 | 21.000 |
-| Izgara | 5600 | **10.000** | **20.000** | **30.000** |
-| Ocak | 3500 | 16.000 | 32.000 | 48.000 |
-| Fırın | 2000 | 28.000 | 56.000 | 84.000 |
+| Drinks (`icecek`) | 10000 | 5,600 | 11,200 | 16,800 |
+| Cold (`soguk`) | 10000 | 5,600 | 11,200 | 16,800 |
+| Dessert (`tatli`) | 8000 | 7,000 | 14,000 | 21,000 |
+| Grill (`izgara`) | 5600 | **10,000** | **20,000** | **30,000** |
+| Stove (`ocak`) | 3500 | 16,000 | 32,000 | 48,000 |
+| Oven (`firin`) | 2000 | 28,000 | 56,000 | 84,000 |
 
-Aşçı meşguliyeti istasyondan bağımsız: karmaşıklık 1 için 5.600, 2 için 11.200, 3 için 16.800 ms. Bu yüzden kapasite kimliği menünün istasyon dağılımından etkilenmiyor.
+The cook's busy time is independent of the station: 5,600 ms for complexity 1, 11,200 for 2, 16,800 for 3. That is why the capacity identity is unaffected by the menu's station distribution.
 
-Istasyonsuz referans değer soruluyorsa ızgara sütunu kullanılmalı: fast food'un ana istasyonu orası ve karmaşıklığa göre **10.000 / 20.000 / 30.000 ms**.
+If a station-free reference value is wanted, the grill column should be used: that is fast food's main station, and by complexity it is **10,000 / 20,000 / 30,000 ms**.
 
-**Karar C: `prepMs = 5.600 × karmaşıklık × 10000 ÷ attendBp`. Müşteri başına 2,2 kalem, fiş tutarından doğrulandı. Karmaşıklık 1/2/3 için ızgarada 10.000 / 20.000 / 30.000 ms.**
+**Decision C: `prepMs = 5,600 × complexity × 10000 ÷ attendBp`. 2.2 items per customer, verified from the ticket total. For complexity 1/2/3 on the grill: 10,000 / 20,000 / 30,000 ms.**
 
-### 4.4 İçerikle fark
+### 4.4 The gap against the content
 
-Bu dosyanın yazılma sebebi olan ölçüm, 10 Eylül 2026 sabahı `content/dishes/fastfood.json`:
+The measurement that is the reason this file was written, `content/dishes/fastfood.json` on the morning of 10 September 2026:
 
-| Ölçüm | O günkü içerik | Türetilen | Oran |
+| Measurement | The content that day | Derived | Ratio |
 |---|---|---|---|
-| 32 yemeğin `prepMs` ortalaması | 92.656 ms | 21.306 ms | 4,35 kat |
-| Hamburger | 75.000 ms | 10.000 ms | 7,5 kat |
-| Çikolatalı kek (fırın, k=3) | 260.000 ms | 84.000 ms | 3,1 kat |
-| Gazoz (içecek, k=1) | 20.000 ms | 5.600 ms | 3,6 kat |
+| The average `prepMs` of the 32 dishes | 92,656 ms | 21,306 ms | 4.35× |
+| Hamburger | 75,000 ms | 10,000 ms | 7.5× |
+| Chocolate cake (oven, c=3) | 260,000 ms | 84,000 ms | 3.1× |
+| Fizzy drink (drink, c=1) | 20,000 ms | 5,600 ms | 3.6× |
 
-**Ara durum.** İçerik bu analiz sürerken yeniden üretildi. Yeni değerler yalnızca karmaşıklığa bağlı, istasyon boyutu düşürülmüş:
+**An interim state.** The content was regenerated while this analysis was going on. The new values depend only on complexity, and the station dimension has been dropped:
 
-| Mutfak | Karmaşıklık 1 | Karmaşıklık 2 | Karmaşıklık 3 |
+| Cuisine | Complexity 1 | Complexity 2 | Complexity 3 |
 |---|---|---|---|
-| Fast food | 8.000 | 11.500 | 17.500 |
-| Türk | 6.000 | 8.500 | 12.500 |
+| Fast food | 8,000 | 11,500 | 17,500 |
+| Turkish | 6,000 | 8,500 | 12,500 |
 
-Bu ara durum da kapasite modelini tutturmuyor. Sipariş karışımıyla müşteri başına aşçı mesaisi:
+This interim state does not hit the capacity model either. With the order mix, the cook's time per customer is:
 
 ```
-1,0 × 10.333 + 0,6 × 8.438 + 0,5 × 8.000 + 0,1 × 12.917 = 20.688 ms
-hedef 17.143 ms  →  sapma +%20,7
-aşçı mesaisi sayılırsa: 480.000 ÷ 20.688 = 23,2 müşteri/gün, kapasite 28
+1.0 × 10,333 + 0.6 × 8,438 + 0.5 × 8,000 + 0.1 × 12,917 = 20,688 ms
+target 17,143 ms  →  deviation +20.7%
+counted as cook time: 480,000 ÷ 20,688 = 23.2 customers/day, capacity 28
 ```
 
-Ayrıca `prepMs` istasyondan bağımsız hale gelmiş; Karar D'nin dayandığı `attendBp` boyutu kayboluyor ve fırın ile içecek aynı hızda pişiyor.
+On top of that `prepMs` has become station-independent; the `attendBp` dimension Decision D rests on disappears and the oven and the drinks station cook at the same speed.
 
-`content/dishes/fastfood.json` ve `content/dishes/turk.json` **bölüm 4.2 formülünden yeniden üretilmeli.** Bu dosyalara elle dokunulmadı; üretici `tools/balance/export.py` formülü çağıracak.
+`content/dishes/fastfood.json` and `content/dishes/turk.json` **must be regenerated from the section 4.2 formula.** These files were not touched by hand; the generator `tools/balance/export.py` will call the formula.
 
 ---
 
-## 5. Zirve fizibilitesi
+## 5. Peak feasibility
 
-### 5.1 Gün ortalaması doluluk
+### 5.1 Day-average utilisation
 
-Zirve gün: `model.py` sekizinci hafta hafta sonu. 97 müşteri, 4 aşçı, 7 salon personeli + patron 1,4 iş-günü, 14 masa.
+The peak day: `model.py`'s eighth week, weekend. 97 customers, 4 cooks, 7 hall staff + the owner's 1.4 work-days, 14 tables.
 
-| Havuz | Gereken ms | Var olan ms | Doluluk |
+| Pool | Ms needed | Ms available | Utilisation |
 |---|---|---|---|
-| Mutfak | 97 × 17.143 = 1.662.871 | 4 × 480.000 = 1.920.000 | **%86,6** |
-| Salon | 97 × 36.908 = 3.580.076 | 8,4 × 480.000 = 4.032.000 | **%88,8** |
-| Masa | 43,25 devir × 125.525 = 5.428.923 | 14 × 480.000 = 6.720.000 | **%80,8** |
+| Kitchen | 97 × 17,143 = 1,662,871 | 4 × 480,000 = 1,920,000 | **86.6%** |
+| Hall | 97 × 36,908 = 3,580,076 | 8.4 × 480,000 = 4,032,000 | **88.8%** |
+| Tables | 43.25 turns × 125,525 = 5,428,923 | 14 × 480,000 = 6,720,000 | **80.8%** |
 
-Masa devir sayısı: 97 × (1 − 0,0259) = 94,49 oturan kişi ÷ 2,1847 = 43,25 grup. Masa başına 43,25 ÷ 14 = 3,09 devir/gün, devir başına günün %26,2'si.
+The table turn count: 97 × (1 − 0.0259) = 94.49 seated heads ÷ 2.1847 = 43.25 parties. Per table that is 43.25 ÷ 14 = 3.09 turns/day, and each turn takes 26.2% of the day.
 
-**Üç havuz da %100'ün altında.** Gün ortalamasında 97 müşteri 14 masaya, 4 aşçıya ve 7 salon personeline sığıyor. Darboğaz salon, tam da [14-staff-system.md](14-staff-system.md)'nin istediği gibi.
+**All three pools are below 100%.** On the day average, 97 customers fit into 14 tables, 4 cooks and 7 hall staff. The bottleneck is the hall, exactly as [14-staff-system.md](14-staff-system.md) wants.
 
-### 5.2 Dilim yoğunlaşması havuzları patlatıyor
+### 5.2 Slot concentration blows the pools up
 
-Gün ortalaması yetmiyor, çünkü müşteriler günün dört diliminde eşit dağılmıyor. Bir dilim günün dörtte biri, yani kapasitenin de dörtte biri. Dilim payı %25'i aşarsa o dilimde iş birikir.
+The day average is not enough, because customers are not spread evenly across the day's four slots. A slot is a quarter of the day, which means a quarter of the capacity too. If a slot's share exceeds 25%, work piles up in that slot.
 
-`content/archetypes/*.json` ölçümü ([12-economy.md](12-economy.md) §5.6'nın gerçekleşmiş hâli):
+The `content/archetypes/*.json` measurement (the realised version of [12-economy.md](12-economy.md) §5.6):
 
-| Mutfak | Dilim 1 | Dilim 2 | Dilim 3 | Dilim 4 |
+| Cuisine | Slot 1 | Slot 2 | Slot 3 | Slot 4 |
 |---|---|---|---|---|
-| Fast food | %11,1 | **%37,5** | %16,2 | **%35,3** |
-| Türk | %9,4 | **%60,6** | %17,5 | %12,5 |
+| Fast food | 11.1% | **37.5%** | 16.2% | **35.3%** |
+| Turkish | 9.4% | **60.6%** | 17.5% | 12.5% |
 
-Fast food öğle dilimi, mevcut içerik profiliyle:
+Fast food's lunch slot, with the current content profile:
 
-| Havuz | Dilim doluluğu | Biriken iş | Dilim sonu boş bekleme |
+| Pool | Slot utilisation | Work piled up | Idle wait at the end of the slot |
 |---|---|---|---|
-| Mutfak | %129,9 | 143.577 ms | 35.894 ms |
-| Salon | %133,2 | 334.528 ms | 39.825 ms |
-| Masa | %121,2 | 355.846 ms | 25.418 ms |
-| **Toplam** | — | — | **101.137 ms** (ortalama 50.568) |
+| Kitchen | 129.9% | 143,577 ms | 35,894 ms |
+| Hall | 133.2% | 334,528 ms | 39,825 ms |
+| Tables | 121.2% | 355,846 ms | 25,418 ms |
+| **Total** | — | — | **101,137 ms** (average 50,568) |
 
-Dilim 4 de (%35,3) aynı şekilde patlıyor: %122 / %125 / %114, toplam 74.083 ms.
+Slot 4 (35.3%) blows up the same way: 122% / 125% / 114%, 74,083 ms in total.
 
-Ortalama 50.568 ms boş bekleme, fast food havuzundaki **en sabırlı** arketipin (aile, 30.000 ms) bile sabrının 1,7 katı. Bu profille günün **%72,8'i** çıkıp gidiyor. Ekonomi modeli 97 müşterinin hepsinin servis edildiğini varsayıyor; %72,8 kayıpla bütün büyüme eğrisi çöker.
+An average idle wait of 50,568 ms is 1.7× the patience of even the **most patient** archetype in the fast food pool (the family, 30,000 ms). With this profile **72.8%** of the day walks out. The economy model assumes all 97 customers are served; with a 72.8% loss the entire growth curve collapses.
 
-> **DÜZELTME, 10 Eylül 2026.** Buradaki %72,8 rakamı **açık döngü** hesabıdır ve gerçeğinden büyüktür. Sabrı biten müşteri çıkıp giderken kuyruktaki yerini de boşaltıyor, yani kendisinden sonrakinin beklemesini kısaltıyor. Kapalı döngü hesabında aynı profilin kaybı **%13,36**. Türk profili için %30,47. Yoğunluk tavanı (eşit dilimde %28,16) değişmiyor, doğru. Ayrıntı ve düzeltilmiş tablo: [28-peak-decision.md](28-peak-decision.md). Aşağıdaki F kararı bu düzeltmeden önce yazıldı; **28 numaralı doküman onun yerine geçer.**
+> **CORRECTION, 10 September 2026.** The 72.8% figure here is an **open-loop** calculation and is larger than the real one. A customer whose patience runs out also frees their place in the queue on the way out, which shortens the wait for the person behind them. In a closed-loop calculation the same profile's loss is **13.36%**. For the Turkish profile it is 30.47%. The density ceiling (28.16% on equal slots) does not change; that is correct. The detail and the corrected table: [28-peak-decision.md](28-peak-decision.md). Decision F below was written before that correction; **document 28 supersedes it.**
 
-### 5.3 Azami dilim payı
+### 5.3 The maximum slot share
 
-Hiçbir havuzun dilim içinde %100'ü aşmaması için:
+For no pool to exceed 100% within a slot:
 
 ```
-azami dilim payı = 0,25 ÷ en yüksek havuz doluluğu
-                 = 0,25 ÷ 0,888
-                 = %28,2
+maximum slot share = 0.25 ÷ the highest pool utilisation
+                   = 0.25 ÷ 0.888
+                   = 28.2%
 ```
 
-### 5.4 Ne değişmeli
+### 5.4 What has to change
 
-Üç seçenek var, ikisi imkânsız.
+There are three options, two of them impossible.
 
-**Seçenek 1: kadroyu ve masayı büyüt.** %37,5'i emmek için her havuz 1,5 kat büyümeli:
+**Option 1: grow the crew and the tables.** To absorb 37.5%, every pool has to grow 1.5×:
 
-| Kaynak | Gereken | Tavan | Sonuç |
+| Resource | Needed | Ceiling | Result |
 |---|---|---|---|
-| Salon personeli | 1,5 × 7,4584 − 1,4 = 9,79 → 10 | — | — |
-| Aşçı | 1,5 × 3,464 = 5,20 → 6 | — | — |
-| Toplam kadro | 16 | **12** | İmkânsız |
-| Masa | 1,5 × 0,808 × 14 = 16,97 → 17 | **14** | İmkânsız |
+| Hall staff | 1.5 × 7.4584 − 1.4 = 9.79 → 10 | — | — |
+| Cooks | 1.5 × 3.464 = 5.20 → 6 | — | — |
+| Total crew | 16 | **12** | Impossible |
+| Tables | 1.5 × 0.808 × 14 = 16.97 → 17 | **14** | Impossible |
 
-Kadro tavanı 12, masa tavanı 14. Seçenek 1 hiçbir oyuncu kararıyla ulaşılamıyor.
+The crew ceiling is 12, the table ceiling is 14. Option 1 is not reachable by any player decision.
 
-**Seçenek 2: günü uzat.** Bölüm 1.1: doluluk ölçekten bağımsız. Hiçbir şey değişmiyor.
+**Option 2: lengthen the day.** Section 1.1: utilisation is scale-independent. Nothing changes.
 
-**Seçenek 3: geliş profilini yatıştır.** Tek çalışan seçenek. Dilim payı tavanı %30 konuyor.
+**Option 3: calm the arrival profile.** The only option that works. A slot-share ceiling of 30% is set.
 
-| Profil | Mutfak | Salon | Masa | Ort. boş bekleme | Günlük kayıp |
+| Profile | Kitchen | Hall | Tables | Avg. idle wait | Daily loss |
 |---|---|---|---|---|---|
-| İçerik (%37,5) | %129,9 | %133,2 | %121,2 | 50.568 ms | %72,8 (açık döngü; kapalı döngüde %13,36) |
-| Tavan (%28,2) | %97,5 | %100,0 | %91,0 | 0 ms | %0 |
-| **Önerilen (%30)** | **%103,9** | **%106,5** | **%96,9** | **6.288 ms** | **%6,1** |
+| Content (37.5%) | 129.9% | 133.2% | 121.2% | 50,568 ms | 72.8% (open loop; 13.36% closed loop) |
+| Ceiling (28.2%) | 97.5% | 100.0% | 91.0% | 0 ms | 0% |
+| **Proposed (30%)** | **103.9%** | **106.5%** | **96.9%** | **6,288 ms** | **6.1%** |
 
-**%30 bilinçli olarak tavanın 1,8 puan üstünde.** Tam tavanda öğle zirvesi hiç kuyruk üretmez ve [12-economy.md](12-economy.md)'nin istediği "gerçek bir kriz anı" ortadan kalkar. %30'da zirve sabırsızları ısırıyor ama günü yıkmıyor.
+**30% is deliberately 1.8 points above the ceiling.** Exactly at the ceiling the lunch peak produces no queue at all and the "a real moment of crisis" that [12-economy.md](12-economy.md) wants disappears. At 30% the peak bites the impatient but does not wreck the day.
 
-Fast food için önerilen dağılım **%20 / %30 / %20 / %30**. İki keskin zirve korunuyor, zirvelerin sivriliği kırpılıyor.
+The proposed distribution for fast food is **20% / 30% / 20% / 30%**. The two sharp peaks are preserved, the sharpness of the peaks is clipped.
 
-### 5.5 Türk mutfağı
+### 5.5 Turkish cuisine
 
-%60,6 hiçbir kadroyla mümkün değil: havuzlar %210 / %215 / %196'ya çıkıyor, salon 2,4 kat kadro istiyor, yani 17 salon personeli. Tavan 12.
+60.6% is not possible with any crew: the pools go to 210% / 215% / 196%, and the hall wants 2.4× the crew, that is, 17 hall staff. The ceiling is 12.
 
-Türk mutfağının kimliği "öğle zirvesi çok sert" ([10-cuisine-identity.md](10-cuisine-identity.md), [11-customer-system.md](11-customer-system.md)) ama bu kimlik **hangi dilimlerin dolu olduğuyla** taşınabilir, tek dilime yığmakla değil. Önerilen: **%15 / %30 / %30 / %25**. Öğle ve öğleden sonra dolu, akşam sönük — İtalyan'ın tam tersi, ve fizibil.
+Turkish cuisine's identity is "the lunch peak is very hard" ([10-cuisine-identity.md](10-cuisine-identity.md), [11-customer-system.md](11-customer-system.md)) but that identity can be carried by **which slots are full**, not by piling everything into one slot. The proposal: **15% / 30% / 30% / 25%**. Lunch and afternoon full, the evening quiet — the exact opposite of the Italian, and feasible.
 
-Alternatif, daha iddialı bir yol da var: Türk mutfağının servis günü daha kısa olur (esnaf lokantası öğlen açılır, akşam kapanır) ve günlük talep aynı oranda düşer. Bu, kimliği daha güçlü taşır ama talep formülünü mutfağa bağımlı hale getirir. Şimdilik açılmadı; bkz. karar bekleyen madde 2.
+There is another, more ambitious route: Turkish cuisine gets a shorter service day (a tradesman's restaurant opens at noon and closes in the evening) and daily demand falls by the same proportion. That carries the identity more strongly but makes the demand formula cuisine-dependent. Not opened up for now; see pending decision item 2.
 
-**Karar F: zirve gün doluluğu mutfak %86,6, salon %88,8, masa %80,8 — üçü de %100 altında, 97 müşteri sığıyor. Ama dilim payı %28,2'yi aşamaz. Mevcut içerik profilleri (fast food %37,5, Türk %60,6) fizibil değil ve kadro veya masa artırarak kurtarılamaz, çünkü gereken 16 personel ve 17 masa tavanların üstünde. `arrivalWeightsBp` değerleri hiçbir dilim %30'u aşmayacak şekilde yeniden normalleştirilmeli.**
+**Decision F: the peak day's utilisation is 86.6% kitchen, 88.8% hall, 80.8% tables — all three below 100%, 97 customers fit. But the slot share cannot exceed 28.2%. The current content profiles (fast food 37.5%, Turkish 60.6%) are not feasible and cannot be rescued by adding crew or tables, because what is needed is 16 staff and 17 tables, above the ceilings. The `arrivalWeightsBp` values must be renormalised so that no slot exceeds 30%.**
 
 ---
 
-## 6. Sabır
+## 6. Patience
 
-### 6.1 Eski tanım kırık
+### 6.1 The old definition is broken
 
-[12-economy.md](12-economy.md) §5.2: "Sabır; oturmayı, siparişin alınmasını ve yemeğin gelmesini beklerken azalır." Yani sabır kapıdan yemeğe kadar geçen **toplam duvar saati**.
+[12-economy.md](12-economy.md) §5.2: "Patience drains while waiting to be seated, for the order to be taken and for the food to arrive." That is, patience is the **total wall clock** from the door to the food.
 
-Sıfır yükte, yani restoran bomboşken, hiç kuyruk yokken:
+At zero load, that is, with the restaurant empty and no queue at all:
 
-| Durum | Hesap | Süre |
+| Situation | Calculation | Duration |
 |---|---|---|
-| Oturan müşteri (ızgara k=1) | 3.200 + 7.000 + 10.000 + 9.000 | **29.200 ms** |
-| Kurye, masasız (ızgara k=1) | 7.000 + 10.000 + 9.000 | **26.000 ms** |
+| A seated customer (grill c=1) | 3,200 + 7,000 + 10,000 + 9,000 | **29,200 ms** |
+| A courier, no table (grill c=1) | 7,000 + 10,000 + 9,000 | **26,000 ms** |
 
-Kuryenin sabrı 8.000 ms. Sıfır yükte bile gerekli sürenin **3,25 katı** kısa. Aceleci öğrenci 10.000 ms: 2,9 kat kısa. Şikayetçi müşteri 9.000 ms: 2,9 kat kısa.
+The courier's patience is 8,000 ms. Even at zero load that is **3.25×** shorter than the time required. The hurried student at 10,000 ms: 2.9× short. The complaining customer at 9,000 ms: 2.9× short.
 
-Bu üç arketip, oyun mükemmel oynansa bile **her seferinde** sinirli çıkıp giderdi. Bu bir denge sorunu değil, tanım hatası.
+These three archetypes would walk out angry **every single time**, even if the game were played perfectly. This is not a balance problem, it is a definition error.
 
-İki çıkış yolu vardı:
+There were two ways out:
 
-| Yol | Bedeli |
+| Route | The cost |
 |---|---|
-| Sabır değerlerini büyüt | Zorunlu taban (29.200 ms) baskın olur; 8.000–30.000 aralığı 35.000–90.000'e sıkışır, arketipler arası 1:3,75 farkı 1:2,6'ya iner. Ayırt edicilik kaybolur |
-| Sabrın neyi saydığını değiştir | İçerik değişmez, 1:3,75 farkı korunur |
+| Grow the patience values | The mandatory floor (29,200 ms) dominates; the 8,000–30,000 range compresses into 35,000–90,000, and the 1:3.75 spread between archetypes drops to 1:2.6. The distinctiveness is lost |
+| Change what patience counts | The content does not change, the 1:3.75 spread is preserved |
 
-İkincisi seçildi.
+The second was chosen.
 
-### 6.2 Yeni tanım
+### 6.2 The new definition
 
-**Sabır sayacı yalnızca boş beklemede işler.** Boş bekleme = müşteriyle kimsenin ilgilenmediği ve yemeğinin de henüz başlamadığı süre:
+**The patience counter only runs during idle waiting.** Idle waiting = the time during which nobody is attending to the customer and their food has not started either:
 
-- masa kuyruğu (boş masa yok),
-- garson kuyruğu (oturdu, kimse sipariş almaya gelmedi),
-- mutfak kuyruğu (sipariş verildi, boş aşçı yok, yemek henüz başlamadı),
-- pass kuyruğu (yemek hazır, taşıyacak garson yok).
+- the table queue (no free table),
+- the waiter queue (seated, nobody has come to take the order),
+- the kitchen queue (order placed, no free cook, the dish has not started),
+- the pass queue (the dish is ready, no waiter to carry it).
 
-Pişirmenin kendisi boş bekleme değil — ama bedavaya da geçmiyor:
+The cooking itself is not idle waiting — but it does not come free either:
 
 ```
-bekleme_puanı = boş_bekleme_ms + pişirme_ms × cookPatienceWeightBp / 10000
+wait_score = idle_wait_ms + cooking_ms × cookPatienceWeightBp / 10000
 cookPatienceWeightBp = 2500
 ```
 
-Yemeğin pişme süresi sabrın çeyrek ağırlığıyla sayılıyor. Bunun üç sonucu var:
+A dish's cooking time counts at a quarter weight against patience. This has three consequences:
 
-1. **Sıfır yükte kimse kaybedilmiyor.** Boş bekleme sıfır, kalan yalnızca pişirme payı.
-2. **Ağır menü hâlâ riskli.** Ocakta karmaşıklık 2 bir yemek (32.000 ms) tek başına 8.000 ms sabır yakıyor; kuryenin bütün sabrı. [23-core-contract.md](23-core-contract.md) §8.3'ün "ağır yemek çok satılırsa mutfak tıkanır" niyeti korunuyor ve doğrudan menü kararına bağlanıyor.
-3. **Sabır saf bir kadro sinyali oluyor.** [14-staff-system.md](14-staff-system.md)'deki "eksik kadronun cezası" döngüsü (personel yetmiyor → bekleme uzuyor → sabır tükeniyor → itibar düşüyor) birebir bu sayaca karşılık geliyor. Oyuncu işe alarak düzeltebileceği bir şeyden cezalandırılıyor, düzeltemeyeceği bir şeyden değil.
+1. **Nobody is lost at zero load.** Idle waiting is zero, all that is left is the cooking share.
+2. **A heavy menu is still risky.** One complexity-2 dish on the stove (32,000 ms) burns 8,000 ms of patience by itself; the courier's entire patience. The [23-core-contract.md](23-core-contract.md) §8.3 intent, "if a heavy dish sells a lot the kitchen jams", is preserved and tied directly to the menu decision.
+3. **Patience becomes a pure crew signal.** The "the penalty for an understaffed crew" loop in [14-staff-system.md](14-staff-system.md) (not enough staff → the wait grows → patience runs out → reputation drops) corresponds exactly to this counter. The player is punished for something they can fix by hiring, not for something they cannot fix.
 
-[12-economy.md](12-economy.md) §5.4'teki memnuniyet formülü aynen çalışıyor: `−(beklenen ÷ sabır) × 60`, "beklenen" artık bekleme puanı.
+The satisfaction formula in [12-economy.md](12-economy.md) §5.4 works as it is: `−(waited ÷ patience) × 60`, where "waited" is now the wait score.
 
-### 6.3 Sayılar
+### 6.3 The numbers
 
-| Durum | Boş bekleme | Pişirme payı | Bekleme puanı | Kurye (8.000) | Öğrenci (10.000) |
+| Situation | Idle wait | Cooking share | Wait score | Courier (8,000) | Student (10,000) |
 |---|---|---|---|---|---|
-| Sıfır yük, ızgara k=1 | 0 | 2.500 | **2.500** | Kalıyor, memnuniyet 81 | Kalıyor, memnuniyet 85 |
-| Sıfır yük, ocak k=2 | 0 | 8.000 | **8.000** | Çıkıyor | Kalıyor, memnuniyet 52 |
-| Zirve ortalama (%30 profil) | 6.288 | 5.000 | **11.288** | Çıkıyor | Çıkıyor |
-| Zirve azami (%30 profil) | 12.575 | 5.000 | **17.575** | Çıkıyor | Çıkıyor |
-| Zirve, kurye (masasız) | 3.930 | 2.500 | **6.430** | **Kalıyor** | — |
+| Zero load, grill c=1 | 0 | 2,500 | **2,500** | Stays, satisfaction 81 | Stays, satisfaction 85 |
+| Zero load, stove c=2 | 0 | 8,000 | **8,000** | Walks out | Stays, satisfaction 52 |
+| Peak average (30% profile) | 6,288 | 5,000 | **11,288** | Walks out | Walks out |
+| Peak maximum (30% profile) | 12,575 | 5,000 | **17,575** | Walks out | Walks out |
+| Peak, courier (no table) | 3,930 | 2,500 | **6,430** | **Stays** | — |
 
-Kurye masa ve mutfak kuyruğuna girmiyor, yalnızca salon kuyruğuna giriyor; bu yüzden zirvede ortalama olarak hayatta kalıyor. En sabırsız arketibin en dayanıklı arketip olması tesadüf değil: masa işgal etmemesi onu koruyor.
+The courier does not enter the table or kitchen queue, only the hall queue; that is why they survive the peak on average. It is no accident that the most impatient archetype is the most durable one: not occupying a table is what protects them.
 
-### 6.4 Zirvede ne kadar kaybediliyor
+### 6.4 How much is lost at the peak
 
-Fast food arketip havuzunda sabır dağılımı, kafa ağırlıklı:
+In the fast food archetype pool the patience distribution, weighted by heads:
 
-| Sabır | Kafa payı | Zirvede (11.288 puan) |
+| Patience | Share of heads | At the peak (11,288 score) |
 |---|---|---|
-| 8.000 (kurye) | %2,6 | Masasız, kalıyor |
-| 9.000 (şikayetçi) | %1,0 | Çıkıyor |
-| 10.000 (aceleci öğrenci) | %9,2 | Çıkıyor |
-| 13.000 ve üstü | %87,2 | Kalıyor |
+| 8,000 (courier) | 2.6% | No table, stays |
+| 9,000 (complainer) | 1.0% | Walks out |
+| 10,000 (hurried student) | 9.2% | Walks out |
+| 13,000 and above | 87.2% | Stays |
 
-Zirve dilimde kaybedilen pay **%10,2** (şikayetçi %1,0 + aceleci öğrenci %9,2), gün ortalaması **%6,1** çünkü kuyruk yalnızca iki zirve diliminde oluşuyor: 0,30 × %10,2 × 2 = %6,1.
+The share lost in the peak slot is **10.2%** (complainer 1.0% + hurried student 9.2%), and the day average is **6.1%**, because a queue only forms in the two peak slots: 0.30 × 10.2% × 2 = 6.1%.
 
-Kayıp ayrıca yalnızca hafta sonu günlerinde:
+The loss is also only on weekend days:
 
-| Gün | Müşteri | Salon dilim doluluğu | Kuyruk | Kayıp |
+| Day | Customers | Hall slot utilisation | Queue | Loss |
 |---|---|---|---|---|
-| Hafta içi | 77 | %84,6 | Yok | %0 |
-| Hafta sonu | 97 | %106,5 | Var | %6,1 |
+| Weekday | 77 | 84.6% | None | 0% |
+| Weekend | 97 | 106.5% | Yes | 6.1% |
 
-Haftalık ciro etkisi: %6,1 × (2 × 97) ÷ (5 × 77 + 2 × 97) = **%2,05**.
+The effect on weekly revenue: 6.1% × (2 × 97) ÷ (5 × 77 + 2 × 97) = **2.05%**.
 
-`model.py` cirosu bu yüzden bir **üst sınır**; hafta sonu zirvesinde yaklaşık %2 aşağı okunmalı. Bu, marj hedeflerinin ondalık payının içinde kalıyor ve modele geri yazılması gerekmiyor. Ayrıca hesap kuyruğun bütün dilim boyunca ortalama seviyede olduğunu varsayıyor; gerçekte kuyruk dilimin ikinci yarısında oluşuyor, yani %6,1 kötümser tarafta.
+`model.py`'s revenue is therefore an **upper bound**; at the weekend peak it should be read about 2% lower. That stays inside the decimal slack of the margin targets and does not need writing back into the model. The calculation also assumes the queue is at its average level throughout the slot; in reality the queue forms in the second half of the slot, so 6.1% is on the pessimistic side.
 
-**Karar E: sabır sayacı yalnızca boş beklemede işler; pişirme süresi `cookPatienceWeightBp = 2500` ağırlığıyla sayılır. Sıfır yükte minimum bekleme 2.500 puan (oturan, ızgara karmaşıklık 1), zirvede ortalama 11.288, azami 17.575. Bütün arketipler sıfır yükte servis edilebiliyor; zirve diliminde kafa payının %10,2'si kaybediliyor, gün ortalaması %6,1, haftalık ciro etkisi %2,05. `content/archetypes/*.json` içindeki `patienceMs` değerleri değişmiyor.**
+**Decision E: the patience counter only runs during idle waiting; the cooking time counts with a weight of `cookPatienceWeightBp = 2500`. The minimum wait at zero load is 2,500 score (seated, grill complexity 1), the peak average is 11,288 and the maximum 17,575. Every archetype can be served at zero load; 10.2% of heads is lost in the peak slot, 6.1% on the day average, and the weekly revenue effect is 2.05%. The `patienceMs` values in `content/archetypes/*.json` do not change.**
 
 ---
 
-## 7. Türetilen sabitler, tek tabloda
+## 7. The derived constants, in one table
 
-`tools/balance/timing.py` çıktısı.
+The output of `tools/balance/timing.py`.
 
-| Sabit | Değer | Kaynak |
+| Constant | Value | Source |
 |---|---|---|
 | `TICK_MS` | 100 | [23](23-core-contract.md) §1.2 |
-| `SERVICE_DAY_MS` | 480.000 | Karar A |
-| `DAY_TICKS` | 6.000 | 4.800 servis + 1.200 sabah/akşam |
-| `KITCHEN_MS` | 17.143 | gün ÷ 28 |
-| `GARSON_MS` | 19.200 | gün ÷ 25 |
-| `BULASIKCI_MS` | 10.435 | gün ÷ 46 |
-| `KASIYER_MS` | 7.273 | gün ÷ 66 |
-| `SALON_MS` | 36.908 | üçünün toplamı |
-| `T_SEAT` | 3.200 | garson bölüşümü |
-| `T_ORDER` | 7.000 | garson bölüşümü |
-| `T_SERVE` | 9.000 | garson bölüşümü |
-| `T_BUS` | 4.435 | bulaşıkçı bölüşümü, masayı bloke eder |
-| `T_WASH` | 6.000 | bulaşıkçı bölüşümü, masayı bloke etmez |
-| `T_PAY` | 7.273 | kasiyer |
-| `T_EAT_PARTY` | 38.000 | mutfak parametresi, fast food |
-| `COOK_WAIT_REF_MS` | 20.000 | ızgara karmaşıklık 2 |
-| `TABLE_TURN_MS` | 125.525 | 2,1847 × 30.908 + 20.000 + 38.000 |
-| `UNIT_BUSY_MS` | 5.600 | 17.143 ÷ 3,0584 |
-| `COOK_PATIENCE_BP` | 2500 | Karar E |
-| `GROUP_SIZE_SEATED` | 2,1847 | `content/archetypes` ölçümü |
-| `DISHES_PER_CUSTOMER` | 2,2 | fiş tutarından doğrulandı |
-| Azami dilim payı | %28,2 | 0,25 ÷ 0,888 |
+| `SERVICE_DAY_MS` | 480,000 | Decision A |
+| `DAY_TICKS` | 6,000 | 4,800 service + 1,200 morning/evening |
+| `KITCHEN_MS` | 17,143 | day ÷ 28 |
+| `WAITER_MS` | 19,200 | day ÷ 25 |
+| `DISHWASHER_MS` | 10,435 | day ÷ 46 |
+| `CASHIER_MS` | 7,273 | day ÷ 66 |
+| `HALL_MS` | 36,908 | the sum of the three |
+| `T_SEAT` | 3,200 | the waiter's split |
+| `T_ORDER` | 7,000 | the waiter's split |
+| `T_SERVE` | 9,000 | the waiter's split |
+| `T_BUS` | 4,435 | the dishwasher's split, blocks the table |
+| `T_WASH` | 6,000 | the dishwasher's split, does not block the table |
+| `T_PAY` | 7,273 | the cashier |
+| `T_EAT_PARTY` | 38,000 | a cuisine parameter, fast food |
+| `COOK_WAIT_REF_MS` | 20,000 | grill complexity 2 |
+| `TABLE_TURN_MS` | 125,525 | 2.1847 × 30,908 + 20,000 + 38,000 |
+| `UNIT_BUSY_MS` | 5,600 | 17,143 ÷ 3.0584 |
+| `COOK_PATIENCE_BP` | 2500 | Decision E |
+| `GROUP_SIZE_SEATED` | 2.1847 | the `content/archetypes` measurement |
+| `DISHES_PER_CUSTOMER` | 2.2 | verified from the ticket total |
+| Maximum slot share | 28.2% | 0.25 ÷ 0.888 |
 
 ---
 
-## 8. İçeriğe ve dokümana çıkan işler
+## 8. The work this pushes out to the content and the documents
 
-Bu dosya hiçbir içerik dosyasına dokunmadı. Aşağıdakiler ayrı bir işte yapılacak.
+This file touched no content file. The following will be done in a separate job.
 
-| Dosya | Ne değişecek | Neden |
+| File | What will change | Why |
 |---|---|---|
-| `content/dishes/fastfood.json` | 32 `prepMs` bölüm 4.2 formülünden üretilecek | Ara durum kapasiteden +%20,7 sapıyor ve istasyon boyutunu düşürüyor |
-| `content/dishes/turk.json` | 32 `prepMs` bölüm 4.2 formülünden üretilecek | Aynı |
-| `content/economy.json` | `serviceMs: 120000` → `tableTurnMs: 125525` | Bölüm 2.4 |
-| `content/economy.json` | Yeni alan `cookPatienceWeightBp: 2500` | Karar E |
-| `content/economy.json` veya yeni `content/stations.json` | İstasyon başına `attendBp` ve yuva sayısı | Karar D |
-| `content/archetypes/fastfood.json` | `arrivalWeightsBp` %20/%30/%20/%30'a normalleştirilecek | Karar F |
-| `content/archetypes/turk.json` | `arrivalWeightsBp` %15/%30/%30/%25'e normalleştirilecek | Karar F |
-| `content/staff-roles.json` | İsteğe bağlı `msPerCustomer` alanı (17143 / 19200 / 10435 / 7273) | Bölüm 2.1, çekirdek türetebilir de |
-| `tools/balance/export.py` | `timing.py`'yi kullanacak; `prepMs` üretimi formülden | Bölüm 4.2 |
-| [23-core-contract.md](23-core-contract.md) §1.3 | "Bir müşteri servisi ~1.200 tick" → "Bir masa devri 1.255 tick, bir müşteri 575 tick" | Bölüm 2.4 |
-| [23-core-contract.md](23-core-contract.md) karar bekleyen madde 1 | Silinecek, kapandı | Karar A |
-| [12-economy.md](12-economy.md) §5.2 | Sabır tanımı yeniden yazılacak | Karar E |
-| [12-economy.md](12-economy.md) §5.6 | Dilim tablosu %30 tavanına çekilecek | Karar F |
-| [14-staff-system.md](14-staff-system.md) | Kapasite tablosuna müşteri başına ms sütunu | Bölüm 2.1 |
+| `content/dishes/fastfood.json` | 32 `prepMs` values will be generated from the section 4.2 formula | The interim state deviates +20.7% from the capacity and drops the station dimension |
+| `content/dishes/turk.json` | 32 `prepMs` values will be generated from the section 4.2 formula | Same |
+| `content/economy.json` | `serviceMs: 120000` → `tableTurnMs: 125525` | Section 2.4 |
+| `content/economy.json` | A new field `cookPatienceWeightBp: 2500` | Decision E |
+| `content/economy.json` or a new `content/stations.json` | `attendBp` and the slot count per station | Decision D |
+| `content/archetypes/fastfood.json` | `arrivalWeightsBp` renormalised to 20%/30%/20%/30% | Decision F |
+| `content/archetypes/turk.json` | `arrivalWeightsBp` renormalised to 15%/30%/30%/25% | Decision F |
+| `content/staff-roles.json` | An optional `msPerCustomer` field (17143 / 19200 / 10435 / 7273) | Section 2.1, though the core can derive it too |
+| `tools/balance/export.py` | Will use `timing.py`; `prepMs` generation from the formula | Section 4.2 |
+| [23-core-contract.md](23-core-contract.md) §1.3 | "One customer service ~1,200 ticks" → "One table turn 1,255 ticks, one customer 575 ticks" | Section 2.4 |
+| [23-core-contract.md](23-core-contract.md) pending decision item 1 | To be deleted, it is closed | Decision A |
+| [12-economy.md](12-economy.md) §5.2 | The patience definition will be rewritten | Decision E |
+| [12-economy.md](12-economy.md) §5.6 | The slot table will be pulled down to the 30% ceiling | Decision F |
+| [14-staff-system.md](14-staff-system.md) | A ms-per-customer column in the capacity table | Section 2.1 |
 
-**`content/archetypes/*.json` içindeki `patienceMs` değerleri değişmiyor.** Karar E'nin varlık sebebi bu.
+**The `patienceMs` values in `content/archetypes/*.json` do not change.** That is the reason Decision E exists.
 
 ---
 
-## 9. Doğrulama
+## 9. Verification
 
-`python tools/balance/timing.py --check` — 47 test, altı grup.
+`python tools/balance/timing.py --check` — 47 tests, six groups.
 
-| Grup | Ne kontrol ediyor |
+| Group | What it checks |
 |---|---|
-| A (3) | Gün uzunluğu, kampanya süresi, dokunuş aralığı |
-| B (14) | Görev süreleri toplamları kapasiteyi birebir geri veriyor; her rolün ms'si × kapasitesi = servis günü |
-| C (8) | `prepMs` türetimi, tamsayılık, doğrusallık, fiş çapraz doğrulaması, içerikle sapma |
-| D (4) | Eş zamanlılık tutarlılığı, istasyon yuvası |
-| E (8) | Sabır: sıfır yük, zirve, kayıp payı, eski tanımın kırık olduğunun ispatı |
-| F (10) | Havuz doluluğu, dilim fizibilitesi, hafta içi/hafta sonu ayrımı |
+| A (3) | The day's length, the campaign length, the touch interval |
+| B (14) | The task duration totals give the capacity back exactly; every role's ms × its capacity = the service day |
+| C (8) | The `prepMs` derivation, integrality, linearity, the ticket cross-check, the deviation from the content |
+| D (4) | Concurrency consistency, the station slot |
+| E (8) | Patience: zero load, the peak, the loss share, the proof that the old definition was broken |
+| F (10) | Pool utilisation, slot feasibility, the weekday/weekend split |
 
-Ayrıca `python tools/balance/timing.py` bütün türetilmiş sabitleri ve ara hesapları düz metin olarak yazıyor; `--md` markdown tablolarını üretiyor.
+`python tools/balance/timing.py` also writes all the derived constants and intermediate calculations out as plain text; `--md` produces the markdown tables.
 
-**Çapraz doğrulama:** `timing.py` içindeki `CAP_ASCI`, `CAP_GARSON`, `CAP_BULASIKCI`, `CAP_KASIYER`, `SALON_LOAD` ve `OWNER_WORK` değerleri `model.py` ile birebir aynı. İkisi ayrıldığı anda B grubu testleri düşer.
+**Cross-validation:** the `CAP_COOK`, `CAP_WAITER`, `CAP_DISHWASHER`, `CAP_CASHIER`, `HALL_LOAD` and `OWNER_WORK` values inside `timing.py` are identical to the ones in `model.py`. The moment the two diverge, the group B tests fail.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Details awaiting a decision
 
-1. `T_EAT_PARTY` mutfak başına parametre olacak. Fast food 38.000 ms. İtalyan "uzun oturur, masa devri düşük" ([07-cuisine-system.md](07-cuisine-system.md)); değeri masa doluluğunu %100'ün altında tutacak şekilde çözülmeli
-2. Türk mutfağının servis günü kısaltılsın mı (esnaf lokantası öğlen açılır), yoksa dilim profili mi yatıştırılsın; ikincisi seçildi ama birincisi kimliği daha güçlü taşır
-3. `attendBp` ekipman kademesiyle düşecek mi, yoksa yükseltme yalnızca yuva mı eklesin
-4. Kurye dışında masa işgal etmeyen arketip olacak mı (paket servis kanalı)
-5. `cookPatienceWeightBp` 2500 doğru ağırlık mı; oynanabilirlik testi söyleyecek
+1. `T_EAT_PARTY` will become a per-cuisine parameter. Fast food is 38,000 ms. The Italian "sits long, the table turn is low" ([07-cuisine-system.md](07-cuisine-system.md)); its value must be solved so that table utilisation stays below 100%
+2. Should Turkish cuisine's service day be shortened (a tradesman's restaurant opens at noon), or should the slot profile be calmed instead; the second was chosen, but the first carries the identity more strongly
+3. Will `attendBp` fall with the equipment tier, or should an upgrade only add slots
+4. Will there be an archetype other than the courier that occupies no table (a delivery channel)
+5. Is `cookPatienceWeightBp` 2500 the right weight; playability testing will say

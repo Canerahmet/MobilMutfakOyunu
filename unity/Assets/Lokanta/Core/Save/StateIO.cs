@@ -3,16 +3,16 @@ using System;
 namespace Lokanta.Core.Save
 {
     /// <summary>
-    /// Durum yuruyusu. docs/23-core-contract.md 6.2.
+    /// The state walk. docs/23-core-contract.md 6.2.
     ///
-    /// Serilestirme YANSIMAYLA degil, elle yazilmis yuruyusle yapiliyor.
-    /// Ayni yuruyus iki sey uretiyor: kayit dosyasi ve durum ozeti.
+    /// Serialisation is done NOT BY REFLECTION but by a hand-written walk.
+    /// The same walk produces two things: the save file and the state hash.
     ///
-    /// Bunun onemi: bir alan kayitta unutulursa ozet de onu gormez ve
-    /// determinizm testi yakalayamaz. Tek yuruyus oldugu icin boyle bir
-    /// bosluk acilamiyor.
+    /// Why that matters: if a field is forgotten in the save, the hash does
+    /// not see it either and the determinism test cannot catch it. Because
+    /// there is only ONE walk, no such gap can open.
     ///
-    /// ALAN SIRASI SOZLESMEDIR. Sira degisirse eski kayitlar okunamaz.
+    /// FIELD ORDER IS A CONTRACT. If the order changes, old saves cannot be read.
     /// </summary>
     public interface IStateWriter
     {
@@ -42,30 +42,31 @@ namespace Lokanta.Core.Save
         void BoolArray(string key, bool[] target, int count);
 
         /// <summary>
-        /// Bu anahtar kayitta VAR MI.
+        /// IS this key PRESENT in the save.
         ///
-        /// KAYIT GOCUNUN TEMELI. Kayit bicimi bir alan eklendigi anda
-        /// degisiyor (surum 2'den 14'e cikmis) ve okuyucu eksik
-        /// anahtarda ISTISNA atiyordu: yayindan sonra tek bir denge
-        /// yamasi, her oyuncunun altmis gunluk kampanyasini "bozuk"
-        /// yapardi. Mobil yonetim oyunlarinda tek yildizli yorumlarin
-        /// bir numarali sebebi bu.
+        /// THE FOUNDATION OF SAVE MIGRATION. The save format changes the
+        /// moment a field is added (the version has climbed from 2 to 14)
+        /// and the reader used to THROW on a missing key: after release a
+        /// single balance patch would have made every player's sixty-day
+        /// campaign "corrupt". That is the number one cause of one-star
+        /// reviews on mobile management games.
         ///
-        /// KURAL: yeni eklenen her alan Has() ile okunur ve yoksa
-        /// varsayilanda birakilir. Alan SILINMESI ya da anlaminin
-        /// degismesi hala surum anahtarli okuma gerektirir.
+        /// THE RULE: every newly added field is read through Has() and left
+        /// at its default when it is absent. DELETING a field, or changing
+        /// what it means, still requires a version-keyed read.
         /// </summary>
         bool Has(string key);
     }
 
     /// <summary>
-    /// FNV-1a 64. Durumun bayt bayt ozeti.
+    /// FNV-1a 64. A byte-by-byte hash of the state.
     ///
-    /// Nesne GetHashCode'u KULLANILMIYOR: .NET Core'da string hash'i her
-    /// surecte farkli ve deterministik degil. Burada acik bayt yuruyusu var.
+    /// Object GetHashCode IS NOT USED: on .NET Core the string hash differs
+    /// in every process and is not deterministic. Here there is an explicit
+    /// byte walk.
     ///
-    /// Anahtarlar da ozete giriyor: iki alanin yer degistirmesi ayni
-    /// degerleri ayni sirada verse bile ozeti degistirir.
+    /// The keys go into the hash too: two fields swapping places changes the
+    /// hash even when they hand over the same values in the same order.
     /// </summary>
     public sealed class HashStateWriter : IStateWriter
     {

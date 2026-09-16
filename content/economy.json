@@ -62,7 +62,7 @@
   "attendWorkCutBp": 5000,
   "overpriceCeilingBp": 25000,
   "staffing": {
-    "ownerPool": "salon",
+    "ownerPool": "hall",
     "ownerWorkMicro": 1300000,
     "weeklyXpWageGrowthBp": 220,
     "weeklyWageMultiplierBp": [

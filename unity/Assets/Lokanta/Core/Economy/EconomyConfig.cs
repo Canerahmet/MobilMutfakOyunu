@@ -3,50 +3,52 @@
 namespace Lokanta.Core.Economy
 {
     /// <summary>
-    /// Bir personel huyu. docs/14: her personele havuzdan IKI tane dusuyor.
+    /// One staff trait. docs/14: each member of staff draws TWO from the pool.
     ///
-    /// Tasarim niyeti docs/14'te yazili: "hicbir huy saf iyi veya saf kotu
-    /// degil." Bedelsiz gorunen ikisinin (musteriyle iyi anlasan, ekip
-    /// moralini yukselten) bedeli havuzda: her birinin bir KOTU IKIZI var
-    /// ve ikisi cakisiyor, yani iyi huy secilen bir avantaj degil bir sans.
+    /// The design intent is written down in docs/14: "no trait is purely
+    /// good or purely bad." The two that look free of charge (gets on well
+    /// with customers, lifts the crew's morale) pay their price in the pool:
+    /// each has an EVIL TWIN and the two conflict, so a good trait is not an
+    /// advantage you choose but a piece of luck.
     /// </summary>
     public sealed class TraitDef
     {
         public string Id { get; }
         public string NameKey { get; }
-        /// <summary>Gorev hizina etki, baz puan. +1800 = %18 hizli.</summary>
+        /// <summary>The effect on task speed, in basis points. +1800 = 18% faster.</summary>
         public int SpeedBp { get; }
-        /// <summary>Servis ettigi masada memnuniyet farki, santi-puan.</summary>
+        /// <summary>The satisfaction difference at the table they serve, in centi-points.</summary>
         public int SatisfactionCenti { get; }
-        /// <summary>Ucret farki, baz puan.</summary>
+        /// <summary>The wage difference, in basis points.</summary>
         public int WageBp { get; }
-        /// <summary>Deneyim kazanim carpani, baz puan. 20000 = iki kat, 0 = hic.</summary>
+        /// <summary>The experience gain multiplier, in basis points. 20000 = double, 0 = none.</summary>
         public int XpBp { get; }
-        /// <summary>Yogun dilimde ek yavaslama, baz puan.</summary>
+        /// <summary>Extra slowdown in a busy slot, in basis points.</summary>
         public int PeakPenaltyBp { get; }
-        /// <summary>Gunun son ceyreginde ek yavaslama, baz puan.</summary>
+        /// <summary>Extra slowdown in the last quarter of the day, in basis points.</summary>
         public int FatiguePenaltyBp { get; }
-        /// <summary>Diger personelin moraline etki.</summary>
+        /// <summary>The effect on the other staff's morale.</summary>
         public int MoraleAura { get; }
-        /// <summary>Pisirdigi yemegin memnuniyetine etki, baz puan.</summary>
+        /// <summary>The effect on the satisfaction of the food they cook, in basis points.</summary>
         public int QualityBp { get; }
-        /// <summary>Masa toplama hizina etki, baz puan.</summary>
+        /// <summary>The effect on the speed of clearing tables, in basis points.</summary>
         public int CleanlinessBp { get; }
         public bool PeakImmune { get; }
         public bool FatigueImmune { get; }
-        /// <summary>Birlikte olamayacagi huylarin indeksleri.</summary>
+        /// <summary>The indices of the traits it cannot be held alongside.</summary>
         public int[] ConflictsWith { get; private set; }
 
         /// <summary>
-        /// Cakisma listesi yuklemede baglanir: huy adlari once indekse
-        /// cevrilmeli, ve o ancak butun huylar okunduktan sonra yapilabilir.
+        /// The conflict list is bound at load time: trait names have to be
+        /// turned into indices first, and that can only be done once every
+        /// trait has been read.
         /// </summary>
         public void BindConflicts(int[] indices)
         {
             ConflictsWith = indices ?? new int[0];
         }
 
-        /// <summary>Bu huy, verilen huyla birlikte olabilir mi.</summary>
+        /// <summary>Can this trait be held alongside the given one.</summary>
         public bool ConflictsWithIndex(int other)
         {
             for (int i = 0; i < ConflictsWith.Length; i++)
@@ -71,36 +73,38 @@ namespace Lokanta.Core.Economy
         }
     }
 
-    /// <summary>Bir genisleme kademesi. Para santi-sikke.</summary>
+    /// <summary>One expansion tier. Money is in centi-coins.</summary>
     public readonly struct TierConfig
     {
         public readonly int Tables;
-        public readonly long Rent;        // haftalik
-        public readonly long Upgrade;     // bu kademeye gecis bedeli
+        public readonly long Rent;        // weekly
+        public readonly long Upgrade;     // the cost of moving up to this tier
         public readonly int StaffCap;
 
         /// <summary>
-        /// Bu kademede itibarin cikabilecegi EN YUKSEK deger, santi-puan.
+        /// The HIGHEST value reputation can reach at this tier, in
+        /// centi-points.
         ///
-        /// Dort masalik bir dukkan semtin konustugu lokanta olamaz. Tavan,
-        /// itibari doymus bir eksen olmaktan cikariyor: 25. gunde tepeye
-        /// varip kalan 35 gunu platoda gecirmek yerine, buyumek zorunda
-        /// kaliyorsun.
+        /// A four-table shop cannot be the restaurant the whole
+        /// neighbourhood talks about. The ceiling stops reputation being a
+        /// saturated axis: instead of topping out on day 25 and spending the
+        /// remaining 35 days on a plateau, you are forced to grow.
         /// </summary>
         public readonly int ReputationCapCenti;
 
         /// <summary>
-        /// Bu kademede lokantanin SAHIP OLDUGU tabak sayisi.
+        /// The number of plates the restaurant OWNS at this tier.
         ///
-        /// Tabak sayili ve doniyor: temiz -> kullanimda -> kirli -> temiz.
-        /// Temiz tabak bitince asci pisen yemegi cikaramiyor ve servis
-        /// duruyor - docs/14'un bulasikci gerekcesi ("tabak biterse servis
-        /// durur") bu sayi yuzunden gercek bir darbogaz.
+        /// The plates are counted and they circulate: clean -> in use ->
+        /// dirty -> clean. When the clean plates run out the cook cannot
+        /// send out what has been cooked and service stops - this number is
+        /// what makes docs/14's justification for the dishwasher ("if the
+        /// plates run out, service stops") a real bottleneck.
         ///
-        /// Kademeyle buyuyor: buyuyen dukkan tabak da alir. Buyumeseydi
-        /// on dort masalik bir lokanta dort masalik bir mutfagin
-        /// tabagiyla calisirdi ve darbogaz bir mekanik degil bir duvar
-        /// olurdu.
+        /// It grows with the tier: a shop that grows buys plates too. Had it
+        /// not grown, a fourteen-table restaurant would be working with a
+        /// four-table kitchen's plates and the bottleneck would be a wall
+        /// rather than a mechanic.
         /// </summary>
         public readonly int Plates;
 
@@ -109,19 +113,20 @@ namespace Lokanta.Core.Economy
         {
             Tables = tables; Rent = rent; Upgrade = upgrade; StaffCap = staffCap;
             ReputationCapCenti = reputationCapCenti;
-            // Icerikte yazmiyorsa masa basina alti: eski kayitlar ve
-            // testler sifir tabakla kilitlenmesin.
+            // Six per table when the content does not say: so that old
+            // saves and tests do not lock up with zero plates.
             Plates = plates > 0 ? plates : tables * 6;
         }
     }
 
     /// <summary>
-    /// Cekirdegin ihtiyac duydugu butun ekonomi sabitleri.
-    /// Lokanta.Content bunu JSON'dan kurar; cekirdek JSON bilmez.
+    /// Every economy constant the core needs.
+    /// Lokanta.Content builds this from JSON; the core knows nothing of JSON.
     ///
-    /// Personel iki havuz:
-    ///   mutfak  asci, patron giremez (oyuncu patron, sef degil)
-    ///   salon   garson + bulasikci + kasiyer, tek is havuzu
+    /// The staff are two pools:
+    ///   kitchen  the cooks; the owner cannot enter (the player is the
+    ///            owner, not the chef)
+    ///   hall     waiter + dishwasher + cashier, a single work pool
     /// </summary>
     public sealed class EconomyConfig
     {
@@ -130,136 +135,142 @@ namespace Lokanta.Core.Economy
         public int CampaignDays { get; private set; }
 
         /// <summary>
-        /// Bir mevsim kac gun. docs/09: altmis gunluk kampanya dort mevsim,
-        /// yani on beser gun. Malzeme fiyatlari mevsime gore oynuyor.
+        /// How many days a season is. docs/09: the sixty-day campaign is
+        /// four seasons, so fifteen days each. Ingredient prices move with
+        /// the season.
         /// </summary>
         public int SeasonDays { get; private set; }
 
-        // Asagidaki alanlar ICERIKTE yaziliydi ama kodda SABIT kodlanmisti.
-        // tools/audit_content.py uc numarali kontrolu bunlari buldu: DTO
-        // bagliyor, cekirdege hic ulasmiyor. Bugun ayni degerler, yani
-        // davranis degismiyor; ama icerikte bir sayi degistirildiginde
-        // artik gercekten degisiyor.
+        // The fields below were written down IN THE CONTENT but were HARD
+        // CODED in the code. Check number three of tools/audit_content.py
+        // found them: the DTO binds them and they never reach the core. The
+        // values are the same today, so behaviour does not change; but when
+        // a number is changed in the content, it now really does change.
 
         /// <summary>
-        /// Servis gununun uzunlugu, milisaniye. docs/23 1.3: 480.000 ms,
-        /// yani 4.800 tick. TimingConfig bunu kullaniyor.
+        /// The length of the service day, in milliseconds. docs/23 1.3:
+        /// 480,000 ms, that is 4,800 ticks. TimingConfig uses this.
         /// </summary>
         public int ServiceMs { get; private set; }
 
         /// <summary>
-        /// Gun basina patron mudahalesi hakki. docs/02 59: "sinirli sayida
-        /// patron mudahalesi hakkin var (gun basina 3-5)".
+        /// The owner's allowance of interventions per day. docs/02 59: "you
+        /// have a limited number of owner interventions (3-5 a day)".
         ///
-        /// Icerikte yaziliydi ve hicbir sey onu zorlamiyordu: oyuncu
-        /// sinirsiz mudahale edebiliyordu, yani her kizgin musteri bedava
-        /// kurtarilabilirdi.
+        /// It was written in the content and nothing was enforcing it: the
+        /// player could intervene without limit, so every angry customer
+        /// could be saved for free.
         /// </summary>
         public int InterventionsPerDay { get; private set; }
 
         /// <summary>
-        /// Cay ikraminin KISI BASINA maliyeti, santi-sikke.
-        /// docs/12 3: "porsiyon basina 2 maliyet, bedava verilir".
+        /// The cost of the complimentary tea PER HEAD, in centi-coins.
+        /// docs/12 3: "2 in cost per portion, given away free".
         /// </summary>
         public long TreatCost { get; private set; }
 
         /// <summary>
-        /// Hal fiyatlarinin gunluk oynama araligi, baz puan. 2500 = %25.
-        /// docs/12 3: "ucuz gune denk gelmek sans degil, takip meselesi".
+        /// The daily swing of market prices, in basis points. 2500 = 25%.
+        /// docs/12 3: "catching the cheap day is not luck, it is a matter of
+        /// paying attention".
         /// </summary>
         public int PriceVolatilityBp { get; private set; }
 
-        /// <summary>Kira ve maasin odendigi gun araligi. docs/12 2.</summary>
+        /// <summary>How many days apart rent and wages are paid. docs/12 2.</summary>
         public int RentDayInterval { get; private set; }
 
         /// <summary>
-        /// Memnuniyetin notr esigi, santi-puan. Bunun ustu itibar
-        /// kazandiriyor, alti kaybettiriyor. docs/12 5.5.
+        /// Satisfaction's neutral threshold, in centi-points. Above it earns
+        /// reputation, below it loses reputation. docs/12 5.5.
         /// </summary>
         public int SatisfactionNeutralCenti { get; private set; }
 
         /// <summary>
-        /// Fiyati piyasanin bu oraninin altina indirmenin faydasi yok,
-        /// baz puan. 8500 = %15 altina inmek bir sey kazandirmiyor.
+        /// There is no benefit in cutting the price below this ratio of the
+        /// market, in basis points. 8500 = going more than 15% below gains
+        /// nothing.
         /// </summary>
         public int UnderpriceFloorBp { get; private set; }
 
         /// <summary>
-        /// Fiyat sapmasinin talebe etkisi. 10000 = birim esneklik
-        /// (%10 zam -> %10 az musteri).
+        /// The effect of price deviation on demand. 10000 = unit elasticity
+        /// (a 10% rise -> 10% fewer customers).
         ///
-        /// Bu kanal bir zamanlar YOKTU ve oyunun en buyuk acigiydi:
-        /// fiyatin tek yolu memnuniyet -> itibar idi, itibar da
-        /// kademe tavanina kirpiliyordu, yani tavandaki oyuncu icin
-        /// kucuk bir zam bedavaydi. Olculdu: %10 zam yapan bot 27.849
-        /// sikke ile bitiriyordu, taban strateji 18.670.
+        /// This channel once DID NOT EXIST and it was the game's biggest
+        /// hole: price's only route was satisfaction -> reputation, and
+        /// reputation was clamped to the tier ceiling, so for a player at
+        /// that ceiling a small rise was free. Measured: a bot raising
+        /// prices by 10% finished on 27,849 coins, the baseline strategy on
+        /// 18,670.
         ///
-        /// ICERIKTEN geliyor ki denge araci onu arayabilsin; elle
-        /// yazilmis bir sabit olsaydi calibrate.py bu ekseni hic
-        /// goremezdi.
+        /// It comes FROM THE CONTENT so that the balance tool can search
+        /// over it; had it been a hand-written constant, calibrate.py could
+        /// never have seen this axis at all.
         /// </summary>
         public int PriceElasticityBp { get; private set; }
 
         /// <summary>
-        /// Gunluk talebin BEKLENTIDEN sapma araligi, baz puan.
-        /// 1000 = gun basina -%10 ile +%10 arasi.
+        /// How far the day's demand may stray FROM THE EXPECTATION, in basis
+        /// points. 1000 = between -10% and +10% on the day.
         ///
-        /// Talep bir zamanlar TAMAMEN belirlenimciydi: ayni itibar ve
-        /// masa sayisindaki her sali birebir ayni sayida musteri
-        /// getiriyordu. Sonucu, sabah stok kararinin bir YARGI degil
-        /// bir dugme olmasiydi - hal onerisi her zaman tam dogruydu
-        /// ve "Stok 8/13 kisiye yetiyor" satiri hicbir zaman
-        /// kirmiziya donmuyordu.
+        /// Demand was once COMPLETELY deterministic: every Tuesday at the
+        /// same reputation and table count brought in exactly the same
+        /// number of customers. The consequence was that the morning's stock
+        /// decision was a button rather than a JUDGEMENT - the market's
+        /// recommendation was always exactly right and the line "Stock is
+        /// enough for 8/13 people" never turned red.
         ///
-        /// SAPMA YALNIZCA GERCEKLESEN SAYIDA. Tahmin (kadro onerisi,
-        /// hal onerisi, beklenen kisi) beklentiyi gostermeye devam
-        /// ediyor - yoksa oyuncu yine kesin bilgiye sahip olurdu ve
-        /// oynaklik dekor kalirdi.
+        /// THE VARIANCE IS ONLY IN THE REALISED NUMBER. The forecasts (the
+        /// crew recommendation, the market recommendation, the expected
+        /// covers) go on showing the expectation - otherwise the player
+        /// would once again hold certain knowledge and the volatility would
+        /// stay decoration.
         /// </summary>
         public int DemandVarianceBp { get; private set; }
 
         /// <summary>
-        /// Patron ilgilendiginde o masanin SIRADAKI salon isi ne kadar
-        /// kisaliyor, baz puan. 5000 = yarisi.
+        /// When the owner sees to a table, how much that table's NEXT piece
+        /// of hall work is shortened, in basis points. 5000 = by half.
         ///
-        /// Mudahale olculdugunde NOTR cikmisti: kadrosu duzgun bir
-        /// lokantada kriz neredeyse hic olmuyor (gunde 0,8 mudahale),
-        /// yani mekanik bir emniyet agiydi - oysa magaza metni onu ana
-        /// mekanik diye satiyor.
+        /// When the intervention was measured it came out NEUTRAL: in a
+        /// properly staffed restaurant a crisis hardly ever happens (0.8
+        /// interventions a day), so the mechanic was a safety net - whereas
+        /// the store text sells it as a core mechanic.
         ///
-        /// Eksik olan sey salon tarafiydi: ilgi sabri uzatiyor ve
-        /// MUTFAGI hizlandiriyordu, ama darbogaz cogu zaman salonda.
-        /// "Patron kendi ilgileniyor" tam olarak siparisi/hesabi onun
-        /// almasi demek - masa daha cabuk donuyor, yani ayni gunde
-        /// daha cok musteri. Boylece mudahale krizi beklemeden de
-        /// deger uretiyor.
+        /// What was missing was the hall side: attention lengthened patience
+        /// and sped up THE KITCHEN, but the bottleneck is usually in the
+        /// hall. "The owner is seeing to it personally" means exactly that
+        /// they take the order or the payment - the table turns over faster,
+        /// so more customers on the same day. That way the intervention
+        /// produces value without waiting for a crisis.
         /// </summary>
         public int AttendWorkCutBp { get; private set; }
 
         /// <summary>
-        /// Fiyatin piyasaya gore TAVANI, baz puan. 25000 = piyasanin
-        /// 2,5 katindan pahaliya satilamaz.
+        /// The CEILING on price relative to the market, in basis points.
+        /// 25000 = nothing may be sold for more than 2.5 times the market.
         ///
-        /// NEDEN VAR: memnuniyet [0, 10000] arasina kirpiliyor ve talep
-        /// fiyati hic gormuyor. Yani bir kalemin fiyati, o kalemi alan
-        /// musterinin memnuniyetini sifira indirmeye yettigi noktadan
-        /// sonra HER EK SIFIR BEDAVA. Olculdu: yan kalemleri 2000 kat
-        /// pahalilastiran bir bot 3,4 milyon sikke topladi ve itibar,
-        /// memnuniyet, agirlanan kisi sayisi HIC degismedi - simulasyon
-        /// o noktadan sonra fiyati gormuyordu.
+        /// WHY IT EXISTS: satisfaction is clamped to [0, 10000] and demand
+        /// never sees the price at all. So past the point where an item's
+        /// price is enough to drive the satisfaction of whoever buys it down
+        /// to zero, EVERY FURTHER ZERO IS FREE. Measured: a bot that made
+        /// the side items 2000 times dearer piled up 3.4 million coins while
+        /// reputation, satisfaction and the number of people served did NOT
+        /// change at all - past that point the simulation was not seeing the
+        /// price.
         ///
-        /// Taban zaten vardi (UnderpriceFloorBp); tavanin olmamasi
-        /// simetri hatasiydi.
+        /// The floor was already there (UnderpriceFloorBp); the absence of a
+        /// ceiling was an error of symmetry.
         /// </summary>
         public int OverpriceCeilingBp { get; private set; }
 
-        /// <summary>Kredi geri odemesi anaparanin kaci, baz puan.</summary>
+        /// <summary>What multiple of the principal is repaid, in basis points.</summary>
         public int LoanMultiplierBp { get; private set; }
 
-        /// <summary>Kredi taksit sayisi, hafta.</summary>
+        /// <summary>The number of loan instalments, in weeks.</summary>
         public int LoanWeeks { get; private set; }
 
-        /// <summary>Kredi secenekleri, santi-sikke.</summary>
+        /// <summary>The loan options, in centi-coins.</summary>
         public long[] LoanOptions { get; private set; }
         public int WeekendDaysPerWeek { get; private set; }
 
@@ -272,86 +283,89 @@ namespace Lokanta.Core.Economy
         public int CookCapacityPerDay { get; private set; }
         public long CookDailyWage { get; private set; }
 
-        /// <summary>Bir musterinin salona yukledigi is, mikro-is-gunu.</summary>
-        public int SalonWorkPerCustomerMicro { get; private set; }
+        /// <summary>The work one customer loads onto the hall, in micro person-days.</summary>
+        public int HallWorkPerCustomerMicro { get; private set; }
 
         /// <summary>
-        /// Sum(workMicro_r * dailyWage_r) salon rolleri uzerinden.
-        /// Kisi basi ucreti onceden yuvarlamamak icin pay ayri tutuluyor;
-        /// yuvarlama tek seferde, ucret faturasi hesaplanirken yapiliyor.
+        /// Sum(workMicro_r * dailyWage_r) over the hall roles.
+        /// The numerator is kept apart so the per-head wage is not rounded
+        /// in advance; the rounding happens once, when the wage bill is
+        /// worked out.
         /// </summary>
-        public long SalonWageNumerator { get; private set; }
+        public long HallWageNumerator { get; private set; }
 
         public int OwnerWorkMicro { get; private set; }
         public int WeeklyXpWageGrowthBp { get; private set; }
 
-        // --- Deneyim, docs/14 "Deneyim ve seviye" -----------------------------
-        // Calisilan her gun 1 puan, 30 puanda seviye, azami 3 seviye,
-        // seviye basina +%10 hiz. Hiz merdiveni icerikten gelir.
-        /// <summary>Bir seviye icin gereken calisma gunu. docs/14: 30.</summary>
-        // --- Personel huylari ve moral, docs/14 -------------------------------
+        // --- Experience, docs/14 "Experience and level" -----------------------
+        // 1 point for every day worked, a level at 30 points, 3 levels at
+        // most, +10% speed per level. The speed ladder comes from the content.
+        /// <summary>The days worked that one level requires. docs/14: 30.</summary>
+        // --- Staff traits and morale, docs/14 ---------------------------------
         private TraitDef[] _traits;
 
         public int TraitCount { get { return _traits == null ? 0 : _traits.Length; } }
         public TraitDef TraitAt(int i) { return _traits[i]; }
 
-        /// <summary>Yeni personelin morali. docs/14: 70 ile baslar.</summary>
+        /// <summary>A new hire's morale. docs/14: it starts at 70.</summary>
         public int StartingMorale { get; private set; }
-        /// <summary>Bunun altinda hiz kaybi ve hata sansi artiyor.</summary>
+        /// <summary>Below this, speed drops and the chance of a mistake rises.</summary>
         public int MoraleLowThreshold { get; private set; }
-        /// <summary>Bunun altinda her gun istifa riski var.</summary>
+        /// <summary>Below this, there is a risk of resignation every day.</summary>
         public int MoraleQuitThreshold { get; private set; }
-        /// <summary>Istifa riski, baz puan. docs/14: gunde %10.</summary>
+        /// <summary>The risk of resignation, in basis points. docs/14: 10% a day.</summary>
         public int MoraleQuitChanceBp { get; private set; }
-        /// <summary>Dusuk moralin hiz cezasi, baz puan. docs/14: %20.</summary>
+        /// <summary>The speed penalty of low morale, in basis points. docs/14: 20%.</summary>
         public int MoraleSlowPenaltyBp { get; private set; }
-        /// <summary>Maas zamaninda odendi.</summary>
+        /// <summary>The wage was paid on time.</summary>
         public int MoralePaidDelta { get; private set; }
-        /// <summary>Maas gecikti.</summary>
+        /// <summary>The wage was late.</summary>
         public int MoraleLateDelta { get; private set; }
-        /// <summary>Ust uste yogun gun.</summary>
+        /// <summary>A busy day on top of another.</summary>
         public int MoraleBusyDelta { get; private set; }
-        /// <summary>Sakin gunun toparlatmasi; baslangic moraline dogru.</summary>
+        /// <summary>A quiet day's recovery; back towards the starting morale.</summary>
         public int MoraleRecoveryDelta { get; private set; }
-        /// <summary>Aday havuzu kac gunde bir yenileniyor. docs/14: uc.</summary>
+        /// <summary>How many days apart the candidate pool refreshes. docs/14: three.</summary>
         public int CandidateRefreshDays { get; private set; }
 
         /// <summary>
-        /// Silinen borcun itibar bedeli, santi-puan. Merdivenin son
-        /// basamagi: ekipman da masa da satildiktan sonra kalan borc
-        /// siliniyor ve bedeli itibardan aliniyor.
+        /// The reputation cost of written-off debt, in centi-points. The last
+        /// rung of the ladder: once both the equipment and the tables have
+        /// been sold, the remaining debt is written off and the price is
+        /// taken out of reputation.
         /// </summary>
         public int DebtWriteOffRepCenti { get; private set; }
 
         /// <summary>
-        /// Mudahalenin memnuniyet katkisi, santi-puan. docs/12 5.4.
+        /// The intervention's contribution to satisfaction, in centi-points.
+        /// docs/12 5.4.
         ///
-        /// Asil etki artik SABIR uzatmasi; bu iki sayi yalnizca
-        /// kucuk bir dokunus. Once tersi olduğu icin mudahale
-        /// olculebilir zarardi.
+        /// The real effect is now the extension of PATIENCE; these two
+        /// numbers are only a small touch on top. Because it used to be the
+        /// other way round, an intervention was a measurable loss.
         /// </summary>
         public int AttentionSatisfactionCenti { get; private set; }
         public int TreatSatisfactionCenti { get; private set; }
 
-        /// <summary>Acele ettirilen isin kalan suresinden silinen pay, baz puan.</summary>
+        /// <summary>The share wiped off the remaining time of a job that is hurried along, in basis points.</summary>
         public int RushCutBp { get; private set; }
 
         /// <summary>
-        /// Sabir uzatmasi, oturma-siparis suresinin kati.
+        /// The patience extension, as a multiple of the seat-and-order time.
         ///
-        /// Bir TAKAS ayarliyor: uzatma gitmek uzere olan grubu tutuyor
-        /// ama masayi da daha uzun isgal ediyor, yani baskasina hizmet
-        /// edilemiyor. Bedava bir iyilik degil.
+        /// It sets up a TRADE-OFF: the extension holds on to a party that
+        /// was about to leave, but it also occupies the table for longer, so
+        /// somebody else cannot be served. It is not a free favour.
         /// </summary>
         public int AttentionPatienceMult { get; private set; }
         public int TreatPatienceMult { get; private set; }
 
         /// <summary>
-        /// Mudahale sayilari. Icerikten geliyor (docs/23 8.2).
+        /// The intervention numbers. They come from the content (docs/23 8.2).
         ///
-        /// Sifir gelen her alan eski koddaki degerine dusuyor: icerigi
-        /// eski bir kayit ya da eksik bir dosya, mudahaleyi sessizce
-        /// etkisiz birakmasin.
+        /// Any field that arrives as zero falls back to its value in the old
+        /// code: so that an old save or a missing file does not silently
+        /// render the intervention ineffective.
         /// </summary>
         public EconomyConfig WithIntervention(int attentionCenti, int treatCenti,
                                               int rushCutBp, int attentionMult,
@@ -367,37 +381,38 @@ namespace Lokanta.Core.Economy
         }
 
         /// <summary>
-        /// Kademeleri degistirilmis bir kopya.
+        /// A copy with its tiers replaced.
         ///
-        /// TESTLER ICIN: itibar tavaninin davranisini sinamak, tavana
-        /// DAYANAN bir dukkan gerektiriyor. Gercek icerikte tavan dort
-        /// masada 55 ve kucuk bir dukkanin dogal denge noktasi ~34,6 -
-        /// yani tavan orada hic baglayici degil. Tavana dayanmak icin
-        /// testin harness botu kadar iyi oynamasi gerekirdi, yani
-        /// testin icine bir bot yazmak.
+        /// FOR THE TESTS: testing how the reputation ceiling behaves needs a
+        /// shop that is PRESSED UP against that ceiling. In the real content
+        /// the ceiling at four tables is 55 and a small shop's natural
+        /// equilibrium is ~34.6 - so the ceiling binds nothing there. To
+        /// reach the ceiling the test would have to play as well as the
+        /// harness bot, that is, to write a bot inside the test.
         ///
-        /// Tavani ICERIKTEN dusurmek dogru cozum: kural ayni kural,
-        /// yalnizca gorunur oldugu esik yaklastiriliyor.
+        /// Lowering the ceiling FROM THE CONTENT is the right answer: the
+        /// rule is the same rule, only the threshold at which it becomes
+        /// visible is brought closer.
         /// </summary>
         /// <summary>
-        /// SALON HAVUZUNU MUTFAGA GORE DEGISTIRIR.
+        /// CHANGES THE HALL POOL ACCORDING TO THE CUISINE.
         ///
-        /// Salon yuku ve ucreti economy.json'daki BUTUN salon
-        /// rollerinin toplamiydi - garson + bulasikci + kasiyer.
-        /// Ama hizli yemek SELF SERVIS: masaya garson gelmiyor, yani
-        /// oyuncu calismayan bir garsonun ucretini oduyordu ve kadro
-        /// modeli ona gore kisi istiyordu.
+        /// The hall workload and wage used to be the sum of ALL the hall
+        /// roles in economy.json - waiter + dishwasher + cashier. But fast
+        /// food is SELF SERVICE: no waiter comes to the table, so the player
+        /// was paying the wage of a waiter who did no work, and the staffing
+        /// model was asking for heads on that basis.
         ///
-        /// Mutfagin kendi rol listesi (cuisines/*.json: salonRoles)
-        /// buradan uygulaniyor. Liste yoksa hicbir sey degismiyor.
+        /// The cuisine's own role list (cuisines/*.json: salonRoles) is
+        /// applied from here. If there is no list, nothing changes.
         /// </summary>
-        public EconomyConfig WithSalonPool(int workPerCustomerMicro,
+        public EconomyConfig WithHallPool(int workPerCustomerMicro,
                                            long wageNumerator)
         {
             if (workPerCustomerMicro <= 0) return this;
             EconomyConfig c = (EconomyConfig)MemberwiseClone();
-            c.SalonWorkPerCustomerMicro = workPerCustomerMicro;
-            c.SalonWageNumerator = wageNumerator;
+            c.HallWorkPerCustomerMicro = workPerCustomerMicro;
+            c.HallWageNumerator = wageNumerator;
             return c;
         }
 
@@ -435,17 +450,17 @@ namespace Lokanta.Core.Economy
             return c;
         }
 
-        // --- Isimli duzenli musteriler, docs/11 -------------------------------
-        /// <summary>Tanistiktan sonra bir gunde ugrama sansi, baz puan.</summary>
+        // --- Named regulars, docs/11 ------------------------------------------
+        /// <summary>The chance of dropping in on a given day once you have met, in basis points.</summary>
         public int RegularVisitChanceBp { get; private set; }
-        /// <summary>Sevdigi yemegi bulamayan duzenli musterinin cezasi, santi.</summary>
+        /// <summary>The penalty when a regular cannot find their favourite dish, in centi.</summary>
         public int RegularMissedFavouriteCenti { get; private set; }
-        /// <summary>Bunun altinda ayrilirsa bir sure gelmiyor, santi-puan.</summary>
+        /// <summary>If they leave below this they stay away for a while, in centi-points.</summary>
         public int RegularUpsetCenti { get; private set; }
-        /// <summary>Kirilinca kac gun gelmiyor.</summary>
+        /// <summary>How many days they stay away once they are upset.</summary>
         public int RegularAwayDays { get; private set; }
 
-        /// <summary>Duzenli musteri ayarlarini takar. Icerikten geliyor.</summary>
+        /// <summary>Fits the regulars' settings. They come from the content.</summary>
         public EconomyConfig WithRegulars(int visitChanceBp, int missedFavouriteCenti,
                                           int upsetCenti, int awayDays)
         {
@@ -458,27 +473,28 @@ namespace Lokanta.Core.Economy
         }
 
         public int XpDaysPerLevel { get; private set; }
-        /// <summary>Azami seviye. docs/14: 3.</summary>
+        /// <summary>The highest level. docs/14: 3.</summary>
         public int MaxXpLevel { get; private set; }
 
         private int[] _cookXpSpeedBp;
-        private int[] _salonXpSpeedBp;
+        private int[] _hallXpSpeedBp;
 
         /// <summary>
-        /// Seviyenin hiz carpani, baz puan. Merdiven kisaysa son basamak
-        /// tekrarlanir; icerik hep MaxXpLevel+1 uzunlugunda olmali ama
-        /// eksik merdiven yuzunden dizi disina tasmak istemiyoruz.
+        /// The level's speed multiplier, in basis points. If the ladder is
+        /// short the last rung repeats; the content should always be
+        /// MaxXpLevel+1 long, but we do not want to run off the end of the
+        /// array because of a ladder with a rung missing.
         /// </summary>
         public int XpSpeedBp(int level, bool kitchen)
         {
-            int[] ladder = kitchen ? _cookXpSpeedBp : _salonXpSpeedBp;
+            int[] ladder = kitchen ? _cookXpSpeedBp : _hallXpSpeedBp;
             if (ladder == null || ladder.Length == 0) return 10_000;
             if (level < 0) level = 0;
             if (level >= ladder.Length) level = ladder.Length - 1;
             return ladder[level];
         }
 
-        /// <summary>Calisilan gun sayisindan seviye. docs/14: tavan 3.</summary>
+        /// <summary>The level from the number of days worked. docs/14: a cap of 3.</summary>
         public int XpLevelOf(int daysWorked)
         {
             if (XpDaysPerLevel <= 0) return 0;
@@ -487,59 +503,64 @@ namespace Lokanta.Core.Economy
         }
 
         /// <summary>
-        /// Deneyim merdivenlerini takar. Kirk argumanli kuruculara iki
-        /// arguman daha eklemek yerine kopya donduruyoruz: o listede sira
-        /// hatasi yapmak, derleyicinin yakalayamadigi bir hata turu.
+        /// Fits the experience ladders. Rather than adding two more arguments
+        /// to constructors that already take forty, we return a copy: getting
+        /// the order wrong in that list is a kind of mistake the compiler
+        /// cannot catch.
         /// </summary>
-        public EconomyConfig WithXpSpeed(int[] cookLadder, int[] salonLadder,
+        public EconomyConfig WithXpSpeed(int[] cookLadder, int[] hallLadder,
                                          int daysPerLevel, int maxLevel)
         {
             EconomyConfig c = (EconomyConfig)MemberwiseClone();
             c._cookXpSpeedBp = cookLadder;
-            c._salonXpSpeedBp = salonLadder;
+            c._hallXpSpeedBp = hallLadder;
             c.XpDaysPerLevel = daysPerLevel > 0 ? daysPerLevel : 30;
             c.MaxXpLevel = maxLevel > 0 ? maxLevel : 3;
             return c;
         }
 
-        /// <summary>Ihmal edilirse itibar eriyor. docs/12 5.5: gunde 0,3 puan.</summary>
+        /// <summary>Neglected, reputation erodes. docs/12 5.5: 0.3 points a day.</summary>
         public int ReputationDecayPerDayCenti { get; private set; }
 
-        // --- Siparis modeli ---------------------------------------------------
-        // Kisi basina bir ANA yemek kesin, yan ve icecek olasilikli.
-        // Denge araci bunlar olmadan ortalama fisi cok dusuk hesapliyordu:
-        // her musteri menuden esit olasilikla tek kalem seciyor, cogu kola
-        // aliyordu. docs/07 kombo mekaniginin taban hali.
-        /// <summary>Kisi basina yan yemek olasiligi, baz puan.</summary>
+        // --- The ordering model -----------------------------------------------
+        // One MAIN dish per head is certain; a side and a drink are by
+        // chance. Without these the balance tool was computing the average
+        // ticket far too low: every customer picked a single item from the
+        // menu with equal probability, and most of them took a cola. This is
+        // the base state of the combo mechanic of docs/07.
+        /// <summary>The chance of a side dish per head, in basis points.</summary>
         public int SideChanceBp { get; private set; }
-        /// <summary>Kisi basina icecek olasiligi, baz puan.</summary>
+        /// <summary>The chance of a drink per head, in basis points.</summary>
         public int DrinkChanceBp { get; private set; }
         /// <summary>
-        /// Kisi basina tatli olasiligi, baz puan. Icecekten dusuk:
-        /// tatli sonda gelir ve herkes almaz.
+        /// The chance of a dessert per head, in basis points. Lower than the
+        /// drink: dessert comes at the end and not everybody takes one.
         /// </summary>
         public int DessertChanceBp { get; private set; }
 
         /// <summary>
-        /// Musterinin, duydugu ama yapilamayan bir yemegi SORMA olasiligi.
+        /// The chance that a customer ASKS for a dish they have heard of but
+        /// which cannot be made.
         /// </summary>
         public int AskChanceBp { get; private set; }
 
         /// <summary>
-        /// Sordugu yemegi bulamayan musterinin memnuniyet kaybi, santi-puan.
+        /// The satisfaction a customer loses when the dish they asked for is
+        /// not to be had, in centi-points.
         /// </summary>
         public int AskMissCenti { get; private set; }
 
         /// <summary>
-        /// Talebin ne kadarinin GERCEKTEN ciroya donustugu, baz puan.
+        /// How much of demand ACTUALLY turns into revenue, in basis points.
         ///
-        /// Kapali form model talebin tamaminin agirlandigini varsayardi.
-        /// Simulasyon ayni genisleme takviminde modelin cirosunun %65'ini
-        /// uretiyor: sabri biten musteri, tukenen stok, dolan masa.
-        /// Kiralar modelin cirosundan cozuldugu icin %35 fazlaydi.
+        /// The closed-form model used to assume all of demand was served.
+        /// On the same expansion timetable the simulation produces 65% of
+        /// the model's revenue: customers who run out of patience, stock
+        /// that runs out, tables that fill up. Because the rents were solved
+        /// from the model's revenue, they were 35% too high.
         ///
-        /// OLCULEN bir degerdir, secilmis degil. Simulasyon degistikce
-        /// yeniden olculmeli.
+        /// It is a MEASURED value, not a chosen one. It must be measured
+        /// again whenever the simulation changes.
         /// </summary>
         public int RealisationBp { get; private set; }
 
@@ -550,7 +571,7 @@ namespace Lokanta.Core.Economy
             int weekendDaysPerWeek, int customerBasePerTable,
             int weekdayMultiplierBp, int weekendMultiplierBp, int ingredientRateBp,
             int cookCapacityPerDay, long cookDailyWage,
-            int salonWorkPerCustomerMicro, long salonWageNumerator,
+            int hallWorkPerCustomerMicro, long hallWageNumerator,
             int ownerWorkMicro, int weeklyXpWageGrowthBp, TierConfig[] tiers,
             int reputationDecayPerDayCenti = 30,
             int seasonDays = 15, int serviceMs = 480_000, int rentDayInterval = 7,
@@ -567,13 +588,13 @@ namespace Lokanta.Core.Economy
             int attendWorkCutBp = 0)
         {
             if (tiers == null || tiers.Length == 0)
-                throw new ArgumentException("En az bir kademe gerekli", nameof(tiers));
+                throw new ArgumentException("At least one tier is required", nameof(tiers));
             if (customerBasePerTable <= 0)
                 throw new ArgumentOutOfRangeException(nameof(customerBasePerTable));
             if (cookCapacityPerDay <= 0)
                 throw new ArgumentOutOfRangeException(nameof(cookCapacityPerDay));
-            if (salonWorkPerCustomerMicro <= 0)
-                throw new ArgumentOutOfRangeException(nameof(salonWorkPerCustomerMicro));
+            if (hallWorkPerCustomerMicro <= 0)
+                throw new ArgumentOutOfRangeException(nameof(hallWorkPerCustomerMicro));
 
             StartingCash = startingCash;
             StartingReputationCenti = startingReputationCenti;
@@ -604,11 +625,11 @@ namespace Lokanta.Core.Economy
             IngredientRateBp = ingredientRateBp;
             CookCapacityPerDay = cookCapacityPerDay;
             CookDailyWage = cookDailyWage;
-            SalonWorkPerCustomerMicro = salonWorkPerCustomerMicro;
-            SalonWageNumerator = salonWageNumerator;
+            HallWorkPerCustomerMicro = hallWorkPerCustomerMicro;
+            HallWageNumerator = hallWageNumerator;
             OwnerWorkMicro = ownerWorkMicro;
             WeeklyXpWageGrowthBp = weeklyXpWageGrowthBp;
-            // Varsayilan: deneyim yok. Icerik WithXpSpeed ile takiyor.
+            // The default: no experience. The content fits it with WithXpSpeed.
             XpDaysPerLevel = 30;
             MaxXpLevel = 3;
             StartingMorale = 70;
@@ -629,7 +650,7 @@ namespace Lokanta.Core.Economy
             RegularUpsetCenti = 5000;
             RegularAwayDays = 3;
             _cookXpSpeedBp = null;
-            _salonXpSpeedBp = null;
+            _hallXpSpeedBp = null;
             ReputationDecayPerDayCenti = reputationDecayPerDayCenti;
             SideChanceBp = sideChanceBp;
             DrinkChanceBp = drinkChanceBp;
@@ -644,7 +665,7 @@ namespace Lokanta.Core.Economy
 
         public TierConfig TierAt(int index) { return _tiers[index]; }
 
-        /// <summary>Bu masa sayisinin bir kademe karsiligi var mi.</summary>
+        /// <summary>Is there a tier that matches this table count.</summary>
         public bool HasTierForTables(int tables)
         {
             for (int i = 0; i < _tiers.Length; i++)
@@ -653,14 +674,15 @@ namespace Lokanta.Core.Economy
         }
 
         /// <summary>
-        /// Masa sayisinin kademesi. Tam eslesme yoksa EN YAKIN ALT kademe.
+        /// The tier for a table count. With no exact match, the NEAREST TIER
+        /// BELOW.
         ///
-        /// Once istisna firlatiyordu ve bu yanlis yerdeydi: bir okuyucu
-        /// hicbir zaman cokertmemeli. Bozuk bir kayittan gelen gecersiz
-        /// masa sayisi, oyuncu Personel ekranini actigi anda oyunu
-        /// oldurup kaydi kullanilamaz yapiyordu. Kaydin gecerliligi
-        /// YUKLEMEDE denetleniyor (Simulation.Validate); burasi yalnizca
-        /// makul bir cevap vermekle yukumlu.
+        /// It used to throw, and that was in the wrong place: a reader
+        /// should never bring things down. An invalid table count coming
+        /// from a corrupt save killed the game the moment the player opened
+        /// the Staff screen, and made the save unusable. A save's validity
+        /// is checked AT LOAD (Simulation.Validate); this place is only
+        /// obliged to give a sensible answer.
         /// </summary>
         public TierConfig TierForTables(int tables)
         {

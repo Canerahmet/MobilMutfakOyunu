@@ -3,43 +3,45 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// CALISAN BIR OCAK. Kapak aciliyor, icerisi yaniyor, gozler alev
-    /// aliyor.
+    /// A WORKING STOVE. The door opens, the inside glows, the burners
+    /// catch light.
     ///
-    /// Neden gerekli: mutfak, ekranin ucte birini kapliyor ve icinde
-    /// hicbir sey olmuyordu. Simulasyon her an hangi istasyonda kac
-    /// tabak pistigini biliyor; o bilgi hicbir yere cizilmiyordu. Bir
-    /// yonetim oyununda "mutfak sikisti" en sik verilen karar ve
-    /// oyuncunun onu gorecegi tek yer mutfagin kendisi.
+    /// Why it is needed: the kitchen covers a third of the screen and
+    /// nothing was happening inside it. The simulation knows at every
+    /// moment how many plates are cooking at which station; that
+    /// information was drawn nowhere. In a management game "the kitchen
+    /// is jammed" is the decision taken most often, and the only place
+    /// the player can see it is the kitchen itself.
     ///
-    /// PARCACIK YOK. docs/19 dusuk seviye bir Adreno'yu hedefliyor ve
-    /// parcacik sistemi o sinif cihazlarda belgelenmis bir doldurma
-    /// darbogazi. Alev de lamba da BIRER KUTU: emissive renkli, golge
-    /// atmayan, carpisani olmayan. Uc ocak icin alti kutu - cizim
-    /// cagrisi olarak olculemez.
+    /// NO PARTICLES. docs/19 targets a low-end Adreno and the particle
+    /// system is a documented fill-rate bottleneck on that class of
+    /// device. The flame and the lamp are A BOX EACH: emissive colour,
+    /// casting no shadow, with no collider. Six boxes for three stoves -
+    /// unmeasurable as a draw call.
     ///
-    /// CAM GERCEKTEN SAYDAM. Firin kapaginin onune ince bir saydam
-    /// panel ve ARKASINA bir lamba paneli konuyor: lamba yaninca isik
-    /// camin arkasindan goruunuyor, sonunce koyu cam kaliyor. Saydamlik
-    /// SRP toplu cizimini bozuyor ama sahnede en fazla uc tane var.
+    /// THE GLASS IS REALLY TRANSPARENT. A thin transparent panel goes in
+    /// front of the oven door and a lamp panel BEHIND it: when the lamp
+    /// lights, the light shows through from behind the glass; when it
+    /// goes out, dark glass is left. Transparency breaks SRP batching,
+    /// but there are at most three of these in the scene.
     /// </summary>
     public sealed class Appliance : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-        /// <summary>Kapagin acilma acisi. Gercek bir firin kapagi asagi dusuyor.</summary>
+        /// <summary>The angle the door opens to. A real oven door drops downwards.</summary>
         private const float OpenAngle = -72f;
 
-        /// <summary>Acilip kapanma suresi. Kapak agir, hizli acilmamali.</summary>
+        /// <summary>How long opening and closing takes. The door is heavy; it must not fly open.</summary>
         private const float DoorSeconds = 0.45f;
 
-        private Transform _hinge;      // kapagin menteşesi
-        private Renderer _lamp;        // firin ici lamba paneli
-        private Renderer[] _flames;    // ocak gozleri
+        private Transform _hinge;      // the door's hinge
+        private Renderer _lamp;        // lamp panel inside the oven
+        private Renderer[] _flames;    // the stove's hobs
         private MaterialPropertyBlock _block;
 
         private bool _on;
-        private float _t;              // 0 kapali, 1 acik
+        private float _t;              // 0 closed, 1 open
 
         private static readonly Color LampOff = new Color(0.05f, 0.05f, 0.06f);
         private static readonly Color LampOn = new Color(1.00f, 0.62f, 0.20f);
@@ -48,12 +50,12 @@ namespace Lokanta.Game
 
         // =====================================================================
         /// <summary>
-        /// Ocagi hazirlar: kapaga menteşe, icine lamba, gozlere alev.
+        /// Sets the stove up: a hinge on the door, a lamp inside it, a flame on each hob.
         /// </summary>
         /// <param name="mat">
-        /// ISIKSIZ olmali (URP/Unlit). Lamba ve alev ANLAM tasiyor;
-        /// isikli bir malzemede firinin icindeki lamba, oraya isik
-        /// girmedigi icin karanlik bir panel olarak ciziliyor.
+        /// Must be UNLIT (URP/Unlit). The lamp and the flame carry MEANING;
+        /// in a lit material the lamp inside the oven is drawn as a dark
+        /// panel, because no light reaches in there.
         /// </param>
         public static Appliance Attach(GameObject stove, Material mat, Material glass)
         {
@@ -70,107 +72,107 @@ namespace Lokanta.Game
             Transform door = FindChild(transform, "door");
             if (door != null)
             {
-                // MENTESE KAPAGIN ALT KENARINDA.
+                // THE HINGE IS ON THE DOOR'S BOTTOM EDGE.
                 //
-                // Modelin kendi pivotu kapagin ORTASINDA; oradan
-                // dondurmek kapagi firinin icine gomuyor. Alt kenara bir
-                // ara nesne konup kapak ona baglaniyor - gercek bir firin
-                // kapagi da oradan doniyor.
+                // The model's own pivot is in the MIDDLE of the door; turning it
+                // from there buries the door inside the oven. An intermediate
+                // object is placed at the bottom edge and the door is parented to
+                // it - a real oven door turns from there too.
                 Bounds b = Bounds(door);
-                float alt = b.min.y;
+                float bottom = b.min.y;
 
-                GameObject pivot = new GameObject("Mentese");
+                GameObject pivot = new GameObject("Hinge");
                 pivot.transform.SetParent(door.parent, false);
                 pivot.transform.position = new Vector3(
-                    door.position.x, alt, door.position.z);
+                    door.position.x, bottom, door.position.z);
                 pivot.transform.rotation = door.rotation;
 
                 door.SetParent(pivot.transform, true);
                 _hinge = pivot.transform;
 
-                // CAM KAPAKTA, LAMBA GOVDEDE.
+                // GLASS ON THE DOOR, LAMP ON THE BODY.
                 //
-                // Ikisi de menteşeye baglanmisti ve kapak acilinca lamba
-                // onunla birlikte doniyordu - gercek bir firinda lamba
-                // GOVDENIN icinde durur, yalnizca cam kapakla gelir.
-                // Kapali: isik camin arkasindan goruunuyor. Acik: dogrudan
-                // goruunuyor.
-                Vector3 boy = b.size;
-                float en = Mathf.Max(0.12f, boy.x * 0.62f);
-                float yuk = Mathf.Max(0.08f, boy.y * 0.55f);
+                // Both used to be parented to the hinge, so when the door opened
+                // the lamp turned with it - in a real oven the lamp sits inside
+                // the BODY and only the glass comes away with the door. Closed:
+                // the light shows through from behind the glass. Open: it shows
+                // directly.
+                Vector3 modelSize = b.size;
+                float width = Mathf.Max(0.12f, modelSize.x * 0.62f);
+                float height = Mathf.Max(0.08f, modelSize.y * 0.55f);
 
-                // MERKEZ, PIVOT DEGIL.
+                // THE CENTRE, NOT THE PIVOT.
                 //
-                // Menteşe kapagin ALT KENARINA konuyor ve kapak modelinin
-                // kendi pivotu ortalanmamis (yerel x'i 0,268). Panelleri
-                // menteşeye gore (0, ...) koymak, ikisini de o kaymayla
-                // birlikte YANA ittiriyordu - lamba firinin icinde degil
-                // iki ocagin arasinda yaniyordu.
+                // The hinge is placed on the door's BOTTOM EDGE, and the door
+                // model's own pivot is not centred (its local x is 0.268).
+                // Placing the panels at (0, ...) relative to the hinge pushed both
+                // of them SIDEWAYS by that offset - the lamp burned between the
+                // two hobs instead of inside the oven.
                 //
-                // Kapagin GORSEL merkezi menteşe uzayina cevriliyor;
-                // model pivotunun nerede oldugu artik onemli degil.
-                Vector3 orta = pivot.transform.InverseTransformPoint(b.center);
+                // The door's VISUAL centre is converted into hinge space; where
+                // the model's pivot sits no longer matters.
+                Vector3 center = pivot.transform.InverseTransformPoint(b.center);
 
-                // LAMBA CAM ILE KAPAK YUZEYININ ARASINDA.
+                // THE LAMP SITS BETWEEN THE GLASS AND THE DOOR'S SURFACE.
                 //
-                // Iki deneme:
-                //   1. Menteşeye bagli, kapagin onunde -> kapak acilinca
-                //      lamba da doniyordu; gercek bir firinda lamba
-                //      govdede durur.
-                //   2. Govdeye bagli, firinin icinde -> DOGRU ama
-                //      GORUNMUYOR: paketin kapak agi tamamen opak, yani
-                //      icerideki hicbir sey camdan goruunmuyor.
+                // Two attempts:
+                //   1. Parented to the hinge, in front of the door -> the lamp
+                //      turned with the door as it opened; in a real oven the lamp
+                //      stays on the body.
+                //   2. Parented to the body, inside the oven -> RIGHT but NOT
+                //      VISIBLE: the asset pack's door mesh is fully opaque, so
+                //      nothing inside shows through the glass.
                 //
-                // Gercekcilik burada okunabilirlige yeniliyor: lamba
-                // kapagin YUZEYINDE, camin hemen arkasinda. Kapali
-                // duruyorken camdan yanan bir panel goruunuyor; kapak
-                // acilinca panel yukari bakiyor ve yine goruunuyor.
-                // Ofsetler de menteşe-yerel uzayda olmali: dunya
-                // metresini olcege bolerek.
+                // Realism loses to legibility here: the lamp is ON THE SURFACE of
+                // the door, right behind the glass. While the door is shut a lit
+                // panel shows through the glass; when the door opens the panel
+                // faces upwards and is visible again. The offsets have to be in
+                // hinge-local space too, by dividing world metres by the scale.
                 float pz = Mathf.Max(0.0001f, pivot.transform.lossyScale.z);
-                _lamp = Panel(pivot.transform, "Lamba", mat,
-                              orta + new Vector3(0f, 0f, -0.030f / pz),
-                              new Vector3(en, yuk, 0.01f), LampOff);
+                _lamp = Panel(pivot.transform, "Lamp", mat,
+                              center + new Vector3(0f, 0f, -0.030f / pz),
+                              new Vector3(width, height, 0.01f), LampOff);
 
                 if (glass != null)
-                    Panel(pivot.transform, "Cam", glass,
-                          orta + new Vector3(0f, 0f, -0.042f / pz),
-                          new Vector3(en + 0.02f, yuk + 0.02f, 0.012f),
+                    Panel(pivot.transform, "Glass", glass,
+                          center + new Vector3(0f, 0f, -0.042f / pz),
+                          new Vector3(width + 0.02f, height + 0.02f, 0.012f),
                           new Color(0.14f, 0.16f, 0.18f, 0.45f));
             }
 
-            // OCAK GOZLERI: DORT gozun dordune de alev, GOZUN UZERINDE.
+            // THE HOBS: a flame on ALL FOUR of them, ON TOP OF THE HOB.
             //
-            // Konumlar TEPEDEN RENDER EDILIP OLCULDU
+            // The positions were RENDERED FROM ABOVE AND MEASURED
             // (Editor/FigureShot -> render/olcek_ocak_ustten.png):
             //
-            //   x: gozler ocagin merkezine gore SIMETRIK, +-%20,5
-            //   z: SIMETRIK DEGIL - arka sira +%20,4, on sira -%7,5
+            //   x: the hobs are SYMMETRIC about the stove's centre, +-20.5%
+            //   z: NOT SYMMETRIC - back row +20.4%, front row -7.5%
             //
-            // Ilk yazimda ikisi de +-%21 idi ve x tutuyordu ama on
-            // sira gozun yaklasik 9 cm onune dusuyordu: alev gozde
-            // degil izgaranin bosluğunda yaniyordu. Kullanicinin
-            // "alev biraz kaymis gibi" demesinin sayisal karsiligi bu.
+            // The first time round both were +-21% and x held, but the front
+            // row fell about 9 cm in front of the hob: the flame burned in the
+            // gap in the grill rather than on the hob. This is the numerical
+            // form of the user saying "the flame looks a bit off".
             //
-            // Neden simetrik degil: modelin on kenarinda dugme sirasi
-            // var ve goz izgarasi ona yer birakmak icin arkaya kaymis.
-            Bounds hep = Bounds(transform);
-            float ust = hep.max.y - transform.position.y;
-            const float ArkaZ = 0.204f;
-            const float OnZ = -0.075f;
+            // Why it is not symmetric: the model has a row of knobs along its
+            // front edge and the hob grid has shifted backwards to leave them
+            // room.
+            Bounds whole = Bounds(transform);
+            float top = whole.max.y - transform.position.y;
+            const float BackZ = 0.204f;
+            const float FrontZ = -0.075f;
             _flames = new Renderer[4];
             for (int i = 0; i < 4; i++)
             {
-                float dx = ((i & 1) == 0 ? -1f : 1f) * hep.size.x * 0.205f;
-                float dz = hep.size.z * ((i & 2) == 0 ? OnZ : ArkaZ);
-                _flames[i] = Panel(transform, "Alev" + i, mat,
-                                   new Vector3(dx, ust + 0.012f, dz),
+                float dx = ((i & 1) == 0 ? -1f : 1f) * whole.size.x * 0.205f;
+                float dz = whole.size.z * ((i & 2) == 0 ? FrontZ : BackZ);
+                _flames[i] = Panel(transform, "Flame" + i, mat,
+                                   new Vector3(dx, top + 0.012f, dz),
                                    new Vector3(0.085f, 0.006f, 0.085f), FlameOff);
             }
         }
 
         // =====================================================================
-        /// <summary>Istasyon calisiyor mu. Her karede degil, DEGISINCE.</summary>
+        /// <summary>Is the station working? Not every frame - ON CHANGE.</summary>
         public void SetWorking(bool on)
         {
             if (on == _on) return;
@@ -184,24 +186,24 @@ namespace Lokanta.Game
         {
             if (_hinge == null) return;
 
-            float hedef = _on ? 1f : 0f;
-            if (Mathf.Approximately(_t, hedef)) return;
+            float target = _on ? 1f : 0f;
+            if (Mathf.Approximately(_t, target)) return;
 
-            _t = Mathf.MoveTowards(_t, hedef, Time.deltaTime / DoorSeconds);
-            // Yavaslayarak: kapak agir, sona dogru oturuyor.
+            _t = Mathf.MoveTowards(_t, target, Time.deltaTime / DoorSeconds);
+            // Easing out: the door is heavy and settles towards the end.
             float k = 1f - (1f - _t) * (1f - _t);
             _hinge.localRotation = Quaternion.Euler(OpenAngle * k, 0f, 0f);
         }
 
         // =====================================================================
         /// <summary>
-        /// Panel. BOYUT DUNYA METRESI, yerel olcek degil.
+        /// A panel. THE SIZE IS IN WORLD METRES, not local scale.
         ///
-        /// Menteşe, modelin kendi olceginin (0,204) altinda duruyor;
-        /// dunya metresini dogrudan localScale'e yazmak panelleri bes
-        /// kat kucultuyordu - cam, kapinin ortasinda kucuk bir kare
-        /// olarak goruunuyordu. Ebeveynin olcegi burada telafi ediliyor,
-        /// boylece cagiran taraf metre yazabiliyor.
+        /// The hinge sits under the model's own scale (0.204); writing world
+        /// metres straight into localScale shrank the panels fivefold - the
+        /// glass showed up as a small square in the middle of the door. The
+        /// parent's scale is compensated for here, so the caller can write
+        /// metres.
         /// </summary>
         private Renderer Panel(Transform parent, string name, Material mat,
                                Vector3 localPos, Vector3 size, Color c)

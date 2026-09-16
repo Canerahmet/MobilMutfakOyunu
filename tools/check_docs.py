@@ -1,27 +1,29 @@
 # -*- coding: utf-8 -*-
-"""Belgelerdeki baglantilar bir yere gidiyor mu.
+"""Do the links in the documents go anywhere?
 
-NEDEN: bu depoda elli iki numarali belge var ve birbirlerine ikiyuz
-kusur baglantiyla bagliler. Bir dosyayi tasimak ya da yeniden
-adlandirmak, o baglantilarin sessizce kirilmasi demek - kirik bir
-baglanti hata vermiyor, yalnizca tiklayinca hicbir sey olmuyor.
+WHY: this repository has fifty-two numbered documents and they are tied
+to each other by two hundred-odd links. Moving or renaming a file means
+those links break silently - a broken link raises no error, clicking it
+simply does nothing.
 
-Bu, klasor yapisini duzenlemeyi GUVENLI hale getiriyor: tasi, kos,
-kirilani gor. Aracsiz bir tasima, elli iki dosyayi gozle taramak demek.
+This makes tidying the folder structure SAFE: move, run, see what broke.
+Moving without a tool means reading fifty-two files by eye.
 
-NE OLCUYOR:
-  - README.md ve docs/ altindaki her .md dosyasindaki goreli
-    baglantilar ve resimler var olan bir dosyayi gosteriyor mu
-  - docs/ altindaki her numarali belge docs/README.md'de aniliyor mu
-    (dizinden dusen bir belge, olmayan bir belgeye denk)
+WHAT IT MEASURES:
+  - do the relative links and images in README.md and in every .md file
+    under docs/ point at a file that exists
+  - is every numbered document under docs/ mentioned in docs/README.md
+    (a document that falls out of the index is as good as one that does
+    not exist)
 
-NE OLCMUYOR: http(s) baglantilari. Aglara cikmak bu denetimi yavas ve
-kirilgan yapardi; disaridaki bir adresin bugun ayakta olmasi zaten
-yarin ayakta olacagi anlamina gelmiyor.
+WHAT IT DOES NOT MEASURE: http(s) links. Going out to the network would
+make this check slow and brittle; an outside address being up today does
+not mean it will be up tomorrow anyway.
 
-KOD ICINDEKILER DE OLCULMUYOR. docs/43'te kirik bir baglantinin KENDISI
-alintilaniyor - o belge zaten "su baglanti kiriktir" diyor. Kod icindeki
-metni baglanti saymak, bir hatayi anlatan cumleyi hata saymak olurdu.
+LINKS INSIDE CODE ARE NOT MEASURED EITHER. docs/43 quotes a broken link
+ITSELF - that document already says "this link is broken". Counting text
+inside code as a link would mean counting a sentence about a bug as a
+bug.
 """
 from __future__ import print_function
 
@@ -30,71 +32,71 @@ import os
 import re
 import sys
 
-KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# [metin](hedef) ve ![metin](hedef)
-BAG = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-# Numarali belge: 02-design-proposal.md
-NUMARALI = re.compile(r"^\d\d-.*\.md$")
-# ``` ile cevrili blok ve ` ile cevrili ara kod
-KOD_BLOK = re.compile(r"```.*?```", re.S)
-KOD_ARA = re.compile("`[^`" + chr(10) + "]*`")
+# [text](target) and ![text](target)
+LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+# A numbered document: 02-design-proposal.md
+NUMBERED = re.compile(r"^\d\d-.*\.md$")
+# A block fenced by ``` and inline code fenced by `
+CODE_BLOCK = re.compile(r"```.*?```", re.S)
+CODE_INLINE = re.compile("`[^`" + chr(10) + "]*`")
 
 
-def md_dosyalari():
-    yollar = [os.path.join(KOK, "README.md")]
-    for kok, _, dosyalar in os.walk(os.path.join(KOK, "docs")):
-        for d in sorted(dosyalar):
-            if d.endswith(".md"):
-                yollar.append(os.path.join(kok, d))
-    return yollar
+def md_files():
+    paths = [os.path.join(ROOT, "README.md")]
+    for base, _, files in os.walk(os.path.join(ROOT, "docs")):
+        for f in sorted(files):
+            if f.endswith(".md"):
+                paths.append(os.path.join(base, f))
+    return paths
 
 
 def main():
-    kirik = []
-    sayi = 0
+    broken = []
+    count = 0
 
-    for yol in md_dosyalari():
-        s = io.open(yol, encoding="utf-8").read()
-        s = KOD_BLOK.sub("", s)
-        s = KOD_ARA.sub("", s)
-        klasor = os.path.dirname(yol)
-        for hedef in BAG.findall(s):
-            hedef = hedef.strip()
-            if hedef.startswith(("http://", "https://", "mailto:", "#")):
+    for path in md_files():
+        s = io.open(path, encoding="utf-8").read()
+        s = CODE_BLOCK.sub("", s)
+        s = CODE_INLINE.sub("", s)
+        folder = os.path.dirname(path)
+        for target in LINK.findall(s):
+            target = target.strip()
+            if target.startswith(("http://", "https://", "mailto:", "#")):
                 continue
-            # Ayni dosya icindeki cipa: dosya.md#bolum
-            dosya = hedef.split("#", 1)[0]
-            if not dosya:
+            # An anchor inside the same file: file.md#section
+            f = target.split("#", 1)[0]
+            if not f:
                 continue
-            sayi += 1
-            tam = os.path.normpath(os.path.join(klasor, dosya))
-            if not os.path.exists(tam):
-                kirik.append("%s -> %s" % (
-                    os.path.relpath(yol, KOK).replace("\\", "/"), hedef))
+            count += 1
+            full = os.path.normpath(os.path.join(folder, f))
+            if not os.path.exists(full):
+                broken.append("%s -> %s" % (
+                    os.path.relpath(path, ROOT).replace("\\", "/"), target))
 
-    # Dizinde anilmayan belge
-    docs = os.path.join(KOK, "docs")
-    dizin = io.open(os.path.join(docs, "README.md"), encoding="utf-8").read()
-    anilmayan = []
-    for d in sorted(os.listdir(docs)):
-        if NUMARALI.match(d) and d not in dizin:
-            anilmayan.append(d)
+    # A document the index does not mention
+    docs = os.path.join(ROOT, "docs")
+    index = io.open(os.path.join(docs, "README.md"), encoding="utf-8").read()
+    unlisted = []
+    for f in sorted(os.listdir(docs)):
+        if NUMBERED.match(f) and f not in index:
+            unlisted.append(f)
 
-    print("baglanti : %d goreli baglanti tarandi" % sayi)
-    print("belge    : %d numarali belge" % len(
-        [d for d in os.listdir(docs) if NUMARALI.match(d)]))
+    print("links    : %d relative links scanned" % count)
+    print("documents: %d numbered documents" % len(
+        [f for f in os.listdir(docs) if NUMBERED.match(f)]))
 
-    if kirik or anilmayan:
+    if broken or unlisted:
         print()
-        for k in kirik:
-            print("KIRIK: " + k)
-        for a in anilmayan:
-            print("DIZINDE YOK: docs/" + a)
-        print("sonuc    : %d sorun" % (len(kirik) + len(anilmayan)))
+        for k in broken:
+            print("BROKEN: " + k)
+        for a in unlisted:
+            print("NOT IN THE INDEX: docs/" + a)
+        print("result   : %d problems" % (len(broken) + len(unlisted)))
         sys.exit(1)
 
-    print("sonuc    : butun baglantilar yerinde, her belge dizinde")
+    print("result   : every link resolves, every document is in the index")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Isik, kamera ve temas sayfasi.
+Light, camera and contact sheet.
 ============================================================================
-docs/24-art-pipeline.md: her uretim betigi uc acidan render alir ve ucgen
-sayisini basar. Render'a BEN bakiyorum; gelistirici Blender bilmiyor ve
-ben mesh'i dogrudan goremiyorum, ama PNG'yi okuyabiliyorum.
+docs/24-art-pipeline.md: every generation script renders from three angles and
+prints the triangle count. I look at the renders MYSELF; the developer does
+not know Blender and I cannot see a mesh directly, but I can read a PNG.
 """
 import bpy
 import math
@@ -14,13 +14,13 @@ import os
 
 def lighting(warm=True):
     """
-    docs/19 B4: bir yonlu isik gercek zamanli, gerisi pisirilmis.
-    Render icin ayni kurulum: bir gunes, bir dolgu, acik gokyuzu.
+    docs/19 B4: one directional light is real-time, the rest is baked.
+    The same setup for the render: one sun, one fill, a bright sky.
     """
     bpy.ops.object.light_add(type="SUN", location=(4, -5, 7))
     sun = bpy.context.active_object
     sun.data.energy = 3.4
-    sun.data.angle = math.radians(10)          # yumusak golge kenari
+    sun.data.angle = math.radians(10)          # a soft shadow edge
     if warm:
         sun.data.color = (1.0, 0.95, 0.86)
     sun.rotation_euler = (math.radians(52), 0, math.radians(35))
@@ -29,7 +29,7 @@ def lighting(warm=True):
     fill = bpy.context.active_object
     fill.data.energy = 110
     fill.data.size = 7
-    fill.data.color = (0.86, 0.90, 1.0)        # soguk dolgu, sicak gunese karsi
+    fill.data.color = (0.86, 0.90, 1.0)        # a cool fill against the warm sun
     fill.rotation_euler = (math.radians(-45), 0, math.radians(-140))
 
     world = bpy.context.scene.world
@@ -43,7 +43,7 @@ def lighting(warm=True):
 
 
 def camera(angle_deg, target=(0, 0, 0.5), elev_deg=32, dist=4.6, lens=62):
-    """Hedefe bakan kamera. Aci derece, saat yonunun tersine."""
+    """A camera looking at the target. The angle is in degrees, anticlockwise."""
     for o in list(bpy.data.objects):
         if o.type == "CAMERA":
             bpy.data.objects.remove(o, do_unlink=True)
@@ -90,28 +90,31 @@ def render(path, w=560, h=440):
 
 def backdrop(floor=True, wall=False, size=8.0):
     """
-    Zemin ve duvar. Bosluga asili render, oran yargisini imkansiz kiliyor.
+    Floor and wall. A render hanging in the void makes judging proportions
+    impossible.
 
-    Duvar SADECE duvara monte parcalar icin. Ilk kosuda ocagin davlumbazi
-    ve tezgahin menu panosu bosta duruyordu; ikisi de duvara monte, ama
-    temas sayfasinda duvar olmadigi icin kirik gorunuyorlardi.
+    The wall is ONLY for wall-mounted pieces. On the first run the hob's
+    extractor hood and the counter's menu board were hanging in mid air; both
+    are wall-mounted, but because there was no wall in the contact sheet they
+    looked broken.
     """
     import prim
     made = []
     if floor:
-        made.append(prim.box("Zemin", (size, size, 0.06), (0, 0, -0.03), "zemin", bevel=0))
+        made.append(prim.box("Floor", (size, size, 0.06), (0, 0, -0.03), "floor", bevel=0))
     if wall:
-        # Kameralar 45, 135 ve 250 derecede; duvar +Y tarafinda duruyor.
-        made.append(prim.box("Duvar", (size * 0.7, 0.10, 3.0), (0, 2.0, 1.5),
-                             "duvar", bevel=0))
+        # The cameras are at 45, 135 and 250 degrees; the wall stands on the
+        # +Y side.
+        made.append(prim.box("Wall", (size * 0.7, 0.10, 3.0), (0, 2.0, 1.5),
+                             "wall", bevel=0))
     return made
 
 
 def contact_sheet(out_dir, name, target=(0, 0, 0.5), dist=4.6,
                   angles=(45, 135, 250)):
     """
-    Uc acidan render alir. Dosyalar: <name>_a.png, _b.png, _c.png
-    Doner: uretilen yol listesi.
+    Renders from three angles. The files: <name>_a.png, _b.png, _c.png
+    Returns: the list of paths produced.
     """
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -125,8 +128,8 @@ def contact_sheet(out_dir, name, target=(0, 0, 0.5), dist=4.6,
 
 
 def report(name, objects, budget, tris):
-    """ASCII rapor. Konsol cp1252; Turkce aksanli karakter basilmaz."""
-    status = "TAMAM" if tris <= budget else "BUTCE ASILDI"
-    print("  {:<16} nesne {:>3}  ucgen {:>5} / {:<5} {}".format(
+    """An ASCII report. The console is cp1252; accented characters will not print."""
+    status = "OK" if tris <= budget else "OVER BUDGET"
+    print("  {:<16} objects {:>3}  triangles {:>5} / {:<5} {}".format(
         name, len(objects), tris, budget, status))
     return tris <= budget

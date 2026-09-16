@@ -4,23 +4,25 @@ using UnityEngine.UIElements;
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// VERESIYE DEFTERI.
+    /// THE BOOK - the running tabs.
     ///
-    /// Mekanigin dengesi bir karar uretmeye baslamisti - tahsilat sansi
-    /// artik musterinin guvenine bagli - ama oyuncu defteri GOREMIYORDU:
-    /// kimin ne kadar borcu var, vadesi ne zaman, guveni ne. Aksam
-    /// raporunda tek bir toplam vardi ("Defterde 2.501") ve yedi gunluk
-    /// bekleyis tamamen edilgendi.
+    /// The mechanic's balance had begun to produce a decision - the
+    /// chance of collecting now depends on the guest's trust - but the
+    /// player COULD NOT SEE THE BOOK: who owes what, when it falls due,
+    /// how far they are trusted. The evening report carried a single
+    /// total ("2,501 on the book") and the seven-day wait was entirely
+    /// passive.
     ///
-    /// Daha kotusu: `CommandKind.CollectCredit` simulasyonda UYGULANIYOR
-    /// ve yorumu tam bir karar tarif ediyor - "sans yariya iniyor ve
-    /// tutmazsa hesap orada kapaniyor" - ama hicbir ekran onu
-    /// GONDERMIYORDU. Mekanigin ikinci karari koddaydi, oyunda degildi.
+    /// Worse: `CommandKind.CollectCredit` IS IMPLEMENTED in the
+    /// simulation and its comment describes a complete decision - "the
+    /// chance halves, and if it does not come off the account closes
+    /// right there" - but no screen SENT it. The mechanic's second
+    /// decision was in the code and not in the game.
     ///
-    /// SANS ACIKCA YAZILIYOR. Gizli bir olasilik uzerine karar
-    /// verilemez; oyuncu "bu adam oder mi" diye tahmin etmek zorunda
-    /// kalirsa secim degil kumar oynar. Gosterilen sayi simulasyonun
-    /// kullandigi sayinin ta kendisi (Simulation.TabChanceBp).
+    /// THE CHANCE IS WRITTEN OUT IN PLAIN SIGHT. You cannot decide on a
+    /// hidden probability; a player forced to guess "will this one pay"
+    /// is gambling, not choosing. The number shown is the very number
+    /// the simulation uses (Simulation.TabChanceBp).
     /// </summary>
     public sealed class LedgerScreen : ListScreen
     {
@@ -37,9 +39,9 @@ namespace Lokanta.Game.Ui
 
             if (sim.TabCount == 0)
             {
-                VisualElement bos = Theme.PanelBox();
-                bos.Add(Theme.Text(Loc.T("ui.ledger.empty"), Theme.FontBody, Theme.InkDim));
-                list.Add(bos);
+                VisualElement empty = Theme.PanelBox();
+                empty.Add(Theme.Text(Loc.T("ui.ledger.empty"), Theme.FontBody, Theme.InkDim));
+                list.Add(empty);
                 return;
             }
 
@@ -48,41 +50,42 @@ namespace Lokanta.Game.Ui
                 int tab = i;
                 VisualElement card = Theme.PanelBox();
 
-                // --- kim ---------------------------------------------------
+                // --- who ---------------------------------------------------
                 int reg = sim.TabRegular(tab);
-                string ad = reg >= 0 && reg < App.Content.Regulars.Length
+                string name = reg >= 0 && reg < App.Content.Regulars.Length
                     ? Loc.T(App.Content.Regulars[reg].NameKey)
                     : Loc.T("ui.service.guest");
-                card.Add(Theme.Text(ad, Theme.FontTitle, Theme.Accent));
+                card.Add(Theme.Text(name, Theme.FontTitle, Theme.Accent));
 
-                // --- ne kadar, ne zaman ------------------------------------
+                // --- how much, and by when ---------------------------------
                 card.Add(Theme.Field(Loc.T("ui.ledger.amount"),
                                      Loc.Money(sim.TabAmount(tab)), Theme.Ink));
 
-                int kalan = sim.TabDaysLeft(tab);
+                int daysLeft = sim.TabDaysLeft(tab);
                 card.Add(Theme.Field(Loc.T("ui.ledger.due"),
-                                     kalan > 0
-                                         ? Loc.T("ui.ledger.days", kalan)
+                                     daysLeft > 0
+                                         ? Loc.T("ui.ledger.days", daysLeft)
                                          : Loc.T("ui.ledger.today"),
-                                     kalan > 1 ? Theme.InkDim : Theme.Warn));
+                                     daysLeft > 1 ? Theme.InkDim : Theme.Warn));
 
-                // --- SANS: kararin kendisi ---------------------------------
+                // --- THE CHANCE: the decision itself ------------------------
                 //
-                // Iki sayi yan yana duruyor cunku karar tam olarak bu:
-                // beklemek daha yuksek sans ama daha gec para; kovalamak
-                // yarisi kadar sans ama bugun.
-                int bekle = sim.TabCollectChanceBp(tab);
-                int erken = sim.TabEarlyChanceBp(tab);
+                // The two numbers sit side by side because that is exactly
+                // what the decision is: waiting is a better chance but
+                // later money; chasing is half the chance but today.
+                int waiting = sim.TabCollectChanceBp(tab);
+                int chasing = sim.TabEarlyChanceBp(tab);
                 card.Add(Theme.Field(Loc.T("ui.ledger.chance_wait"),
-                                     Loc.Percent(bekle),
-                                     bekle >= 8000 ? Theme.Good : Theme.Warn));
+                                     Loc.Percent(waiting),
+                                     waiting >= 8000 ? Theme.Good : Theme.Warn));
                 card.Add(Theme.Field(Loc.T("ui.ledger.chance_now"),
-                                     Loc.Percent(erken), Theme.Bad));
+                                     Loc.Percent(chasing), Theme.Bad));
 
-                // Cay bir DURUM, dugme degil: hesap acilirken ikram
-                // edilmisse sans zaten yukarida yuksek cikiyor. Yine de
-                // yaziliyor ki oyuncu sansin NEDEN yuksek oldugunu
-                // gorsun - sebebi gizlemek, sayiyi sihire cevirir.
+                // Tea is a STATE, not a button: if it was offered while the
+                // tab was being opened, the chance above already comes out
+                // higher. It is still written down so the player can see WHY
+                // the chance is high - hiding the reason turns the number
+                // into magic.
                 if (sim.TabHadTea(tab))
                     card.Add(Theme.Text(Loc.T("ui.ledger.had_tea"),
                                         Theme.FontSmall, Theme.InkFaint));
@@ -97,9 +100,9 @@ namespace Lokanta.Game.Ui
                 list.Add(card);
             }
 
-            VisualElement not = Theme.PanelBox();
-            not.Add(Theme.Text(Loc.T("ui.ledger.note"), Theme.FontSmall, Theme.InkDim));
-            list.Add(not);
+            VisualElement note = Theme.PanelBox();
+            note.Add(Theme.Text(Loc.T("ui.ledger.note"), Theme.FontSmall, Theme.InkDim));
+            list.Add(note);
         }
     }
 }

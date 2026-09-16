@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
-"""`dotnet` komutunu Smart App Control engeline karşı ısrarla çalıştırır.
+"""Runs a `dotnet` command persistently against the Smart App Control block.
 
-Bu makinede SAC zorunlu modda ve **imzasız, taze yazılmış** bir derlemenin
-yüklenmesini engelleyebiliyor:
+On this machine SAC is in enforced mode and can block an **unsigned,
+freshly written** assembly from loading:
 
     FileLoadException ... An Application Control policy has blocked
     this file. (0x800711C7)
 
-Engel **rastgele** — aynı komut art arda bir kez engellenip bir kez
-geçebiliyor. Yeniden derlemek tek başına yetmiyor: çekirdek
-`<Deterministic>true</Deterministic>` ile derlendiği için aynı kaynak her
-zaman aynı ikiliyi üretiyor, yani engellenen bir karma sonsuza kadar
-engelli kalıyor. `-p:Deterministic=false` her derlemede yeni bir modül
-kimliği gömüyor, yani her deneme **yeni bir karma** ve yeni bir şans.
+The block is **random** — the same command can be blocked once and pass
+the next time. Rebuilding alone is not enough: because the core is built
+with `<Deterministic>true</Deterministic>` the same source always
+produces the same binary, so a blocked hash stays blocked forever.
+`-p:Deterministic=false` embeds a new module identity on every build, so
+every attempt is **a new hash** and a new chance.
 
-Yani doğru davranış: karmayı değiştir **ve** ısrar et.
+So the right behaviour is: change the hash **and** keep trying.
 
-Kullanım:
+Usage:
     python tools/dotnet_retry.py test tests/Lokanta.Core.Tests/... -v q
     python tools/dotnet_retry.py run --project src/Lokanta.Harness ...
 
-Çıkış kodu komutun kendisininki. Engel yüzünden hiç geçemezse 2.
+The exit code is the command's own. If the block never lets it through, 2.
 """
 from __future__ import print_function
 
@@ -39,8 +39,9 @@ def main():
         print(__doc__)
         return 2
 
-    # Yapilandirma ve determinizm bayragi, cagirana birakilmadan
-    # ekleniyor: unutuldugunda belirti "kod bozuk" gibi gorunuyor.
+    # The configuration and the determinism flag are added here rather
+    # than left to the caller: when one is forgotten, the symptom looks
+    # like "the code is broken".
     cmd = ["dotnet"] + args
     if "-c" not in args and "--configuration" not in args:
         cmd += ["-c", "Release"]
@@ -49,19 +50,22 @@ def main():
 
     last = None
     for attempt in range(1, TRIES + 1):
-        # YENIDEN DERLEME ZORLANIYOR.
+        # THE REBUILD IS FORCED.
         #
-        # -p:Deterministic=false tek basina YETMIYOR: kaynak degismediyse
-        # MSBuild derlemeyi guncel sayip ATLIYOR, yani ayni engelli ikili
-        # tekrar kullaniliyor ve yeniden deneme hicbir sey degistirmiyor.
-        # Olculdu - alti denemenin altisi da ayni dosyada engellendi.
+        # -p:Deterministic=false alone is NOT ENOUGH: if the source has
+        # not changed MSBuild considers the build up to date and SKIPS
+        # it, so the same blocked binary is used again and the retry
+        # changes nothing. Measured - all six of six attempts were
+        # blocked on the same file.
         #
-        # --no-incremental derlemeyi gercekten tekrarlatiyor; determinizm
-        # kapali oldugu icin her tekrar YENI bir modul kimligi uretiyor.
+        # --no-incremental really does repeat the build; because
+        # determinism is off, every repeat produces a NEW module
+        # identity.
         run = list(cmd)
         if attempt > 1 and "--no-incremental" not in run:
-            # "dotnet run" bu bayragi TANIMIYOR ve uygulamaya geciriyor;
-            # o yuzden run icin derleme AYRI bir adim.
+            # "dotnet run" DOES NOT RECOGNISE this flag and passes it on
+            # to the application; so for run, the build is a SEPARATE
+            # step.
             if args[0] == "run":
                 proj = None
                 for i, a in enumerate(args):
@@ -87,11 +91,11 @@ def main():
             sys.stderr.write(p.stderr or "")
             return p.returncode
 
-        print("  SAC engeli (%d/%d) - karma degistirilip yeniden deneniyor"
+        print("  SAC block (%d/%d) - changing the hash and retrying"
               % (attempt, TRIES), file=sys.stderr)
 
     sys.stdout.write(last.stdout or "")
-    print("\nSAC %d denemede de engelledi. docs/19 'Smart App Control'."
+    print("\nSAC blocked all %d attempts. docs/19 'Smart App Control'."
           % TRIES, file=sys.stderr)
     return 2
 

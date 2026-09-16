@@ -1,185 +1,196 @@
-# 52 — Fast food'un kirası ve salonun yüzü
+# 52 — Fast food's rent and the face of the hall
 
-*15 Eylül 2026.* İstek iki parçalıydı:
+*15 September 2026.* The request came in two parts:
 
 > *"Fast food diğer mutfaklara göre biraz daha oynaması kolay olabilir ama
 > aradaki fark çok da büyük olmasın, ona göre zorluğunu biraz artırabilirsin.
 > Görünüm kısmına devam et."*
+>
+> *("Fast food can be a bit easier to play than the other cuisines, but don't let
+> the gap be too big — you can raise its difficulty a little accordingly. Carry on
+> with the visual side.")*
 
 ---
 
-## 1. Zorluk: kirayı artırmak kasayı **artırıyor**
+## 1. Difficulty: raising the rent **raises** the till
 
-`rentMultiplierBp` içerikten geliyor (`cuisines/*.json`) ve simülasyon
-kademeleri onunla yeniden kuruyor. Süpürüldü — `makul` botu, Türk 17.351'e
-karşı:
+`rentMultiplierBp` comes from the content (`cuisines/*.json`) and the simulation
+rebuilds the tiers with it. It was swept — the `makul` bot, against Turkish's
+17,351:
 
-| kira çarpanı | fast food kasa | fark |
+| rent multiplier | fast food cash | gap |
 |---|---:|---:|
-| yok | 22.473 | +%29,5 |
-| **×1,15** | **22.263** | **+%28,3** |
-| ×1,25 | 23.493 | +%35,4 |
+| none | 22,473 | +29.5% |
+| **×1.15** | **22,263** | **+28.3%** |
+| ×1.25 | 23,493 | +35.4% |
 
-Sezgi "kira artarsa kasa düşer" diyor ve **ölçüm tersini gösteriyor.** Sebep
-hacim çarpanında görülenin aynısı ([51](51-self-service.md) §5): bot maliyete
-**genişlemeyerek** cevap veriyor, genişlememek zaten daha kârlı, dolayısıyla
-her masraf kolu onu daha yalın ve daha zengin bir dükkâna itiyor.
+Intuition says "if rent goes up the till goes down" and **the measurement shows
+the opposite.** The cause is the same one seen in the volume multiplier
+([51](51-self-service.md) §5): the bot answers a cost by **not expanding**, not
+expanding is already more profitable, and so every expense lever pushes it
+towards a leaner and richer shop.
 
-Bunun doğrudan sonucu şu: **bitiş kasası bu bot için bir zorluk ölçüsü
-değil.** Ölçü, iki mutfak **arasındaki fark** — ve o, en dar 11500'de.
+The direct consequence: **end cash is not a difficulty measure for this bot.** The
+measure is the **gap between** the two cuisines — and that is narrowest at 11500.
 
-İyi oynayan botta (`planci`) fark zaten +%13. Kalan büyük farklar kiradan
-değil Türk'ün iki zayıflığından geliyor (zayiat 14.121'e 5.487; veresiye net
-negatif) ve onlar ayrı bir iş — kirayla kapatılacak şeyler değil.
+For the well-playing bot (`planci`) the gap is already +13%. The large gaps that
+remain come not from rent but from Turkish's two weaknesses (spoilage 14,121
+against 5,487; tabs net negative) and those are a separate job — not things to be
+closed with rent.
 
 ---
 
-## 2. Görüntü aracı oyunun gösterdiğini göstermiyordu
+## 2. The imaging tool was not showing what the game shows
 
-Self servis tezgâhı — menü panelleri, kasalar, içecek makinesi — bir önceki
-oturumda yazılmıştı. Kareye bakınca **hiçbiri yoktu.**
+The self-service counter — menu panels, tills, drinks machine — had been written
+in the previous session. Looking at the frame, **none of it was there.**
 
-Sebep: bayrak zincirin yanlış ucundan okunuyordu.
+The cause: the flag was being read from the wrong end of the chain.
 
 ```
 CuisineId   : App.Content.Cuisine  ->  PreviewCuisine  ->  "fastfood"
-SelfServis  : App.Content.SelfService                      (arac: null)
+SelfService : App.Content.SelfService                     (tool: null)
 ```
 
-Editör aracında `App` yok, dolayısıyla self servis **her zaman kapalıydı**.
-Palet `PreviewCuisine` üzerinden geçiyordu, yani araç "fast food"u doğru
-renkte ama **yanlış yapıda** çiziyordu.
+There is no `App` in the editor tool, so self service was **always off**. The
+palette went through `PreviewCuisine`, so the tool was drawing "fast food" in the
+right colour but with the **wrong structure**.
 
-Çare `"fastfood ise self servis"` yazmak değil — o bilgi içeriğin, görünümün
-değil. `GameShot` zaten `ContentSet`i kuruyordu; onu `PreviewContent` olarak
-görünüme veriyor ve `SelfServis` aynı zinciri izliyor.
+The cure was not to write `"if fastfood then self service"` — that knowledge
+belongs to the content, not to the view. `GameShot` was already building a
+`ContentSet`; it now hands it to the view as `PreviewContent` and `SelfService`
+follows the same chain.
 
-*Araç oyunun göstereceğini göstermezse, "eklendi" demek bir ölçüm değil bir
-tahmindir.* Bu kez tahmin yanlıştı.
-
----
-
-## 3. Asılı menü panelleri: üçüncü kez aynı ders
-
-Panelleri tezgâhın **üstüne** (y = 2,00) asmıştım. Kare açılınca ekranda
-aşçıların önünde duran dev, boş, parlayan levhalar vardı.
-
-Bu, bu projede **üçüncü** kez aynı şey: tavansız bir binaya 34 dereceden
-bakarken **asılan her şey arkasını kapatır.** Kullanıcı bunu sarkıt lambalar
-için iki kez söylemişti ("tavandaki ışıklar gözükmesin").
-
-Çözüm paneli kaldırmak değil **yerini değiştirmek** oldu: menü panosu artık
-**mutfağın arka duvarında**. Bu kamerada arka duvar tezgâhın tam üstünde
-duruyor — yani oyuncu zaten "tezgâhın üstündeki menü" diye okuyor, ama
-hiçbir şeyi kapatmıyor.
-
-Pano da boş bir levha değil: koyu yüz, ışıklı satırlar, sağda fiyat sütunu —
-salonun menü tahtasıyla aynı dil.
+*If the tool does not show what the game will show, saying "it has been added" is
+not a measurement but a guess.* This time the guess was wrong.
 
 ---
 
-## 4. Salonun en büyük yüzeyi ayrışmamıştı
+## 3. Hanging menu panels: the same lesson for the third time
 
-İki salonu yan yana koyunca (`render/salon_*_oda.png`) zemin ve duvar
-ayrışmıştı ama **masalar birebir aynıydı** — ikisi de aynı kahverengi ahşap.
-Salonun en çok yer kaplayan yüzeyi masa tablası, yani ayrımın yarısı hâlâ
-eksikti.
+I had hung the panels **above** the counter (y = 2.00). When the frame opened
+there were giant, empty, glowing boards standing in front of the cooks.
 
-| | mobilya |
+This is the **third** time for the same thing in this project: looking at a
+ceilingless building from 34 degrees, **anything hung covers what is behind
+it.** The user had said so twice about pendant lamps ("don't let the ceiling
+lights show").
+
+The solution was not to remove the panel but **to move it**: the menu board is now
+**on the kitchen's back wall**. Under this camera the back wall sits directly
+above the counter — so the player still reads it as "the menu above the counter",
+but it covers nothing.
+
+The board is not a blank sheet either: a dark face, lit rows, a price column on
+the right — the same language as the hall's menu board.
+
+---
+
+## 4. The hall's largest surface had not been differentiated
+
+Putting the two halls side by side (`render/salon_*_oda.png`), the floor and the
+wall had diverged but **the tables were identical** — both the same brown wood.
+The hall's largest surface by area is the tabletop, so half the distinction was
+still missing.
+
+| | furniture |
 |---|---|
-| Türk | kahverengi ahşap (değişmedi) |
-| fast food | **açık laminat** `(0.686, 0.612, 0.510)` |
+| Turkish | brown wood (unchanged) |
+| fast food | **light laminate** `(0.686, 0.612, 0.510)` |
 
-Koyu zemin + açık tabla + kırmızı minder, kullanıcının getirdiği üç karenin
-de düzeni. Tek bir palet satırı; yeni varlık, indirilen doku, atıf defterine
-eklenen bir şey yok.
-
----
-
-## 5. Tepsi bırakma istasyonu: self servisin görünen sonu
-
-Temizlikçi masadaki tepsileri topluyor ([51](51-self-service.md)) — ama
-**topladıktan sonra nereye** götürdüğü salonda yoktu. Giriş odasının sol
-duvarına, bel hizasında bir dolap: üstünde tepsi yığını, önünde koyu bir
-ağız, yanında ışıklı küçük bir levha.
-
-**Sıra bandı eklenmedi** ve bu bilinçli: referansta tezgâhın önünde bant var
-ama bu simülasyonda kimse tezgâhta sıraya girmiyor — müşteri kapıdan masaya
-yürüyor. Boş bir sıra bandı, olmayan bir mekaniği vaat ederdi.
+Dark floor + light top + red cushion is the arrangement in all three of the frames
+the user brought. A single palette line; no new asset, no downloaded texture,
+nothing added to the attribution ledger.
 
 ---
 
-## 6. Tezgâh ikiye bölündü
+## 5. The tray drop-off station: the visible end of self service
 
-Kasalar tezgâhın üzerindeydi ve **boydan boya cam siper onları örtüyordu**:
-karede geriye tezgâhın üzerinde iki beyaz leke kalmıştı. Siper `w`'den
-`0,60·w`'ye indi; kasalar uçlara, siperin dışına çıktı ve kendi ekranlarını
-aldı.
+The cleaner collects the trays from the tables ([51](51-self-service.md)) — but
+**where they take them afterwards** was not in the hall. On the entrance room's
+left wall, a waist-height cabinet: a stack of trays on top, a dark mouth at the
+front, a small lit sign beside it.
 
-Gerçek bir hızlı yemek tezgâhı da böyle bölünür: **ortada sıcak hat, uçlarda
-kasa.**
+**No queue rail was added**, and that is deliberate: the reference has a rail in
+front of the counter, but in this simulation nobody queues at the counter — the
+customer walks from the door to a table. An empty queue rail would promise a
+mechanic that does not exist.
 
 ---
 
-## 7. Türkçe tur kırmızı yandı — ve sebebi bir önceki işlemeydi
+## 6. The counter was split in two
 
-Görsel iş bittikten sonra Türkçe tur koştu ve kaldı:
+The tills were on top of the counter and **the full-length glass guard was
+covering them**: in the frame all that was left were two white smudges on the
+counter. The guard came down from `w` to `0.60·w`; the tills moved to the ends,
+outside the guard, and got their own screens.
+
+A real fast food counter is divided the same way: **the hot line in the middle,
+the tills at the ends.**
+
+---
+
+## 7. The Turkish tour went red — and the cause was a previous commit
+
+After the visual work was finished the Turkish tour ran and failed:
 
 ```
-TANI canlilik penceresi: 37,7 sn, servis %30 -> %61
-HATA: Mutfakta is yapiliyor (0 kisi; simulasyon is verdi 156 kez)
+  DIAG liveliness window: 37.7 s, service 30% -> 61%
+FAIL : Work is being done in the kitchen (0 people; the simulation gave work 156 times)
 ```
 
-**Aynı yapı ikinci koşuda geçti** (139/0). Yani hem kırmızı hem yeşil
-ölçümün değil **örnekleme şansının** sonucuydu.
+**The same build passed on the second run** (139/0). So both the red and the green
+were the result of **sampling luck**, not of the measurement.
 
-Kök sebep bu oturumda değil: [51](51-self-service.md) ile Türk mutfağının
-zirvesi **1. dilimden 2. dilime** taşınmıştı
-(`[1200,4800,2500,1500]` → `[1200,2800,4500,1500]`) ve **Türkçe tur o
-işlemeden sonra hiç koşturulmamıştı.** Canlılık penceresi 40 saniyelik gerçek
-zaman bütçesiyle günün ancak %61'ine yetişiyor; zirve artık %50–75'te.
-Tek aşçı da zamanının çoğunu istasyona **yürüyerek** geçiriyor — simülasyon
-görev veriyor, duruş `Walk`. Pencere o dar aralığa denk gelirse yeşil,
-gelmezse kırmızı.
+The root cause is not in this session: with [51](51-self-service.md) the Turkish
+cuisine's peak had moved **from the 1st slice to the 2nd**
+(`[1200,4800,2500,1500]` → `[1200,2800,4500,1500]`) and **the Turkish tour had
+never been run after that commit.** With a 40-second real-time budget the
+liveliness window only reaches 61% of the day; the peak is now at 50–75%. The
+single cook also spends most of their time **walking** to the station — the
+simulation gives the task, the pose is `Walk`. If the window happens to land in
+that narrow gap it is green, if not it is red.
 
-Çare pencereyi herkes için uzatmak **değil**: o, `%80'e kadar koşup zirveyi
-yiyen` eski davranışı geri getirirdi ve o davranış bir kez düzeltilmişti.
-Uzatma artık **koşullu** — yalnızca ölçülecek şey henüz görülmediyse *ve*
-simülasyon gerçekten iş veriyorsa 75 saniyeye kadar bakmaya devam ediyor.
-Kontrol sağlandıysa pencere eskisi gibi 40 saniyede kapanıyor, yani sonraki
-kontroller zirveyi aynen buluyor.
+The cure is **not** to lengthen the window for everybody: that would bring back the
+old `runs to 80% and eats the peak` behaviour, and that behaviour had already been
+fixed once. The extension is now **conditional** — it keeps looking for up to 75
+seconds only if the thing to be measured has not been seen yet *and* the
+simulation really is handing out work. If the check is satisfied, the window
+closes at 40 seconds as before, so the following checks find the peak exactly as
+they used to.
 
-Ölçüldü — iki koşu, ikisi de yeşil:
+Measured — two runs, both green:
 
-| | sonuç |
+| | result |
 |---|---|
-| Türk koşu 1 | **141 geçti, 0 kaldı, 0 ölçülemedi** |
-| Türk koşu 2 | 139 geçti, 0 kaldı, 2 ölçülemedi — pencere **11,4 sn** (%30 → %39) |
-| fast food | 133 geçti, 0 kaldı, 1 ölçülemedi — pencere **tam 40,0 sn** |
+| Turkish run 1 | **141 passed, 0 failed, 0 unmeasured** |
+| Turkish run 2 | 139 passed, 0 failed, 2 unmeasured — window **11.4 s** (30% → 39%) |
+| fast food | 133 passed, 0 failed, 1 unmeasured — window **exactly 40.0 s** |
 
-Sonra beş Türkçe koşu daha: hepsi yeşil, pencereler 11,4 / 19,9 / 28,3 / 32,4
-saniye — yani **uzatma bir kez bile ateşlenmedi.** Fast food penceresi de tam
-40,0 saniyede kapandı. Normal yol değişmemiş.
+Then five more Turkish runs: all green, windows 11.4 / 19.9 / 28.3 / 32.4 seconds
+— that is, **the extension never fired once.** The fast food window also closed at
+exactly 40.0 seconds. The normal path is unchanged.
 
-### Ateşlenmeyen bir dalı "düzeldi" saymak
+### Counting a branch that never fired as "fixed"
 
-Beş yeşil koşu uzatmanın *çalıştığını* göstermiyor, yalnızca *gerekmediğini*.
-Bu proje aynı tuzağı defalarca yazdı, o yüzden dal **mutasyonla** ölçüldü:
-koşul geçici olarak `true` yapıldı, yani uzatma her koşuda serbest.
+Five green runs do not show the extension *works*, only that it *was not needed*.
+This project has written that same trap many times, so the branch was measured
+**by mutation**: the condition was temporarily made `true`, so the extension was
+free on every run.
 
 ```
-mutasyon: TANI canlilik penceresi 26,6 sn  ->  ozet: 140 gecti, 0 kaldi
+mutation:   DIAG liveliness window 26.6 s  ->  summary: 140 passed, 0 failed
 ```
 
-Pencere yine 40 saniyenin altında kapandı. Sebep aydınlatıcı: döngü normalde
-zaman kapağıyla değil **koşullu `break`** ile bitiyor. Yani uzatma, göreceğini
-gören bir koşuyu uzatamıyor — zirveyi yeme riski yok, ve bu artık bir akıl
-yürütme değil ölçüm.
+The window still closed under 40 seconds. The reason is illuminating: the loop
+normally ends not on the time cap but on a conditional `break`. So the extension
+cannot extend a run that sees what it came to see — there is no risk of eating the
+peak, and that is now a measurement rather than a piece of reasoning.
 
-Geriye dürüst kalan şey şu: dalın **kendisi** hâlâ ateşlenmiş değil, çünkü
-ateşlendiği durum altı koşuda bir görülüyor. Aradığı şey ve ateşlenme koşulu
-o tek koşudan birebir alındı; ama bir kez daha kırmızı yanarsa bakılacak ilk
-yer burası olmalı.
+What remains honest is this: the branch **itself** has still not fired, because
+the condition it fires under shows up once in six runs. What it looks for and the
+condition it fires under were taken verbatim from that one run; but if this goes
+red once more, this is the first place to look.
 
-*Zaman bütçesi bir emniyet kapağıdır; ölçümün tanımı olduğu an ölçüm
-kaybolur.*
+*A time budget is a safety cap; the moment it becomes the measurement's definition
+the measurement is lost.*

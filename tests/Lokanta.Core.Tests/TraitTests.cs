@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Lokanta.Content;
 using Lokanta.Core.Content;
@@ -11,13 +11,15 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Personel huylari ve moral. docs/14.
+    /// Staff traits and morale. docs/14.
     ///
-    /// Tasarim niyeti orada yazili: "hicbir huy saf iyi veya saf kotu
-    /// degil. Cirak ucuz ama yavas, tecrubeli hizli ama pahali."
+    /// The design intention is written there: "no trait is purely good or purely
+    /// bad. An apprentice is cheap but slow, an experienced hand is fast but
+    /// expensive."
     ///
-    /// Moral kismindaki en onemli sey docs/14'un kendi cumlesi: "sayi
-    /// kaybetmek soyut, adini bildigin bir calisanin istifa etmesi somut."
+    /// The most important thing about the morale is docs/14's own sentence:
+    /// "losing a number is abstract, having a member of staff whose name you know
+    /// hand in their notice is concrete."
     /// </summary>
     public class TraitTests
     {
@@ -67,37 +69,37 @@ namespace Lokanta.Core.Tests
         }
 
         // ====================================================================
-        // Icerik
+        // Content
         // ====================================================================
         [Fact]
-        public void On_iki_huy_yukleniyor()
+        public void Twelve_traits_load()
         {
             EconomyConfig e = Economy();
-            Assert.Equal(12, e.TraitCount);       // docs/09 envanteri
+            Assert.Equal(12, e.TraitCount);       // the docs/09 inventory
         }
 
         [Fact]
-        public void Cakismalar_SIMETRIK()
+        public void The_conflicts_are_SYMMETRIC()
         {
-            // Tek yonlu yazilmis bir cakisma, ise alim kodunda sessizce
-            // calismayan bir kural birakir: iki cakisan huyu tasiyan bir
-            // personel uretilebilirdi.
+            // A conflict written in one direction only leaves a rule in the hiring
+            // code that silently does not run: a member of staff carrying two
+            // conflicting traits could be produced.
             EconomyConfig e = Economy();
             for (int i = 0; i < e.TraitCount; i++)
             {
                 TraitDef t = e.TraitAt(i);
                 foreach (int other in t.ConflictsWith)
                     Assert.True(e.TraitAt(other).ConflictsWithIndex(i),
-                                t.Id + " <-> " + e.TraitAt(other).Id + " tek yonlu");
+                                t.Id + " <-> " + e.TraitAt(other).Id + " is one-way");
             }
         }
 
         [Fact]
-        public void Tek_yonlu_cakisma_reddediliyor()
+        public void A_one_way_conflict_is_rejected()
         {
             List<TraitDto> traits = JsonConvert.DeserializeObject<List<TraitDto>>(
                 File.ReadAllText(Path.Combine(Paths.Content, "staff-traits.json")));
-            traits[0].ConflictsWith.Clear();      // digeri hala onu isaret ediyor
+            traits[0].ConflictsWith.Clear();      // the other one still points at it
 
             EconomyDto eco = JsonConvert.DeserializeObject<EconomyDto>(
                 File.ReadAllText(Path.Combine(Paths.Content, "economy.json")));
@@ -107,47 +109,47 @@ namespace Lokanta.Core.Tests
             ContentException ex = Assert.Throws<ContentException>(
                 () => ContentLoader.Build(eco, roles, traits));
             _out.WriteLine(ex.Message);
-            Assert.Contains("tek yonlu", ex.Message);
+            Assert.Contains("one-way", ex.Message);
         }
 
         [Fact]
-        public void Cirak_ve_tecrubeli_zit_yazilmis()
+        public void The_apprentice_and_the_experienced_hand_are_written_as_opposites()
         {
-            // docs/14: cirak ucuz ama yavas, tecrubeli hizli ama pahali.
-            // Ikisi de bir seyi VERIYOR ve bir seyi ALIYOR.
+            // docs/14: an apprentice is cheap but slow, an experienced hand is fast
+            // but expensive. Both GIVE something and TAKE something.
             EconomyConfig e = Economy();
-            TraitDef cirak = null, tecrubeli = null;
+            TraitDef apprentice = null, experienced = null;
             for (int i = 0; i < e.TraitCount; i++)
             {
-                if (e.TraitAt(i).Id == "cirak") cirak = e.TraitAt(i);
-                if (e.TraitAt(i).Id == "tecrubeli") tecrubeli = e.TraitAt(i);
+                if (e.TraitAt(i).Id == "cirak") apprentice = e.TraitAt(i);
+                if (e.TraitAt(i).Id == "tecrubeli") experienced = e.TraitAt(i);
             }
-            Assert.NotNull(cirak);
-            Assert.NotNull(tecrubeli);
+            Assert.NotNull(apprentice);
+            Assert.NotNull(experienced);
 
-            Assert.True(cirak.WageBp < 0 && cirak.SpeedBp < 0 && cirak.XpBp > 10000);
-            Assert.True(tecrubeli.WageBp > 0 && tecrubeli.SpeedBp > 0 && tecrubeli.XpBp == 0);
+            Assert.True(apprentice.WageBp < 0 && apprentice.SpeedBp < 0 && apprentice.XpBp > 10000);
+            Assert.True(experienced.WageBp > 0 && experienced.SpeedBp > 0 && experienced.XpBp == 0);
         }
 
         // ====================================================================
-        // Davranis
+        // Behaviour
         // ====================================================================
         [Fact]
-        public void Herkes_iki_huy_aliyor_ve_cakismiyorlar()
+        public void Everyone_gets_two_traits_and_they_do_not_conflict()
         {
             EconomyConfig e = Economy();
             Simulation sim = NewSim();
 
-            // ONCE GENISLE, SONRA ISE AL.
+            // EXPAND FIRST, THEN HIRE.
             //
-            // Birinci kademe kadro tavani UC (docs/14) ve oyun artik iki
-            // kisiyle basliyor (bir asci, bir garson) - yani tavan
-            // genislemeden yalnizca TEK ise alim sigiyor ve test bir
-            // kisiyi sinayip "hepsi iki huyla geldi" diyordu. Bir kisilik
-            // ornek, "herkes" iddiasini tasimiyor.
+            // The first tier's crew cap is THREE (docs/14) and the game now starts
+            // with two people (one cook, one waiter) - so without expanding, only a
+            // SINGLE hire fits under the cap, and the test was checking one person
+            // and declaring "they all arrived with two traits". A sample of one does
+            // not carry a claim about "everyone".
             //
-            // Genisleme tavani buyutuyor; sinanan sey yine sayi degil
-            // HER personelin iki uyumlu huyla gelmesi.
+            // Expanding raises the cap; what is tested is still not the number but
+            // that EVERY member of staff arrives with two compatible traits.
             sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, 1));
             for (int i = 0; i < 6; i++)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, i % 2, i % 3));
@@ -155,46 +157,45 @@ namespace Lokanta.Core.Tests
             int people = 0;
             for (int pool = 0; pool < 2; pool++)
             {
-                int count = pool == 0 ? sim.Cooks : sim.SalonStaff;
+                int count = pool == 0 ? sim.Cooks : sim.HallStaff;
                 for (int i = 0; i < count; i++)
                 {
-                    // DEVRALINAN KADRO huysuz basliyor (ayri test): hem
-                    // ilk asci hem ilk garson. Karakter, SECTIGIN
-                    // kisilerle geliyor - yalnizca ISE ALINANLAR
-                    // sinaniyor.
+                    // THE INHERITED CREW starts with no traits (a separate test):
+                    // both the first cook and the first waiter. Character comes with
+                    // the people YOU CHOOSE - only THOSE HIRED are tested.
                     if (i == 0) continue;
                     int a = sim.StaffTrait(pool, i, 0);
                     int b = sim.StaffTrait(pool, i, 1);
-                    Assert.True(a >= 0, "personel huysuz kaldi");
-                    Assert.True(b >= 0, "personel tek huyla kaldi");
+                    Assert.True(a >= 0, "the member of staff was left with no trait");
+                    Assert.True(b >= 0, "the member of staff was left with only one trait");
                     Assert.NotEqual(a, b);
                     Assert.False(e.TraitAt(a).ConflictsWithIndex(b),
-                                 e.TraitAt(a).Id + " ile " + e.TraitAt(b).Id + " birlikte olamaz");
+                                 e.TraitAt(a).Id + " and " + e.TraitAt(b).Id + " cannot go together");
                     people++;
                 }
             }
-            // Kadro tavani yine sinirliyor (docs/14), ama genislemeden
-            // sonra birkac kisi sigiyor. Sinanan sey sayi degil, HER
-            // personelin iki uyumlu huyla gelmesi.
-            _out.WriteLine($"{people} personel, hepsi iki uyumlu huyla");
+            // The crew cap still binds (docs/14), but after the expansion a few
+            // people fit. What is tested is not the number but that EVERY member of
+            // staff arrives with two compatible traits.
+            _out.WriteLine($"{people} staff, all with two compatible traits");
             Assert.True(people >= 2);
         }
 
         [Fact]
-        public void Baslangic_ascisi_HUYSUZ_ama_moralli_basliyor()
+        public void The_starting_cook_begins_with_NO_TRAIT_but_with_morale()
         {
-            // Iki ayri sey, ikisi de olculerek karara baglandi.
+            // Two separate things, both settled by measurement.
             //
-            // MORAL: RollTraits yalnizca Hire icinden cagriliyordu, oysa
-            // oyun bir asciyla BASLIYOR. O ascinin morali 0 ile basliyordu -
-            // istifa esiginin ALTINDA - ve restoran IKINCI GUN ascisiz
-            // kaliyordu.
+            // MORALE: RollTraits was only called from inside Hire, whereas the game
+            // STARTS with a cook. That cook's morale started at 0 - BELOW the
+            // resignation threshold - and the restaurant was left without a cook ON
+            // THE SECOND DAY.
             //
-            // HUY: baslangic ascisini oyuncu SECMIYOR. Ona rastgele huy
-            // atmak, kampanyanin ilk gununde gorunmez bir zar atmak demek;
-            // olcumde kotu huylu bir baslangic ascisi ceken kosu altmis gun
-            // boyunca toparlanamiyordu. Devraldigin asci SIRADAN; karakter,
-            // SECTIGIN kisilerle geliyor.
+            // TRAIT: the player DOES NOT CHOOSE the starting cook. Rolling a random
+            // trait for them means an invisible dice roll on the campaign's first
+            // day; in the measurement a run that drew a badly-trait'd starting cook
+            // could not recover over sixty days. The cook you inherit is ORDINARY;
+            // character comes with the people YOU CHOOSE.
             Simulation sim = NewSim();
             Assert.Equal(1, sim.Cooks);
             Assert.Equal(-1, sim.StaffTrait(0, 0, 0));
@@ -203,59 +204,61 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Aday_havuzu_uc_kisi_ve_uc_gunde_bir_yenileniyor()
+        public void The_candidate_pool_holds_three_and_refreshes_every_three_days()
         {
-            // docs/14: "Ise alim ekraninda ayni anda uc aday gorunur...
-            // Aday havuzu her uc gunde bir yenilenir. Begenmedigin adayi
-            // reddedebilirsin ama yenisi hemen gelmez."
+            // docs/14: "Three candidates are shown on the hiring screen at once...
+            // The candidate pool refreshes every three days. You can turn down a
+            // candidate you do not like, but a new one does not arrive at once."
             Simulation sim = NewSim();
             for (int slot = 0; slot < Simulation.CandidateSlots; slot++)
                 Assert.True(sim.CandidateTrait(1, slot, 0) >= 0,
-                            "aday havuzu bos");
+                            "the candidate pool is empty");
 
-            // Alinan aday havuzdan cikiyor ve yeri hemen dolmuyor.
+            // A candidate who is taken leaves the pool and their place is not filled
+            // straight away.
             int taken = 0;
             sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, taken));
             Assert.Equal(-1, sim.CandidateTrait(1, taken, 0));
 
-            // Ertesi gun hala bos: havuz uc gunde bir yenileniyor.
+            // Still empty the next day: the pool refreshes every three days.
             RunOneDay(sim);
             Assert.Equal(-1, sim.CandidateTrait(1, taken, 0));
 
             for (int d = 0; d < 3; d++) RunOneDay(sim);
-            Assert.True(sim.CandidateTrait(1, taken, 0) >= 0, "havuz hic yenilenmedi");
+            Assert.True(sim.CandidateTrait(1, taken, 0) >= 0, "the pool never refreshed");
         }
 
         [Fact]
-        public void Iyi_yonetilen_dukkanda_kadro_istifa_etmiyor()
+        public void Nobody_resigns_in_a_well_run_restaurant()
         {
-            // docs/14 moral tablosu bir OLAY listesi, sürükleniş modeli
-            // degil. Yalnizca olaylari uygulayinca merdiven tek yonlu asagi
-            // gidiyordu ve butun kadro bir ayda istifa ediyordu.
+            // The docs/14 morale table is a list of EVENTS, not a drift model.
+            // Applying only the events sent the ladder one way - downwards - and the
+            // entire crew handed in their notice within a month.
             Simulation sim = NewSim();
             int startCooks = sim.Cooks;
 
             for (int d = 0; d < 40; d++) RunOneDay(sim);
 
-            _out.WriteLine($"kirk gun sonra asci {sim.Cooks}, " +
-                           $"moral {sim.StaffMorale(0, 0)}, kasa {sim.Cash / 100}");
+            _out.WriteLine($"after forty days: cooks {sim.Cooks}, " +
+                           $"morale {sim.StaffMorale(0, 0)}, till {sim.Cash / 100}");
             Assert.Equal(startCooks, sim.Cooks);
             Assert.True(sim.StaffMorale(0, 0) >= Economy().MoraleQuitThreshold);
         }
 
         [Fact]
-        public void Maas_odenemezse_moral_dusuyor()
+        public void The_morale_falls_when_the_wages_cannot_be_paid()
         {
-            // docs/14: "maas gecikti -25", ve bu batma merdiveninin ucuncu
-            // kademesi. Kasayi bosaltip haftalik odemeyi bekliyoruz.
+            // docs/14: "wages are late -25", and this is the third rung of the
+            // bankruptcy ladder. We empty the till and wait for the weekly
+            // payment.
             Simulation sim = NewSim();
             int before = sim.StaffMorale(0, 0);
 
-            // Tavana kadar ise al: maas faturasi kasayi asiyor.
+            // Hire up to the cap: the wage bill exceeds the till.
             for (int i = 0; i < 8; i++)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1));
 
-            // Butun parayi malzemeye yatir, sonra hafta sonunu bekle.
+            // Put all the money into stock, then wait for the end of the week.
             for (int d = 0; d < 8; d++)
             {
                 for (int i = 0; i < sim.IngredientCount; i++)
@@ -270,31 +273,32 @@ namespace Lokanta.Core.Tests
                 sim.AdvanceToNextDay();
             }
 
-            _out.WriteLine($"moral {before} -> {sim.StaffMorale(0, 0)}, kasa {sim.Cash / 100}");
+            _out.WriteLine($"morale {before} -> {sim.StaffMorale(0, 0)}, till {sim.Cash / 100}");
             Assert.True(sim.StaffMorale(0, 0) < before,
-                        "maas odenemedigi halde moral dusmedi");
+                        "the wages could not be paid and yet the morale did not fall");
         }
 
         [Fact]
-        public void Huy_ucrete_yansiyor()
+        public void The_trait_shows_up_in_the_wage()
         {
-            // docs/14: cirak -%25, tecrubeli +%30. Kadro carpani ortalama.
+            // docs/14: an apprentice -25%, an experienced hand +30%. The crew's
+            // multiplier is the average.
             Simulation sim = NewSim();
             int bp = sim.TraitWageMultiplierBp();
-            _out.WriteLine($"tek ascili kadronun ucret carpani {bp} bp");
+            _out.WriteLine($"wage multiplier of a one-cook crew {bp} bp");
             Assert.True(bp >= 1000);
 
-            // Kadro buyudukce carpan 1'e yaklasmali: farkli huylar birbirini
-            // dengeliyor.
+            // As the crew grows the multiplier should approach 1: the different
+            // traits balance one another out.
             for (int i = 0; i < 8; i++)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1));
             int wide = sim.TraitWageMultiplierBp();
-            _out.WriteLine($"dokuz kisilik kadroda {wide} bp");
+            _out.WriteLine($"with a nine-person crew {wide} bp");
             Assert.True(System.Math.Abs(wide - 10000) <= System.Math.Abs(bp - 10000) + 1500);
         }
 
         [Fact]
-        public void Kayit_huy_ve_morali_tasiyor()
+        public void The_save_carries_the_traits_and_the_morale()
         {
             Simulation sim = NewSim();
             for (int i = 0; i < 3; i++)
@@ -308,7 +312,7 @@ namespace Lokanta.Core.Tests
 
             for (int pool = 0; pool < 2; pool++)
             {
-                int count = pool == 0 ? sim.Cooks : sim.SalonStaff;
+                int count = pool == 0 ? sim.Cooks : sim.HallStaff;
                 for (int i = 0; i < count; i++)
                 {
                     Assert.Equal(sim.StaffTrait(pool, i, 0), restored.StaffTrait(pool, i, 0));

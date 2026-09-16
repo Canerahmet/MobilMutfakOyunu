@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-xoshiro128** bagimsiz referans uygulamasi
+An independent reference implementation of xoshiro128**
 ============================================================================
-Amac: C# uretecini KENDI ciktisiyla degil, ayri bir uygulamayla dogrulamak.
+Purpose: to verify the C# generator against a separate implementation rather
+than against ITS OWN output.
 
-Bir testin beklenen degerlerini test ettigi koddan almasi hicbir sey
-kanitlamaz. Bu betik ureteci sifirdan, referans C kodundan yazip
-tests/golden/rng.json dosyasini uretir; C# testi onu tutturmak zorundadir.
+A test that takes its expected values from the code it is testing proves
+nothing. This script writes the generator from scratch, from the reference C
+code, and produces tests/golden/rng.json; the C# test has to match it.
 
-Referans: https://prng.di.unimi.it/xoshiro128starstar.c
+Reference: https://prng.di.unimi.it/xoshiro128starstar.c
 
-Calistirma:  python rng_reference.py
+Running it:  python rng_reference.py
 """
 import io
 import json
@@ -48,12 +49,12 @@ class Xoshiro128SS(object):
         return result
 
     def next_int(self, max_exclusive):
-        """Lemire carp-kaydir, C# ile ayni."""
+        """Lemire multiply-shift, the same as C#."""
         return ((self.next() * max_exclusive) >> 32)
 
 
 def splitmix_mix(z):
-    """C# RngSeeder.Mix ile ayni: durumu ilerletir, bir uint dondurur."""
+    """The same as C# RngSeeder.Mix: advances the state, returns one uint."""
     z = (z + PHI) & M64
     x = z
     x = ((x ^ (x >> 30)) * 0xBF58476D1CE4E5B9) & M64
@@ -84,7 +85,7 @@ def main():
         "seeded": [],
     }
 
-    # Dogrudan durum verilen diziler
+    # Sequences given the state directly
     for s in ([1, 2, 3, 4], [0, 0, 0, 0], [0xDEADBEEF, 0x12345678, 1, 0xFFFFFFFF]):
         r = Xoshiro128SS(*s)
         out["direct"].append({
@@ -92,7 +93,7 @@ def main():
             "values": [r.next() for _ in range(8)],
         })
 
-    # Tohumlanmis akislar
+    # Seeded streams
     for i, name in enumerate(STREAMS):
         r = seed(20260909, i)
         out["seeded"].append({
@@ -102,8 +103,8 @@ def main():
             "values": [r.next() for _ in range(6)],
         })
 
-    # NextInt dagilim ornegi
-    r = seed(42, 2)  # Order akisi
+    # A NextInt distribution sample
+    r = seed(42, 2)  # the Order stream
     out["nextInt10"] = [r.next_int(10) for _ in range(20)]
 
     if not os.path.isdir(GOLDEN):
@@ -112,8 +113,8 @@ def main():
     with io.open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    print("yazildi: " + os.path.relpath(path, ROOT))
-    print("ilk dizi (1,2,3,4): " + str(out["direct"][0]["values"][:5]))
+    print("written: " + os.path.relpath(path, ROOT))
+    print("first sequence (1,2,3,4): " + str(out["direct"][0]["values"][:5]))
 
 
 if __name__ == "__main__":

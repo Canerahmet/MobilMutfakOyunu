@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Karakter hatti kaniti
+Proof of the character pipeline
 ============================================================================
-docs/24-art-pipeline.md kademe 2, iki haftalik zaman kutusu.
+docs/24-art-pipeline.md tier 2, a two-week time box.
 
-Kanitlanmasi gereken sey: 16 kiyafet x 3 vucut tipi = 96 mesh sorunu
-gercekten yok oluyor mu.
+What has to be proved: does the 16 outfits x 3 body types = 96 meshes problem
+really disappear.
 
-Iddia:
-  vucut tipi   tek mesh, kemik olcegi        -> mesh cogalmiyor
-  kiyafet      skinsiz parca, kemige bagli   -> agirlik boyama yok
-  renk         malzeme                       -> mesh cogalmiyor
+The claim:
+  body type   one mesh, bone scaling       -> the mesh does not multiply
+  outfit      a skinless part on a bone    -> no weight painting
+  colour      a material                   -> the mesh does not multiply
 
-Ve agirlik boyamanin gorsel yargi istedigi endisesi: alti test pozu
-render ediliyor, dirsek ve diz cokusune BEN bakiyorum.
+And the worry that weight painting needs visual judgement: six test poses are
+rendered, and I look at the elbow and knee collapse MYSELF.
 
-Calistirma:
+Running it:
   "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe" ^
       --background --factory-startup --python tools/art/gen_character.py
 """
@@ -33,53 +33,55 @@ import rig     # noqa: E402
 
 OUT = os.path.join(HERE, "out")
 
-BUDGET_BODY = 2000       # docs/24 karakter govdesi
-BUDGET_ATTACH = 250      # kiyafet parcasi
+BUDGET_BODY = 2000       # docs/24 character body
+BUDGET_ATTACH = 250      # an outfit part
 BUDGET_HAIR = 300
 
 
 # ---------------------------------------------------------------------------
 def _seg(name, size, loc, material):
-    """Pah kirmasiz kutu: govde parcalari sonradan birlestiriliyor."""
+    """An unbevelled box: the body parts are joined up afterwards."""
     return prim.box(name, size, loc, material, bevel=0.0)
 
 
-# Govde parcalari: (ad, boyut, konum, KEMIK)
-# Her parca tek kemige KATI bagli. Skinning yok, agirlik boyama yok.
-# Eklemler CAKISAN geometriyle kapatiliyor: parcalar birbirine girecek
-# kadar buyuk, boylece kemik donunce bosluk acilmiyor.
+# The body parts: (name, size, location, BONE)
+# Each part is bound RIGIDLY to a single bone. No skinning, no weight
+# painting. The joints are closed with OVERLAPPING geometry: the parts are
+# large enough to push into each other, so no gap opens when the bone turns.
 BODY_PARTS = [
-    ("Kalca",    (0.31, 0.20, 0.20), (0.00, 0.00, 1.00), "hips"),
-    ("Bel",      (0.28, 0.18, 0.20), (0.00, 0.00, 1.14), "spine"),
-    ("Gogus",    (0.35, 0.21, 0.26), (0.00, 0.00, 1.31), "chest"),
-    ("Boyun",    (0.12, 0.12, 0.13), (0.00, 0.00, 1.46), "neck"),
-    ("Kafa",     (0.20, 0.21, 0.23), (0.00, 0.00, 1.63), "head"),
+    ("Hips",     (0.31, 0.20, 0.20), (0.00, 0.00, 1.00), "hips"),
+    ("Waist",    (0.28, 0.18, 0.20), (0.00, 0.00, 1.14), "spine"),
+    ("Chest",    (0.35, 0.21, 0.26), (0.00, 0.00, 1.31), "chest"),
+    ("Neck",     (0.12, 0.12, 0.13), (0.00, 0.00, 1.46), "neck"),
+    ("Head",     (0.20, 0.21, 0.23), (0.00, 0.00, 1.63), "head"),
 ]
 
 for _s, _tag in ((1, "L"), (-1, "R")):
     BODY_PARTS += [
-        ("Omuz" + _tag,     (0.13, 0.16, 0.16), (_s * 0.19, 0, 1.39), "shoulder." + _tag),
-        ("UstKol" + _tag,   (0.27, 0.13, 0.13), (_s * 0.30, 0, 1.40), "upperarm." + _tag),
-        ("OnKol" + _tag,    (0.27, 0.12, 0.12), (_s * 0.54, 0, 1.40), "forearm." + _tag),
-        ("El" + _tag,       (0.13, 0.10, 0.06), (_s * 0.72, 0, 1.40), "hand." + _tag),
-        ("UstBacak" + _tag, (0.16, 0.17, 0.46), (_s * 0.11, 0, 0.745), "thigh." + _tag),
-        ("AltBacak" + _tag, (0.14, 0.15, 0.48), (_s * 0.11, 0, 0.320), "shin." + _tag),
-        ("Ayak" + _tag,     (0.13, 0.25, 0.08), (_s * 0.11, -0.06, 0.040), "foot." + _tag),
+        ("Shoulder" + _tag, (0.13, 0.16, 0.16), (_s * 0.19, 0, 1.39), "shoulder." + _tag),
+        ("UpperArm" + _tag, (0.27, 0.13, 0.13), (_s * 0.30, 0, 1.40), "upperarm." + _tag),
+        ("Forearm" + _tag,  (0.27, 0.12, 0.12), (_s * 0.54, 0, 1.40), "forearm." + _tag),
+        ("Hand" + _tag,     (0.13, 0.10, 0.06), (_s * 0.72, 0, 1.40), "hand." + _tag),
+        ("Thigh" + _tag,    (0.16, 0.17, 0.46), (_s * 0.11, 0, 0.745), "thigh." + _tag),
+        ("Shin" + _tag,     (0.14, 0.15, 0.48), (_s * 0.11, 0, 0.320), "shin." + _tag),
+        ("Foot" + _tag,     (0.13, 0.25, 0.08), (_s * 0.11, -0.06, 0.040), "foot." + _tag),
     ]
 
 
 def build_body(arm):
     """
-    Katı parcali low-poly govde. Her parca ayri nesne, tek kemige bagli.
+    A rigid, segmented low-poly body. Each part is a separate object bound to
+    a single bone.
 
-    Ilk denemede parcalar tek mesh'te birlestirilip otomatik agirlik
-    uygulanmisti; kaynaklanmadigi icin oturma pozunda bacaklar kalcadan
-    ayrildi. Duzeltmenin yolu kaynaklama artı agirlik boyamaydi ve o is
-    docs/24'un tespit ettigi yetenek bosluguna giriyordu.
+    On the first attempt the parts were joined into a single mesh and
+    automatic weights were applied; because it was not welded, the legs came
+    away from the hips in the sitting pose. The way to fix that was welding
+    plus weight painting, and that work fell into the skill gap docs/24 had
+    identified.
     """
     made = []
     for name, size, loc, bone in BODY_PARTS:
-        o = prim.box(name, size, loc, "ten", bevel=0.012)
+        o = prim.box(name, size, loc, "skin", bevel=0.012)
         rig.bind_rigid(o, arm, bone)
         made.append(o)
     return made
@@ -87,22 +89,23 @@ def build_body(arm):
 
 # ---------------------------------------------------------------------------
 def build_apron(arm):
-    """Onluk: SKINSIZ, kalcaya bagli. Agirlik boyama yok."""
-    o = prim.box("Onluk", (0.32, 0.04, 0.46), (0, -0.11, 1.02), "onluk", bevel=0.006)
+    """The apron: SKINLESS, bound to the hips. No weight painting."""
+    o = prim.box("Apron", (0.32, 0.04, 0.46), (0, -0.11, 1.02), "apron", bevel=0.006)
     return rig.attach_to_bone(o, arm, "hips")
 
 
 def build_cap(arm):
-    """Sapka: SKINSIZ, kafaya bagli."""
-    o = prim.box("Sapka", (0.225, 0.235, 0.06), (0, 0, 1.775), "sapka", bevel=0.008)
+    """The cap: SKINLESS, bound to the head."""
+    o = prim.box("Cap", (0.225, 0.235, 0.06), (0, 0, 1.775), "cap", bevel=0.008)
     return rig.attach_to_bone(o, arm, "head")
 
 
 def build_hair(arm):
-    """Sac: SKINSIZ, kafaya bagli. Sekiz cesit ayni sekilde takiliyor."""
-    # Sac ince bir kep: ilk halinde 10 cm kalinliktaydi ve kafanin
-    # ust yarisini yutuyordu, ten hic gorunmuyordu.
-    o = prim.box("Sac", (0.215, 0.225, 0.05), (0, 0.01, 1.727), "sac", bevel=0.008)
+    """The hair: SKINLESS, bound to the head. All eight varieties attach the
+    same way."""
+    # The hair is a thin cap: in its first version it was 10 cm thick and
+    # swallowed the top half of the head, with no skin showing at all.
+    o = prim.box("Hair", (0.215, 0.225, 0.05), (0, 0.01, 1.727), "hair", bevel=0.008)
     return rig.attach_to_bone(o, arm, "head")
 
 
@@ -110,15 +113,15 @@ def build_hair(arm):
 def main():
     prim.clear_scene()
 
-    # Karakter paleti
-    prim.PALETTE["ten"] = (0.80, 0.62, 0.48)
-    prim.PALETTE["onluk"] = (0.90, 0.90, 0.87)
-    prim.PALETTE["sapka"] = (0.72, 0.18, 0.14)
-    prim.PALETTE["sac"] = (0.20, 0.14, 0.10)
+    # The character palette
+    prim.PALETTE["skin"] = (0.80, 0.62, 0.48)
+    prim.PALETTE["apron"] = (0.90, 0.90, 0.87)
+    prim.PALETTE["cap"] = (0.72, 0.18, 0.14)
+    prim.PALETTE["hair"] = (0.20, 0.14, 0.10)
 
     print("")
     print("=" * 68)
-    print("KARAKTER HATTI KANITI")
+    print("CHARACTER PIPELINE PROOF")
     print("=" * 68)
 
     arm = rig.build_armature()
@@ -133,40 +136,42 @@ def main():
     hair_tris = prim.tri_count([hair])
 
     ok = True
-    ok &= stage.report("govde", body, BUDGET_BODY, body_tris)
-    ok &= stage.report("kiyafet(2)", [apron, cap], BUDGET_ATTACH * 2, attach_tris)
-    ok &= stage.report("sac", [hair], BUDGET_HAIR, hair_tris)
+    ok &= stage.report("body", body, BUDGET_BODY, body_tris)
+    ok &= stage.report("outfit(2)", [apron, cap], BUDGET_ATTACH * 2, attach_tris)
+    ok &= stage.report("hair", [hair], BUDGET_HAIR, hair_tris)
 
     print("")
-    print("  mesh sayisi: govde {}, takilabilir 3, TOPLAM {}".format(
+    print("  mesh count: body {}, attachable 3, TOTAL {}".format(
         len(body), len(body) + 3))
-    print("  16 kiyafet x 3 vucut tipi icin gereken ek mesh: 0")
+    print("  extra meshes needed for 16 outfits x 3 body types: 0")
 
     stage.backdrop(floor=True, wall=False)
     stage.lighting()
 
-    # --- Poz render'lari: agirlik cokusu burada gorunur -------------------
+    # --- Pose renders: the weighting collapse shows up here ----------------
+    # The pose names are artefact ids: they become the render file names under
+    # tools/art/out/, so they stay as they are.
     print("")
-    print("  poz render'lari:")
-    for pose_name in ("t_poz", "dinlenme", "tasima", "oturma", "egilme", "yuruyus"):
+    print("  pose renders:")
+    for pose_name in ("t_pose", "idle", "carry", "sit", "bend", "walk"):
         rig.apply_pose(arm, pose_name)
         stage.contact_sheet(OUT, "kar_" + pose_name,
                             target=(0, 0, 0.95), dist=3.9,
                             angles=(300, 235))
         print("    " + pose_name)
 
-    # --- Vucut tipleri: ayni mesh, uc olcek --------------------------------
+    # --- Body types: the same mesh, three scales ---------------------------
     print("")
-    print("  vucut tipi render'lari:")
-    rig.apply_pose(arm, "dinlenme")
-    for kind in ("ince", "orta", "genis"):
+    print("  body type renders:")
+    rig.apply_pose(arm, "idle")
+    for kind in ("slim", "mid", "broad"):
         rig.apply_body_type(arm, kind)
         stage.contact_sheet(OUT, "kar_tip_" + kind,
                             target=(0, 0, 0.95), dist=3.9, angles=(300,))
         print("    " + kind)
 
     print("")
-    print("  sonuc: " + ("BUTCELER TAMAM" if ok else "BUTCE ASIMI VAR"))
+    print("  result: " + ("BUDGETS OK" if ok else "OVER BUDGET"))
     print("=" * 68)
 
 

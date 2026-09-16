@@ -11,18 +11,18 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// docs/14-staff-system.md "Deneyim ve seviye":
-    ///   - calisilan her gun 1 puan
-    ///   - 30 puanda seviye atlar, azami 3 seviye
-    ///   - her seviye hiz +%10
+    /// docs/14-staff-system.md "Experience and level":
+    ///   - 1 point for every day worked
+    ///   - a level every 30 points, 3 levels at most
+    ///   - +10% speed per level
     ///
-    /// Merdiven icerikte (staff-roles.json xpSpeedBp) aylardir yaziliydi ve
-    /// hicbir yerde okunmuyordu - denetleyicinin kuyrugundaki son
-    /// maddelerden biri.
+    /// The ladder had been written in the content (staff-roles.json xpSpeedBp)
+    /// for months and was read nowhere at all - one of the last items in the
+    /// auditor's queue.
     ///
-    /// Onemli sinir: deneyim YEMEGIN PISME SURESINI kisaltmiyor. docs/27
-    /// Karar D ekipman icin ne diyorsa deneyim icin de gecerli - kisalan
-    /// sey kisinin o ise BAGLI KALDIGI sure.
+    /// An important boundary: experience does NOT shorten A DISH'S COOKING TIME.
+    /// What docs/27 Decision D says for equipment holds for experience too - what
+    /// shortens is the time the person is TIED UP by that job.
     /// </summary>
     public class ExperienceTests
     {
@@ -73,24 +73,24 @@ namespace Lokanta.Core.Tests
 
         // ====================================================================
         [Fact]
-        public void Icerik_dort_basamakli_merdiven_yukluyor()
+        public void The_content_loads_a_four_rung_ladder()
         {
             EconomyConfig e = Economy();
             Assert.Equal(30, e.XpDaysPerLevel);
             Assert.Equal(3, e.MaxXpLevel);
 
-            // Seviye 0 hizsiz, her seviye +%10.
+            // Level 0 gives no speed, every level after that +10%.
             Assert.Equal(10_000, e.XpSpeedBp(0, true));
             Assert.Equal(11_000, e.XpSpeedBp(1, true));
             Assert.Equal(12_000, e.XpSpeedBp(2, true));
             Assert.Equal(13_000, e.XpSpeedBp(3, true));
 
-            // Tavanin ustu tavana kirpiliyor, dizi disina tasilmiyor.
+            // Above the ceiling it clamps to the ceiling; it does not run off the end of the array.
             Assert.Equal(13_000, e.XpSpeedBp(9, true));
         }
 
         [Fact]
-        public void Otuz_gunde_seviye_atliyor()
+        public void A_level_is_gained_every_thirty_days()
         {
             Simulation sim = NewSim();
             Assert.Equal(0, sim.StaffLevel(0, 0));
@@ -105,11 +105,11 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Seviye_ucte_duruyor()
+        public void The_level_stops_at_three()
         {
-            // 60 gunluk kampanyada ucuncu seviye 90. gune dusuyor: tavan
-            // kampanya suresinde ULASILAMAZ. docs/29 serbest oyunun devam
-            // ettigini soyluyor, o yuzden tavan yine de sinaniyor.
+            // In a 60-day campaign the third level falls on day 90: the ceiling
+            // is UNREACHABLE within the campaign. docs/29 says free play carries
+            // on, so the ceiling is tested all the same.
             EconomyConfig e = Economy();
             Assert.Equal(0, e.XpLevelOf(0));
             Assert.Equal(0, e.XpLevelOf(29));
@@ -120,7 +120,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Sonradan_alinan_sifirdan_basliyor()
+        public void Someone_hired_later_starts_from_zero()
         {
             Simulation sim = NewSim();
             for (int d = 0; d < 35; d++) RunOneDay(sim);
@@ -128,25 +128,27 @@ namespace Lokanta.Core.Tests
             sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0));
             Assert.Equal(2, sim.Cooks);
 
-            // Eskisi bir seviye atlamis, yenisi sifirda.
+            // The old one has gained a level, the new one is at zero.
             Assert.Equal(1, sim.StaffLevel(0, 0));
             Assert.Equal(0, sim.StaffLevel(0, 1));
             Assert.Equal(0, sim.StaffDaysWorked(0, 1));
         }
 
         [Fact]
-        public void Kovup_yeniden_almak_deneyimi_sifirliyor()
+        public void Firing_and_rehiring_resets_the_experience()
         {
-            // Kovma SONDAN aliyor: en yeni giden. Aksi halde "en deneyimliyi
-            // kov" diye anlamsiz bir karar dogardi. Geri alinan da yeni biri:
-            // kadro kesip geri almak bedava degil.
+            // Firing takes FROM THE END: the newest one goes. Otherwise a
+            // meaningless decision - "fire the most experienced" - would arise.
+            // Whoever is taken back is a new person too: cutting the crew and
+            // taking them back is not free.
             Simulation sim = NewSim();
             sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0));
             for (int d = 0; d < 31; d++) RunOneDay(sim);
 
-            // Kesin bir SEVIYE beklemiyoruz: huy da isin icinde. Cirak
-            // gunde iki puan kazaniyor, tecrubeli hic kazanmiyor (docs/14).
-            // Sinanan sey seviyenin degeri degil, kovulunca SIFIRLANMASI.
+            // We do not expect an exact LEVEL: the trait is in play too. An
+            // apprentice earns two points a day, an experienced hand earns none
+            // (docs/14). What is being tested is not the level's value but that
+            // it is RESET when they are fired.
             int before0 = sim.StaffLevel(0, 0);
             int days0 = sim.StaffDaysWorked(0, 0);
             Assert.True(sim.StaffDaysWorked(0, 1) > 0);
@@ -162,10 +164,10 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Deneyim_yemegin_pisme_suresine_dokunmuyor()
+        public void Experience_does_not_touch_a_dishs_cooking_time()
         {
-            // docs/27 Karar D. Merdiven yalnizca MESGULIYETI boluyor;
-            // yemegin duvar saati suresi (prepMs) icerikte sabit kaliyor.
+            // docs/27 Decision D. The ladder only divides the TIME TIED UP; the
+            // dish's wall-clock time (prepMs) stays fixed in the content.
             ContentSet c = Content();
             EconomyConfig e = Economy();
 
@@ -176,18 +178,19 @@ namespace Lokanta.Core.Tests
 
             long busyAtZero = Fx.MulDiv(prep, Fx.One, e.XpSpeedBp(0, true));
             long busyAtTop = Fx.MulDiv(prep, Fx.One, e.XpSpeedBp(3, true));
-            _out.WriteLine($"mesguliyet {busyAtZero} -> {busyAtTop} ms (prepMs {prep})");
+            _out.WriteLine($"tied up {busyAtZero} -> {busyAtTop} ms (prepMs {prep})");
 
             Assert.Equal(prep, (int)busyAtZero);
             Assert.True(busyAtTop < busyAtZero);
         }
 
         [Fact]
-        public void Deneyim_olculebilir_fark_yaratiyor()
+        public void Experience_makes_a_measurable_difference()
         {
-            // Ayni tohum, ayni strateji: tek degisken deneyim. Bu test
-            // dengeyi degil MEKANIGIN BAGLI OLDUGUNU olcuyor - deneyim
-            // hicbir seye dokunmasaydi iki pencere ayni cikardi.
+            // The same seed, the same strategy: experience is the only variable.
+            // This test measures not the balance but THAT THE MECHANIC IS WIRED
+            // UP - if experience touched nothing, the two windows would come out
+            // the same.
             Simulation sim = NewSim();
 
             int early = 0, late = 0;
@@ -195,19 +198,19 @@ namespace Lokanta.Core.Tests
             for (int d = 0; d < 80; d++) RunOneDay(sim);
             for (int d = 0; d < 10; d++) late += RunOneDay(sim).ServedPeople;
 
-            _out.WriteLine($"ilk on gun {early} kisi, 90-100 arasi {late} kisi");
+            _out.WriteLine($"first ten days {early} people, days 90-100 {late} people");
             Assert.Equal(3, sim.StaffLevel(0, 0));
             Assert.NotEqual(early, late);
         }
 
         [Fact]
-        public void Maas_tablosu_uretecine_uyuyor()
+        public void The_wage_table_matches_its_generator()
         {
-            // weeklyWageMultiplierBp ile weeklyXpWageGrowthBp AYNI SEYI iki
-            // yerde yaziyor. Tablo silinmedi (denge araci onu okuyor) ama
-            // artik degismez: ContentLoader acilista dogruluyor. Bu test
-            // dogrulamanin calistigini gosteriyor - bozuk bir tablo oyunu
-            // ACMAMALI.
+            // weeklyWageMultiplierBp and weeklyXpWageGrowthBp write THE SAME
+            // THING in two places. The table was not deleted (the balance harness
+            // reads it) but it is now immutable: ContentLoader validates it at
+            // startup. This test shows that the validation runs - a broken table
+            // MUST NOT open the game.
             string dir = Paths.Content;
             string economyJson = File.ReadAllText(Path.Combine(dir, "economy.json"));
             string rolesJson = File.ReadAllText(Path.Combine(dir, "staff-roles.json"));
@@ -228,7 +231,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Merdiven_bozuksa_oyun_acilmiyor()
+        public void The_game_does_not_open_if_the_ladder_is_broken()
         {
             string dir = Paths.Content;
             EconomyDto dto = JsonConvert.DeserializeObject<EconomyDto>(
@@ -236,11 +239,11 @@ namespace Lokanta.Core.Tests
             List<StaffRoleDto> roles = JsonConvert.DeserializeObject<List<StaffRoleDto>>(
                 File.ReadAllText(Path.Combine(dir, "staff-roles.json")));
 
-            // Azalan merdiven: deneyim kazanan personel yavaslamaz.
+            // A decreasing ladder: staff who gain experience do not get slower.
             roles[0].XpSpeedBp = new List<int> { 10000, 11000, 9000, 13000 };
             Assert.Throws<ContentException>(() => ContentLoader.Build(dto, roles));
 
-            // Sifirinci basamak 10000 olmali: seviye 0 hizsizdir.
+            // The zeroth rung must be 10000: level 0 gives no speed.
             roles[0].XpSpeedBp = new List<int> { 12000, 13000, 14000, 15000 };
             Assert.Throws<ContentException>(() => ContentLoader.Build(dto, roles));
         }

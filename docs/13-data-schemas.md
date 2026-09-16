@@ -1,27 +1,27 @@
-# Veri Şemaları
+# Data Schemas
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddesi:** B3
-**Durum:** Yazıldı, karar bekliyor
-
----
-
-## İlke
-
-İçerik **JSON dosyalarında** yaşar, kodda değil. Mimari kararı buydu ve sebebi şu: konsolda çalışan denge aracı ile Unity aynı dosyaları okur. ScriptableObject kullanılsaydı denge aracı onları okuyamazdı.
-
-**Metin gömülmez.** Her görünen isim bir yerelleştirme anahtarı taşır, metnin kendisi ayrı dosyalarda durur. Yerelleştirme kararı bunu gerektiriyor.
-
-**Kimlikler değişmez.** Bir `id` yayınlandıktan sonra asla değiştirilmez, çünkü kayıt dosyaları ona referans verir.
+**Last updated:** 9 September 2026
+**Register item:** B3
+**Status:** Written, awaiting decision
 
 ---
 
-## Dosya düzeni
+## The principle
+
+Content lives in **JSON files**, not in code. That was the architectural decision and the reason is this: the balance tool that runs in a console and Unity read the same files. Had we used ScriptableObjects the balance tool could not read them.
+
+**Text is not embedded.** Every visible name carries a localisation key; the text itself sits in separate files. The localisation decision requires this.
+
+**Ids do not change.** Once an `id` has shipped it is never changed, because save files refer to it.
+
+---
+
+## File layout
 
 ```
 content/
-  economy.json            genel sabitler
-  ingredients.json        malzemeler
+  economy.json            general constants
+  ingredients.json        ingredients
   dishes/
     fastfood.json
     turk.json
@@ -45,11 +45,11 @@ localization/
 
 ---
 
-## Şemalar
+## The schemas
 
 ### economy.json
 
-Oyunun bütün genel sabitleri tek dosyada. Denge aracı en çok bu dosyayı değiştirecek.
+All of the game's general constants in one file. The balance tool will change this file more than any other.
 
 ```json
 {
@@ -90,7 +90,7 @@ Oyunun bütün genel sabitleri tek dosyada. Denge aracı en çok bu dosyayı de�
 }
 ```
 
-`shared: true` olan malzemeler temel kilere aittir ve her mutfakta bulunur.
+Ingredients with `shared: true` belong to the basic pantry and exist in every cuisine.
 
 ### dishes/*.json
 
@@ -114,11 +114,11 @@ Oyunun bütün genel sabitleri tek dosyada. Denge aracı en çok bu dosyayı de�
 }
 ```
 
-**`marketPrice`** piyasa referansı. Oyuncunun koyduğu fiyat bununla karşılaştırılıp fiyat cezası hesaplanır.
+**`marketPrice`** is the market reference. The price the player sets is compared against it and the price penalty is calculated from the difference.
 
-**`batchSize`** tencere yemekleri için. Bir kez pişirilir, o kadar porsiyon çıkar. Fast food'da bu değer 1.
+**`batchSize`** is for pot dishes. It is cooked once and yields that many portions. In fast food this value is 1.
 
-**`station`** hangi ekipmanı işgal ettiği. Mutfak darboğazı buradan doğar.
+**`station`** is which piece of equipment it occupies. The kitchen bottleneck is born here.
 
 ### archetypes/*.json
 
@@ -141,9 +141,9 @@ Oyunun bütün genel sabitleri tek dosyada. Denge aracı en çok bu dosyayı de�
 }
 ```
 
-`tier` değeri `sik`, `orta` veya `nadir`. Trafik payları economy.json'da değil, sıklık kademesinden türetilir.
+The `tier` value is `sik`, `orta` or `nadir`. The traffic shares are not in economy.json; they are derived from the frequency tier.
 
-`wardrobeTags` giydirme sistemine hangi kıyafet alt kümesinin çekileceğini söyler. Davranış ve görünüm bağını kuran alan bu.
+`wardrobeTags` tells the dress-up system which clothing subset to draw from. This is the field that makes the tie between behaviour and appearance.
 
 ### staff-roles.json
 
@@ -168,7 +168,7 @@ Oyunun bütün genel sabitleri tek dosyada. Denge aracı en çok bu dosyayı de�
 }
 ```
 
-### equipment.json ve upgrades.json
+### equipment.json and upgrades.json
 
 ```json
 {
@@ -225,7 +225,7 @@ Oyunun bütün genel sabitleri tek dosyada. Denge aracı en çok bu dosyayı de�
 }
 ```
 
-Düzenli müşteri bir arketipi taban alır ve üstüne kendi özelliklerini ekler. Böylece davranış kodu tek bir yol izler.
+A regular takes an archetype as its base and adds its own properties on top. That way the behaviour code follows a single path.
 
 ### cuisines.json
 
@@ -245,72 +245,73 @@ Düzenli müşteri bir arketipi taban alır ve üstüne kendi özelliklerini ekl
 }
 ```
 
-### `perishableRatio` bir GIRDI degil, bir OLCUM
+### `perishableRatio` is not an INPUT, it is a MEASUREMENT
 
-Simulasyon bu alani okumuyor; `ingredients.json`'daki `perishable`
-alanlarindan sayiliyor (`tools/audit_content.py`). Semada durmasinin
-sebebi bir **tasarim vaadini** gorunur tutmak:
+The simulation does not read this field; it is counted from the `perishable`
+fields in `ingredients.json` (`tools/audit_content.py`). The reason it stays in
+the schema is to keep a **design promise** visible:
 
-| mutfak | bozulabilir / toplam | oran |
+| cuisine | perishable / total | ratio |
 |---|---:|---:|
 | fastfood | 20 / 48 | **0.42** |
 | turk | 30 / 53 | **0.57** |
 
-Bu satirlar bir zamanlar 0,20 ve 0,60 yaziyordu ve **ikisi de yanlisti**:
-olculdugunde iki mutfak da 0,58 cikti. Yani iki mutfagin en somut
-oynanis farki oldugu soylenen sey, hic var olmamisti.
+These rows once read 0.20 and 0.60 and **both were wrong**: when measured, both
+cuisines came out at 0.58. So the thing said to be the most concrete gameplay
+difference between the two cuisines had never existed.
 
-Fark simdi gercek ve bir KURALDAN geliyor: fast food'a ozel bir malzeme
-gercek bir lokantada dondurulmus ya da kavanozda geliyorsa bozulmuyor
-(kanat, fileto, sosis, mozzarella, dondurma karisimi, jalapeno, tursu,
-vejetaryen kofte). Taze kalan yalnizca burgerin **ustune** konanlar:
-ekmek, marul, lahana, elma.
+The difference is real now and it comes from a RULE: an ingredient specific to
+fast food does not spoil if in a real restaurant it arrives frozen or in a jar
+(wings, fillet, sausage, mozzarella, ice cream mix, jalapeño, pickles, veggie
+patty). The only things that stay fresh are the ones that go **on top of** the
+burger: bread, lettuce, cabbage, apple.
 
-Sonuc oyunda su: **fast food affediyor, Turk mutfagi affetmiyor.** Yanlis
-hesaplanmis bir gunu fast food'da atlatirsin; Turk mutfaginda odersin, ve
-soguk hava deposu orada cok daha erken bir zorunluluk.
+In play the result is this: **fast food forgives, Turkish cuisine does not.**
+A day you miscalculated you can shrug off in fast food; in Turkish cuisine you
+pay for it, and the cold store is a necessity far earlier there.
 
-Uzun raf omurlu kiler malzemeleri (sogan 20 gun, sarimsak 30, patates 25)
-bilerek **bozulabilir birakildi**. Sogutma yokken her seyin gece olmesi
-bir kaza degil, [12-economy.md](12-economy.md) 3'un koydugu taban - ve
-soguk hava merdiveninin satin aldigi sey tam olarak o tabandan cikmak.
-Onlari bozulmaz yapmak absurtlugu degil, yukseltmeyi kaldirirdi.
-
----
-
-## Doğrulama
-
-Çekirdek açılışta bütün içeriği doğrular ve hata varsa **çalışmayı reddeder.** Sessizce devam etmek en pahalı hata türüdür.
-
-Kontrol edilenler:
-
-1. Her `id` benzersiz mi
-2. Her referans var olan bir kayda mı işaret ediyor
-3. Her `nameKey` yerelleştirme dosyalarında var mı, hem TR hem EN
-4. Tarif malzemeleri o mutfakta mevcut mu
-5. `arrivalWeights` ve `orderPreference` toplamları 1,0 mı
-6. `unlockDay` değerleri kampanya süresini aşıyor mu
-7. Her mutfakta yeterli yemek var mı, açılış menüsünü doldurabiliyor mu
-
-Bu doğrulayıcı denge aracının da ilk adımı olacak.
+Long shelf-life pantry ingredients (onion 20 days, garlic 30, potato 25) were
+deliberately **left perishable**. Everything dying overnight when there is no
+refrigeration is not an accident; it is the floor set by
+[12-economy.md](12-economy.md) 3 — and what the cold store ladder buys is exactly
+getting off that floor. Making them non-perishable would not remove the
+absurdity, it would remove the upgrade.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Validation
 
-1. Malzeme miktarları kilogram mı porsiyon mu olsun
-2. Kalite kademesi üç mü kalmalı
-3. Mevsim isimleri gerçek mevsimler mi olsun, yoksa sadece numara mı
+The core validates all the content at startup and **refuses to run** if there is an error. Carrying on silently is the most expensive kind of mistake.
+
+What is checked:
+
+1. Is every `id` unique
+2. Does every reference point at a record that exists
+3. Does every `nameKey` exist in the localisation files, both TR and EN
+4. Are the recipe's ingredients available in that cuisine
+5. Do `arrivalWeights` and `orderPreference` sum to 1.0
+6. Do the `unlockDay` values exceed the campaign length
+7. Does every cuisine have enough dishes, can it fill the opening menu
+
+This validator will also be the balance tool's first step.
 
 ---
 
-## Parti B eklemeleri
+## Details awaiting a decision
 
-[23-core-contract.md](23-core-contract.md) §8 bu şemalara dört ekleme getiriyor ve bağlayıcı:
+1. Should ingredient amounts be in kilograms or in portions
+2. Should the quality tier stay at three
+3. Should the season names be real seasons, or just numbers
 
-1. `staff-roles.json` içine `pool` ve `capacityPerDay`; `economy.json` içine `staffing` bloğu (patron iş gücü, kademeler, tavanlar)
-2. `cuisines.json` içine mutfak başına `signature` bloğu: combo, credit, courses, broth
-3. `dishes/*.json` içine dört zorunlu parametre: `prepMs`, `station`, `complexity`, `ingredients[].grams`; artı görünüm için `plating`
-4. **Bütün sayılar tamsayı:** santi-sikke, baz puan, milisaniye. Doğrulayıcı ondalık görürse dosyayı reddeder
+---
 
-Bu dosyadaki örnek şemalar Faz 0'da §8'e göre yeniden yazılır; sayısal değerler `tools/balance/render.py` tarafından üretilir, elle girilmez.
+## Batch B additions
+
+[23-core-contract.md](23-core-contract.md) §8 brings four additions to these schemas, and they are binding:
+
+1. `pool` and `capacityPerDay` into `staff-roles.json`; a `staffing` block into `economy.json` (the owner's labour, the tiers, the caps)
+2. A `signature` block per cuisine into `cuisines.json`: combo, credit, courses, broth
+3. Four mandatory parameters into `dishes/*.json`: `prepMs`, `station`, `complexity`, `ingredients[].grams`; plus `plating` for the appearance
+4. **Every number is an integer:** centi-coins, basis points, milliseconds. If the validator sees a decimal it rejects the file
+
+The example schemas in this file are rewritten in Phase 0 according to §8; the numerical values are produced by `tools/balance/render.py` and are not entered by hand.

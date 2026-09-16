@@ -2,64 +2,68 @@ namespace Lokanta.Core.Economy
 {
     /// <summary>
     /// docs/12-economy.md 5.1
-    ///   musteri = masa x taban x (0,5 + itibar/100) x gun_katsayisi
+    ///   customers = tables x base x (0.5 + reputation/100) x day_factor
     ///
-    /// Tamsayi cevirisi: itibar santi-puan (30 = 3000) tutuluyor ve
-    /// itibar/100 orani baz puan cinsinden tam olarak santi-puana esit,
-    /// cunku itibar_centi = itibar x 100 ve (itibar/100) x 10000 = itibar x 100.
-    /// Yani talep carpani = 5000 + itibarSanti baz puan.
+    /// The integer translation: reputation is kept in centi-points (30 = 3000)
+    /// and the ratio reputation/100 expressed in basis points is exactly equal
+    /// to the centi-point figure, because reputation_centi = reputation x 100
+    /// and (reputation/100) x 10000 = reputation x 100.
+    /// So the demand multiplier = 5000 + reputationCenti basis points.
     /// </summary>
     public static class DemandModel
     {
         /// <summary>
-        /// Talep carpani, baz puan. Itibar 30 -> 8000 (0,80).
+        /// The demand multiplier, in basis points. Reputation 30 -> 8000 (0.80).
         ///
-        /// Dogrusal kismin bir TABANI vardi ve fazla yuksekti: itibar sifira
-        /// inse bile restoran taban talebin yarisini aliyordu. Yani kimsenin
-        /// konusmadigi bir dukkan hala yari doluymus gibi davraniyordu ve
-        /// ihmalin olum sarmali hissedilmiyordu.
+        /// The linear part had a FLOOR and it was too high: even with
+        /// reputation down at zero the restaurant still took half of base
+        /// demand. So a shop nobody was talking about still behaved as if it
+        /// were half full, and the death spiral of neglect could not be felt.
         ///
-        /// Kirilma noktasi 20 puan, baslangic itibarinin (30) ALTINDA.
+        /// The break point is 20 points, BELOW the starting reputation (30).
         ///
-        /// Once 30'a konmustu ve test yakaladi: itibar ilk gunden erimeye
-        /// basliyor, yani her oyuncu daha ikinci gunde dik bolgeye giriyor
-        /// ve acilis haftasi herkes icin cokuyordu. Kirilma baslangicin
-        /// altinda olmali ki yalnizca GERCEK cokus cezalandirilsin.
+        /// It was first put at 30 and a test caught it: reputation starts
+        /// eroding from the first day, so every player entered the steep
+        /// region as early as the second day and the opening week collapsed
+        /// for everyone. The break must sit below the starting value, so that
+        /// only a REAL collapse is punished.
         /// </summary>
         public static int DemandMultiplierBp(int reputationCenti)
         {
             int linear = (Fx.One / 2) + reputationCenti;
             if (reputationCenti >= StartReputationCenti) return linear;
 
-            // Sifirda %10, baslangic itibarinda %100.
+            // 10% at zero, 100% at the starting reputation.
             int k = FloorBp + (int)Fx.MulDiv(Fx.One - FloorBp,
                                              reputationCenti, StartReputationCenti);
             return (int)Fx.MulDiv(linear, k, Fx.One);
         }
 
         /// <summary>
-        /// FIYATIN TALEBE DOGRUDAN ETKISI.
+        /// THE DIRECT EFFECT OF PRICE ON DEMAND.
         ///
-        /// Bu kanal bir zamanlar HIC YOKTU ve oyundaki en buyuk acigi
-        /// aciyordu. Fiyatin tek yolu memnuniyet -> itibar idi; itibar
-        /// ise masa kademesinin tavanina KIRPILIYOR. Yani tavana dayanmis
-        /// bir oyuncu icin memnuniyet kaybi hicbir sey satin almiyordu ve
-        /// kucuk bir zam BEDAVAYDI.
+        /// This channel once DID NOT EXIST AT ALL, and it left the biggest
+        /// hole in the game. Price's only route was satisfaction ->
+        /// reputation; and reputation is CLAMPED to the ceiling of the table
+        /// tier. So for a player pressed up against that ceiling a loss of
+        /// satisfaction bought nothing, and a small price rise was FREE.
         ///
-        /// Olculdu (24 tohum, 60 gun, fast food): piyasanin %10 ustunde
-        /// fiyatlayan bir bot 27.849 sikke ile bitiriyordu - oyunun en
-        /// gelismis stratejisi 25.092, taban strateji 18.670. Yani sabah
-        /// bir kez basilan bir dugme, DAHA AZ masa ve DAHA AZ kadroyla
-        /// her seyi geciyordu. Ceza yalnizca bandin disinda vardi (%30
-        /// zamda itibar sifirlaniyor ve dukkan batiyor), arasi bostu.
+        /// Measured (24 seeds, 60 days, fast food): a bot pricing 10% above
+        /// the market finished on 27,849 coins - the game's most advanced
+        /// strategy managed 25,092, the baseline strategy 18,670. So one
+        /// button pressed once in the morning beat everything, with FEWER
+        /// tables and a SMALLER crew. The punishment existed only outside the
+        /// band (at a 30% rise reputation zeroes out and the shop goes under);
+        /// in between there was nothing.
         ///
-        /// Kanal ayrica OKUNABILIRLIK: zam yapan oyuncu artik ertesi gun
-        /// daha az musteri goruyor. Eskiden hicbir ekran ona zammin bir
-        /// bedeli oldugunu soylemiyordu.
+        /// The channel is also READABILITY: a player who raises prices now
+        /// sees fewer customers the next day. Before, no screen told them that
+        /// the rise had a cost.
         ///
-        /// Taban ve tavan var, cunku esneklik dogrusal: %50 indirim
-        /// talebi ikiye katlamamali, %60 zam da dukkani bir gunde
-        /// bosaltmamali. Itibar cokusu zaten ayri bir cezadir.
+        /// There is a floor and a ceiling, because the elasticity is linear:
+        /// a 50% discount must not double demand, and a 60% rise must not
+        /// empty the shop in a single day. A reputation collapse is already a
+        /// separate punishment.
         /// </summary>
         public static int ApplyPrice(int people, long priceDiffBp, int elasticityBp)
         {
@@ -71,21 +75,22 @@ namespace Lokanta.Core.Economy
             return (int)Fx.MulDiv(people, multBp, Fx.One);
         }
 
-        /// <summary>Fiyat kanalinin talebi indirebilecegi en dusuk oran.</summary>
+        /// <summary>The lowest ratio the price channel can drive demand down to.</summary>
         private const int PriceFloorBp = 3000;
 
-        /// <summary>Fiyat kanalinin talebi cikarabilecegi en yuksek oran.</summary>
+        /// <summary>The highest ratio the price channel can lift demand to.</summary>
         private const int PriceCeilBp = 13000;
 
-        /// <summary>Egrinin kirilma noktasi, santi-puan. 20 puan.</summary>
+        /// <summary>The curve's break point, in centi-points. 20 points.</summary>
         private const int StartReputationCenti = 2000;
 
-        /// <summary>Itibar sifirken talebin kalan payi, baz puan.</summary>
+        /// <summary>The share of demand that remains when reputation is zero, in basis points.</summary>
         private const int FloorBp = 1000;
 
         /// <summary>
-        /// Bir gunun musteri sayisi. Tek yuvarlama en sonda yapilir;
-        /// ara adimlarda yuvarlama YOK, cunku Python modeli de tek kez yuvarliyor.
+        /// One day's customer count. A single rounding happens right at the
+        /// end; there is NO rounding in the intermediate steps, because the
+        /// Python model also rounds only once.
         /// </summary>
         public static int CustomersPerDay(int tables, int reputationCenti,
                                           int basePerTable, int dayFactorBp)
@@ -107,7 +112,7 @@ namespace Lokanta.Core.Economy
                                    cfg.CustomerBasePerTable, cfg.WeekendMultiplierBp);
         }
 
-        /// <summary>Haftanin toplam musterisi. Hafta sonu gunleri ayri katsayili.</summary>
+        /// <summary>The week's total customers. Weekend days carry their own factor.</summary>
         public static int WeekCustomers(int tables, int reputationCenti, EconomyConfig cfg)
         {
             int weekday = WeekdayCustomers(tables, reputationCenti, cfg);

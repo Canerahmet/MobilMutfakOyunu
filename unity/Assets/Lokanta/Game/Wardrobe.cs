@@ -3,77 +3,81 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// PERSONELIN KIYAFETI: uc rol, uc siluet.
+    /// THE STAFF'S CLOTHES: three roles, three silhouettes.
     ///
-    /// Kullanicinin istegi acikti: "ascinin basinda sef sapkasi ve sef
-    /// kiyafeti olsun, bulasikci onluk ve eldiven taksin, garson takim
-    /// elbise giysin".
+    /// The user's request was plain: "the cook should have a chef's hat
+    /// and chef's whites, the dishwasher should wear an apron and gloves,
+    /// the waiter should wear a suit".
     ///
-    /// Bizde personel ile musteri AYNI figurlerdi (BuildGameScene
-    /// personeli erkek a/b/c'den seciyor), yani salonda kimin garson
-    /// oldugunu oyuncu ancak HAREKETINDEN anlayabiliyordu. docs/25'in
-    /// kurali: kimlik ORTAM, ISIK, SILUET ve KIYAFETLE kurulur.
+    /// Here the staff and the guests were THE SAME figures (BuildGameScene
+    /// picks the staff out of male a/b/c), so in the hall the player could
+    /// only tell who the waiter was FROM THEIR MOVEMENT. The rule of
+    /// docs/25: identity is built out of the ENVIRONMENT, the LIGHT, the
+    /// SILHOUETTE and the CLOTHES.
     ///
-    /// KEMIGE TAKILIYOR, KOKE DEGIL. Figur yururken govde ve bas
-    /// sallaniyor; koke takilan bir kep havada kalir ve bu, animasyonun
-    /// KENDISINI bozuk gosterir. Paketin iskeletinde "head", "torso",
-    /// "arm-left" ve "arm-right" kemikleri var (FBX'te dogrulandi).
+    /// IT IS ATTACHED TO A BONE, NOT TO THE ROOT. The body and the head
+    /// swing as the figure walks; a hat attached to the root hangs in the
+    /// air, and that makes the animation ITSELF look broken. The pack's
+    /// skeleton has "head", "torso", "arm-left" and "arm-right" bones
+    /// (verified in the FBX).
     ///
-    /// OLCU FIGURDEN OKUNUYOR, SABIT SAYIDAN DEGIL. Ilk yazim kepi
-    /// kemige gore sabit sayilarla koydu ve ekranda hicbir sey
-    /// gorunmedi: kep basin ICINDE kaldi (kemik zincirinin kendi olcegi
-    /// 1,19 ve bas kemigi boyunda duruyor). Butun parcalar artik
-    /// figurun boyundan ve derisinin dunya kutusundan turetiliyor.
+    /// THE MEASUREMENTS ARE READ FROM THE FIGURE, NOT FROM FIXED NUMBERS.
+    /// The first version placed the hat with fixed numbers relative to the
+    /// bone and nothing appeared on screen at all: the hat stayed INSIDE
+    /// the head (the bone chain's own scale is 1.19 and the head bone is
+    /// as long as the body). Every part is now derived from the figure's
+    /// height and from the world box of its skin.
     /// </summary>
     public static class Wardrobe
     {
-        /// <summary>Personelin rolu. Kiyafet buna gore kuruluyor.</summary>
+        /// <summary>The staff member's role. The clothes are built from it.</summary>
         public enum Role { Cook, Dishwasher, Waiter }
 
         /// <summary>
-        /// Kac giydirme DENENDI ve kaci TAMAMLANDI.
+        /// How many dressings were ATTEMPTED and how many were COMPLETED.
         ///
-        /// Dress'in dort ayri erken cikisi var (kemik yok, cizici yok,
-        /// olcu sacma, kol yok). Hepsi artik uyari basiyor ama uyari
-        /// gunlukte kaybolabiliyor; bu iki sayi turun "giydirilen
-        /// personel N/M" satirini besliyor, yani kiyafet kaybolursa
-        /// otomatik olcum KIRMIZI yaniyor.
+        /// Dress has four separate early exits (no bone, no renderer, an
+        /// absurd measurement, no arm). All of them print a warning now, but
+        /// a warning can get lost in the log; these two numbers feed the
+        /// tour's "staff dressed N/M" line, so if the clothes disappear the
+        /// automatic measurement goes RED.
         /// </summary>
         public static int Attempted, Dressed;
 
-        /// <summary>Olcumu sifirlar. Kadro yeniden kurulurken cagriliyor.</summary>
+        /// <summary>Resets the measurement. Called while the crew is rebuilt.</summary>
         public static void ResetCounters() { Attempted = 0; Dressed = 0; }
 
 
-        private const string HatName = "Kep";
-        private const string BodyName = "Kiyafet";
-        private const string GloveName = "Eldiven";
+        private const string HatName = "Hat";
+        private const string BodyName = "Outfit";
+        private const string GloveName = "Glove";
 
-        /// <summary>Sef beyazi: kep ve ceket.</summary>
+        /// <summary>Chef white: the hat and the jacket.</summary>
         private static readonly Color Chef = new Color(0.949f, 0.945f, 0.929f);
 
-        /// <summary>Sef ceketinin dugmeleri ve yaka cizgisi.</summary>
+        /// <summary>The buttons and the collar line of the chef's jacket.</summary>
         private static readonly Color ChefTrim = new Color(0.427f, 0.451f, 0.494f);
 
-        /// <summary>Bulasikcinin mesin onlugu: koyu ve mat.</summary>
+        /// <summary>The dishwasher's leather apron: dark and matt.</summary>
         private static readonly Color Rubber = new Color(0.278f, 0.318f, 0.365f);
 
-        /// <summary>Lastik eldiven. Sari: uzaktan okunan tek renk.</summary>
+        /// <summary>A rubber glove. Yellow: the one colour that reads from a distance.</summary>
         private static readonly Color Glove = new Color(0.937f, 0.761f, 0.216f);
 
-        /// <summary>Garsonun takimi, gomlegi ve papyonu.</summary>
+        /// <summary>The waiter's suit, shirt and bow tie.</summary>
         private static readonly Color Suit = new Color(0.137f, 0.153f, 0.192f);
         private static readonly Color Shirt = new Color(0.929f, 0.933f, 0.945f);
         private static readonly Color Bow = new Color(0.545f, 0.125f, 0.133f);
 
-        /// <summary>Onlugun kemeri.</summary>
+        /// <summary>The apron's belt.</summary>
         private static readonly Color Belt = new Color(0.106f, 0.122f, 0.149f);
 
         /// <summary>
-        /// Figuru giydirir. Ayni figur iki kez cagrilirsa eskisini
-        /// temizler - kadro degisince ayni GameObject baska bir role
-        /// gecebiliyor (asci cikip garson aliniyor, garson bulasiga
-        /// geciyor) ve ustunde iki kiyafet birden kalmamali.
+        /// Dresses the figure. If the same figure is passed twice it clears
+        /// the old clothes - when the crew changes, the same GameObject can
+        /// move to another role (a cook leaves and a waiter is hired, a
+        /// waiter moves to the sink) and it must not end up wearing two
+        /// outfits at once.
         /// </summary>
         public static void Dress(GameObject figure, Role role, Material mat,
                                  MaterialPropertyBlock block)
@@ -85,96 +89,99 @@ namespace Lokanta.Game
             Transform torso = Find(figure.transform, "torso");
             if (head == null || torso == null)
             {
-                // SESSIZ ERKEN CIKIS YOK.
+                // NO SILENT EARLY EXIT.
                 //
-                // Bu dosyanin kendi yorumu hatanin BIR KEZ yasandigini
-                // anlatiyor ("SESSIZCE hicbir sey yapmadi") ama koruma
-                // eklenmemis, yalnizca olcu kaynagi duzeltilmisti.
-                // Kiyafet, uc rolu ayirt eden TEK kanal: kayboldugunda
-                // mekanik gorunmez oluyor ve tek bir uyari basilmiyordu.
-                Debug.LogWarning("Wardrobe: iskelette head/torso yok - "
-                                 + figure.name + " giydirilemedi");
+                // This file's own comment says the bug happened ONCE ("it
+                // SILENTLY did nothing"), but no guard had been added - only the
+                // source of the measurement had been fixed. The clothes are the
+                // ONLY channel that tells the three roles apart: when they
+                // disappear the mechanic becomes invisible, and not a single
+                // warning was printed.
+                Debug.LogWarning("Wardrobe: no head/torso in the skeleton - "
+                                 + figure.name + " could not be dressed");
                 return;
             }
 
-            Transform solKol = Find(figure.transform, "arm-left");
-            Transform sagKol = Find(figure.transform, "arm-right");
+            Transform leftArm = Find(figure.transform, "arm-left");
+            Transform rightArm = Find(figure.transform, "arm-right");
 
             Strip(head, HatName);
             Strip(torso, BodyName);
-            Strip(solKol, GloveName);
-            Strip(sagKol, GloveName);
+            Strip(leftArm, GloveName);
+            Strip(rightArm, GloveName);
 
-            // DERI TEK BIR SkinnedMeshRenderer DEGIL.
+            // THE SKIN IS NOT A SINGLE SkinnedMeshRenderer.
             //
-            // Ilk yazim oyle varsaydi ve SESSIZCE hicbir sey yapmadi:
-            // paketin karakteri "body-mesh" ve "head-mesh" diye iki ayri
-            // parcadan kuruluyor. Butun cizicilerin kutusu birlestiriliyor;
-            // kiyafetin kendisi haric (ikinci cagride kendi kutusunu
-            // olcmesin).
+            // The first version assumed it was and SILENTLY did nothing: the
+            // pack's character is built from two separate parts, "body-mesh"
+            // and "head-mesh". The boxes of all the renderers are combined -
+            // except for the clothes themselves (so that on a second call it
+            // does not measure its own box).
             Bounds b = new Bounds();
-            bool ilk = true;
+            bool first = true;
             foreach (Renderer rr in figure.GetComponentsInChildren<Renderer>())
             {
                 Transform p = rr.transform.parent;
                 if (p != null && (p.name == HatName || p.name == BodyName
                                   || p.name == GloveName)) continue;
-                if (ilk) { b = rr.bounds; ilk = false; }
+                if (first) { b = rr.bounds; first = false; }
                 else b.Encapsulate(rr.bounds);
             }
-            if (ilk)
+            if (first)
             {
-                Debug.LogWarning("Wardrobe: figurde hic cizici yok - "
-                                 + figure.name + " giydirilemedi");
+                Debug.LogWarning("Wardrobe: the figure has no renderer at all - "
+                                 + figure.name + " could not be dressed");
                 return;
             }
 
-            float boy = b.size.y;
-            if (boy < 0.05f)
+            float height = b.size.y;
+            if (height < 0.05f)
             {
-                Debug.LogWarning("Wardrobe: figur olculemedi (boy "
-                                 + boy.ToString("0.000") + " m) - "
-                                 + figure.name + " giydirilemedi");
+                Debug.LogWarning("Wardrobe: could not measure the figure (height "
+                                 + height.ToString("0.000") + " m) - "
+                                 + figure.name + " could not be dressed");
                 return;
             }
 
-            // KIYAFET GOVDEYI SARIYOR, ONUNE YAPISMIYOR.
+            // THE CLOTHES WRAP THE BODY, THEY DO NOT STICK TO ITS FRONT.
             //
-            // Ilk yazim yalnizca ON yuze levha koyuyordu ve oyunun
-            // kamerasi personelin cogu zaman SIRTINI goruyor: asci
-            // ceketi de bulasikci onlugu de yarisi zaman gorunmuyordu.
+            // The first version put a slab on the FRONT face only, and the
+            // game's camera sees the staff's BACK most of the time: both the
+            // cook's jacket and the dishwasher's apron were invisible half
+            // the time.
             //
-            // Kabuk derinligi figurun OLCULEN govde derinliginden
-            // geliyor; detaylar (dugme, papyon) yalnizca on yuze.
-            // OLCEK OLCUMDEN: 0,40 -> 0,80.
+            // The shell's depth comes from the figure's MEASURED body depth;
+            // the details (the buttons, the bow tie) go on the front face
+            // only. THE SCALE FROM MEASUREMENT: 0.40 -> 0.80.
             //
-            // Ilk deger goz karariydi ve kiyafet BEDENIN ICINDE kaldi:
-            // olculdu (TANI satiri), figurun kutusu 1,14 x 1,00 x 0,51 -
-            // genislikteki 1,14 KOLLAR, govde ise ~0,5 m. Yerel 0,70
-            // genisligindeki ceket 0,40 olcekte 0,28 m ediyordu, yani
-            // govdenin yarisi.
+            // The first value was judged by eye and the clothes stayed INSIDE
+            // THE BODY: it was measured (the diagnostic line), and the
+            // figure's box is 1.14 x 1.00 x 0.51 - the 1.14 of width is the
+            // ARMS, while the body is ~0.5 m. A jacket 0.70 wide in local
+            // space came to 0.28 m at a scale of 0.40, that is, half the
+            // body.
             //
-            // Artik yerel 1,0 = boyun %80'i: ceket 0,56 m genisliginde
-            // ve govdeyi sariyor. Kalinlik da OLCULEN derinlikten.
-            float olcek = boy * 0.80f;
-            float derinlik = b.size.z;
-            float kalinlik = Mathf.Clamp(derinlik * 0.80f
-                                         / Mathf.Max(0.0001f, olcek), 0.30f, 0.75f);
+            // Now local 1.0 = 80% of the height: the jacket is 0.56 m wide and
+            // wraps the body. The thickness comes from the MEASURED depth too.
+            float scale = height * 0.80f;
+            float depth = b.size.z;
+            float thickness = Mathf.Clamp(depth * 0.80f
+                                         / Mathf.Max(0.0001f, scale), 0.30f, 0.75f);
 
             switch (role)
             {
                 case Role.Cook:
-                    Hat(head, boy, b.max.y, mat, block);
-                    ChefJacket(figure.transform, torso, olcek, kalinlik, mat, block);
+                    Hat(head, height, b.max.y, mat, block);
+                    ChefJacket(figure.transform, torso, scale, thickness, mat, block);
                     break;
 
                 case Role.Dishwasher:
-                    RubberApron(figure.transform, torso, olcek, kalinlik, mat, block);
-                    Gloves(solKol, sagKol, boy, mat, block);
+                    RubberApron(figure.transform, torso, scale, thickness, mat, block);
+                    Gloves(leftArm, rightArm, height, mat, block);
                     break;
 
                 default:
-                    SuitJacket(figure.transform, torso, olcek, kalinlik, mat, block);
+                    SuitJacket(figure.transform, torso, scale, thickness, mat, block);
                     break;
             }
 
@@ -183,183 +190,191 @@ namespace Lokanta.Game
 
         // =====================================================================
         /// <summary>
-        /// Kep: bant ve uzerinde sisik govde. BIRIM orgu kuruluyor,
-        /// dunya olcegine sonra cekiliyor.
+        /// The hat: a band with a puffed body on top. A UNIT mesh is built
+        /// and pulled to world scale afterwards.
         /// </summary>
-        private static void Hat(Transform head, float boy, float tepe,
+        private static void Hat(Transform head, float height, float top,
                                 Material mat, MaterialPropertyBlock block)
         {
             Modeler m = new Modeler();
             m.Prism(10, 0.40f, 0.42f, 0.22f, Vector3.zero,
-                    Quaternion.identity, Chef);                       // bant
+                    Quaternion.identity, Chef);                       // band
             m.Prism(10, 0.38f, 0.52f, 0.52f, new Vector3(0f, 0.20f, 0f),
-                    Quaternion.identity, Chef);                       // sisik govde
+                    Quaternion.identity, Chef);                       // the puffed body
 
             GameObject go = m.Build(head, HatName, mat, block);
 
-            // Kep boyun %31'i kadar genis: gercek bir asci kepi de
-            // kabaca basin capi kadardir ve bu olcekte siluet veriyor.
-            Scale(go.transform, head, boy * 0.31f);
+            // The hat is as wide as 31% of the height: a real chef's hat is
+            // roughly the diameter of the head too, and at this scale it gives
+            // a silhouette.
+            Scale(go.transform, head, height * 0.31f);
             go.transform.rotation = head.rotation;
             go.transform.position = new Vector3(head.position.x,
-                                                tepe - boy * 0.045f,
+                                                top - height * 0.045f,
                                                 head.position.z);
         }
 
         /// <summary>
-        /// SEF CEKETI: cift sira dugmeli beyaz ceket ve beyaz onluk.
+        /// THE CHEF'S JACKET: a double-breasted white jacket and a white
+        /// apron.
         ///
-        /// Onceki hali yalnizca beyaz bir onluktu ve asci ile garson
-        /// ayni siluetti. Ceket govdenin ONUNU ve OMUZLARINI kapliyor;
-        /// cift sira dugme, sef ceketini sef ceketi yapan tek detay.
+        /// Before this it was only a white apron, and the cook and the
+        /// waiter had the same silhouette. The jacket covers the body's
+        /// FRONT and its SHOULDERS; the double row of buttons is the one
+        /// detail that makes a chef's jacket a chef's jacket.
         /// </summary>
-        private static void ChefJacket(Transform kok, Transform torso, float olcek,
-                                       float kal, Material mat,
+        private static void ChefJacket(Transform root, Transform torso, float scale,
+                                       float thick, Material mat,
                                        MaterialPropertyBlock block)
         {
             Modeler m = new Modeler();
-            float on = kal * 0.5f + 0.02f;
+            float front = thick * 0.5f + 0.02f;
 
-            // Ceket govdesi: govdeyi saran kabuk.
-            // GENISLIK GOVDEYE GORE: 0,70 -> 0,56.
+            // The jacket's body: the shell that wraps the body.
+            // THE WIDTH FOLLOWS THE BODY: 0.70 -> 0.56.
             //
-            // Ilk kabuk govdeden GENISTI ve ekranda iki yana tasan
-            // beyaz kanatlar gibi duruyordu. Figurun govdesi ~0,45 m;
-            // kabuk ondan biraz genis olmali, iki katı degil.
-            m.Box(new Vector3(0f, 0.02f, 0f), new Vector3(0.56f, 0.46f, kal), Chef);
-            m.Box(new Vector3(0f, 0.24f, 0f), new Vector3(0.60f, 0.12f, kal + 0.03f), Chef);
+            // The first shell was WIDER than the body and stood on screen
+            // like white wings sticking out on both sides. The figure's body
+            // is ~0.45 m; the shell has to be a little wider than that, not
+            // twice as wide.
+            m.Box(new Vector3(0f, 0.02f, 0f), new Vector3(0.56f, 0.46f, thick), Chef);
+            m.Box(new Vector3(0f, 0.24f, 0f), new Vector3(0.60f, 0.12f, thick + 0.03f), Chef);
 
-            // Cift sira dugme: yalnizca ON yuzde.
+            // The double row of buttons: on the FRONT face only.
             for (int i = 0; i < 3; i++)
             {
                 float y = 0.16f - i * 0.13f;
-                m.Box(new Vector3(-0.10f, y, on),
+                m.Box(new Vector3(-0.10f, y, front),
                       new Vector3(0.06f, 0.06f, 0.04f), ChefTrim);
-                m.Box(new Vector3(0.10f, y, on),
+                m.Box(new Vector3(0.10f, y, front),
                       new Vector3(0.06f, 0.06f, 0.04f), ChefTrim);
             }
 
-            // Belden asagi onluk ve kemer (kemer cepecevre).
-            m.Box(new Vector3(0f, -0.32f, 0f), new Vector3(0.52f, 0.34f, kal), Chef);
-            m.Box(new Vector3(0f, -0.17f, 0f), new Vector3(0.58f, 0.07f, kal + 0.03f), Belt);
+            // The apron below the waist and the belt (the belt goes all the way round).
+            m.Box(new Vector3(0f, -0.32f, 0f), new Vector3(0.52f, 0.34f, thick), Chef);
+            m.Box(new Vector3(0f, -0.17f, 0f), new Vector3(0.58f, 0.07f, thick + 0.03f), Belt);
 
-            Place(m, kok, torso, olcek, mat, block);
+            Place(m, root, torso, scale, mat, block);
         }
 
         /// <summary>
-        /// BULASIKCININ ONLUGU: govdeyi bastan asagi kapatan mesin onluk
-        /// ve boyun askisi.
+        /// THE DISHWASHER'S APRON: a leather apron covering the body from
+        /// top to bottom, and a neck strap.
         /// </summary>
-        private static void RubberApron(Transform kok, Transform torso, float olcek,
-                                        float kal, Material mat,
+        private static void RubberApron(Transform root, Transform torso, float scale,
+                                        float thick, Material mat,
                                         MaterialPropertyBlock block)
         {
             Modeler m = new Modeler();
-            float on = kal * 0.5f + 0.02f;
+            float front = thick * 0.5f + 0.02f;
 
-            // ONLUK ONDE, SIRT ACIK: gercek bir mesin onluk da oyle.
-            // Ama sirtta askilar goruunuyor - figur sirtini dondugunde
-            // oyuncu yine "bu bulasikci" diyebilmeli.
-            m.Box(new Vector3(0f, -0.14f, on), new Vector3(0.52f, 0.66f, 0.06f), Rubber);
-            m.Box(new Vector3(0f, 0.22f, on), new Vector3(0.28f, 0.20f, 0.06f), Rubber);
+            // THE APRON IN FRONT, THE BACK OPEN: a real leather apron is like
+            // that too. But the straps are visible at the back - when the
+            // figure turns its back the player should still be able to say
+            // "that is the dishwasher".
+            m.Box(new Vector3(0f, -0.14f, front), new Vector3(0.52f, 0.66f, 0.06f), Rubber);
+            m.Box(new Vector3(0f, 0.22f, front), new Vector3(0.28f, 0.20f, 0.06f), Rubber);
 
-            // Boyun ve sirt askilari: omuzdan gecip sirtta caprazlaniyor.
+            // The neck and back straps: over the shoulder, crossing at the back.
             for (int k = 0; k < 2; k++)
             {
                 float x = k == 0 ? -0.13f : 0.13f;
                 m.Box(new Vector3(x, 0.28f, 0f),
-                      new Vector3(0.06f, 0.14f, kal + 0.03f), Rubber);
-                m.Box(new Vector3(x, 0.02f, -on),
+                      new Vector3(0.06f, 0.14f, thick + 0.03f), Rubber);
+                m.Box(new Vector3(x, 0.02f, -front),
                       new Vector3(0.06f, 0.44f, 0.05f), Rubber);
             }
 
-            // Kemer cepecevre.
-            m.Box(new Vector3(0f, -0.16f, 0f), new Vector3(0.58f, 0.07f, kal + 0.03f), Belt);
+            // The belt, all the way round.
+            m.Box(new Vector3(0f, -0.16f, 0f), new Vector3(0.58f, 0.07f, thick + 0.03f), Belt);
 
-            Place(m, kok, torso, olcek, mat, block);
+            Place(m, root, torso, scale, mat, block);
         }
 
         /// <summary>
-        /// GARSONUN TAKIMI: koyu ceket, beyaz gomlek seridi ve papyon.
+        /// THE WAITER'S SUIT: a dark jacket, a strip of white shirt and a
+        /// bow tie.
         ///
-        /// Yaka acikligini gomlek dolduruyor; papyon kucuk ama uzaktan
-        /// "burasi servis" diyen tek leke.
+        /// The shirt fills the opening of the collar; the bow tie is small,
+        /// but it is the one mark that says "this is service" from a
+        /// distance.
         /// </summary>
-        private static void SuitJacket(Transform kok, Transform torso, float olcek,
-                                       float kal, Material mat,
+        private static void SuitJacket(Transform root, Transform torso, float scale,
+                                       float thick, Material mat,
                                        MaterialPropertyBlock block)
         {
             Modeler m = new Modeler();
-            float on = kal * 0.5f + 0.02f;
+            float front = thick * 0.5f + 0.02f;
 
-            // Ceket: govdeyi saran koyu kabuk.
-            m.Box(new Vector3(0f, 0.02f, 0f), new Vector3(0.56f, 0.50f, kal), Suit);
-            m.Box(new Vector3(0f, 0.26f, 0f), new Vector3(0.60f, 0.12f, kal + 0.03f), Suit);
-            m.Box(new Vector3(0f, -0.30f, 0f), new Vector3(0.52f, 0.20f, kal), Suit);
+            // The jacket: a dark shell wrapping the body.
+            m.Box(new Vector3(0f, 0.02f, 0f), new Vector3(0.56f, 0.50f, thick), Suit);
+            m.Box(new Vector3(0f, 0.26f, 0f), new Vector3(0.60f, 0.12f, thick + 0.03f), Suit);
+            m.Box(new Vector3(0f, -0.30f, 0f), new Vector3(0.52f, 0.20f, thick), Suit);
 
-            // Gomlek ve papyon: yalnizca ON yuzde, yakanin arasinda.
-            m.Box(new Vector3(0f, 0.02f, on), new Vector3(0.18f, 0.46f, 0.05f), Shirt);
-            m.Box(new Vector3(0f, 0.21f, on + 0.02f),
+            // The shirt and the bow tie: on the FRONT face only, between the lapels.
+            m.Box(new Vector3(0f, 0.02f, front), new Vector3(0.18f, 0.46f, 0.05f), Shirt);
+            m.Box(new Vector3(0f, 0.21f, front + 0.02f),
                   new Vector3(0.15f, 0.07f, 0.05f), Bow);
 
-            Place(m, kok, torso, olcek, mat, block);
+            Place(m, root, torso, scale, mat, block);
         }
 
         /// <summary>
-        /// ELDIVEN: iki kolun ucunda birer kaf.
+        /// THE GLOVES: a cuff at the end of each arm.
         ///
-        /// Kol kemiginin KENDI ekseni pakete gore degisebiliyor; bu
-        /// yuzden eldiven kemigin ucuna degil, kemigin DUNYA konumundan
-        /// asagi dogru (figurun boyuna oranli) bir noktaya konuyor.
-        /// Kol asagi sarkik durdugunda el orada.
+        /// The arm bone's OWN axis can differ from pack to pack; that is why
+        /// the glove is placed not at the end of the bone but at a point
+        /// below the bone's WORLD position (in proportion to the figure's
+        /// height). When the arm hangs down, the hand is there.
         /// </summary>
-        private static void Gloves(Transform sol, Transform sag, float boy,
+        private static void Gloves(Transform left, Transform right, float height,
                                    Material mat, MaterialPropertyBlock block)
         {
-            Glove1(sol, boy, mat, block);
-            Glove1(sag, boy, mat, block);
+            OneGlove(left, height, mat, block);
+            OneGlove(right, height, mat, block);
         }
 
-        private static void Glove1(Transform kol, float boy, Material mat,
+        private static void OneGlove(Transform arm, float height, Material mat,
                                    MaterialPropertyBlock block)
         {
-            if (kol == null)
+            if (arm == null)
             {
-                Debug.LogWarning("Wardrobe: iskelette arm-left/arm-right yok - "
-                                 + "bulasikci eldiveni takilamadi");
+                Debug.LogWarning("Wardrobe: no arm-left/arm-right in the skeleton - "
+                                 + "could not attach the dishwasher glove");
                 return;
             }
 
             Modeler m = new Modeler();
             m.Prism(8, 0.50f, 0.46f, 0.62f, Vector3.zero, Quaternion.identity, Glove);
             m.Prism(8, 0.54f, 0.54f, 0.16f, new Vector3(0f, 0.60f, 0f),
-                    Quaternion.identity, Glove);        // kaf agzi
+                    Quaternion.identity, Glove);        // the cuff opening
 
-            GameObject go = m.Build(kol, GloveName, mat, block);
-            Scale(go.transform, kol, boy * 0.13f);
-            go.transform.rotation = kol.rotation;
-            go.transform.position = kol.position - Vector3.up * (boy * 0.20f);
+            GameObject go = m.Build(arm, GloveName, mat, block);
+            Scale(go.transform, arm, height * 0.13f);
+            go.transform.rotation = arm.rotation;
+            go.transform.position = arm.position - Vector3.up * (height * 0.20f);
         }
 
         // =====================================================================
-        /// <summary>Govde kiyafetini yerine koyar: olcek, yon, konum.</summary>
-        private static void Place(Modeler m, Transform kok, Transform torso,
-                                  float olcek, Material mat,
+        /// <summary>Puts the body garment in place: scale, direction, position.</summary>
+        private static void Place(Modeler m, Transform root, Transform torso,
+                                  float scale, Material mat,
                                   MaterialPropertyBlock block)
         {
             GameObject go = m.Build(torso, BodyName, mat, block);
-            Scale(go.transform, torso, olcek);
+            Scale(go.transform, torso, scale);
 
-            // KIYAFET GOVDENIN MERKEZINDE.
+            // THE CLOTHES SIT AT THE BODY'S CENTRE.
             //
-            // Once one dogru kaydiriliyordu (figurun onune yapisan bir
-            // levha); kabuk olunca merkez dogru yer. Yon yine KOKTEN:
-            // kemigin kendi ekseni pakete gore degisebiliyor.
-            go.transform.rotation = kok.rotation;
+            // It used to be shifted forwards (a slab stuck to the front of
+            // the figure); once it became a shell, the centre is the right
+            // place. The direction still comes FROM THE ROOT: the bone's own
+            // axis can differ from pack to pack.
+            go.transform.rotation = root.rotation;
             go.transform.position = torso.position;
         }
 
-        /// <summary>Dunya olcegi k olacak sekilde yerel olcek yazar.</summary>
+        /// <summary>Writes a local scale such that the world scale comes out as k.</summary>
         private static void Scale(Transform t, Transform parent, float k)
         {
             Vector3 ls = parent.lossyScale;
@@ -369,7 +384,7 @@ namespace Lokanta.Game
                 k / Mathf.Max(0.0001f, ls.z));
         }
 
-        /// <summary>Bir kemigi adiyla bulur (buyuk-kucuk harf onemsiz).</summary>
+        /// <summary>Finds a bone by name (case-insensitive).</summary>
         private static Transform Find(Transform root, string name)
         {
             foreach (Transform t in root.GetComponentsInChildren<Transform>(true))

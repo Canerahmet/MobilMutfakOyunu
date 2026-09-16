@@ -9,14 +9,15 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// MALZEME KALITESI. Icerikte 77 malzemenin hepsinde uc kademelik bir
-    /// tablo vardi (dusuk / standart / yuksek) ve simulasyon onu hic
-    /// okumuyordu; tools/audit_content.py boyle buldu.
+    /// INGREDIENT QUALITY. All 77 ingredients in the content had a three-rung
+    /// table (low / standard / high) and the simulation never read it;
+    /// tools/audit_content.py found it that way.
     ///
-    /// Icerik burada bir tasarim karari tasiyor: en hassas ALTI malzemenin
-    /// hepsi et. Tuz ile karabiber neredeyse duyarsiz. Yani "ucuza kacmak
-    /// tuzda serbest, ette felaket" kurali veriye yazilmis durumda ve tek
-    /// bir kuresel kalite ayari bile yemege gore farkli sonuc veriyor.
+    /// The content carries a design decision here: all SIX of the most sensitive
+    /// ingredients are meat. Salt and black pepper are almost insensitive. So the
+    /// rule "going cheap is free on the salt and a disaster on the meat" is
+    /// written into the data, and even a single global quality setting gives a
+    /// different result from dish to dish.
     /// </summary>
     public class QualityTests
     {
@@ -24,7 +25,7 @@ namespace Lokanta.Core.Tests
         public QualityTests(ITestOutputHelper output) { _out = output; }
 
         private const ulong Seed = 20260910UL;
-        private const int Dusuk = 0, Standart = 1, Yuksek = 2;
+        private const int Low = 0, Standard = 1, High = 2;
 
         private static EconomyConfig Economy() => ContentLoader.LoadEconomy(Paths.Content);
         private static ContentSet Content() => ContentSetLoader.Load(Paths.Content, "fastfood");
@@ -44,7 +45,7 @@ namespace Lokanta.Core.Tests
 
         // ====================================================================
         [Fact]
-        public void Kalite_tablosu_yukleniyor_ve_standart_referans()
+        public void The_quality_table_loads_and_standard_is_the_reference()
         {
             ContentSet c = Content();
             foreach (IngredientDef d in c.Ingredients)
@@ -53,65 +54,66 @@ namespace Lokanta.Core.Tests
                 Assert.NotNull(d.QualitySatisfactionCenti);
                 Assert.Equal(3, d.QualityPriceBp.Length);
 
-                // Standart REFERANS: fiyat carpani 1,0 ve memnuniyet etkisi sifir.
-                Assert.Equal(Fx.One, d.QualityPriceBp[Standart]);
-                Assert.Equal(0, d.QualitySatisfactionCenti[Standart]);
+                // Standard is the REFERENCE: price multiplier 1.0 and zero effect on satisfaction.
+                Assert.Equal(Fx.One, d.QualityPriceBp[Standard]);
+                Assert.Equal(0, d.QualitySatisfactionCenti[Standard]);
 
-                // Ucuz daha ucuz ve daha kotu, pahali daha pahali ve daha iyi.
-                Assert.True(d.QualityPriceBp[Dusuk] < Fx.One, d.Id);
-                Assert.True(d.QualityPriceBp[Yuksek] > Fx.One, d.Id);
-                Assert.True(d.QualitySatisfactionCenti[Dusuk] < 0, d.Id);
-                Assert.True(d.QualitySatisfactionCenti[Yuksek] > 0, d.Id);
+                // Cheap is cheaper and worse, expensive is dearer and better.
+                Assert.True(d.QualityPriceBp[Low] < Fx.One, d.Id);
+                Assert.True(d.QualityPriceBp[High] > Fx.One, d.Id);
+                Assert.True(d.QualitySatisfactionCenti[Low] < 0, d.Id);
+                Assert.True(d.QualitySatisfactionCenti[High] > 0, d.Id);
             }
         }
 
         [Fact]
-        public void En_hassas_malzemeler_ET()
+        public void The_most_sensitive_ingredients_are_MEAT()
         {
-            // Bu test bir TASARIM KARARINI koruyor, bir kodu degil.
-            // Kalite tek kuresel ayar olabiliyorsa sebebi bu: en cok onemsenen
-            // malzemeler et, en az onemsenenler bahar. Dagilim tersine
-            // donerse tek ayar anlamsizlasir ve malzeme basina secim gerekir.
+            // This test protects a DESIGN DECISION, not a piece of code.
+            // This is why quality can be a single global setting: the ingredients
+            // that matter most are the meats, the ones that matter least are the
+            // spices. If the distribution were reversed a single setting would
+            // become meaningless and a per-ingredient choice would be needed.
             ContentSet c = Content();
             int worst = 0;
             foreach (IngredientDef d in c.Ingredients)
-                if (d.QualitySatisfactionCenti[Dusuk] < worst)
-                    worst = d.QualitySatisfactionCenti[Dusuk];
+                if (d.QualitySatisfactionCenti[Low] < worst)
+                    worst = d.QualitySatisfactionCenti[Low];
 
             foreach (IngredientDef d in c.Ingredients)
             {
-                if (d.QualitySatisfactionCenti[Dusuk] != worst) continue;
-                _out.WriteLine($"en hassas: {d.Id} ({d.QualitySatisfactionCenti[Dusuk]})");
+                if (d.QualitySatisfactionCenti[Low] != worst) continue;
+                _out.WriteLine($"most sensitive: {d.Id} ({d.QualitySatisfactionCenti[Low]})");
                 Assert.True(d.BasePrice >= 4000,
-                    d.Id + ": en hassas malzeme ucuz cikti, dagilim bozulmus");
+                    d.Id + ": the most sensitive ingredient came out cheap, the distribution is broken");
             }
         }
 
         [Fact]
-        public void Ucuz_kalite_daha_az_odetiyor()
+        public void Cheap_quality_costs_less()
         {
             ContentSet c = Content();
             int meat = c.IngredientIndexOf("kiyma");
             Assert.True(meat >= 0);
 
             Simulation cheap = NewSim();
-            cheap.Apply(new Command(0, CommandKind.SetQuality, Dusuk));
+            cheap.Apply(new Command(0, CommandKind.SetQuality, Low));
             long before = cheap.Cash;
             cheap.Apply(new Command(0, CommandKind.OrderIngredient, meat, 10_000));
             long cheapCost = before - cheap.Cash;
 
             Simulation fancy = NewSim();
-            fancy.Apply(new Command(0, CommandKind.SetQuality, Yuksek));
+            fancy.Apply(new Command(0, CommandKind.SetQuality, High));
             before = fancy.Cash;
             fancy.Apply(new Command(0, CommandKind.OrderIngredient, meat, 10_000));
             long fancyCost = before - fancy.Cash;
 
-            _out.WriteLine($"10 kg kiyma: ucuz {cheapCost / 100}, pahali {fancyCost / 100}");
-            Assert.True(cheapCost < fancyCost, "ucuz kalite daha ucuz degil");
+            _out.WriteLine($"10 kg of mince: cheap {cheapCost / 100}, dear {fancyCost / 100}");
+            Assert.True(cheapCost < fancyCost, "the cheap quality is not cheaper");
         }
 
         [Fact]
-        public void Kalite_memnuniyeti_degistiriyor()
+        public void Quality_changes_satisfaction()
         {
             ContentSet c = Content();
             int[] sat = new int[3];
@@ -122,11 +124,11 @@ namespace Lokanta.Core.Tests
                 sim.Apply(new Command(0, CommandKind.TakeLoan, 2));
                 sim.Apply(new Command(0, CommandKind.SetQuality, q));
 
-                // ACIKCA aliniyor. Simulasyon acilis stoguyla basliyor ve o
-                // stok satin alma yolundan gecmedigi icin kalitesi notr;
-                // RecommendedRestock da dolu stok gorup sifir donuyor.
-                // Ilk yazimda test tam bu yuzden uc kalitede de ayni
-                // memnuniyeti olcuyordu.
+                // Bought EXPLICITLY. The simulation starts with an opening
+                // stock, and because that stock never went through the purchase
+                // path its quality is neutral; RecommendedRestock also sees a full
+                // stock and returns zero. In the first version this is exactly why
+                // the test measured the same satisfaction at all three qualities.
                 for (int i = 0; i < sim.IngredientCount; i++)
                     sim.Apply(new Command(sim.TickIndex, CommandKind.OrderIngredient, i, 30_000));
 
@@ -141,23 +143,24 @@ namespace Lokanta.Core.Tests
                 sat[q] = sim.BuildDayReport().AverageSatisfactionCenti;
             }
 
-            _out.WriteLine($"memnuniyet: ucuz {sat[0]}, standart {sat[1]}, pahali {sat[2]}");
-            Assert.True(sat[Dusuk] < sat[Standart], "ucuz malzeme memnuniyeti dusurmedi");
-            Assert.True(sat[Yuksek] > sat[Standart], "pahali malzeme memnuniyeti artirmadi");
+            _out.WriteLine($"satisfaction: cheap {sat[0]}, standard {sat[1]}, dear {sat[2]}");
+            Assert.True(sat[Low] < sat[Standard], "the cheap ingredient did not lower satisfaction");
+            Assert.True(sat[High] > sat[Standard], "the dear ingredient did not raise satisfaction");
         }
 
         [Fact]
-        public void Ucuz_et_kalabalik_tarifin_arkasina_saklanamiyor()
+        public void Cheap_meat_cannot_hide_behind_a_crowded_recipe()
         {
-            // GERILEME TESTI. Ilk uygulamada yemegin kalite etkisi
-            // malzemelerin ORTALAMASI aliniyordu ve olcum reddetti: Turk
-            // mutfaginda ucuz malzeme alan oyuncu 35.200 ile iyi oyunun
-            // 26.211'ini GECIYORDU. Sebep ortalamanin kendisiydi; tencereye
-            // atilan ucuz sogan, ucuz eti gizliyordu.
+            // A REGRESSION TEST. In the first implementation a dish's quality
+            // effect was the AVERAGE of its ingredients, and the measurement threw
+            // it out: in the Turkish cuisine the player buying cheap ingredients
+            // BEAT good play by 35,200 to 26,211. The cause was the average
+            // itself; the cheap onion thrown into the pot was hiding the cheap
+            // meat.
             //
-            // Dogru kural: en BELIRLEYICI malzeme ne diyorsa o. Bu test onu
-            // koruyor: cok malzemeli bir yemek, az malzemeli bir yemekten
-            // daha az cezalanmamali.
+            // The right rule: whatever the most DECISIVE ingredient says goes.
+            // This test protects it: a dish with many ingredients must not be
+            // punished less than one with few.
             ContentSet c = Content();
 
             int few = -1, many = -1;
@@ -168,46 +171,47 @@ namespace Lokanta.Core.Tests
                 if (few < 0 || n < c.Dishes[few].Ingredients.Length) few = i;
                 if (many < 0 || n > c.Dishes[many].Ingredients.Length) many = i;
             }
-            Assert.True(few >= 0 && many >= 0, "hassas et iceren yemek bulunamadi");
+            Assert.True(few >= 0 && many >= 0, "no dish containing sensitive meat was found");
             Assert.True(c.Dishes[many].Ingredients.Length > c.Dishes[few].Ingredients.Length,
-                        "malzeme sayisi farkli iki yemek bulunamadi");
+                        "no two dishes with different ingredient counts were found");
 
             Simulation sim = NewSim();
             sim.Apply(new Command(0, CommandKind.TakeLoan, 2));
-            sim.Apply(new Command(0, CommandKind.SetQuality, Dusuk));
+            sim.Apply(new Command(0, CommandKind.SetQuality, Low));
             for (int i = 0; i < sim.IngredientCount; i++)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OrderIngredient, i, 30_000));
 
             int qFew = sim.DishQualityCentiOf(few);
             int qMany = sim.DishQualityCentiOf(many);
 
-            _out.WriteLine($"{c.Dishes[few].Id} ({c.Dishes[few].Ingredients.Length} malzeme): {qFew}");
-            _out.WriteLine($"{c.Dishes[many].Id} ({c.Dishes[many].Ingredients.Length} malzeme): {qMany}");
+            _out.WriteLine($"{c.Dishes[few].Id} ({c.Dishes[few].Ingredients.Length} ingredients): {qFew}");
+            _out.WriteLine($"{c.Dishes[many].Id} ({c.Dishes[many].Ingredients.Length} ingredients): {qMany}");
 
-            // OLCU, IKI YEMEGIN BIRBIRIYLE KARSILASTIRILMASI DEGIL.
+            // THE MEASURE IS NOT THE TWO DISHES COMPARED WITH EACH OTHER.
             //
-            // Oyle yazilmisti ve bir sure sonra mekanigi degil GURULTUYU
-            // olcmeye basladi: acilis stogu artik menuye gore kuruluyor,
-            // yani her malzemenin elinde farkli miktarda "standart" mal
-            // kaliyor ve siparis edilen ucuz mal onunla harmanlaniyor.
-            // Iki yemegin hassas eti de icerikte tam -2000 oldugu halde
-            // olculen degerler -1965 ve -1939 cikti; aradaki 26 santi
-            // yemegin malzeme sayisiyla degil, o iki malzemenin stok
-            // harmaniyla ilgiliydi. Test, "cok malzemeli yemek ucuz eti
-            // gizliyor" diye kirildi - oysa gizleyen bir sey yoktu.
+            // It had been written that way, and after a while it started
+            // measuring the NOISE rather than the mechanic: the opening stock is
+            // now built from the menu, so every ingredient is left holding a
+            // different amount of "standard" goods and the cheap goods ordered get
+            // blended into it. Both dishes' sensitive meat is exactly -2000 in the
+            // content and yet the measured values came out as -1965 and -1939; the
+            // 26 centi between them had nothing to do with the dishes' ingredient
+            // counts and everything to do with the stock blend of those two
+            // ingredients. The test broke saying "the dish with many ingredients
+            // is hiding the cheap meat" - when nothing was hiding anything.
             //
-            // Iddia su: yemegin kalitesi EN BELIRLEYICI malzemesinin
-            // stok kalitesine esit. Malzeme sayisi hicbir sey
-            // degistirmiyor. Bunu her yemek icin KENDI malzemeleriyle
-            // olcmek, harmani denklemin iki tarafindan da atiyor.
+            // The claim is this: a dish's quality equals the stock quality of its
+            // MOST DECISIVE ingredient. The ingredient count changes nothing.
+            // Measuring that for each dish against ITS OWN ingredients throws the
+            // blend out of both sides of the equation.
             Assert.Equal(WorstStockQuality(sim, c, few), qFew);
             Assert.Equal(WorstStockQuality(sim, c, many), qMany);
         }
 
         /// <summary>
-        /// Yemegin malzemeleri arasinda mutlak degeri EN BUYUK stok
-        /// kalitesi. Simulasyonun "en belirleyici malzeme ne diyorsa o"
-        /// kuralinin testteki karsiligi.
+        /// The LARGEST stock quality in absolute value among a dish's
+        /// ingredients. The test's counterpart to the simulation's rule of
+        /// "whatever the most decisive ingredient says goes".
         /// </summary>
         private static int WorstStockQuality(Simulation sim, ContentSet c, int dish)
         {
@@ -223,42 +227,43 @@ namespace Lokanta.Core.Tests
         private static bool HasSensitiveMeat(ContentSet c, int dish)
         {
             foreach (DishIngredient p in c.Dishes[dish].Ingredients)
-                if (c.Ingredients[p.IngredientIndex].QualitySatisfactionCenti[Dusuk] <= -2000)
+                if (c.Ingredients[p.IngredientIndex].QualitySatisfactionCenti[Low] <= -2000)
                     return true;
             return false;
         }
 
         [Fact]
-        public void Stok_kalitesi_agirlikli_ortalama()
+        public void The_stock_quality_is_a_weighted_average()
         {
-            // Ucuz alip sonra pahali alan, elindeki ucuz maldan hemen
-            // kurtulamiyor. Aksi halde bir gram pahali alip butun stogu
-            // temize cikarmak mumkun olurdu.
+            // Someone who buys cheap and then buys dear cannot shed the cheap
+            // goods in their hands straight away. Otherwise buying a single gram
+            // of the dear stuff would clear the whole stock.
             ContentSet c = Content();
             int meat = c.IngredientIndexOf("kiyma");
 
             Simulation sim = NewSim();
             sim.Apply(new Command(0, CommandKind.TakeLoan, 2));
-            sim.Apply(new Command(0, CommandKind.SetQuality, Dusuk));
+            sim.Apply(new Command(0, CommandKind.SetQuality, Low));
             sim.Apply(new Command(0, CommandKind.OrderIngredient, meat, 20_000));
             int afterCheap = sim.StockQualityOf(meat);
 
-            sim.Apply(new Command(0, CommandKind.SetQuality, Yuksek));
+            sim.Apply(new Command(0, CommandKind.SetQuality, High));
             sim.Apply(new Command(0, CommandKind.OrderIngredient, meat, 1_000));
             int afterTiny = sim.StockQualityOf(meat);
 
-            _out.WriteLine($"20 kg ucuz sonra 1 kg pahali: {afterCheap} -> {afterTiny}");
-            Assert.True(afterTiny < 0, "bir kilo pahali malzeme butun stogu temize cikardi");
+            _out.WriteLine($"20 kg cheap then 1 kg dear: {afterCheap} -> {afterTiny}");
+            Assert.True(afterTiny < 0, "one kilo of the dear ingredient cleared the whole stock");
         }
 
         [Fact]
-        public void Hal_fiyatlari_her_gun_oynuyor()
+        public void The_market_prices_swing_every_day()
         {
-            // docs/12 3: "erken alim avantaji yok, stok bozuluyor. Ucuz
-            // gune denk gelmek sans degil, TAKIP meselesi."
+            // docs/12 3: "there is no advantage to buying early, the stock goes
+            // off. Catching a cheap day is not luck, it is a matter of WATCHING."
             //
-            // priceVolatilityBp icerikte yaziliydi ve okunmuyordu: hal her
-            // gun ayni fiyati veriyordu, yani takip edilecek bir sey yoktu.
+            // priceVolatilityBp was written in the content and was not read: the
+            // market gave the same price every day, so there was nothing to
+            // watch.
             ContentSet c = Content();
             Simulation sim = NewSim();
             int meat = c.IngredientIndexOf("kiyma");
@@ -274,22 +279,22 @@ namespace Lokanta.Core.Tests
 
             long lo = long.MaxValue, hi = 0;
             foreach (long v in seen) { if (v < lo) lo = v; if (v > hi) hi = v; }
-            _out.WriteLine($"on gunde kiyma {lo / 100}-{hi / 100} sikke");
+            _out.WriteLine($"mince over ten days {lo / 100}-{hi / 100} coins");
 
-            Assert.True(hi > lo, "hal fiyati hic oynamiyor, takip edilecek bir sey yok");
+            Assert.True(hi > lo, "the market price never swings, there is nothing to watch");
 
-            // Ayni tohum ayni fiyatlari vermeli: oynama rastgele ama
-            // BELIRLENIMCI, yoksa tekrar oynatma bozulur.
+            // The same seed must give the same prices: the swing is random but
+            // DETERMINISTIC, otherwise replay breaks.
             Simulation twin = NewSim();
             Assert.Equal(seen[0], twin.IngredientPriceToday(meat));
         }
 
         [Fact]
-        public void Kayit_kaliteyi_tasiyor()
+        public void The_save_carries_the_quality()
         {
             ContentSet c = Content();
             Simulation sim = NewSim();
-            sim.Apply(new Command(0, CommandKind.SetQuality, Yuksek));
+            sim.Apply(new Command(0, CommandKind.SetQuality, High));
             sim.Apply(new Command(0, CommandKind.TakeLoan, 1));
             sim.Apply(new Command(0, CommandKind.OrderIngredient,
                                   c.IngredientIndexOf("kiyma"), 5_000));

@@ -1,173 +1,178 @@
-# Üretim Kararları
+# Production Decisions
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddeleri:** C1 model üretim yolu, C2 karakter ve animasyon, C4 ses kaynağı, C5 arayüz ve yazı tipi, C8 test planı
-**Durum:** Yazıldı, karar bekliyor
+**Last updated:** 9 September 2026
+**Register items:** C1 model production route, C2 characters and animation, C4 audio source, C5 interface and typeface, C8 test plan
+**Status:** Written, awaiting decision
 
-Bu dosya [05-production-plan.md](05-production-plan.md) dosyasında açık bırakılan seçenekleri karara bağlıyor.
+This file settles the options left open in [05-production-plan.md](05-production-plan.md).
 
 ---
 
-## C1. Model üretim yolu
+## C1. Model production route
 
-**Karar: üç katmanlı, sırayla denenen bir yol.**
+**Decision: a three-layer route, tried in order.**
 
-| Sıra | Yol | Ne için |
+| Order | Route | What for |
 |---|---|---|
-| 1 | Prosedürel Blender betiği | Mobilya, ekipman, tabak, mimari parçalar |
-| 2 | Kamu malı paketler | Betiğin kapsamadığı organik nesneler ve prototip hızı |
-| 3 | Yapay zeka üretimi veya ücretli paket | Sadece benzersiz olması gereken tekil nesneler |
+| 1 | A procedural Blender script | Furniture, equipment, plates, architectural pieces |
+| 2 | Public-domain packs | Organic objects the script does not cover, and prototyping speed |
+| 3 | AI generation or a paid pack | Only for individual objects that have to be unique |
 
-### Neden bu sıra
+### Why this order
 
-Prosedürel önce geliyor çünkü **stil tutarlılığını garanti eden tek yol.** Bütün mobilya tek bir yapılandırmadan çıkınca aynı kenar yumuşatması, aynı ölçek ve aynı palet garanti oluyor.
+Procedural comes first because it is **the only route that guarantees stylistic consistency.** When all the furniture comes out of a single configuration, the same edge bevel, the same scale and the same palette are guaranteed.
 
-Ayrıca model bir dosya değil bir betik olduğu için sürüm kontrolüne giriyor. Stili beğenmezsen betiği değiştirip hepsini yeniden üretiyorsun. Elle modellenmiş kırk parçayı yeniden yapmak günler alır, betiği değiştirmek dakikalar alır.
+Also, because a model is a script and not a file, it goes into version control. If you do not like the style you change the script and regenerate all of it. Redoing forty hand-modelled pieces takes days; changing the script takes minutes.
 
-### Kapsam
+### Scope
 
-| Prosedürel üretiliyor | Dışarıdan geliyor |
+| Generated procedurally | Comes from outside |
 |---|---|
-| Masa, sandalye, tabure, tezgâh | Bitkiler |
-| Raf, dolap, ocak, buzdolabı | Yemek görselleri |
-| Tabak, bardak, tencere, tepsi | Karakterler |
-| Kapı, pencere çerçevesi, lamba | Tabela ve hikayeye ait tekil eşyalar |
+| Table, chair, stool, counter | Plants |
+| Shelf, cupboard, stove, fridge | Food visuals |
+| Plate, glass, pot, tray | Characters |
+| Door, window frame, lamp | The sign and individual story props |
 
-### Kural
+### The rule
 
-Yapay zeka ile üretilen hiçbir varlık **ücretsiz katmanla** üretilmiyor. O araçların ücretsiz çıktıları ticari kullanıma kapalı. Yayın öncesi bütün varlıkların kaynağı ve lisansı bir tabloda listeleniyor.
-
----
-
-## C2. Karakter ve animasyon
-
-**Karar: tek paylaşılan gövde, standart insansı iskelet, giydirme ile çeşitlilik.**
-
-### Üretim hattı
-
-1. Tek bir insansı temel gövde üretilir.
-2. **Standart insansı iskelete** uygun olarak hazırlanır.
-3. Otomatik iskeletleme servisinden geçirilir.
-4. Animasyon kütüphanesinden klipler alınır: yürüme, oturma, yeme, bekleme, konuşma, sevinme, sinirlenme.
-5. Unity'nin insansı animasyon sistemi bütün karakterlerde aynı klipleri paylaşır.
-
-### Mixamo riski ve yedek plan
-
-Mixamo ücretsiz ve ticari kullanıma açık, ama Adobe yıllardır güncellemiyor ve destek artık desteklenmediğini söylüyor.
-
-**Yedek plan: modeller standart insansı iskelete uygun üretiliyor.** Böylece animasyon kaynağı değişse bile modeller değişmiyor. Mixamo kapanırsa başka bir otomatik iskeletleme servisine geçiliyor ve model tarafında hiçbir şey yapılmıyor.
-
-Bu, tek bir servise bağımlılığı ortadan kaldıran yapısal karar.
-
-### Çeşitlilik
-
-Model değil giydirme. Üç vücut tipi, sekiz saç, altı cilt tonu, mutfak başına on altı kıyafet, aksesuarlar. Yirmi üç binden fazla kombinasyon.
-
-Ayrıntı: [10-cuisine-identity.md](10-cuisine-identity.md).
+No asset generated with AI is produced on a **free tier**. The free outputs of those tools are closed to commercial use. Before release, the source and licence of every asset are listed in a table.
 
 ---
 
-## C4. Ses kaynağı
+## C2. Characters and animation
 
-**Karar: ücretli yapay zeka araçları, kamu malı yedekle.**
+**Decision: one shared body, a standard humanoid skeleton, variety through dress-up.**
 
-| Kalem | Kaynak |
+### The production line
+
+1. A single humanoid base body is produced.
+2. It is prepared to fit a **standard humanoid skeleton**.
+3. It is passed through an auto-rigging service.
+4. Clips are taken from an animation library: walking, sitting, eating, waiting, talking, cheering, getting angry.
+5. Unity's humanoid animation system shares the same clips across all the characters.
+
+### The Mixamo risk and the fallback plan
+
+Mixamo is free and open to commercial use, but Adobe has not updated it for years and support now says it is no longer supported.
+
+**The fallback plan: the models are produced to fit a standard humanoid skeleton.** That way, even if the animation source changes, the models do not. If Mixamo shuts down we move to another auto-rigging service and nothing is done on the model side.
+
+This is the structural decision that removes the dependency on a single service.
+
+### Variety
+
+Not the model, the dress-up. Three body types, eight hairstyles, six skin tones, sixteen outfits per cuisine, accessories. More than twenty-three thousand combinations.
+
+Detail: [10-cuisine-identity.md](10-cuisine-identity.md).
+
+---
+
+## C4. Audio source
+
+**Decision: paid AI tools, with public domain as the fallback.**
+
+| Item | Source |
 |---|---|
-| Ses efekti | Ücretli yapay zeka aracı. Ücretli planlar telifsiz ve ticari kullanıma açık |
-| Müzik | Ücretli yapay zeka aracı |
-| Yedek | Kamu malı ses kütüphaneleri |
-| Karakter hecesi | Yapay zeka veya kendi kaydın |
+| Sound effects | A paid AI tool. The paid plans are royalty-free and open to commercial use |
+| Music | A paid AI tool |
+| Fallback | Public-domain sound libraries |
+| Character syllables | AI, or your own recording |
 
-### Gerekçe
+### Reasoning
 
-Ses üretimi bu projede en ucuz kalem. Aylık abonelik, bütün oyunun sesini üretmeye yetiyor. Kamu malı kütüphanelerden toplamak ücretsiz ama tutarlı bir palet kurmak çok daha zor.
+Audio production is the cheapest item in this project. A monthly subscription is enough to produce the sound for the whole game. Collecting from public-domain libraries is free, but building a consistent palette that way is far harder.
 
-### Uyarı
+### Warning
 
-Kullanılan aracın **o ay geçerli** şartları yayın öncesi doğrulanacak. Bu araçların lisans dili hızla değişiyor. Üretilen her sesin hangi araçla ve hangi planla üretildiği kaydedilecek.
-
----
-
-## C5. Arayüz, ikon ve yazı tipi
-
-### Yazı tipi
-
-**Karar: Google Fonts üzerinde SIL Open Font License lisanslı bir aile.**
-
-Zorunlu kontrol listesi:
-
-| Karakter | Neden |
-|---|---|
-| ı ve İ | Türkçe noktasız ı ve noktalı İ. En sık atlanan hata |
-| ğ Ğ | |
-| ş Ş | |
-| ç Ç, ö Ö, ü Ü | |
-
-**Test yöntemi:** "İstanbul'da çiğ köfte ve şalgam" cümlesi bütün yazı boyutlarında kontrol edilir. Bir karakter bile eksikse yazı tipi elenir.
-
-Eş genişlikli rakam desteği de şart, çünkü kasa değeri değişince sayının zıplamaması gerekiyor.
-
-### İkonlar
-
-- Kamu malı arayüz ikon setleri temel alınıyor.
-- Para ikonu özel çiziliyor, karar verildi: düz sikke yığını.
-- Her ikon 16, 24 ve 48 pikselde test ediliyor. En küçük boyutta okunmayan ikon kullanılmıyor.
-
-### Arayüz düzeni
-
-Kod, yani bende. Ayrıntı [16-screens-and-tutorial.md](16-screens-and-tutorial.md) dosyasında.
+The terms of the tool used, **as valid that month**, will be verified before release. The licence language of these tools changes fast. Which tool and which plan produced every sound will be recorded.
 
 ---
 
-## C8. Test planı
+## C5. Interface, icons and typeface
 
-### Üç katman
+### Typeface
 
-| Katman | Ne test ediyor | Kim |
+**Decision: a family on Google Fonts licensed under the SIL Open Font License.**
+
+The mandatory checklist — every one of these letters must have a glyph:
+
+> | Character | Why |
+> |---|---|
+> | ı and İ | The Turkish dotless i and dotted capital I. The most commonly missed bug |
+> | ğ Ğ | |
+> | ş Ş | |
+> | ç Ç, ö Ö, ü Ü | |
+
+**The test method:** the sentence below is checked at every text size. If even one character is missing, the typeface is cut.
+
+> *"İstanbul'da çiğ köfte ve şalgam"*
+>
+> *("raw köfte and turnip juice in Istanbul" — the sentence is chosen because
+> it contains every Turkish-only letter at once.)*
+
+Monospaced digit support is also essential, because the number must not jump when the till value changes.
+
+### Icons
+
+- Public-domain interface icon sets are taken as the base.
+- The money icon is drawn specially; it is decided: a flat stack of coins.
+- Every icon is tested at 16, 24 and 48 pixels. An icon that does not read at the smallest size is not used.
+
+### Interface layout
+
+Code, so it is mine to do. Detail in [16-screens-and-tutorial.md](16-screens-and-tutorial.md).
+
+---
+
+## C8. Test plan
+
+### Three layers
+
+| Layer | What it tests | Who |
 |---|---|---|
-| Birim testleri | Çekirdek kuralları | Otomatik, her derlemede |
-| Denge aracı | Ekonomi ve ilerleme | Otomatik, gecelik |
-| Oynanabilirlik | Eğlence ve anlaşılırlık | İnsan |
+| Unit tests | The core rules | Automatic, on every build |
+| The balance tool | Economy and progression | Automatic, nightly |
+| Playability | Fun and comprehension | Human |
 
-### Birim testleri
+### Unit tests
 
-Çekirdek saf C# olduğu için normal .NET test altyapısıyla çalışıyor, Unity gerekmiyor.
+Because the core is pure C#, it runs on normal .NET test infrastructure; Unity is not needed.
 
-Kapsanan alanlar: ekonomi hesapları, memnuniyet ve itibar formülleri, sabır azalması, kapasite hesabı, batma merdiveni geçişleri, kayıt göçü, içerik doğrulama.
+Areas covered: economy calculations, the satisfaction and reputation formulas, patience drain, the capacity calculation, bankruptcy ladder transitions, save migration, content validation.
 
-**Kural: bulunan her hata için önce bir test yazılıyor.**
+**The rule: a test is written first for every bug found.**
 
-### Denge aracı
+### The balance tool
 
-Faz 0'da yazılıyor. Farklı oyuncu stratejileriyle yüzlerce oyunu simüle edip sonucu tablo olarak veriyor.
+Written in Phase 0. It simulates hundreds of games with different player strategies and gives the result as a table.
 
-Cevaplaması gereken sekiz soru [12-economy.md](12-economy.md) dosyasında.
+The eight questions it has to answer are in [12-economy.md](12-economy.md).
 
-### Oynanabilirlik testi
+### Playability testing
 
-| Aşama | Kişi | Ne ölçülüyor |
+| Stage | People | What is measured |
 |---|---|---|
-| Dikey dilim | 5 kişi | Anlaşılıyor mu |
-| İçerik sonrası | 10-15 kişi | Onuncu günde sıkılan var mı |
-| Soft launch | Gerçek oyuncular | Birinci ve yedinci gün tutundurma |
+| Vertical slice | 5 people | Is it understood |
+| After the content | 10-15 people | Is anyone bored on the tenth day |
+| Soft launch | Real players | Day one and day seven retention |
 
-**En kritik soru: onuncu günde sıkılan var mı?** Araştırmadaki en yaygın ölüm sebebi orta oyun platosuydu. Bu soru cevaplanmadan içerik üretimine devam edilmiyor.
+**The most critical question: is anyone bored on the tenth day?** The most common cause of death in the research was the mid-game plateau. Content production does not continue until that question is answered.
 
-### Cihaz matrisi
+### The device matrix
 
-| Sınıf | En az |
+| Class | At least |
 |---|---|
-| Üst seviye | Bir adet güncel telefon |
-| En düşük | Bir adet asgari şartları karşılayan telefon |
-| iOS | **İlk sürümde yok.** Mac yok, derleme yapılamıyor. Mac olunca eklenir |
+| High end | One current phone |
+| Minimum | One phone that meets the minimum requirements |
+| iOS | **Not in the first release.** There is no Mac, so it cannot be built. It is added once there is a Mac |
 
-Emülatörde performans testi yapılmıyor. Sadece gerçek cihaz.
+No performance testing is done on an emulator. Real devices only.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Details awaiting a decision
 
-1. Prosedürel yol birincil kalsın mı, yoksa hazır paketle başlayıp sonra mı geçelim
-2. Ses için hangi araç, aylık bütçe ne kadar
-3. Oynanabilirlik testi için kişi nereden bulunacak
-4. ~~iOS test cihazı ilk sürümde şart mı~~ Kapandı: ilk sürüm sadece Android. Bkz. [22-answers-and-direction.md](22-answers-and-direction.md)
+1. Should the procedural route stay primary, or should we start with a ready-made pack and move over later
+2. Which tool for audio, and what the monthly budget is
+3. Where the people for the playability testing will be found
+4. ~~Is an iOS test device essential in the first release~~ Closed: the first release is Android only. See [22-answers-and-direction.md](22-answers-and-direction.md)

@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-Insansi iskelet ve poz yardimcilari.
+Humanoid skeleton and pose helpers.
 ============================================================================
-docs/24-art-pipeline.md kademe 2.
+docs/24-art-pipeline.md tier 2.
 
-Degerlendirmenin matematigi 16 kiyafet x 3 vucut tipi = 96 mesh diyordu.
-Bu sayi yok oluyor:
-  vucut tipi   tek mesh, uc KEMIK OLCEGI on ayari
-  kiyafet      skinsiz ayri mesh, kemige bagli; agirlik boyama YOK
-  renk         malzeme degisimi
+The review's arithmetic said 16 outfits x 3 body types = 96 meshes. That
+number disappears:
+  body type   one mesh, three BONE SCALE presets
+  outfit      a separate skinless mesh, parented to a bone; NO weight painting
+  colour      a material swap
 
-Kemik adlari Unity insansi eslemesine uygun. Quaternius Universal
-Animation Library klipleri bu yapiya yeniden hedeflenebiliyor.
+The bone names follow Unity's humanoid mapping. Quaternius Universal
+Animation Library clips can be retargeted onto this rig.
 """
 import bpy
 import math
 from mathutils import Vector
 
 # ---------------------------------------------------------------------------
-# Kemik iskeleti: (ad, bas, kuyruk, ebeveyn)
-# Olculer metre, T-poz. Boy yaklasik 1,75 m.
+# The bone skeleton: (name, head, tail, parent)
+# Measurements in metres, T-pose. The height is about 1.75 m.
 # ---------------------------------------------------------------------------
 BONES = [
     ("hips",        (0.00, 0.00, 0.95), (0.00, 0.00, 1.06), None),
@@ -48,8 +48,8 @@ BONES = [
 ]
 
 
-def build_armature(name="Iskelet"):
-    """T-poz insansi iskelet kurar ve nesneyi doner."""
+def build_armature(name="Skeleton"):
+    """Builds a T-pose humanoid skeleton and returns the object."""
     arm_data = bpy.data.armatures.new(name)
     arm_obj = bpy.data.objects.new(name, arm_data)
     bpy.context.collection.objects.link(arm_obj)
@@ -72,22 +72,27 @@ def build_armature(name="Iskelet"):
 
 
 # ---------------------------------------------------------------------------
-# Vucut tipleri: MESH DEGIL, kemik olcegi.
-# Uc on ayar, tek mesh. docs/24: 96 mesh sorununu yok eden sey bu.
+# Body types: NOT MESHES, bone scales.
+# Three presets, one mesh. docs/24: this is what makes the 96-mesh problem
+# disappear.
+#
+# The preset keys are the artefact ids ("slim", "mid", "broad"); they become
+# the render file names under tools/art/out/, so they are left as they are.
 # ---------------------------------------------------------------------------
 BODY_TYPES = {
-    "ince":   {"chest": 0.86, "hips": 0.90, "upperarm": 0.88, "thigh": 0.92},
-    "orta":   {"chest": 1.00, "hips": 1.00, "upperarm": 1.00, "thigh": 1.00},
-    "genis":  {"chest": 1.22, "hips": 1.16, "upperarm": 1.14, "thigh": 1.10},
+    "slim":   {"chest": 0.86, "hips": 0.90, "upperarm": 0.88, "thigh": 0.92},
+    "mid":   {"chest": 1.00, "hips": 1.00, "upperarm": 1.00, "thigh": 1.00},
+    "broad":  {"chest": 1.22, "hips": 1.16, "upperarm": 1.14, "thigh": 1.10},
 }
 
 
 def apply_body_type(arm_obj, kind):
     """
-    Kemik olcegiyle vucut tipi uygular. Mesh cogalmiyor.
-    Unity tarafinda ayni sey Avatar'in kemik olcekleriyle yapilacak.
+    Applies a body type through bone scaling. The mesh does not multiply.
+    On the Unity side the same thing will be done with the Avatar's bone
+    scales.
     """
-    preset = BODY_TYPES.get(kind, BODY_TYPES["orta"])
+    preset = BODY_TYPES.get(kind, BODY_TYPES["mid"])
     bpy.context.view_layer.objects.active = arm_obj
     bpy.ops.object.mode_set(mode="POSE")
 
@@ -96,64 +101,69 @@ def apply_body_type(arm_obj, kind):
         s = preset.get(base)
         if s is None:
             continue
-        # Kemigin ekseni boyunca degil, KALINLIK eksenlerinde olcekle:
-        # uzunluk degisirse iskelet oranlari bozulur ve klip yeniden
-        # hedeflemesi kayar.
+        # Scale on the THICKNESS axes, not along the bone's own axis: if the
+        # length changes the skeleton's proportions break and clip retargeting
+        # goes out of alignment.
         pb.scale = (s, 1.0, s)
 
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
 # ---------------------------------------------------------------------------
-# Test pozlari. Agirlik cokusunu YAKALAMAK icin secildiler.
-# docs/24: dirsek ve diz cokusunu render'da ben goruyorum.
+# Test poses. They were chosen to CATCH the weighting collapse.
+# docs/24: I look at the elbow and knee collapse in the render.
+#
+# The pose keys are artefact ids as well - they become the render file names -
+# so they are left as they are.
 # ---------------------------------------------------------------------------
 def _rot(pb, x=0.0, y=0.0, z=0.0):
     pb.rotation_mode = "XYZ"
     pb.rotation_euler = (math.radians(x), math.radians(y), math.radians(z))
 
 
-# Eksen notu, iki turda olculdu:
-#   1. tur  Z etrafinda donduruldu -> kollar asagi inmedi, one arkaya salindi
-#   2. tur  X etrafinda POZITIF -> kollar YUKARI kalkti
-#   3. tur  X etrafinda NEGATIF -> dogru
-# Kemigin yerel Y ekseni uzunlugu boyunca; yana uzanan kolu asagi indirmek
-# yerel X etrafinda NEGATIF donmek demek.
+# A note on the axes, measured over three rounds:
+#   round 1  rotated about Z -> the arms did not come down, they swung
+#            forwards and backwards
+#   round 2  POSITIVE about X -> the arms went UP
+#   round 3  NEGATIVE about X -> correct
+# A bone's local Y axis runs along its length; to bring an outstretched arm
+# down means rotating NEGATIVELY about the local X.
 POSES = {
-    # T-poz: taban.
-    "t_poz": {},
+    # T-pose: the baseline.
+    "t_pose": {},
 
-    # Kollar asagi, hafif ice.
-    "dinlenme": {
+    # Arms down, turned slightly inwards.
+    "idle": {
         "upperarm.L": (-78, 0, 0), "upperarm.R": (-78, 0, 0),
         "forearm.L": (-12, 0, 0), "forearm.R": (-12, 0, 0),
     },
 
-    # Dirsek bukumu: onde tepsi tasiyor.
-    "tasima": {
+    # Elbow bend: carrying a tray in front.
+    "carry": {
         "upperarm.L": (-62, 0, 0), "upperarm.R": (-62, 0, 0),
-        # Dirsek bukumu de yerel X: kol asagi dondukten sonra on kolun
-        # cercevesi onu takip ediyor, Z ekseni dirsegi burarak yaniltiyordu.
+        # The elbow bend is on the local X too: once the arm has rotated down
+        # the forearm's frame follows it, and the Z axis was misleading by
+        # twisting the elbow.
         "forearm.L": (-85, 0, 0), "forearm.R": (-85, 0, 0),
     },
 
-    # Oturma: kalca ve diz. Govde ayrica asagi aliniyor (bkz. SIT_DROP).
-    "oturma": {
+    # Sitting: hips and knees. The body is also lowered (see SIT_DROP).
+    "sit": {
         "thigh.L": (-88, 0, 0), "thigh.R": (-88, 0, 0),
         "shin.L": (86, 0, 0), "shin.R": (86, 0, 0),
         "upperarm.L": (-70, 0, 0), "upperarm.R": (-70, 0, 0),
         "forearm.L": (-35, 0, 0), "forearm.R": (-35, 0, 0),
     },
 
-    # Egilme: bel ve kalca.
-    "egilme": {
+    # Bending: waist and hips.
+    "bend": {
         "spine": (34, 0, 0), "chest": (20, 0, 0),
         "upperarm.L": (-85, 0, 0), "upperarm.R": (-85, 0, 0),
         "thigh.L": (-14, 0, 0), "thigh.R": (-14, 0, 0),
     },
 
-    # Yuruyus ortasi: bacaklar zit yonde, kollar karsi salinim.
-    "yuruyus": {
+    # Mid-stride: the legs in opposition, the arms in counter-swing.
+    "walk": {
         "thigh.L": (-28, 0, 0), "thigh.R": (24, 0, 0),
         "shin.L": (18, 0, 0), "shin.R": (10, 0, 0),
         "upperarm.L": (-66, 0, 0), "upperarm.R": (-88, 0, 0),
@@ -161,12 +171,14 @@ POSES = {
     },
 }
 
-# Oturma pozunda kalca asagi inmeli, yoksa karakter havada duruyor.
-SIT_DROP = {"oturma": -0.42}
+# In the sitting pose the hips have to come down, otherwise the character
+# hangs in the air.
+SIT_DROP = {"sit": -0.42}
 
 
 def apply_pose(arm_obj, pose_name):
-    """Pozu uygular. Onceki poz temizlenir, vucut tipi olcegi korunur."""
+    """Applies the pose. The previous pose is cleared, the body-type scale is
+    preserved."""
     bpy.context.view_layer.objects.active = arm_obj
     bpy.ops.object.mode_set(mode="POSE")
 
@@ -186,8 +198,8 @@ def apply_pose(arm_obj, pose_name):
         _rot(pb, *angles)
         pb.scale = base_scale
 
-    # Oturmada govde asagi iniyor. Kemik yerel Y'si uzunlugu boyunca
-    # oldugu icin kalcanin yerel ekseninde tasiniyor.
+    # In the sitting pose the body comes down. Because a bone's local Y runs
+    # along its length, the translation is on the hips' local axis.
     drop = SIT_DROP.get(pose_name)
     if drop:
         hips = arm_obj.pose.bones.get("hips")
@@ -199,19 +211,19 @@ def apply_pose(arm_obj, pose_name):
 
 def bind_rigid(obj, arm_obj, bone_name):
     """
-    Parcayi kemige KATI baglar. Skinning yok, agirlik boyama yok.
+    Binds a part RIGIDLY to a bone. No skinning, no weight painting.
 
-    Neden: otomatik agirlik denendi ve eklemde bosluk acti (oturma
-    pozunda bacaklar kalcadan ayrildi). Duzeltmenin yolu mesh'i
-    kaynaklayip eklem bolgesine kenar dongusu eklemek ve agirlik
-    boyamakti; o is gorsel yargi istiyor ve docs/24 o yargiyi verecek
-    kimse olmadigini tespit etmisti.
+    Why: automatic weights were tried and opened a gap at the joint (in the
+    sitting pose the legs came away from the hips). The way to fix that was to
+    weld the mesh, add an edge loop around the joint and paint weights; that
+    work needs visual judgement, and docs/24 had established that there was
+    nobody to give that judgement.
 
-    Ters matris ELLE hesaplanmiyor. Ilk denemede hesaplandi ve parcalar
-    sahneye dagildi: Blender'da kemik ebeveynligi kemigin KUYRUGUNU
-    baslangic aliyor, basini degil. Dogru yol, dunya donusumunu once
-    saklayip ebeveynlikten sonra geri yazmak; yerel matrisi Blender
-    kendisi cikariyor.
+    The inverse matrix is NOT computed BY HAND. It was computed on the first
+    attempt and the parts scattered across the scene: in Blender, bone
+    parenting takes the bone's TAIL as its origin, not its head. The correct
+    way is to store the world transform first and write it back after
+    parenting; Blender derives the local matrix itself.
     """
     bpy.context.view_layer.update()
     world = obj.matrix_world.copy()
@@ -227,7 +239,7 @@ def bind_rigid(obj, arm_obj, bone_name):
 
 def attach_to_bone(obj, arm_obj, bone_name):
     """
-    Kiyafet, sac ve aksesuar. Govde parcalariyla AYNI mekanizma:
-    katı kemik ebeveynligi. 16 kiyafet, sifir ek skinning.
+    Outfit, hair and accessories. THE SAME mechanism as the body parts: rigid
+    bone parenting. 16 outfits, zero extra skinning.
     """
     return bind_rigid(obj, arm_obj, bone_name)

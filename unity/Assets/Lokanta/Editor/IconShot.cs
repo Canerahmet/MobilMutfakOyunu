@@ -8,17 +8,17 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Uygulama simgesini OYUNUN KENDI VARLIKLARINDAN uretir.
+    /// Generates the app icon FROM THE GAME'S OWN ASSETS.
     ///
-    /// Neden cizim degil render: kodla cizilmis bir simge, oyunun icindeki
-    /// hicbir seye benzemiyor ve magazada yanlis soz veriyor. Burada
-    /// kurulan sahne oyundakinin ta kendisi - ayni masa, ayni sandalye,
-    /// ayni figur, ayni malzemeler. Oyuncu simgede gordugu seyi oyunda da
-    /// goruyor.
+    /// Why a render and not a drawing: an icon drawn in code looks like
+    /// nothing inside the game and makes a false promise in the store. The
+    /// scene built here is the very one from the game - the same table, the
+    /// same chair, the same figure, the same materials. What the player sees
+    /// in the icon they see in the game too.
     ///
-    /// Cerceve yakin: 1024 x 1024'luk bir karede butun restorani gostermek,
-    /// telefon ekraninda 48 dp'ye indiginde gri bir lekeye donuyor. Tek bir
-    /// masa takimi o olcekte bile okunuyor.
+    /// The framing is close: showing the whole restaurant in a 1024 x 1024
+    /// frame turns into a grey smudge once it comes down to 48 dp on a phone
+    /// screen. A single table set is still readable even at that size.
     ///
     ///   .\tools\unity\shot.ps1 -Method Lokanta.EditorTools.IconShot.Run
     /// </summary>
@@ -26,57 +26,59 @@ namespace Lokanta.EditorTools
     {
         private const string Dir = "Assets/Lokanta/Art/Icons";
 
-        /// <summary>Oyunun icindeki simge. Buyuk olcu, uyarlanabilir maske icin.</summary>
+        /// <summary>The icon inside the game. Large, for the adaptive mask.</summary>
         private const string PathBig = Dir + "/app-icon.png";
 
         /// <summary>
-        /// MAGAZA SIMGESI: 512 x 512, 32 bit, ALFA KANALLI.
+        /// THE STORE ICON: 512 x 512, 32 bit, WITH AN ALPHA CHANNEL.
         ///
-        /// Play bunu sart kosuyor ve uretilen dosya RGB24 idi - yani
-        /// alfa kanali YOKTU ve yukleme reddedilirdi. Ayri bir dosya,
-        /// cunku olcu ve bicim farkli; oyunun icindeki simgeyi kucultup
-        /// magazaya vermek, iki gereksinimi tek dosyaya sikistirmak
-        /// olurdu.
+        /// Play requires this, and the generated file was RGB24 - that is,
+        /// there was NO alpha channel and the upload would have been refused.
+        /// A separate file, because the size and the format differ; shrinking
+        /// the in-game icon and handing it to the store would be squeezing two
+        /// requirements into one file.
         /// </summary>
         private const string PathStore = Dir + "/store-icon-512.png";
 
         private const int Size = 1024;
         private const int StoreSize = 512;
 
-        /// <summary>Simgenin zemini. Sicak, koyu, arayuzun vurgu rengiyle akraba.</summary>
+        /// <summary>The icon's ground. Warm, dark, a relative of the interface's accent colour.</summary>
         private static readonly Color Ground = new Color(0.42f, 0.26f, 0.16f);
 
-        [MenuItem("Lokanta/Uygulama simgesini uret")]
+        [MenuItem("Lokanta/Generate the app icon")]
         public static void Run()
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             GameObject stage = BuildStage();
-            if (stage == null) { Debug.LogError("SORUNLAR: simge sahnesi kurulamadi"); return; }
+            if (stage == null) { Debug.LogError("PROBLEMS: the icon scene could not be built"); return; }
 
             byte[] png = Shoot(stage);
             Object.DestroyImmediate(stage);
 
+            // The leaf has to match Dir. It said "Simge" here while Dir says
+            // "Icons"; a folder created under one name and then written to
+            // under another is an import that silently never happens.
             if (!AssetDatabase.IsValidFolder(Dir))
-                AssetDatabase.CreateFolder("Assets/Lokanta/Art", "Simge");
+                AssetDatabase.CreateFolder("Assets/Lokanta/Art", "Icons");
 
             string root = System.IO.Path.GetDirectoryName(Application.dataPath);
             File.WriteAllBytes(System.IO.Path.Combine(root, PathBig), png);
             AssetDatabase.ImportAsset(PathBig, ImportAssetOptions.ForceUpdate);
 
-            // MAGAZA KOPYASI: 512 x 512, 32 BIT, TAM OPAK.
+            // THE STORE COPY: 512 x 512, 32 BIT, FULLY OPAQUE.
             //
-            // Buradaki yorum bir sure "Play 32 bit ALFAYI sart kosuyor"
-            // diyordu ve gerekce yanlisti. Play iki seyi birden
-            // istiyor: 32 bit PNG *ve* SAYDAMLIK YOK. Uretilen dosyada
-            // en dusuk alfa 205'ti - kenar yumusatmasindan kalan yari
-            // saydam pikseller - ve magaza girisi bu yuzden
-            // reddedilirdi.
+            // For a while the comment here said "Play requires 32 bit ALPHA"
+            // and the justification was wrong. Play wants two things at once: a
+            // 32 bit PNG *and* NO TRANSPARENCY. In the generated file the
+            // lowest alpha was 205 - semi-transparent pixels left over from the
+            // anti-aliasing - and the store listing would have been refused
+            // because of them.
             //
-            // Baslatici simgesi (1024) saydam KALIYOR: orada saydamlik
-            // dogru, Android uyarlanabilir maskeyi kendisi uyguluyor.
-            // Iki gereksinim ayri dosyada; tek dosyaya sikistirmak
-            // ikisini de bozar.
+            // The launcher icon (1024) STAYS transparent: there transparency is
+            // right, and Android applies the adaptive mask itself. Two
+            // requirements in two files; squeezing them into one breaks both.
             byte[] store = Flatten(Resize(png, StoreSize));
             File.WriteAllBytes(System.IO.Path.Combine(root, PathStore), store);
             AssetDatabase.ImportAsset(PathStore, ImportAssetOptions.ForceUpdate);
@@ -84,21 +86,21 @@ namespace Lokanta.EditorTools
             Configure(PathBig);
             Apply(PathBig);
 
-            Debug.Log("=== Lokanta simge ===\n  oyun    : " + PathBig
+            Debug.Log("=== Lokanta icon ===\n  game    : " + PathBig
                       + " (" + Size + " x " + Size + ")"
-                      + "\n  magaza  : " + PathStore
-                      + " (" + StoreSize + " x " + StoreSize + ", 32 bit, tam opak)"
-                      + "\n=== simge tamam ===");
+                      + "\n  store   : " + PathStore
+                      + " (" + StoreSize + " x " + StoreSize + ", 32 bit, fully opaque)"
+                      + "\n=== icon done ===");
         }
 
         // =====================================================================
         /// <summary>
-        /// Tek bir masa takimi: masa, dort sandalye, bir oturan musteri ve
-        /// masada bir tabak. Salonun ozeti.
+        /// A single table set: a table, four chairs, a seated customer and a
+        /// plate on the table. The hall in miniature.
         /// </summary>
         private static GameObject BuildStage()
         {
-            GameObject root = new GameObject("SimgeSahnesi");
+            GameObject root = new GameObject("IconStage");
 
             GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             floor.transform.SetParent(root.transform, false);
@@ -106,30 +108,32 @@ namespace Lokanta.EditorTools
             floor.transform.localPosition = new Vector3(0f, -0.05f, 0f);
             floor.GetComponent<Renderer>().sharedMaterial = Flat(new Color(0.31f, 0.22f, 0.15f));
 
-            if (!Place(root, "Mobilya/tableRound", Vector3.zero, 0f)) return null;
+            if (!Place(root, "Furniture/tableRound", Vector3.zero, 0f)) return null;
 
             for (int k = 0; k < 4; k++)
             {
                 float yaw = k * 90f + 45f;
                 Vector3 at = Quaternion.Euler(0f, yaw, 0f) * new Vector3(0f, 0f, -0.62f);
-                Place(root, "Mobilya/chairCushion", at, yaw);
+                Place(root, "Furniture/chairCushion", at, yaw);
             }
 
-            // Oturan figur masanin KARSI tarafinda, 135 derecede.
+            // The seated figure sits on the FAR side of the table, at 135
+            // degrees.
             //
-            // Olculdu: kameraya yakin oturaga konuldugunda figurun SIRTI
-            // karenin yarisini kapliyor ve masa hic gorunmuyordu. Karsi
-            // tarafta oturan bir musteri masaya, yani kameraya donuk
-            // oluyor - hem yuzu goruluyor hem masa acikta kaliyor.
+            // Measured: placed on the seat nearest the camera, the figure's
+            // BACK filled half the frame and the table was not visible at all.
+            // A customer sitting on the far side faces the table, which is to
+            // say the camera - their face can be seen and the table stays
+            // clear.
             //
-            // Oturma klibi govdeyi 0,35 m indiriyor, o yuzden ayni kadar
-            // kaldiriliyor (bkz. RestaurantView.SitLift).
-            Seat(root, "Karakter/character-female-c", 135f);
-            Seat(root, "Karakter/character-male-d", 225f);
+            // The sitting clip lowers the body by 0.35 m, so it is raised by
+            // the same amount (see RestaurantView.SitLift).
+            Seat(root, "Characters/character-female-c", 135f);
+            Seat(root, "Characters/character-male-d", 225f);
 
-            Place(root, "Yemek/plate-dinner", new Vector3(0f, 0.74f, -0.10f), 0f);
-            Place(root, "Yemek/bowl-soup", new Vector3(0.22f, 0.74f, 0.14f), 0f);
-            Place(root, "Yemek/cup-tea", new Vector3(-0.22f, 0.74f, 0.12f), 0f);
+            Place(root, "Food/plate-dinner", new Vector3(0f, 0.74f, -0.10f), 0f);
+            Place(root, "Food/bowl-soup", new Vector3(0.22f, 0.74f, 0.14f), 0f);
+            Place(root, "Food/cup-tea", new Vector3(-0.22f, 0.74f, 0.12f), 0f);
 
             return root;
         }
@@ -164,7 +168,7 @@ namespace Lokanta.EditorTools
         {
             string path = "Assets/Lokanta/Art/Prefab/" + rel + ".prefab";
             GameObject go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (go == null) Debug.LogWarning("Simge icin prefab yok: " + path);
+            if (go == null) Debug.LogWarning("No prefab for the icon: " + path);
             return go;
         }
 
@@ -178,18 +182,12 @@ namespace Lokanta.EditorTools
 
         // =====================================================================
         /// <summary>
-        /// PNG'yi kucultup yeniden kodlar. Alfa kanali korunuyor.
+        /// Flattens the alpha into the ground: the result is fully opaque.
         ///
-        /// Bilinear: simge zaten yumusak bir render ve kucultmede
-        /// en yakin komsu tarak deseni uretir.
-        /// </summary>
-        /// <summary>
-        /// Alfayi zemine yedirir: sonuc tam opak.
-        ///
-        /// Zemin, goruntunun kendi sol ust kosesinden aliniyor - simge
-        /// zaten dolu bir arka plan uzerinde ciziliyor, yani orasi
-        /// simgenin kendi rengi. Sabit bir renk yazmak, simgenin zemini
-        /// degisince sessizce yanlis bir cerceve birakirdi.
+        /// The ground is taken from the image's own top-left corner - the icon
+        /// is drawn on a filled background anyway, so that pixel is the icon's
+        /// own colour. Writing a fixed colour would silently leave a wrong
+        /// border the moment the icon's ground changed.
         /// </summary>
         private static byte[] Flatten(byte[] png)
         {
@@ -199,17 +197,17 @@ namespace Lokanta.EditorTools
             Color32[] px = t.GetPixels32();
             if (px.Length == 0) { Object.DestroyImmediate(t); return png; }
 
-            Color32 zemin = px[0];
-            zemin.a = 255;
+            Color32 ground = px[0];
+            ground.a = 255;
 
             for (int i = 0; i < px.Length; i++)
             {
                 if (px[i].a == 255) continue;
                 float k = px[i].a / 255f;
                 px[i] = new Color32(
-                    (byte)(px[i].r * k + zemin.r * (1f - k)),
-                    (byte)(px[i].g * k + zemin.g * (1f - k)),
-                    (byte)(px[i].b * k + zemin.b * (1f - k)),
+                    (byte)(px[i].r * k + ground.r * (1f - k)),
+                    (byte)(px[i].g * k + ground.g * (1f - k)),
+                    (byte)(px[i].b * k + ground.b * (1f - k)),
                     255);
             }
 
@@ -220,6 +218,12 @@ namespace Lokanta.EditorTools
             return outPng;
         }
 
+        /// <summary>
+        /// Shrinks the PNG and re-encodes it. The alpha channel is preserved.
+        ///
+        /// Bilinear: the icon is a soft render already, and nearest neighbour
+        /// produces a comb pattern when shrinking.
+        /// </summary>
         private static byte[] Resize(byte[] png, int size)
         {
             Texture2D src = new Texture2D(2, 2, TextureFormat.RGBA32, false);
@@ -244,7 +248,7 @@ namespace Lokanta.EditorTools
 
         private static byte[] Shoot(GameObject stage)
         {
-            GameObject sunGo = new GameObject("Gunes");
+            GameObject sunGo = new GameObject("Sun");
             Light sun = sunGo.AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.intensity = 1.5f;
@@ -252,7 +256,7 @@ namespace Lokanta.EditorTools
             sun.shadows = LightShadows.Soft;
             sunGo.transform.rotation = Quaternion.Euler(48f, 200f, 0f);
 
-            GameObject fillGo = new GameObject("Dolgu");
+            GameObject fillGo = new GameObject("Fill");
             Light fill = fillGo.AddComponent<Light>();
             fill.type = LightType.Directional;
             fill.intensity = 0.5f;
@@ -262,7 +266,7 @@ namespace Lokanta.EditorTools
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.34f, 0.30f, 0.28f);
 
-            GameObject camGo = new GameObject("SimgeKamerasi");
+            GameObject camGo = new GameObject("IconCamera");
             Camera cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = Ground;
@@ -270,18 +274,18 @@ namespace Lokanta.EditorTools
             cam.aspect = 1f;
             camGo.transform.rotation = Quaternion.Euler(30f, -20f, 0f);
 
-            // Mesafe 7,2 m.
+            // The distance is 7.2 m.
             //
-            // Yakin bir cerceve daha etkileyici ama Android 8'den beri
-            // simgeler UYARLANABILIR: sistem simgeyi daire, kare ya da
-            // damla seklinde KIRPIYOR ve yalnizca ortadaki ~%66 garanti.
-            // Bu mesafede masa takimi o guvenli alanin icinde kaliyor.
+            // A closer frame is more striking, but since Android 8 icons are
+            // ADAPTIVE: the system CROPS the icon into a circle, a square or a
+            // teardrop and only the middle ~66% is guaranteed. At this distance
+            // the table set stays inside that safe area.
             Bounds b = new Bounds(new Vector3(0f, 0.72f, 0f), Vector3.one);
             camGo.transform.position = b.center
                 - camGo.transform.rotation * Vector3.forward * 7.2f;
 
-            // Simge render'i da SRP toplu ciziminden etkileniyor; oyun
-            // goruntusuyle ayni sebep (bkz. GameShot.SrpBatcher).
+            // The icon render is affected by SRP batching too; the same reason
+            // as the game screenshot (see GameShot.SrpBatcher).
             RenderTexture rt = new RenderTexture(Size, Size, 24) { antiAliasing = 8 };
             cam.targetTexture = rt;
 
@@ -291,13 +295,13 @@ namespace Lokanta.EditorTools
 
             RenderTexture previous = RenderTexture.active;
             RenderTexture.active = rt;
-            // RGBA32, RGB24 DEGIL.
+            // RGBA32, NOT RGB24.
             //
-            // Play magaza simgesinin 32 bit ve alfa kanalli olmasini
-            // sart kosuyor; uretilen dosya RGB24 oldugu icin alfa
-            // kanali hic yoktu ve yukleme reddedilirdi. Zemin zaten
-            // opak, yani gorunusu degismiyor - degisen tek sey PNG'nin
-            // renk turu.
+            // Play requires the store icon to be 32 bit with an alpha channel;
+            // because the generated file was RGB24 there was no alpha channel
+            // at all and the upload would have been refused. The ground is
+            // opaque anyway, so nothing changes in how it looks - the only
+            // thing that changes is the PNG's colour type.
             Texture2D shot = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
             shot.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
             shot.Apply();
@@ -335,9 +339,9 @@ namespace Lokanta.EditorTools
             TextureImporter im = AssetImporter.GetAtPath(path) as TextureImporter;
             if (im == null) return;
 
-            // Simge dokusu SIKISTIRILMIYOR ve mipmap almiyor: Unity onu
-            // yapi sirasinda kendi olcekliyor, bozuk bir kaynak bozuk bir
-            // simge demek.
+            // The icon texture IS NOT COMPRESSED and gets no mipmaps: Unity
+            // scales it itself during the build, and a spoiled source means a
+            // spoiled icon.
             im.textureType = TextureImporterType.Default;
             im.mipmapEnabled = false;
             im.npotScale = TextureImporterNPOTScale.None;
@@ -350,48 +354,49 @@ namespace Lokanta.EditorTools
         private static void Apply(string path)
         {
             Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            if (tex == null) { Debug.LogWarning("Simge dokusu yuklenemedi"); return; }
+            if (tex == null) { Debug.LogWarning("The icon texture could not be loaded"); return; }
 
-            // Her boyut icin AYNI doku veriliyor; Unity kendisi olcekliyor.
-            // Boyut basina ayri gorsel hazirlamak, altmis dort piksellik bir
-            // simge icin gereksiz.
+            // THE SAME texture is given for every size; Unity scales it itself.
+            // Preparing a separate image per size is pointless for a
+            // sixty-four-pixel icon.
             //
-            // NamedBuildTarget ile: eski BuildTargetGroup imzalari Unity 6'da
-            // kaldirildi ve simge turleri artik PlatformIconKind uzerinden
-            // sorgulaniyor.
-            // YALNIZCA UYARLANABILIR SIMGE.
+            // Through NamedBuildTarget: the old BuildTargetGroup signatures were
+            // removed in Unity 6 and the icon kinds are now queried through
+            // PlatformIconKind.
+            // THE ADAPTIVE ICON ONLY.
             //
-            // Once desteklenen BUTUN turler dolduruluyordu ve Unity
-            // yapida iki uyari basiyordu: "Round icons are deprecated",
-            // "Legacy icons are deprecated". Uyarlanabilir simge API
-            // 26'dan itibaren yeterli ve yapinin alt siniri artik 29
-            // (Android 10, docs/19'un yazdigi taban) - yani eski ve
-            // yuvarlak yuvalar hicbir cihaza gitmiyor.
+            // ALL the supported kinds were being filled before, and Unity
+            // printed two warnings during the build: "Round icons are
+            // deprecated", "Legacy icons are deprecated". The adaptive icon is
+            // enough from API 26 onwards and the build's floor is now 29
+            // (Android 10, the floor docs/19 writes down) - so the legacy and
+            // round slots go to no device at all.
             //
-            // Doldurulmayan tur TEMIZLENIYOR da: birakilan eski bir
-            // simge, sonraki yapida uyariyi geri getirirdi.
+            // A kind that is not filled is also CLEARED: an old icon left
+            // behind would bring the warning back on the next build.
             int applied = 0;
             foreach (PlatformIconKind kind in
                      PlayerSettings.GetSupportedIconKinds(NamedBuildTarget.Android))
             {
                 PlatformIcon[] icons =
                     PlayerSettings.GetPlatformIcons(NamedBuildTarget.Android, kind);
-                bool uyarlanabilir = kind.ToString().IndexOf(
+                bool adaptive = kind.ToString().IndexOf(
                     "Adaptive", System.StringComparison.OrdinalIgnoreCase) >= 0;
 
                 for (int i = 0; i < icons.Length; i++)
-                    icons[i].SetTexture(uyarlanabilir ? tex : null, 0);
+                    icons[i].SetTexture(adaptive ? tex : null, 0);
                 PlayerSettings.SetPlatformIcons(NamedBuildTarget.Android, kind, icons);
-                if (uyarlanabilir) applied += icons.Length;
+                if (adaptive) applied += icons.Length;
             }
-            Debug.Log("  simge   : " + applied + " uyarlanabilir Android boyutu baglandi");
+            Debug.Log("  icon    : " + applied + " adaptive Android sizes wired");
 
             PlayerSettings.SetIcons(NamedBuildTarget.Standalone,
                                     new[] { tex }, IconKind.Any);
 
-            // Acilis ekrani: Unity rozeti Personal lisansta zorunlu, ama
-            // ZEMIN RENGI bizim. Varsayilan koyu gri yerine oyunun kendi
-            // zemini, acilisi oyunun bir parcasi gibi gosteriyor.
+            // The splash screen: the Unity badge is compulsory on a Personal
+            // licence, but THE BACKGROUND COLOUR is ours. The game's own ground
+            // instead of the default dark grey makes the start-up look like
+            // part of the game.
             PlayerSettings.SplashScreen.backgroundColor = new Color(0.086f, 0.094f, 0.110f);
             PlayerSettings.SplashScreen.animationMode = PlayerSettings.SplashScreen.AnimationMode.Dolly;
             PlayerSettings.SplashScreen.showUnityLogo = false;

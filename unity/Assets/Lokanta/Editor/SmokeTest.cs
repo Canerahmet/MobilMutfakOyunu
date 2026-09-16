@@ -10,19 +10,20 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Calisma zamani yukleme sinavi: icerik RESOURCES'tan yukleniyor mu,
-    /// ve simulasyon Unity icinde bir gunu kosabiliyor mu.
+    /// A run-time loading exam: does content load from RESOURCES, and can
+    /// the simulation run a day inside Unity.
     ///
-    /// Neden ayri bir sinav: birim testleri icerigi DISKTEN okuyor. Oyun
-    /// onu Resources'tan okuyacak ve o yol Android'e bakan yol. Iki yolun
-    /// ayni sonucu verdigini varsaymak, telefonda acilinca ogrenmek demek.
+    /// Why a separate exam: the unit tests read content FROM DISK. The game
+    /// will read it from Resources, and that is the route that faces Android.
+    /// Assuming the two routes give the same answer means finding out when it
+    /// opens on a phone.
     ///
-    /// Toplu kipte de kosuyor:
+    /// It runs in batch mode too:
     ///   Unity.exe -batchmode -quit -executeMethod Lokanta.EditorTools.SmokeTest.Run
     /// </summary>
     public static class SmokeTest
     {
-        [MenuItem("Lokanta/Calisma zamani sinavi")]
+        [MenuItem("Lokanta/Run-time exam")]
         public static void Run()
         {
             StringBuilder log = new StringBuilder();
@@ -44,8 +45,8 @@ namespace Lokanta.EditorTools
 
                     Simulation sim = new Simulation(economy, content, timing, 20260911UL);
 
-                    // Bir gunu bastan sona kosuyoruz: yalnizca yukleme degil,
-                    // TIK dongusu de sinaniyor.
+                    // We run a whole day end to end: not just the loading but
+                    // the TICK loop is put to the test as well.
                     for (int i = 0; i < sim.IngredientCount; i++)
                     {
                         int need = sim.RecommendedRestock(i);
@@ -63,8 +64,8 @@ namespace Lokanta.EditorTools
                     DayReport r = sim.BuildDayReport();
 
                     log.AppendFormat(
-                        "{0,-9} {1} yemek, {2} arketip, {3} duzenli musteri, {4} huy | " +
-                        "1. gun: {5} grup agirlandi, ciro {6}, memnuniyet {7:0.0}\n",
+                        "{0,-9} {1} dishes, {2} archetypes, {3} regulars, {4} traits | " +
+                        "day 1: {5} parties served, takings {6}, satisfaction {7:0.0}\n",
                         cuisine, content.Dishes.Length, content.Archetypes.Length,
                         content.Regulars.Length, economy.TraitCount,
                         r.ServedParties, r.Revenue / 100,
@@ -73,19 +74,19 @@ namespace Lokanta.EditorTools
                     if (r.ServedParties == 0)
                     {
                         ok = false;
-                        log.AppendLine("  HATA: hicbir grup agirlanmadi");
+                        log.AppendLine("  ERROR: not a single party was served");
                     }
                 }
                 catch (System.Exception e)
                 {
                     ok = false;
-                    log.AppendFormat("{0,-9} HATA: {1}\n", cuisine, e.Message);
+                    log.AppendFormat("{0,-9} ERROR: {1}\n", cuisine, e.Message);
                 }
             }
 
-            // Kat plani ile ekonominin ayni seyi soyledigini burada da
-            // sinamak ucuz: birim testi diskteki icerige bakiyor, bu
-            // Resources kopyasina.
+            // Testing here as well that the floor plan and the economy say
+            // the same thing is cheap: the unit test looks at the content on
+            // disk, this one looks at the Resources copy.
             try
             {
                 EconomyConfig cfg = ContentLoader.LoadEconomy(new ResourcesContentSource());
@@ -97,21 +98,21 @@ namespace Lokanta.EditorTools
                     if (cfg.TierAt(tier).Tables != running)
                     {
                         ok = false;
-                        log.AppendFormat("  HATA: {0} odasi {1} masa veriyor, kademe {2} ise {3} diyor\n",
+                        log.AppendFormat("  ERROR: room {0} gives {1} tables, but tier {2} says {3}\n",
                             room.Name, running, tier, cfg.TierAt(tier).Tables);
                     }
                     tier++;
                 }
-                log.AppendFormat("kat plani  {0} kademe, kademe tablosuyla uyumlu\n", tier);
+                log.AppendFormat("floor plan {0} tiers, in step with the tier table\n", tier);
             }
             catch (System.Exception e)
             {
                 ok = false;
-                log.AppendLine("kat plani HATA: " + e.Message);
+                log.AppendLine("floor plan ERROR: " + e.Message);
             }
 
-            if (ok) Debug.Log("CALISMA ZAMANI SINAVI GECTI\n" + log);
-            else Debug.LogError("CALISMA ZAMANI SINAVI BASARISIZ\n" + log);
+            if (ok) Debug.Log("THE RUN-TIME EXAM PASSED\n" + log);
+            else Debug.LogError("THE RUN-TIME EXAM FAILED\n" + log);
         }
     }
 }

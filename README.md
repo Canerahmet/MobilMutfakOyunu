@@ -1,221 +1,236 @@
 # Lokanta
 
-**Patronsun, aşçı değil.** Devraldığın dört masalık bir lokanta, huysuz bir
-aşçı ve altmış gün var.
+**You're the owner, not the cook.** You inherit a four-table restaurant, a
+bad-tempered cook and sixty days.
 
-2.5D low-poly, yatay, Android hedefli bir lokanta yönetim oyunu. Unity 6 + URP,
-tek kişilik geliştirme.
+A 2.5D low-poly restaurant management game, landscape, Android first. Unity 6 +
+URP, built by one person.
 
-![Kırkıncı gün](render/magaza/20-magaza-servis.png)
+![Day forty](render/store/20-store-service.png)
 
-*Kırkıncı gün, fast food: tezgâhın üstünde ışıklı menü panosu, ortada sıcak hat,
-uçlarda kasa — garson yok, müşteri tepsisini kendi taşıyor.*
-
----
-
-## Ne oynuyorsun
-
-Sen mutfakta değilsin. Senin işin menüyü kurmak, halden malzeme almak, kimi işe
-alacağına karar vermek ve servis kızıştığında doğru masaya yetişmek. Yemekleri
-aşçın yapıyor — iyi ya da kötü, tuttuğun kişiye göre.
-
-Gün üç aşamalı ve her aşama ayrı bir karar istiyor.
-
-### Sabah — kararlar
-
-![Sabah](render/magaza/04-oyun-sabah.png)
-
-*Açılış hazırlığı: menü, stok ve mutfak üç satırda.*
-
-![Hal](render/magaza/05-hal.png)
-
-**Hal.** Her malzemenin bugünkü fiyatı yıl ortalamasına göre gösteriliyor, raf
-ömrüyle birlikte. Ucuz bir gün, saklayabiliyorsan fırsat; saklayamıyorsan
-yalnızca bir gider oynaması. Kaç günlük alacağını sen seçiyorsun ve tavanı
-soğuk hava deponun kademesi belirliyor.
-
-Malzeme kalitesi de burada: üç kademe, ucuzu %25'e kadar ucuz ama müşteriyi
-memnun etmiyor.
-
-![Menü](render/magaza/05-menu.png)
-
-**Menü.** Otuz iki yemek var ama hepsini açık tutamazsın: menüde duran her
-yemek için stok tutuluyor ve akşam bozulan her şey çöpe gidiyor. Dar menü az
-zayiat, geniş menü çok müşteri.
-
-![Personel](render/magaza/05-personel.png)
-
-**Kadro.** Ücret her gün ödeniyor, zirve haftada iki gün. Tam kadro herkese
-yetişir ama parayı yer; bir kişi eksik çalışmak kazandırır ve karşılığında
-masadan kızgın kalkan müşteriler bırakır.
-
-### Servis — sen buradasın
-
-![Masa seçili](render/magaza/16-masa-secili.png)
-
-Gün bir zirve etrafında şekilleniyor: Türk lokantasında sert bir öğle
-patlaması, fast food'da öğle ve akşam iki tepe. Zirve, kadronun günlük
-toplamına göre kurulduğu anda ezici olur — kuyruk oluşur, sabır tükenir.
-
-Sayılı müdahale hakkın var ve dükkân büyüdükçe artıyor:
-
-- **Mutfağı hızlandır** — bir istasyondaki işleri öne al
-- **Salona çay çıkar** — bekleyen herkesin sabrını uzat
-- **Bir masayla kendin ilgilen** — o masa daha çabuk döner
-
-Hepsi aynı keseden çıkıyor ve harcanmayan hak gece yanıyor.
-
-### Akşam — hesap
-
-![Akşam](render/magaza/10-aksam.png)
-
-*Günün kârı, ağırlanan, ciro — ve **bozulan**: oyunun en büyük görünmez gideri.*
-
-Şeritte günün özeti var; **Gün raporu** ardında paranın nereye gittiği kalem
-kalem duruyor: malzeme, çöpe giden, ücret, kira. Kim geldi, kim kırıldı.
-
-Her yedi günde bir **karne** çıkıyor: yedi eksenin geçen haftaya göre farkı.
-Bir de **nişanlar** — "Zirveyi eksik kadroyla geçtin", "Defter kapandı". Görev
-değil: geriye dönük tanıma, o yüzden planınla asla çatışmıyor.
+*Day forty, fast food: the lit menu board above the counter, the hot line in the
+middle, tills at the ends — no waiter, the guest carries their own tray.*
 
 ---
 
-## İki mutfak, iki imza
+## What you play
 
-![Mutfak seçimi](render/magaza/02-mutfak-secimi.png)
+You are not in the kitchen. Your job is to set the menu, buy at the market,
+decide who to hire, and get to the right table when service heats up. Your cook
+does the cooking — well or badly, depending on who you hired.
 
-Başlangıçta seçiyorsun ve kayıt boyunca kilitli.
+The day has three phases and each one asks a different question.
 
-| | Fast food | Türk lokantası |
+### Morning — decisions
+
+![Morning](render/store/04-game-morning.png)
+
+*Opening preparation: menu, stock and kitchen in three rows.*
+
+![Market](render/store/05-market.png)
+
+**The market.** Today's price of every ingredient is shown against its yearly
+average, together with its shelf life. A cheap day is an opportunity if you can
+store it, and nothing but a wobble in your costs if you cannot. You choose how
+many days to buy for, and your cold store's tier sets the ceiling.
+
+Ingredient quality lives here too: three tiers, the cheap one up to 25% cheaper
+and it does not leave the guest happy.
+
+![Menu](render/store/05-menu.png)
+
+**The menu.** There are thirty-two dishes and you cannot keep them all open:
+every dish on the menu ties up stock, and anything that spoils goes in the bin
+tonight. A narrow menu wastes less; a wide one draws more.
+
+![Crew](render/store/05-crew.png)
+
+**The crew.** Wages are paid every day, the peak comes two days a week. A full
+crew serves everyone but eats the cash; running one short earns more, and pays
+for it with guests who get up from the table angry.
+
+### Service — this is where you are
+
+![Table selected](render/store/16-table-selected.png)
+
+The day is shaped around a peak: a hard lunch rush in the Turkish restaurant,
+two smaller crests at lunch and dinner in fast food. The peak becomes crushing
+the moment it is set against the crew's *daily* total — a queue forms and
+patience runs out.
+
+You get a limited number of interventions, and more as the place grows:
+
+- **Rush the kitchen** — pull the jobs at one station forward
+- **Send tea out to the room** — stretch the patience of everyone waiting
+- **Attend a table yourself** — that table turns over faster
+
+They all come out of one purse, and whatever you do not spend burns at midnight.
+
+### Evening — the reckoning
+
+![Evening](render/store/10-evening.png)
+
+*Today's profit, guests served, revenue — and **spoilage**, the game's largest
+invisible cost.*
+
+The strip carries the day's summary; behind **Day report** the money is itemised:
+ingredients, what went in the bin, wages, rent. Who came, who was let down.
+
+Every seventh day a **report card** appears: the seven axes against last week.
+And **accolades** — "You ran the peak short-handed", "The book is settled". Not
+quests: recognition after the fact, which is why they never fight your plan.
+
+---
+
+## Two cuisines, two signatures
+
+![Choosing a cuisine](render/store/02-cuisine-choice.png)
+
+You choose at the start and it is locked for that save.
+
+| | Fast food | Turkish restaurant |
 |---|---|---|
-| servis | **self servis** — garson yok, temizlikçi masaları toplar | masa servisi — garson siparişi alır, yemeği getirir, hesabı kapatır |
-| ritim | öğle + akşam, iki tepe | sert öğle zirvesi |
-| fiş | düşük, hacim oyunu (+%30 müşteri) | yüksek, mahalle müşterisi |
-| imza | **kombo** — ortalama fişi yükseltir, mutfağı yorar | **veresiye** — müdavime defterden yazarsın, tahsilat güvene bağlı |
-| mekân | koyu fayans, laminat masa, çelik tezgâh, ışıklı menü panosu | ahşap lambri, kilim, bakır kuşak, sıcak ışık |
+| service | **self-service** — no waiter, a busser clears the tables | table service — the waiter takes the order, brings the food, settles the bill |
+| rhythm | lunch + dinner, two crests | one hard lunch peak |
+| ticket | low, a volume game (+30% guests) | high, neighbourhood trade |
+| signature | **combo** — raises the average ticket, loads the kitchen | **the tab** — you write a regular into the book, and collecting depends on trust |
+| room | dark tile, laminate tables, steel counter, lit menu board | timber panelling, kilim, copper band, warm light |
 
-Self servis yalnızca bir etiket değil: müşteri tepsisini kendi taşıyor ve
-hesabını tezgâhta ödüyor, yani salon işinin yarısı ortadan kalkıyor. Karşılığı
-kalabalık — ve masada biriken tepsiler.
+Self-service is not just a label: the guest carries their own tray and pays at
+the counter, so half the front-of-house work disappears. What it buys is a
+crowd — and trays piling up on the tables.
 
 ---
 
-## Müdavimler
+## Regulars
 
-![Hikâye](render/magaza/15-hikaye.png)
+![A story beat](render/store/15-story.png)
 
-Yirmi isimli müşterinin her birinin üç sahnelik hikâyesi var. Sık gelen ve
-memnun ayrılan müşteri sahnelerini açıyor:
+Each of twenty named customers has a three-scene story. A customer who comes
+often and leaves happy opens their scenes:
 
 > *"Artık siparişini söylemiyor. Oturuyor, siz biliyorsunuz."*
+>
+> *("They don't say their order any more. They sit down, and you know.")*
 
 ---
 
-## Altmışıncı gün
+## Day sixty
 
-![Değerlendirme](render/magaza/13-degerlendirme.png)
+![Year-end review](render/store/13-review.png)
 
-Yedi eksende puanlanıyorsun: varlık, itibar, müdavimler, ekip, mekân,
-sağlamlık ve mutfağının imzası. Tek sayı değil yedi eksen, çünkü farklı oyun
-tarzları farklı yollardan iyi sonuç alabilmeli — biri büyüyerek, bir başkası
-küçük ama sevilen bir dükkân işleterek.
+You are scored on seven axes: wealth, reputation, regulars, crew, premises,
+resilience and your cuisine's signature. Seven axes rather than one number,
+because different ways of playing should be able to arrive at a good result by
+different routes — one by growing, another by running a small, well-liked shop.
 
-**Batmak oyunu bitirmez.** Kasa eksiye düşerse ekipman satılır, dükkân küçülür,
-borç silinir — ama yıl sonu değerlendirmesinde izi kalır.
+**Going broke does not end the game.** If the till goes negative, equipment is
+sold, the shop shrinks, the debt is written off — but it leaves a mark on the
+year-end review.
 
-Altmışıncı günden sonra serbest oyun.
+After day sixty, free play.
 
 ---
 
-## Reklam yok, veri yok
+## No ads, no data
 
-Oyun içi satın alma ile güç satılmıyor. Hiçbir veri toplanmıyor — uygulama
-**internet izni bile istemiyor**. Bu paketin içinden doğrulandı: izin listesi
-boş, `INTERNET` yok, kodda ağ çağrısı yok.
+No power is sold through in-app purchases. No data at all is collected — the app
+**does not even ask for internet permission**. This was verified from inside the
+package: the permission list is empty, there is no `INTERNET`, and there is no
+network call in the code.
 
-**Beş dil.** Türkçe, İngilizce, İspanyolca, Çince ve Arapça — oyun varsayılan
-olarak İngilizce açılıyor, dil Ayarlar'dan değişiyor. Çince için ikinci bir
-yazı tipi, Arapça için harf birleştirme ve aynalanmış yerleşim var
+**Five languages.** Turkish, English, Spanish, Chinese and Arabic — the game
+opens in English by default and the language is changed in Settings. Chinese has
+a second font; Arabic has letter joining and a mirrored layout
 ([docs/54](docs/54-five-languages.md)).
 
 ---
 
-## Kapağın altında
+## Under the bonnet
 
-Geliştirenler için kısa bir tur.
+A short tour for developers.
 
-**Katmanlar.** `Lokanta.Core` saf C#: Unity referansı yok, **kayan nokta yok**
-(bütün durum tamsayı, `Fx` sabit noktalı aritmetik), determinist. Oyun aynı
-tohumla her makinede aynı kampanyayı üretiyor. Platform işleri port arkasında.
+**Layers.** `Lokanta.Core` is pure C#: no Unity references, **no floating
+point** (all state is integer, `Fx` fixed-point arithmetic), deterministic. The
+same seed produces the same campaign on every machine. Platform work sits behind
+a port.
 
-**Denge aracı.** `src/Lokanta.Harness` yirmiden fazla bot stratejisini 24 tohum
-× 60 gün koşturuyor ve tabloyu basıyor: pasif oyuncu, makul oyuncu, fiyat
-kıran, kadrosu eksik çalışan, imza mekaniğini oynayan… Bir tasarım sorusunun
-cevabı ölçülmeden "biliniyor" sayılmıyor.
+**The balance tool.** `src/Lokanta.Harness` runs more than twenty bot strategies
+over 24 seeds × 60 days and prints the table: the passive player, the reasonable
+player, the price-cutter, the one who runs short-staffed, the one who plays the
+signature mechanic… A design question is not counted as answered until it has
+been measured.
 
-**Otomatik tur.** `tools/unity/tour.ps1` oyunu **gerçek Windows yapısında**
-kendi kendine gezdiriyor: menüden kampanya sonuna, 130'dan fazla kontrolle.
-Arayüzü görmenin tek yolu bu — ve bu depodaki görsellerin hepsini o üretiyor.
+**The automated tour.** `tools/unity/tour.ps1` makes the game play itself **in a
+real Windows build**: from the menu to the end of the campaign, with more than
+170 checks. It is the only way to see the interface — and it produces every
+screenshot in this repository.
 
-**Denetim.** `tools/check.py` on dört denetimi tek komutta koşuyor: içerik
-üretimi, denge kuralları, metin tablosu, yazı tipi kapsaması, mağaza metinleri,
-lisans defteri, URP ayarları, çekirdek testleri.
+**Verification.** `python tools/check.py` runs the checks in one command:
+content generation, balance rules, the string table, font coverage, store texts,
+document links, the licence ledger, URP settings, whether the repository is
+written in English, and the core tests.
 
-**İçerik üretiliyor.** `content/` altındaki her şey `tools/` içindeki
-üreteçlerden çıkıyor — elle düzenlenmiyor. Denge sayıları bir modelden
-çözülüyor, metin tablosu tek kaynaktan beş dile açılıyor.
+**Content is generated.** Everything under `content/` comes out of the
+generators in `tools/` — it is never hand-edited. The balance numbers are solved
+from a model, and the string table opens from one source into five languages.
 
-### Depoda ne nerede
+### What lives where
 
 ```
-src/              Oyunun beyni. Unity yok, kayan nokta yok.
-  Lokanta.Core/     Simülasyon, ekonomi, kayıt - determinist çekirdek
-  Lokanta.Content/  İçerik okuma katmanı (JSON -> nesne)
-  Lokanta.Harness/  Denge aracı: bot stratejileri x 60 gün
-tests/            Çekirdeğin testleri (245 test)
+src/              The game's brain. No Unity, no floating point.
+  Lokanta.Core/     Simulation, economy, saves - the deterministic core
+  Lokanta.Content/  The content-reading layer (JSON -> objects)
+  Lokanta.Harness/  The balance tool: bot strategies x 60 days
+tests/            The core's tests (245 of them)
 
-unity/            Yalnızca GÖRÜNÜM ve platform.
-  Assets/Lokanta/Game/     Arayüz, sahne, otomatik tur
-  Assets/Lokanta/Editor/   Yapı, sahne üretimi, denetçiler
-  Assets/Lokanta/Art/      Modeller, dokular, yazı tipleri, ATTRIBUTION.md
-  Assets/Resources/        content/ kopyası - ÜRETİLEN, elle dokunulmaz
+unity/            VIEW and platform only.
+  Assets/Lokanta/Game/     Interface, scene, the automated tour
+  Assets/Lokanta/Editor/   Build, scene generation, checkers
+  Assets/Lokanta/Art/      Models, textures, fonts, ATTRIBUTION.md
+  Assets/Resources/        A copy of content/ - GENERATED, never touched by hand
 
-content/          ÜRETİLEN içerik. Elle düzenlenmiyor.
-  loc/              tr, en, es, zh, ar - beşi tek üreteçten
+content/          GENERATED content. Never hand-edited.
+  loc/              tr, en, es, zh, ar - all five from one generator
 
-tools/            Her şeyi üreten ve denetleyen betikler.
-  check.py          TEK KOMUT: aşağıdakilerin hepsini sırayla koşar
-  audit_content.py  İçerik-kod sözleşmesi: içerikteki her alanı kod okuyor mu
-  check_licenses.py   Lisans ve atıf defteri
-  check_urp.py      URP ayarlarının iki kopyası ayrışmasın
-  dotnet_retry.py   Smart App Control'e takılan dotnet çağrıları için
-  content/          İçerik üreteçleri (gen_*.py) ve mağaza metni denetçisi
-    diller/           Beş dilin metin tabloları - dil başına iki dosya
-  balance/          Denge modeli, çözücü ve dışa aktarım
-  art/              Model/doku üreteçleri ve yazı tipi kapsama denetçisi
-  unity/            Unity'yi toplu kipte koşturan PowerShell betikleri
-  android/          Cihaz ve paket işleri
+tools/            The scripts that generate and verify everything.
+  check.py          ONE COMMAND: runs everything below in order
+  check_english.py  Is the repository written in English (CLAUDE.md rule 1)
+  audit_content.py  The content-code contract: does the code read every field
+  check_licenses.py Licences and the attribution ledger
+  check_urp.py      The two copies of the URP settings must not diverge
+  check_docs.py     Every document link resolves, every document is indexed
+  dotnet_retry.py   For dotnet calls that Smart App Control blocks
+  content/          Content generators (gen_*.py) and the store-text checker
+    languages/        The five string tables - two files per language
+  balance/          The balance model, solver and export
+  art/              Model/texture generators, font coverage and subsetting
+  unity/            PowerShell scripts that drive Unity in batch mode
+  android/          Device and packaging work
 
-docs/             Numaralı günlük. Her sayı bir işin kaydı; dizin README.md'de.
-vendor/           Dışarıdan gelen kaynak dosyalar (lisanslarıyla birlikte)
-render/           Üretilen görüntüler; mağaza görselleri render/magaza/
+docs/             A numbered log. Each number is the record of one piece of
+                  work; the index is in docs/README.md.
+vendor/           Third-party source files, with their licences
+render/           Generated screenshots; the store images in render/store/
 ```
 
-Kural: **bir yön bir kere.** `src/` Unity'yi bilmiyor, `unity/` denge
-kurmuyor, `content/` elle yazılmıyor ve `tools/` dışında hiçbir yerde içerik
-üretilmiyor.
+The rule: **one direction, once.** `src/` does not know Unity, `unity/` does not
+balance the economy, `content/` is not written by hand, and nothing outside
+`tools/` generates content.
 
-### Tekrar eden ders
+### The lesson that keeps coming back
 
-Bu depodaki yorumların çoğu aynı cümlenin etrafında dönüyor:
+Most of the comments in this repository circle one sentence:
 
-> **Koşmayan bir kontrol, geçen bir kontrolle dışarıdan aynı görünür.**
+> **A check that does not run looks exactly like one that passes.**
 
-Yeşil bir tik yanlış şeyi ölçüyor olabilir. Bir koruma akıl yürütmeyle doğru
-sayılamaz — kaldırıp kırıldığı görülmelidir. Ayrıntılı kayıt `docs/` altında.
+A green tick may be measuring the wrong thing. A guard cannot be argued into
+being correct — it has to be taken away and seen to break. The detailed record
+is under `docs/`.
 
 ---
 
-## Durum
+## Status
 
-Oynanabilir ve baştan sona koşuyor. Yayın öncesi kalanlar `docs/21`'de.
+Playable and runs end to end. What remains before release is in
+[docs/21](docs/21-business-and-release.md).

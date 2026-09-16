@@ -4,26 +4,28 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Icerigi Resources'tan okur. docs/26: platform portun arkasinda.
+    /// Reads the content out of Resources. docs/26: the platform is
+    /// behind the port.
     ///
-    /// Neden Resources ve neden StreamingAssets degil: Android'de
-    /// StreamingAssets APK'nin icinde ve yalnizca UnityWebRequest ile,
-    /// ASENKRON okunabiliyor. Icerik yukleme senkron bir islem (yukleyici
-    /// dogrulama yapiyor ve hata firlatiyor); onu asenkron yapmak butun
-    /// yukleme zincirini bulastirirdi. Resources her platformda senkron.
+    /// Why Resources and not StreamingAssets: on Android StreamingAssets
+    /// sits inside the APK and can only be read with UnityWebRequest,
+    /// ASYNCHRONOUSLY. Loading content is a synchronous operation (the
+    /// loader validates and throws); making it asynchronous would have
+    /// infected the whole loading chain. Resources is synchronous on every
+    /// platform.
     ///
-    /// Bedeli: dosyalar derlemeye gomuluyor ve Editor'de elle
-    /// kopyalanmasi gerekiyor - Lokanta menusunden "Icerigi Resources'a
-    /// kopyala". O kopyalama bir uretim adimi, elle duzenleme yeri degil.
+    /// The price: the files are embedded in the build and have to be
+    /// copied by hand in the Editor - "Copy content into Resources" from
+    /// the Lokanta menu. That copy is a build step, not a place to edit.
     /// </summary>
     public sealed class ResourcesContentSource : IContentSource
     {
-        /// <summary>Resources altindaki kok klasor.</summary>
+        /// <summary>The root folder under Resources.</summary>
         public const string Root = "content";
 
         private static string Key(string rel)
         {
-            // Resources yol uzantisiz istiyor: "content/dishes/turk"
+            // Resources wants the path without its extension: "content/dishes/turk"
             if (rel.EndsWith(".json", System.StringComparison.Ordinal))
                 rel = rel.Substring(0, rel.Length - 5);
             return Root + "/" + rel;
@@ -41,7 +43,7 @@ namespace Lokanta.Game
         {
             TextAsset a = Resources.Load<TextAsset>(Key(rel));
             if (a == null)
-                throw new ContentException("Resources'ta yok: " + Key(rel));
+                throw new ContentException("not in Resources: " + Key(rel));
             string text = a.text;
             Resources.UnloadAsset(a);
             return text;

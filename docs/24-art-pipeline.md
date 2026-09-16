@@ -1,316 +1,315 @@
-# Sanat Hattı: Mesh'i Kim Değerlendirecek
+# The Art Pipeline: Who Is Going to Judge the Mesh
 
-**Son güncelleme:** 10 Eylül 2026
-**Kütük maddeleri:** C1 model üretim yolu, C2 karakter ve animasyon
-**Durum:** Yeniden tasarlandı. Kapsam değerlendirmesinin en büyük endişesine cevap.
-**Değerlendirme kaynağı:** [review/03-scope-realism.md](review/03-scope-realism.md)
+**Last updated:** 10 September 2026
+**Register items:** C1 the model production route, C2 characters and animation
+**Status:** Redesigned. An answer to the scope review's biggest worry.
+**Review source:** [review/03-scope-realism.md](review/03-scope-realism.md)
 
 ---
 
-## Sorun, açıkça
+## The problem, plainly
 
-Kapsam değerlendirmesi şunu yazdı: "Karakter hattı geliştiricinin yetenek boşluğuna oturuyor. Ağırlık boyama görsel yargı ister."
+The scope review wrote this: "The character pipeline sits right on the developer's skill gap. Weight painting demands visual judgement."
 
-Sen bugün doğruladın: Blender'ı bilmiyorsun ve kullanımını yapay zekaya devrediyorsun.
+You confirmed it today: you do not know Blender and you delegate its use to the AI.
 
-Bu, hattı şöyle bırakıyordu:
+That left the pipeline like this:
 
-| Kim | Ne yapabilir | Ne yapamaz |
+| Who | What they can do | What they cannot do |
 |---|---|---|
-| Ben | Blender Python betiği yazmak | Ürettiği mesh'i görmek |
-| Sen | Betiği çalıştırmak | Mesh'in yanlış olduğunu anlamak |
+| Me | Write a Blender Python script | See the mesh it produces |
+| You | Run the script | Tell that the mesh is wrong |
 
-**Döngüde mesh'e bakan kimse yoktu.** Bu, "prosedürel birincil" kararını ([20-production-decisions.md](20-production-decisions.md)) çalışmaz hâle getiriyordu.
+**Nobody in the loop was looking at the mesh.** That made the "procedural first" decision ([20-production-decisions.md](20-production-decisions.md)) unworkable.
 
 ---
 
-## Çözüm: başsız render döngüsü
+## The solution: a headless render loop
 
-Blender komut satırından açılır, betik çalışır, PNG üretir. **PNG'yi ben okuyabiliyorum.** Döngü kapanıyor:
+Blender opens from the command line, the script runs, a PNG comes out. **I can read the PNG.** The loop closes:
 
 ```
-betik yaz → blender --background → PNG → ben bakarım → not → betik düzelt
+write script → blender --background → PNG → I look → notes → fix the script
 ```
 
-Bugün doğrulandı, `tools/art/gen_table.py`:
+Verified today, `tools/art/gen_table.py`:
 
-| Ölçüm | Değer |
+| Measurement | Value |
 |---|---|
-| Üretilen | Lokanta masası, iki sandalye, örtü, tabak |
-| Nesne | 19 |
-| Üçgen | 2.004 |
-| Render süresi | 4 saniye, üç açı |
-| Motor | EEVEE |
-| Blender | 5.2 LTS, makinede kurulu |
+| Produced | A restaurant table, two chairs, a cloth, a plate |
+| Objects | 19 |
+| Triangles | 2,004 |
+| Render time | 4 seconds, three angles |
+| Engine | EEVEE |
+| Blender | 5.2 LTS, installed on the machine |
 
-Ve ürettiğim ilk düzeltme notları, görüntüye bakarak:
+And the first correction notes I produced, by looking at the image:
 
-1. Sandalye sırtı oturağın üstünde bir iki santim boşlukta duruyor; sırt 0,70'ten 0,68'e insin
-2. Beyaz tabak beyaz örtüde kayboluyor; örtü kirli bej olsun ya da tabağa koyu kenar gelsin
-3. Sandalyeler masadan on iki santim uzak; boş masada içeri çekilmiş dursun
+1. The chair back is floating a centimetre or two above the seat; the back should come down from 0.70 to 0.68
+2. The white plate disappears on the white cloth; either the cloth should be a dirty beige or the plate should get a dark rim
+3. The chairs are twelve centimetres away from the table; at an empty table they should sit tucked in
 
-Bu üç not, "modeli kim değerlendirecek" sorusunun cevabı. Değerlendirecek benim.
+Those three notes are the answer to the question "who is going to judge the model". I am.
 
-### Döngü uçtan uca çalıştı: 10 Eylül 2026
+### The loop ran end to end: 10 September 2026
 
-`tools/art/gen_fastfood_props.py` sekiz prop üretti: masa seti, sandalye, tezgah, ocak, dolap, raf, çöp, tepsi. Toplam 2.736 üçgen, hepsi bütçesinde.
+`tools/art/gen_fastfood_props.py` produced eight props: the table set, chair, counter, stove, cupboard, shelf, bin, tray. 2,736 triangles in total, all within budget.
 
-Üç tur döndü ve her turda render'a bakmak gerçek hata yakaladı:
+Three rounds went by, and in every round looking at the render caught a real bug:
 
-| Tur | Bakınca görülen | Düzeltme |
+| Round | What looking showed | The fix |
 |---|---|---|
-| 1 | Sandalye sırtı oturağın üstünde boşlukta; beyaz tabak beyaz örtüde kayboluyor; sandalyeler masadan uzak | Sırt oturağa oturdu, örtü kirli bej oldu, sandalyeler içeri çekildi |
-| 2 | Ocağın davlumbazı ve tezgahın menü panosu boşlukta asılı | İkisi de duvara monte parça; temas sayfasına zemin ve duvar eklendi |
-| 3 | Duvarlı proplar tamamen gri çıkıyor | Duvar +Y'de, kameraların ikisi arkasından bakıyordu; duvarlı proplar için açılar −Y yarısına alındı |
-| 4 | Ocak duvara iki metre uzakta, bacası hiçbir yere ulaşmıyor | Ocak duvara yaslandı, baca tavana çıkıyor |
+| 1 | The chair back floating above the seat; the white plate disappearing on the white cloth; the chairs far from the table | The back sat down on the seat, the cloth became a dirty beige, the chairs were tucked in |
+| 2 | The stove's hood and the counter's menu board hanging in mid-air | Both became wall-mounted parts; a floor and a wall were added to the contact sheet |
+| 3 | The props with walls come out entirely grey | The wall is at +Y and two of the cameras were looking from behind it; for props with walls the angles were moved into the −Y half |
+| 4 | The stove is two metres from the wall and its flue reaches nowhere | The stove was pushed against the wall, the flue goes up to the ceiling |
 
-Hiçbiri kodu okuyarak bulunamazdı. Üçüncü tur özellikle öğretici: betik hatasız çalıştı, üçgen bütçesi tuttu, rapor "TAMAM" dedi ve çıktı tamamen boş gri bir kareydi. **Sayısal rapor doğru olabilir ve görüntü yine de kırık olabilir.**
+None of these could have been found by reading the code. The third round is especially instructive: the script ran without an error, the triangle budget held, the report said "OK" and the output was a completely blank grey square. **A numeric report can be correct and the image can still be broken.**
 
-### Döngünün sınırı
+### The limit of the loop
 
-Ben görüyorum ama sanat yönetmeni değilim. Görebildiklerim: siluet okunuyor mu, parçalar birbirine oturuyor mu, oran bozuk mu, renk kontrastı var mı, üçgen bütçesi tutuyor mu, ağırlık boyama çökmüş mü. Göremediklerim: "güzel mi." Onu sen görürsün, sen de Blender bilmeden görebilirsin: PNG'ye bakarsın.
+I can see, but I am not an art director. What I can see: does the silhouette read, do the parts sit together, is a proportion off, is there colour contrast, does the triangle budget hold, has the weight painting collapsed. What I cannot see: "is it beautiful." You see that, and you can see it without knowing Blender: you look at the PNG.
 
-**Yani iş bölümü:** ben teknik doğruluğu, sen beğeniyi değerlendirirsin. İkisi de PNG'ye bakarak, ikisi de Blender açmadan.
+**So the division of labour:** I judge technical correctness, you judge taste. Both of us by looking at a PNG, neither of us by opening Blender.
 
-### Karakter hattı kanıtlandı: 10 Eylül 2026
+### The character pipeline was proved: 10 September 2026
 
-`tools/art/gen_character.py` ve `tools/art/lib/rig.py`. Kanıtlanması gereken şey 96 mesh sorununun gerçekten yok olup olmadığıydı.
+`tools/art/gen_character.py` and `tools/art/lib/rig.py`. What had to be proved was whether the 96-mesh problem really disappears.
 
-| Ölçüm | Değer |
+| Measurement | Value |
 |---|---|
-| Gövde parçası | 19 mesh, 836 üçgen |
-| Takılabilir (önlük, şapka, saç) | 3 mesh, 132 üçgen |
-| **Toplam** | **22 mesh** |
-| 16 kıyafet × 3 vücut tipi için gereken ek mesh | **0** |
-| Ağırlık boyama gereken yer | **yok** |
-| Test pozu | 6, hepsi doğru render ediliyor |
+| Body parts | 19 meshes, 836 triangles |
+| Attachments (apron, hat, hair) | 3 meshes, 132 triangles |
+| **Total** | **22 meshes** |
+| Extra meshes needed for 16 outfits × 3 body types | **0** |
+| Places needing weight painting | **none** |
+| Test poses | 6, all rendering correctly |
 
-### Kararın değişen yeri: skinning yerine katı parçalı
+### Where the decision changed: rigid parts instead of skinning
 
-Doküman tek gövde mesh'i artı otomatik ağırlık öngörüyordu. **Denendi ve başarısız oldu.** Birleştirilmiş ama kaynaklanmamış kutulara otomatik ağırlık uygulanınca her kutu tek kemiğe bağlandı; oturma pozunda bacaklar kalçadan ayrıldı, eklemlerde boşluk açıldı.
+The document envisaged a single body mesh plus automatic weights. **It was tried and it failed.** When automatic weights were applied to boxes that were joined but not welded, every box bound to a single bone; in the sitting pose the legs came away from the hips and gaps opened at the joints.
 
-Düzeltmenin yolu mesh'i kaynaklayıp eklem bölgesine kenar döngüsü eklemek ve ağırlık boyamaktı. **O iş tam olarak bu dokümanın tespit ettiği yetenek boşluğuna giriyor.**
+The way to fix it was to weld the mesh, add an edge loop at the joint region, and paint weights. **That work falls exactly into the skill gap this document identified.**
 
-Onun yerine her parça tek kemiğe **katı** bağlandı. Skinning yok, ağırlık boyama yok, eklemler çakışan geometriyle kapatılıyor.
+Instead, every part was bound **rigidly** to a single bone. No skinning, no weight painting, the joints are covered with overlapping geometry.
 
-**Bedeli açık:** karakter kâğıt gibi bükülmüyor, tahta bebek gibi dönüyor. Bu bir tarz kararı ve low-poly mobil oyunlarda yaygın. Oyunun yumuşak kenarlı yönüyle uyumlu, ve en önemlisi görsel yargı gerektiren tek adımı ortadan kaldırıyor.
+**The cost is plain:** the character does not bend like paper, it turns like a wooden doll. That is a style decision and a common one in low-poly mobile games. It fits the game's soft-edged direction, and most importantly it removes the one step that demands visual judgement.
 
-### Beş tur baktım, beşi de bir şey yakaladı
+### I looked five rounds, and all five caught something
 
-| Tur | Sayısal rapor | Render ne gösterdi |
+| Round | The numeric report | What the render showed |
 |---|---|---|
-| 1 | Bütçeler tamam | Pozlar yanlış eksende; kollar aşağı inmiyor, öne arkaya salınıyor |
-| 2 | Bütçeler tamam | Eklemlerde boşluk: oturma pozunda bacaklar kalçadan ayrıldı |
-| 3 | Bütçeler tamam | Katı bağlamada parçalar sahneye dağıldı; kemik ebeveynliği kuyruğu başlangıç alıyor, ben başını varsaymıştım |
-| 4 | Bütçeler tamam | Kollar aşağı yerine yukarı kalktı; dönüş işareti ters |
-| 5 | Bütçeler tamam | Kamera arkadan bakıyor, önlük görünmüyor; saç kafanın üst yarısını yutuyor |
+| 1 | Budgets fine | The poses are on the wrong axis; the arms do not come down, they swing forward and back |
+| 2 | Budgets fine | Gaps at the joints: in the sitting pose the legs came away from the hips |
+| 3 | Budgets fine | With rigid binding the parts scattered across the scene; bone parenting takes the tail as the origin, and I had assumed the head |
+| 4 | Budgets fine | The arms went up instead of down; the rotation sign is inverted |
+| 5 | Budgets fine | The camera is looking from behind, the apron is not visible; the hair swallows the top half of the head |
 
-**Beş turun beşinde de sayısal rapor "TAMAM" dedi.** Üçgen bütçesi tuttu, betik hatasız çalıştı, hiçbir uyarı çıkmadı. Hataların hepsi yalnızca bakınca göründü.
+**In all five rounds the numeric report said "OK".** The triangle budget held, the script ran without an error, not one warning came out. All of the bugs only showed up when looked at.
 
-### Kemik yapısı ve klip uyumu
+### The bone structure and clip compatibility
 
-On dokuz kemik, Unity insansı eşlemesine uygun adlarla: hips, spine, chest, neck, head, shoulder/upperarm/forearm/hand ve thigh/shin/foot, sol ve sağ. Quaternius Universal Animation Library klipleri bu yapıya yeniden hedeflenebiliyor.
+Nineteen bones, with names matching Unity's humanoid mapping: hips, spine, chest, neck, head, shoulder/upperarm/forearm/hand and thigh/shin/foot, left and right. Quaternius Universal Animation Library clips can be retargeted onto this structure.
 
-Vücut tipi kemik **kalınlık** eksenlerinde ölçekleniyor, uzunlukta değil. Uzunluk değişirse iskelet oranları bozulur ve klip yeniden hedeflemesi kayar.
+The body type is scaled on the bones' **thickness** axes, not their length. If the length changes, the skeleton's proportions break and clip retargeting slips.
 
 
 ---
 
-## Üç kademe, riske göre
+## Three tiers, by risk
 
-### Kademe 1: Mobilya, ekipman, ortam
+### Tier 1: Furniture, equipment, environment
 
-**Yol:** prosedürel Blender betiği + render döngüsü. Tamamen bizde.
+**Route:** a procedural Blender script + the render loop. Entirely ours.
 
-Bugün doğrulanan yol bu. Masa, sandalye, tezgah, ocak, fırın, dolap, kasa, duvar panelleri, zemin karoları, tabela, saksı, lamba: hepsi küp, silindir ve pah kırma ile üretilir. Low-poly'nin avantajı tam burada: doku yok, sadece düz renk malzeme.
+This is the route verified today. Table, chair, counter, stove, oven, cupboard, till, wall panels, floor tiles, sign, planter, lamp: all produced with cubes, cylinders and bevels. This is exactly where low-poly's advantage lies: no textures, just flat-colour materials.
 
-Üretim betiği standardı:
+The production script standard:
 
 ```
 tools/art/
   lib/
-    prim.py        küp, silindir, pah, düz renk malzeme yardımcıları
-    stage.py       ışık, üç açılı kamera, temas sayfası render'ı
-    export.py      glTF dışa aktarma + manifest
+    prim.py        cube, cylinder, bevel, flat-colour material helpers
+    stage.py       lights, three-angle camera, contact sheet render
+    export.py      glTF export + manifest
   props/
-    table_2.py     iki kişilik masa
+    table_2.py     a table for two
     table_4.py
     counter.py
     stove.py
     ...
-  out/             PNG temas sayfaları (depoya girmez)
+  out/             PNG contact sheets (not committed)
 ```
 
-Her betik `python props/x.py` ile üç şey üretir: temas sayfası PNG (üç açı, tel kafes, üçgen sayısı), `Assets/Art/Generated/x.glb`, ve `x.json` manifest (üçgen, sınır kutusu, kaynak betik özeti). Unity içe aktarma manifesti okur; elle sürükleme yok.
+Every script produces three things with `python props/x.py`: a contact sheet PNG (three angles, wireframe, triangle count), `Assets/Art/Generated/x.glb`, and an `x.json` manifest (triangles, bounding box, source script digest). The Unity import reads the manifest; there is no dragging by hand.
 
-### Kademe 2: Karakterler
+### Tier 2: Characters
 
-**Yol:** tek gövde mesh + otomatik iskelet + kemik ölçeğiyle vücut tipi + takılabilir kıyafet parçaları. Render döngüsü altı test pozuyla ağırlık çöküşünü yakalar.
+**Route:** a single body mesh + automatic rigging + body type through bone scale + attachable clothing parts. The render loop catches a weight collapse with six test poses.
 
-Değerlendirmenin matematiği: 16 kıyafet × 3 vücut tipi = 96 mesh. **Bu sayı yok oluyor**, çünkü:
+The review's arithmetic: 16 outfits × 3 body types = 96 meshes. **That number disappears**, because:
 
-| Değişken | Nasıl |
+| Variable | How |
 |---|---|
-| Vücut tipi | Tek mesh, üç kemik ölçeği ön ayarı. Mesh çoğalmıyor |
-| Kıyafet rengi | Malzeme değişimi. Mesh çoğalmıyor |
-| Kıyafet parçası | Önlük, şapka, atkı, ceket: **skinsiz** ayrı mesh, kemiğe bağlı. Ağırlık boyama yok |
-| Saç | 8 skinsiz mesh, kafa kemiğine bağlı |
-| Cilt tonu | Malzeme |
+| Body type | One mesh, three bone-scale presets. The mesh does not multiply |
+| Clothing colour | A material swap. The mesh does not multiply |
+| Clothing part | Apron, hat, scarf, jacket: a separate **skinless** mesh, bound to a bone. No weight painting |
+| Hair | 8 skinless meshes, bound to the head bone |
+| Skin tone | A material |
 
-Kıyafet seti = gövde malzemesi + 0-3 takılabilir parça. On altı set, sıfır ek skinning. Gövde bir kez ağırlıklanır ve bir daha dokunulmaz.
+An outfit set = the body material + 0-3 attachments. Sixteen sets, zero extra skinning. The body is weighted once and never touched again.
 
-Ağırlıklama nasıl: Blender otomatik ağırlık (`parent_set(type='ARMATURE_AUTO')`) tek gövdeye. Sonra render döngüsü altı pozda (T, yürüme ortası, oturma, eğilme, uzanma, dönüş) render alır; dirsek ve diz çöküşünü ben görürüm. Çöküş varsa iki yol: kemik ekle ya da mesh'te o bölgeye kenar döngüsü ekle. İkisi de betik.
+How the weighting works: Blender automatic weights (`parent_set(type='ARMATURE_AUTO')`) on the single body. Then the render loop renders six poses (T, mid-walk, sitting, bending, reaching, turning); I see the elbow and knee collapse. If there is a collapse there are two routes: add a bone, or add an edge loop to that region of the mesh. Both are script work.
 
-Animasyon klipleri üç kaynaktan (karar 10 Eylül 2026):
+The animation clips come from three sources (decision 10 September 2026):
 
-| İhtiyaç | Kaynak | Kim |
+| Need | Source | Who |
 |---|---|---|
-| Yürü, dur, taşı, otur, ye | **Quaternius Universal Animation Library 1 ve 2.** 250'den fazla klip, tek insansı iskelet, Unity'de yeniden hedeflenebilir, CC0, indirilebilir paket | Ben indirir, betikle bağlarım |
-| Pişir, sil, kasa, servis | Blender'da prosedürel: üst gövde döngüleri, üç dört anahtar kare, render döngüsüyle doğrulanır | Ben |
-| Eksik kalan tek bir klip | **Mixamo**, yedek. 2026'da açık ve ücretsiz, lisansı sınırsız ticari kullanım; ama 2015'ten beri güncellenmiyor. İndirilen klip bizde kalır | Sen, uygulama aşamasında, on beş dakika |
+| Walk, idle, carry, sit, eat | **Quaternius Universal Animation Library 1 and 2.** More than 250 clips, a single humanoid rig, retargetable in Unity, CC0, a downloadable pack | I download it and wire it up with a script |
+| Cook, wipe, till, serve | Procedural in Blender: upper-body loops, three or four keyframes, verified with the render loop | Me |
+| A single clip that is still missing | **Mixamo**, the backup. Open and free in 2026, its licence is unlimited commercial use; but it has not been updated since 2015. A downloaded clip stays with us | You, during implementation, fifteen minutes |
 
-Mixamo'nun kapanma riski yalnızca ileride yeni klip indirmeyi etkiler; bu yüzden birincil değil, yedek.
+Mixamo's risk of shutting down only affects downloading new clips later on; that is why it is the backup, not the primary.
 
-Yedek plan: karakter hattı iki haftalık zaman kutusunda kanıtlanamazsa (bir karakter, iskelet, dört klip Unity'de cihazda oynuyor), Quaternius'un CC0 iskeletli low-poly karakterlerine geçilir. Kıyafet farkı sadece malzemeyle yapılır. Daha az kimlik, sıfır risk.
+The fallback plan: if the character pipeline cannot be proved within a two-week timebox (one character, a rig, four clips playing on a device in Unity), we move to Quaternius's CC0 rigged low-poly characters. The clothing difference is made with materials alone. Less identity, zero risk.
 
-### Kademe 3: Benim üretemediklerim
+### Tier 3: The things I cannot produce
 
-| Şey | Çözüm | Bütçe |
+| Thing | Solution | Budget |
 |---|---|---|
-| Doku | Yok. Low-poly düz renk, vertex color. Doku olmadığı için üretilmesi de gerekmiyor | 0 |
-| Arayüz ikonları | SVG. Ben yazarım, sikke ikonunu zaten yazdım. Unity'ye PNG olarak Blender ya da Inkscape ile basılır | 0 |
-| Karakter portreleri | Gerekmiyor. Karakterler 3B; portre, kameranın kafaya yaklaşmasıyla çalışma anında alınır | 0 |
-| Kapak görseli, mağaza ekran görüntüleri | Oyunun kendisinden, kurulu sahne ve iyi ışıkla. Blender'da yüksek çözünürlük render | 0 |
-| Ses | [17-audio-design.md](17-audio-design.md) kaynağı; değerlendirme onayladı (C4) | 0 |
-| Logo, yazı tipi | Google Fonts açık lisans; logo tipografik | 0 |
+| Textures | None. Low-poly flat colour, vertex colour. Because there are no textures, none need to be produced | 0 |
+| Interface icons | SVG. I write them; I already wrote the coin icon. Stamped into Unity as PNG with Blender or Inkscape | 0 |
+| Character portraits | Not needed. The characters are 3D; a portrait is taken at runtime by moving the camera close to the head | 0 |
+| Cover art, store screenshots | From the game itself, with a dressed scene and good lighting. A high-resolution render in Blender | 0 |
+| Sound | [17-audio-design.md](17-audio-design.md) is the source; the review approved it (C4) | 0 |
+| Logo, typeface | Google Fonts open licence; the logo is typographic | 0 |
 
-Sıfır bütçeyle kapanmayan tek şey: bir gün profesyonel kapak görseli istersen. Gelirden.
+The only thing a zero budget does not close: if one day you want professional cover art. Out of revenue.
 
 ---
 
-## Ücretsiz kaynaklar, lisansıyla
+## Free sources, with their licences
 
-| Kaynak | Ne | Lisans | Ne için |
+| Source | What | Licence | What for |
 |---|---|---|---|
-| Kenney | Low-poly mobilya, yemek, karakter paketleri | CC0 | Prototip, prosedürel bitene kadar yer tutucu; bazıları kalıcı olabilir |
-| Quaternius | Universal Animation Library 1-2 (250+ klip), iskeletli low-poly karakterler, yemek | CC0 | **Birincil animasyon kaynağı**; karakter yedek planı |
-| Poly Haven | HDRI | CC0 | Blender render ışığı, oyunda kullanılmaz |
-| Mixamo | İnsansı animasyon klipleri, otomatik iskelet | Adobe, oyunda ücretsiz; bakımsız | Yedek klip kaynağı, sen indirirsin |
-| Google Fonts | Yazı tipleri | OFL | Arayüz |
+| Kenney | Low-poly furniture, food and character packs | CC0 | Prototype, a placeholder until the procedural work is done; some of it may stay |
+| Quaternius | Universal Animation Library 1-2 (250+ clips), rigged low-poly characters, food | CC0 | **The primary animation source**; the character fallback plan |
+| Poly Haven | HDRI | CC0 | Blender render lighting, not used in the game |
+| Mixamo | Humanoid animation clips, auto-rigging | Adobe, free in a game; unmaintained | Backup clip source, you download it |
+| Google Fonts | Typefaces | OFL | The interface |
 
-Lisans denetim tablosu [21-business-and-release.md](21-business-and-release.md)'de; her varlık oraya kaynak ve lisansıyla yazılır. CC0 dışı hiçbir şey sorulmadan girmez.
+The licence audit table is in [21-business-and-release.md](21-business-and-release.md); every asset is written there with its source and licence. Nothing outside CC0 goes in without being asked about.
 
 ---
 
-## Üçgen bütçeleri
+## Triangle budgets
 
-[19-technical-setup.md](19-technical-setup.md) sahne bütçesini veriyor. Varlık başına:
+[19-technical-setup.md](19-technical-setup.md) gives the scene budget. Per asset:
 
-| Sınıf | Üçgen | Örnek |
+| Class | Triangles | Example |
 |---|---|---|
-| Küçük eşya | ≤ 150 | Tabak, bardak, saksı |
-| Mobilya | ≤ 600 | Masa, sandalye, dolap |
-| Ekipman | ≤ 900 | Ocak, fırın, tezgah |
-| Karakter gövdesi | ≤ 2.000 | Tek mesh |
-| Kıyafet parçası | ≤ 250 | Önlük, şapka |
-| Saç | ≤ 300 | |
+| Small item | ≤ 150 | Plate, glass, planter |
+| Furniture | ≤ 600 | Table, chair, cupboard |
+| Equipment | ≤ 900 | Stove, oven, counter |
+| Character body | ≤ 2,000 | One mesh |
+| Clothing part | ≤ 250 | Apron, hat |
+| Hair | ≤ 300 | |
 
-Temas sayfası üçgen sayısını basar; bütçe aşılırsa betik uyarır. Bugünkü masa seti 2.004 üçgen; iki sandalyeyle mobilya sınıfında üç parça, yani sınır içinde ama pah kırma segmentleri düşürülerek yarıya iner. İlk not bu.
+The contact sheet prints the triangle count; if the budget is exceeded the script warns. Today's table set is 2,004 triangles; with its two chairs that is three pieces in the furniture class, so it is within the limit, but it halves if the bevel segments are reduced. That is the first note.
 
 ---
 
-## Kim ne yapar
+## Who does what
 
-| İş | Kim | Nasıl |
+| Job | Who | How |
 |---|---|---|
-| Betik yazmak | Ben | Doğrudan |
-| Blender çalıştırmak, render almak | Ben | Claude Code uzaktan kontrolle komut satırından |
-| PNG'ye bakıp teknik not vermek | Ben | Read |
-| PNG'ye bakıp "beğendim / beğenmedim" demek | Sen | Telefondan bile |
-| Mixamo'dan yedek klip indirmek | Sen | Uygulama aşamasında, gerekirse, on beş dakika |
-| Unity'ye içe aktarmak | Ben | Manifestle otomatik |
-| Cihazda bakmak | Sen | APK kurulumu |
+| Writing the script | Me | Directly |
+| Running Blender, taking renders | Me | From the command line through Claude Code remote control |
+| Looking at the PNG and giving technical notes | Me | Read |
+| Looking at the PNG and saying "I like it / I don't" | You | Even from a phone |
+| Downloading a backup clip from Mixamo | You | During implementation, if needed, fifteen minutes |
+| Importing into Unity | Me | Automatic, with the manifest |
+| Looking at it on a device | You | Installing the APK |
 
-Sen Blender'ı hiç açmıyorsun. Bu, planın varsayımı değil, bugün doğrulanmış durumu.
+You never open Blender. That is not an assumption of the plan, it is the situation verified today.
 
 ---
 
-## Zaman kutusu
+## Timebox
 
-| Kanıt | Süre | Başarı ölçütü | Başarısızsa |
+| Proof | Time | Success criterion | If it fails |
 |---|---|---|---|
-| Mobilya hattı | ✅ Bitti | Sekiz proplu fast food seti üretildi, hepsi üçgen bütçesinde | — |
-| Ortam seti | 1 hafta | Fast food dükkânı: 12 prop, tek sahne, Unity'de cihazda 60 fps | Kenney paketi kalıcı olur |
-| Karakter hattı | ✅ Modelleme tarafı bitti | Gövde, iskelet, iki kıyafet parçası, saç ve altı poz doğrulandı. Kalan: klipleri yeniden hedefleyip Unity'de cihazda göstermek | Quaternius karakterleri, malzeme farkı |
-| Yemek tabakları | 3 gün | 6 taban × 8 üst malzeme, 32 yemeği kapsıyor | Yemekler ikon olur, tabak boş |
+| Furniture pipeline | ✅ Done | An eight-prop fast food set was produced, all within triangle budget | — |
+| Environment set | 1 week | A fast food shop: 12 props, one scene, 60 fps on a device in Unity | The Kenney pack becomes permanent |
+| Character pipeline | ✅ The modelling side is done | Body, rig, two clothing parts, hair and six poses verified. Remaining: retarget the clips and show them on a device in Unity | Quaternius characters, difference by material |
+| Food plates | 3 days | 6 bases × 8 toppings covering 32 dishes | The dishes become icons, the plate is empty |
 
-Zaman kutusu dolunca yedek plana geçilir, tartışılmaz. Değerlendirme bunu istedi; doğru istedi.
-
----
-
-## Yemek: 32 yemek, 32 mesh değil
-
-Sen yemek çeşidinin çok olmasını istedin; tasarımcı "parametreliyse olur" dedi ([23-core-contract.md](23-core-contract.md) §8.3). Sanat tarafında da aynı mantık: **modüler tabaklama.**
-
-```
-tabak = taban + 0-3 üst parça
-```
-
-| Taban (6) | Üst parça (8) |
-|---|---|
-| Yuvarlak tabak | Küre yığını (köfte, pilav, nugget) |
-| Oval tabak | Dilim (ekmek, pizza) |
-| Kâse | Silindir (bardak, kutu) |
-| Tepsi | Yaprak (salata, marul) |
-| Kağıt (fast food) | Şerit (patates, makarna) |
-| Fincan | Sos lekesi |
-| | Çubuk (pipet, kürdan, çubuk) |
-| | Buhar (sadece çorba ve ramen, partikül) |
-
-Renk malzemeden. Hamburger = kağıt + dilim + küre + yaprak, hepsi kahverengi-yeşil tonlarında. Ramen = kâse + şerit + küre + buhar. 32 yemek, 14 mesh, sonsuz kombinasyon. `dishes/*.json` içindeki `plating` alanı bunu söylüyor.
-
-Oyuncu tabağı 40 piksel boyunda görüyor. Bu ayrıntı yeter.
+When the timebox runs out we move to the fallback plan, no discussion. The review asked for this; it was right to.
 
 ---
 
-## Unity tarafında render döngüsü
+## Food: 32 dishes, not 32 meshes
 
-Blender döngüsü kanıtlandıktan sonra aynı şeyin Unity'de de olması gerekiyordu; yoksa görünüm katmanı hiç görülmeden yazılırdı.
+You wanted a lot of variety in the dishes; the designer said "it works if they are parameterised" ([23-core-contract.md](23-core-contract.md) §8.3). The same logic applies on the art side: **modular plating.**
 
-`tools/unity/shot.ps1` ve `Assets/Lokanta/Editor/SceneShot.cs`. Toplu kipte sahne kuruluyor, `RenderTexture`'a çiziliyor, PNG yazılıyor. Ekran gerekmiyor.
+```
+plate = base + 0-3 toppings
+```
 
-### İki tuzak, ikisi de ölçülerek bulundu
-
-**1. `-nographics` bayrağı render'ı kapatıyor.** `run.ps1` onu kullanıyor çünkü orada yalnızca ayar uygulanıyor. Görüntü alan çalıştırıcı o bayrağı kullanmıyor.
-
-**2. Unity, `-executeMethod`'u derleme bitmeden çalıştırabiliyor.** Günlükte "Requested script compilation" yazıyor, derlenen DLL'in içinde yeni kod var, ama çalışan sürüm eski. `shot.ps1` bu yüzden önce bir **ısınma turu** yapıyor: birinci tur yalnızca derliyor, ikinci tur çalıştırıyor.
-
-### Sınır: toplu kipte URP Lit çalışmıyor
-
-Malzemeler doğru atanıyor, URP etkin, `_BaseColor` yazılıp geri okunuyor. Buna rağmen **ışık alan her yüzey aynı rengi** veriyordu.
-
-Ölçüm şöyle daralttı:
-
-| Ölçüm | Sonuç |
+| Base (6) | Topping (8) |
 |---|---|
-| Kamera arka plan pikseli | Birebir doğru |
-| Malzeme rengi, CPU tarafında geri okuma | Birebir doğru |
-| Etkin boru hattı | LokantaURP |
-| Işık alan yüzeylerin pikseli | Hepsi aynı, atanan renkten bağımsız |
-| Aynı sahne, **Unlit** shader ile | Bütün pikseller birebir doğru |
+| Round plate | A pile of spheres (meatballs, rice, nuggets) |
+| Oval plate | A slice (bread, pizza) |
+| Bowl | A cylinder (glass, can) |
+| Tray | A leaf (salad, lettuce) |
+| Paper (fast food) | A strip (fries, pasta) |
+| Cup | A sauce smear |
+| | A stick (straw, toothpick, skewer) |
+| | Steam (only for soup and ramen, particles) |
 
-Sebep: **editör toplu kipinde URP Lit'in shader varyantları derlenmiyor** ve yüzeyler tek bir geri dönüş rengine düşüyor. Unlit'in varyant sayısı çok daha az olduğu için etkilenmiyor.
+The colour comes from the material. Hamburger = paper + slice + sphere + leaf, all in brown-green tones. Ramen = bowl + strip + sphere + steam. 32 dishes, 14 meshes, endless combinations. The `plating` field inside `dishes/*.json` says which.
 
-### Bunun pratik anlamı
+The player sees the plate at 40 pixels tall. That level of detail is enough.
 
-| Doğrulanabilen | Doğrulanamayan |
+---
+
+## The render loop on the Unity side
+
+Once the Blender loop was proved, the same thing had to exist in Unity too; otherwise the view layer would be written without ever being seen.
+
+`tools/unity/shot.ps1` and `Assets/Lokanta/Editor/SceneShot.cs`. In batch mode the scene is built, drawn into a `RenderTexture`, and a PNG is written. No display is needed.
+
+### Two traps, both found by measuring
+
+**1. The `-nographics` flag turns rendering off.** `run.ps1` uses it because all it does there is apply settings. The runner that takes images does not use that flag.
+
+**2. Unity can run `-executeMethod` before compilation has finished.** The log says "Requested script compilation", the compiled DLL contains the new code, but the running version is the old one. That is why `shot.ps1` does a **warm-up round** first: the first round only compiles, the second round runs.
+
+### The limit: URP Lit does not work in batch mode
+
+The materials are assigned correctly, URP is active, `_BaseColor` is written and read back. Despite that, **every lit surface** was giving the same colour.
+
+The measurement narrowed it down like this:
+
+| Measurement | Result |
 |---|---|
-| Yerleşim, ölçek, oran | Gölgeleme ve gölgeler |
-| Kamera açısı ve çerçeveleme | Işık rengi ve yoğunluğu |
-| Renk paleti (birebir) | Son görünüm |
-| Nesnelerin birbirine göre konumu | Malzeme parlaklığı |
+| The camera's background pixel | Exactly correct |
+| The material colour, read back on the CPU side | Exactly correct |
+| The active pipeline | LokantaURP |
+| The pixels of lit surfaces | All the same, independent of the assigned colour |
+| The same scene with the **Unlit** shader | Every pixel exactly correct |
 
-Yani Unity görüntüsü **kompozisyon denetimi** için kullanılıyor, son görünüm denetimi için değil. Son görünüm iki yerde denetlenecek: Blender render'ları ve gerçek cihaz.
+The reason: **URP Lit's shader variants are not compiled in editor batch mode** and the surfaces fall back to a single fallback colour. Unlit is unaffected because its variant count is far smaller.
 
-Doğrulama sahneleri Unlit malzeme kullanıyor; oyunun kendisi Lit kullanmaya devam ediyor.
+### What this means in practice
 
+| Can be verified | Cannot be verified |
+|---|---|
+| Layout, scale, proportion | Shading and shadows |
+| Camera angle and framing | Light colour and intensity |
+| Colour palette (exactly) | The final look |
+| The objects' positions relative to each other | Material glossiness |
+
+So the Unity image is used for **composition checking**, not for checking the final look. The final look will be checked in two places: the Blender renders and a real device.
+
+The verification scenes use Unlit materials; the game itself continues to use Lit.

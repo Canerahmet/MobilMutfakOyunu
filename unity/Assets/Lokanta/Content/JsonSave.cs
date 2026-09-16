@@ -6,12 +6,12 @@ using Newtonsoft.Json.Linq;
 namespace Lokanta.Content
 {
     /// <summary>
-    /// Durum yuruyusunu JSON agacina yazar.
-    /// docs/15-save-system.md bicimi: JSON, gzip, saglama toplami.
-    /// Bu sinif yalnizca agaci uretiyor; sikistirma ve dosyaya yazma
-    /// platform katmaninin isi (ISaveStore portu).
+    /// Writes the state walk into a JSON tree.
+    /// The docs/15-save-system.md format: JSON, gzip, checksum.
+    /// This class only produces the tree; compressing it and writing it to
+    /// a file is the platform layer's job (the ISaveStore port).
     ///
-    /// docs/23 6.1: Newtonsoft SADECE bu derlemede.
+    /// docs/23 6.1: Newtonsoft ONLY in this assembly.
     /// </summary>
     public sealed class JsonStateWriter : IStateWriter
     {
@@ -35,7 +35,7 @@ namespace Lokanta.Content
         public void End()
         {
             if (_stack.Count <= 1)
-                throw new InvalidOperationException("End(), Begin() olmadan cagrildi");
+                throw new InvalidOperationException("End() called without a Begin()");
             _stack.Pop();
         }
 
@@ -67,7 +67,7 @@ namespace Lokanta.Content
         }
     }
 
-    /// <summary>JsonStateWriter'in simetrigi. AYNI SIRAYI yurumek zorunda.</summary>
+    /// <summary>The mirror of JsonStateWriter. It MUST walk the SAME ORDER.</summary>
     public sealed class JsonStateReader : IStateReader
     {
         private readonly Stack<JObject> _stack = new Stack<JObject>();
@@ -86,7 +86,7 @@ namespace Lokanta.Content
         {
             JToken t = Current[key];
             if (t == null)
-                throw new ContentException("Kayitta alan yok: " + key);
+                throw new ContentException("Field missing from the save: " + key);
             return t;
         }
 
@@ -94,14 +94,14 @@ namespace Lokanta.Content
         {
             JObject child = Need(key) as JObject;
             if (child == null)
-                throw new ContentException("Kayitta nesne bekleniyordu: " + key);
+                throw new ContentException("Expected an object in the save: " + key);
             _stack.Push(child);
         }
 
         public void End()
         {
             if (_stack.Count <= 1)
-                throw new InvalidOperationException("End(), Begin() olmadan cagrildi");
+                throw new InvalidOperationException("End() called without a Begin()");
             _stack.Pop();
         }
 
@@ -111,7 +111,7 @@ namespace Lokanta.Content
         public bool Bool(string key) { return Need(key).Value<bool>(); }
         public string Str(string key) { return Need(key).Value<string>(); }
 
-        /// <summary>Bu anahtar su anki dugumde var mi. Bkz. IStateReader.Has.</summary>
+        /// <summary>Is this key present on the current node? See IStateReader.Has.</summary>
         public bool Has(string key)
         {
             return _stack.Count > 0 && _stack.Peek()[key] != null;
@@ -121,10 +121,10 @@ namespace Lokanta.Content
         {
             JArray a = Need(key) as JArray;
             if (a == null)
-                throw new ContentException("Kayitta dizi bekleniyordu: " + key);
+                throw new ContentException("Expected an array in the save: " + key);
             if (a.Count != count)
                 throw new ContentException(
-                    "Kayitta dizi uzunlugu " + a.Count + ", beklenen " + count + ": " + key);
+                    "Array length in the save is " + a.Count + ", expected " + count + ": " + key);
             return a;
         }
 

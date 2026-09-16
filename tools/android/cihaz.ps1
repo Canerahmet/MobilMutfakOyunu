@@ -1,139 +1,139 @@
 <#
-    GERCEK CIHAZDA KOSTURMA.
+    RUNNING ON A REAL DEVICE.
 
-    Neden var: turun tamami Windows yapisini kosuyor ve gonderdigimiz
-    ikili o degil - Android yapisi IL2CPP + ARM64 + budama High.
-    Emulator bu bosluğu kapatamiyor: emulator sistem goruntuleri
-    x86_64, bizim APK ise YALNIZCA ARM64 (Play 64 bit sart kosuyor),
-    yani gonderdigimiz dosya bir emulatore kurulamaz bile. Emulator
-    kullanmak, yayinlamadigimiz ikinci bir yapiyi test etmek demek.
+    Why it exists: the whole tour runs the Windows build, and that is not
+    the binary we ship - the Android build is IL2CPP + ARM64 + High
+    stripping. An emulator cannot close that gap: emulator system images
+    are x86_64 while our APK is ARM64 ONLY (Play requires 64 bit), so the
+    file we ship cannot even be installed on an emulator. Using an
+    emulator means testing a second build that we do not publish.
 
-    Emulatorun yapisal olarak veremedigi ucu daha: kare suresi,
-    isinma, ve iki parmak kamera.
+    Three more things an emulator structurally cannot give: frame time,
+    thermal behaviour, and two-finger camera control.
 
-    adb ZATEN kurulu - Unity'nin Android moduluyle geliyor, ayrica
-    bir sey indirmek gerekmiyor.
+    adb IS ALREADY INSTALLED - it comes with Unity's Android module,
+    nothing else needs downloading.
 
-    Kullanim:
-      .\tools\android\cihaz.ps1              # kur, calistir, gunluk al
-      .\tools\android\cihaz.ps1 -Sure 120    # iki dakika izle
-      .\tools\android\cihaz.ps1 -Kaldir      # uygulamayi sil
+    Usage:
+      .\tools\android\cihaz.ps1                 # install, run, take a log
+      .\tools\android\cihaz.ps1 -Seconds 120    # watch for two minutes
+      .\tools\android\cihaz.ps1 -Uninstall      # remove the app
 
-    Cikis kodu: 0 temiz, 1 hata/cokme gorundu, 2 cihaz yok.
+    Exit code: 0 clean, 1 an error/crash appeared, 2 no device.
 #>
 param(
-    [int]$Sure = 60,
-    [switch]$Kaldir,
-    [switch]$SadeceKur,
+    [int]$Seconds = 60,
+    [switch]$Uninstall,
+    [switch]$InstallOnly,
     [string]$Root = "D:\ClaudeCodeProjects\MobilOyun"
 )
 
 $ErrorActionPreference = "Stop"
-$Paket = "com.ahmetakar.lokanta"
+$Package = "com.ahmetakar.lokanta"
 
-# adb'yi Unity'nin SDK'sindan buluyoruz. Sabit yol yazmiyoruz cunku
-# Unity surumu degisince yol degisiyor ve "adb bulunamadi" hatasi
-# cihaz yokluguyla karisiyor.
+# We find adb inside Unity's SDK. We do not write a fixed path, because
+# the path changes when the Unity version changes and the resulting "adb
+# not found" error gets confused with there being no device.
 $adb = Get-ChildItem "C:\Program Files\Unity\Hub\Editor\*\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\platform-tools\adb.exe" -ErrorAction SilentlyContinue |
        Select-Object -First 1 -ExpandProperty FullName
 if (-not $adb) {
-    Write-Output "HATA: adb bulunamadi. Unity Android modulu kurulu mu?"
+    Write-Output "ERROR: adb not found. Is the Unity Android module installed?"
     exit 2
 }
 
-$cihazlar = & $adb devices | Select-Object -Skip 1 | Where-Object { $_ -match "\tdevice$" }
-if (-not $cihazlar) {
-    Write-Output "HATA: bagli cihaz yok."
+$devices = & $adb devices | Select-Object -Skip 1 | Where-Object { $_ -match "\tdevice$" }
+if (-not $devices) {
+    Write-Output "ERROR: no device connected."
     Write-Output ""
-    Write-Output "  1. Telefonda Ayarlar > Telefon hakkinda > Yapi numarasina 7 kez dokun"
-    Write-Output "  2. Gelistirici secenekleri > USB hata ayiklama -> ac"
-    Write-Output "  3. USB ile bagla, telefondaki 'Izin ver' kutusunu onayla"
+    Write-Output "  1. On the phone: Settings > About phone > tap Build number 7 times"
+    Write-Output "  2. Developer options > USB debugging -> on"
+    Write-Output "  3. Connect over USB, confirm the 'Allow' dialog on the phone"
     Write-Output ""
-    Write-Output "  Kontrol: & '$adb' devices"
+    Write-Output "  Check with: & '$adb' devices"
     exit 2
 }
-$ad = (& $adb shell getprop ro.product.model).Trim()
-$sur = (& $adb shell getprop ro.build.version.release).Trim()
+$model = (& $adb shell getprop ro.product.model).Trim()
+$release = (& $adb shell getprop ro.build.version.release).Trim()
 $abi = (& $adb shell getprop ro.product.cpu.abi).Trim()
-Write-Output "Cihaz: $ad (Android $sur, $abi)"
+Write-Output "Device: $model (Android $release, $abi)"
 
-# ABI KONTROLU. APK yalnizca arm64-v8a tasiyor; x86_64 bir cihazda
-# (yani emulatorde) kurulum "INSTALL_FAILED_NO_MATCHING_ABIS" ile
-# duser ve bu hata mesaji sebebini soylemiyor.
+# THE ABI CHECK. The APK carries arm64-v8a only; on an x86_64 device
+# (that is, on an emulator) the install fails with
+# "INSTALL_FAILED_NO_MATCHING_ABIS", and that message does not say why.
 if ($abi -notmatch "arm64") {
-    Write-Output "HATA: cihaz ABI'si '$abi' - APK yalnizca arm64-v8a."
-    Write-Output "      Bu bir emulator ise: bizim yapimiz orada kosmaz."
+    Write-Output "ERROR: the device ABI is '$abi' - the APK is arm64-v8a only."
+    Write-Output "       If this is an emulator: our build does not run there."
     exit 2
 }
 
-if ($Kaldir) {
-    & $adb uninstall $Paket
+if ($Uninstall) {
+    & $adb uninstall $Package
     exit 0
 }
 
 $apk = Join-Path $Root "build\android\Lokanta.apk"
 if (-not (Test-Path $apk)) {
-    Write-Output "HATA: APK yok: $apk"
-    Write-Output "      Once: .\tools\unity\run.ps1 -Method Lokanta.EditorTools.BuildPlayer.Android"
+    Write-Output "ERROR: no APK at: $apk"
+    Write-Output "       First: .\tools\unity\run.ps1 -Method Lokanta.EditorTools.BuildPlayer.Android"
     exit 2
 }
 $mb = [math]::Round((Get-Item $apk).Length / 1MB, 1)
-Write-Output "APK  : $apk ($mb MB, $((Get-Item $apk).LastWriteTime))"
+Write-Output "APK   : $apk ($mb MB, $((Get-Item $apk).LastWriteTime))"
 
-Write-Output "=== kuruluyor ==="
-$cikti = & $adb install -r $apk 2>&1 | Out-String
-Write-Output $cikti.Trim()
-if ($cikti -notmatch "Success") {
-    Write-Output "HATA: kurulum basarisiz."
+Write-Output "=== installing ==="
+$output = & $adb install -r $apk 2>&1 | Out-String
+Write-Output $output.Trim()
+if ($output -notmatch "Success") {
+    Write-Output "ERROR: the install failed."
     exit 1
 }
-if ($SadeceKur) { exit 0 }
+if ($InstallOnly) { exit 0 }
 
-# Gunluk oncesi TEMIZLENIYOR: eski kosunun cokmesi yeni kosununki
-# gibi gorunuyordu.
+# CLEARED BEFORE THE LOG: a crash from the previous run looked like one
+# from this run.
 & $adb logcat -c
 
-Write-Output "=== calistiriliyor, $Sure sn izleniyor ==="
-& $adb shell monkey -p $Paket -c android.intent.category.LAUNCHER 1 | Out-Null
+Write-Output "=== running, watching for $Seconds s ==="
+& $adb shell monkey -p $Package -c android.intent.category.LAUNCHER 1 | Out-Null
 
-$gunluk = Join-Path $env:TEMP "lokanta_logcat.txt"
-$is = Start-Process -FilePath $adb -ArgumentList "logcat -v time" `
-      -RedirectStandardOutput $gunluk -NoNewWindow -PassThru
-Start-Sleep -Seconds $Sure
+$log = Join-Path $env:TEMP "lokanta_logcat.txt"
+$proc = Start-Process -FilePath $adb -ArgumentList "logcat -v time" `
+      -RedirectStandardOutput $log -NoNewWindow -PassThru
+Start-Sleep -Seconds $Seconds
 
-# Ekran goruntusu: oyunun gercekten CIZDIGINI gormenin tek yolu.
-# "Surec yasiyor" yetmiyor - siyah ekranda da yasiyor.
+# A screenshot: the only way to see that the game really is DRAWING.
+# "The process is alive" is not enough - it is alive on a black screen too.
 $png = Join-Path $Root "render\cihaz.png"
 & $adb exec-out screencap -p > $png
-& $adb shell am force-stop $Paket
-Stop-Process -Id $is.Id -Force -ErrorAction SilentlyContinue
+& $adb shell am force-stop $Package
+Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
 
-$satirlar = Get-Content $gunluk -ErrorAction SilentlyContinue
-$bizim = $satirlar | Where-Object { $_ -match "Unity|lokanta|il2cpp|AndroidRuntime|DEBUG" }
-$kotu  = $satirlar | Where-Object {
+$lines = Get-Content $log -ErrorAction SilentlyContinue
+$ours = $lines | Where-Object { $_ -match "Unity|lokanta|il2cpp|AndroidRuntime|DEBUG" }
+$bad  = $lines | Where-Object {
     $_ -match "FATAL|AndroidRuntime|libil2cpp\.so|NullReference|Exception|beginning of crash"
 }
 
 Write-Output ""
-Write-Output "Gunluk : $gunluk ($($satirlar.Count) satir, $($bizim.Count) bizden)"
-Write-Output "Goruntu: $png"
+Write-Output "Log        : $log ($($lines.Count) lines, $($ours.Count) ours)"
+Write-Output "Screenshot : $png"
 
-if ($kotu) {
+if ($bad) {
     Write-Output ""
-    Write-Output "=== HATA GORUNDU ($($kotu.Count) satir) ==="
-    $kotu | Select-Object -First 25 | ForEach-Object { Write-Output "  $_" }
+    Write-Output "=== AN ERROR APPEARED ($($bad.Count) lines) ==="
+    $bad | Select-Object -First 25 | ForEach-Object { Write-Output "  $_" }
     exit 1
 }
 
-# SESSIZ BASARISIZLIK TUZAGI: hic Unity satiri yoksa uygulama
-# acilmamis olabilir ve "hata yok" bunu basari gibi gosterir.
-if ($bizim.Count -lt 5) {
+# THE SILENT-FAILURE TRAP: if there is no Unity line at all, the app may
+# never have opened, and "no errors" makes that look like success.
+if ($ours.Count -lt 5) {
     Write-Output ""
-    Write-Output "OLCULEMEDI: gunlukte yalnizca $($bizim.Count) Unity satiri var -"
-    Write-Output "            uygulama acilmamis olabilir. Goruntuye bak."
+    Write-Output "COULD NOT MEASURE: the log holds only $($ours.Count) Unity lines -"
+    Write-Output "                   the app may not have opened. Look at the screenshot."
     exit 1
 }
 
 Write-Output ""
-Write-Output "=== temiz: cokme yok, $($bizim.Count) Unity satiri ==="
+Write-Output "=== clean: no crash, $($ours.Count) Unity lines ==="
 exit 0

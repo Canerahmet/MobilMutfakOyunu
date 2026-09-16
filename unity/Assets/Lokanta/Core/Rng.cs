@@ -3,9 +3,9 @@ using System;
 namespace Lokanta.Core
 {
     /// <summary>
-    /// Alt sistem basina bagimsiz rastgelelik akisi.
-    /// docs/23-core-contract.md 3.2: bir sisteme cagri eklemek
-    /// digerinin dizisini kaydirmamali.
+    /// One independent randomness stream per subsystem.
+    /// docs/23-core-contract.md 3.2: adding a call to one system must not
+    /// shift another system's sequence.
     /// </summary>
     public enum RngStream
     {
@@ -17,16 +17,17 @@ namespace Lokanta.Core
         Event = 5,
         Hiring = 6,
         ReviewText = 7,
-        Credit = 8,     // veresiye tahsilati; docs/07 Turk imza mekanigi
-        Regular = 9,    // isimli duzenli musterinin ugrayip ugramadigi
-        Name = 10,      // personel ismi; huy zarina DOKUNMASIN diye ayri
+        Credit = 8,     // collecting on the tab; docs/07 Turkish signature mechanic
+        Regular = 9,    // whether the named regular drops in or not
+        Name = 10,      // staff name; kept separate so it does NOT TOUCH the trait die
         Count = 11
     }
 
     /// <summary>
-    /// xoshiro128**. Durumu dort uint, ayirma yapmaz, 32 bit ARM'de
-    /// 64 bit carpma gerektirmez, kaydi dogrudan yazilabilir.
-    /// System.Random KULLANILMAZ: .NET surumleri arasinda algoritmasi degisti.
+    /// xoshiro128**. State is four uints, it allocates nothing, it needs no
+    /// 64-bit multiply on 32-bit ARM, and its state can be written straight
+    /// into the save.
+    /// System.Random IS NOT USED: its algorithm changed between .NET versions.
     /// </summary>
     public struct Rng : IEquatable<Rng>
     {
@@ -34,7 +35,7 @@ namespace Lokanta.Core
 
         public Rng(uint s0, uint s1, uint s2, uint s3)
         {
-            // Hepsi sifir olursa uretec kilitlenir.
+            // If every word is zero the generator locks up.
             if ((s0 | s1 | s2 | s3) == 0) s0 = 0x9E3779B9u;
             _s0 = s0; _s1 = s1; _s2 = s2; _s3 = s3;
         }
@@ -65,8 +66,8 @@ namespace Lokanta.Core
         }
 
         /// <summary>
-        /// [0, maxExclusive). Lemire carp-kaydir. Cok kucuk bir sapmasi var;
-        /// deterministik oldugu icin kabul edildi.
+        /// [0, maxExclusive). Lemire multiply-shift. It has a very small bias;
+        /// accepted because it is deterministic.
         /// </summary>
         public int NextInt(int maxExclusive)
         {
@@ -81,13 +82,13 @@ namespace Lokanta.Core
             return minInclusive + NextInt(maxExclusive - minInclusive);
         }
 
-        /// <summary>0..One arasi baz puan.</summary>
+        /// <summary>A basis-point value in 0..One.</summary>
         public int NextBp()
         {
             return NextInt(Fx.One + 1);
         }
 
-        /// <summary>bp binde on bin olasilikla dogru doner.</summary>
+        /// <summary>Returns true with probability bp in ten thousand.</summary>
         public bool Chance(int bp)
         {
             if (bp <= 0) return false;
@@ -113,8 +114,9 @@ namespace Lokanta.Core
     }
 
     /// <summary>
-    /// Akislarin tohumlanmasi. (masterSeed, streamId) ciftinden splitmix64 ile
-    /// dort uint uretilir. Akislar birbirinden bagimsiz baslar.
+    /// Seeding the streams. Four uints are produced from the (masterSeed,
+    /// streamId) pair with splitmix64. The streams start independent of
+    /// one another.
     /// </summary>
     public static class RngSeeder
     {

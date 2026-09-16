@@ -1,202 +1,202 @@
-# Oyun Adı
+# The Game's Name
 
-**Son güncelleme:** 9 Eylül 2026
-**Kapsam:** Ad taraması, on aday, çarpışma kontrolü, öneri
-**Durum:** Yazıldı, karar bekliyor
+**Last updated:** 9 September 2026
+**Scope:** A name sweep, ten candidates, a collision check, a recommendation
+**Status:** Written, awaiting a decision
 
-Aday adların kendisi İngilizce kalır. Hedef kitle öncelikle küresel İngilizce konuşan oyuncu, geliştirici Türk. Bu doküman adayları üç eksende tarar: mağazada çarpışma, İngilizce bilmeyenin okuyuşu, Türkçe sesli okuma.
+The candidate names themselves stay English. The target audience is primarily the global English-speaking player, the developer is Turkish. This document sweeps the candidates on three axes: collision in the stores, how a non-English speaker reads it, and reading it aloud in Turkish.
 
 ---
 
-## 1. Kısıtlar
+## 1. Constraints
 
-| Kısıt | Değer | Sonuç |
+| Constraint | Value | Consequence |
 |---|---|---|
-| Google Play uygulama adı | 30 karakter | Ad artı alt başlık bu 30'un içine sığmak zorunda |
-| App Store uygulama adı | 30 karakter | Aynı sınır |
-| App Store alt başlık | Ayrı 30 karakter | Tür anlatımı buraya taşınır |
-| Steam adı | Sert sınır yok | Ama arama sonuçlarında ayırt edilebilmeli |
-| Hukuk bütçesi | Sıfır | Marka kavgası peşinen kaybedilmiştir |
-| Uzunluk | En fazla iki kelime | Tek kelime tercih |
-| Ton | Sıcak, elle tutulur, hafif iğneli | Sevimli değil, kurumsal değil |
-| Yasak kelimeler | Tycoon, Simulator, Idle, Empire, Chef, Master | Raf bu kelimelerle dolu |
-| Yasak yapı | Yalnızca İngilizce kelime oyunuyla anlam kazanan adlar | Küresel kitle çözemez |
+| Google Play app name | 30 characters | The name plus the subtitle has to fit inside those 30 |
+| App Store app name | 30 characters | The same limit |
+| App Store subtitle | A separate 30 characters | The genre description moves here |
+| Steam name | No hard limit | But it has to be distinguishable in search results |
+| Legal budget | Zero | A trademark fight is lost in advance |
+| Length | Two words at most | One word preferred |
+| Tone | Warm, tangible, slightly barbed | Not cute, not corporate |
+| Forbidden words | Tycoon, Simulator, Idle, Empire, Chef, Master | The shelf is full of these words |
+| Forbidden construction | Names that only make sense through an English pun | A global audience cannot decode it |
 
-**Sıralamada birinci ölçüt aranabilirlik değil, çarpışmasızlık.** Tek kişilik bir stüdyo marka itirazına cevap veremez; zekice ama gölgeli bir ad, sade ve temiz bir addan kötüdür.
+**The first criterion in the ranking is not searchability, it is being collision-free.** A one-person studio cannot answer a trademark objection; a clever but shadowed name is worse than a plain, clean one.
 
 ---
 
-## 2. Rafın durumu
+## 2. The state of the shelf
 
-Mağazadaki komşuların ad kalıbı tek tip: **[isim] + Simulator / Tycoon / Story**.
+The name pattern of the neighbours in the stores is uniform: **[noun] + Simulator / Tycoon / Story**.
 
-| Mağaza | Örnekler |
+| Store | Examples |
 |---|---|
 | Steam | Chef: A Restaurant Tycoon Game, Chef Life: A Restaurant Simulator, Restaurant Owner: A Restaurant Simulator, Restaurant Simulator, GastroCity: A Restaurant Tycoon Game, Diner Simulator, Fast Food Simulator, Cooking Simulator, Service Please: First Dinner, Farm to Table, PlateUp!, Restaurats, 86'd, Little Chef: Cozy Cooking, Kokoro Kitchen |
 | Google Play | Restaurant Story (TeamLava), Cafeland, Food Street, My Restaurant Empire, My Cooking: Restaurant Game, My Restaurant - Cooking Game, Happy Diner Story, Diner Story: Merge Cook Decor, Restaurant Management, My Little Restaurant, Restoran Patronu, Hungry Hearts Diner, Penguin Diner 2: My Restaurant |
 
-**Çıkarım:** Tür kelimesi taşımayan, somut ve kısa bir ad bu rafta kendiliğinden ayrışır. Ayrışma için para gerekmiyor, sadece kalıbı tekrarlamamak gerekiyor.
+**The inference:** a concrete, short name that carries no genre word separates itself from this shelf automatically. Separating does not take money, it just takes not repeating the pattern.
 
 ---
 
-## 3. Jenerik adayların taraması
+## 3. The sweep of the generic candidates
 
-Brifte sayılan on beş jenerik aday tarandı. Sonuç:
+The fifteen generic candidates listed in the brief were swept. The result:
 
-| Aday | Durum | Kanıt |
+| Candidate | Status | Evidence |
 |---|---|---|
-| Diner Story | **Alınmış, çoklu** | Happy Diner Story (Play), Diner Story: Merge Cook Decor (Play), Restaurant Story / TeamLava (Play) |
-| My Restaurant | **Alınmış, çoklu** | My Restaurant - Cooking Game (Play), My Restaurant Empire-Deco Game (Play), Penguin Diner 2: My Restaurant (Play) |
-| Table Service | Birebir yok, alan doygun | Service Please ve Service Please: First Dinner (Steam); "service" kelimesi rafın tam ortasında |
-| Full House | Birebir oyun yok, çağrışım ağır | Arama tamamen Full House / Fuller House dizisi ve poker terimi tarafından yutuluyor; SEO imkânsız |
-| Covers | Birebir yok | Steam'de tam adı "Covers" olan oyun yok, ama terim 7.646 sonuç döndürüyor; ayrıca CoverManager adlı restoran rezervasyon yazılımı sektörde yerleşik |
-| Service Charge | Birebir yok | Steam'de 358 sonuç, tam eşleşme yok; ama ad "ek ücret" demek, oyuncuya yanlış ücretlendirme sinyali veriyor |
-| Mise en Place | Birebir oyun yok | Steam'de yok; ancak aynı adı taşıyan gerçek restoranlar var, üstelik üç kelime ve Fransızca |
-| Family Meal | Birebir yok | Steam'de Family Dinner ve Family Style var, tam eşleşme yok; eski ABD marka kayıtlarında "FAMILY MEAL" tanımlayıcı sayılıp feragat edilmiş |
-| Eighty Six | **Alınmış, çoklu** | Steam'de hem "86" (2020) hem "86'd" (yemek pişirme oyunu, doğrudan aynı restoran deyiminden); ayrıca 86: Eighty Six anime markası |
-| Deuce | Birebir yok, çağrışım kirli | Deuces Wild - Video Poker; terim tenis ve pokerle özdeşleşmiş |
-| The Pass | Birebir yok, arama ölü | Steam'de "pass" araması Season Pass ve Battle Pass ürünleriyle dolu; ad aranabilir değil |
-| Front of House | Birebir oyun bulunamadı | Üç kelime ve tamamen sektör içi jargon; İngilizce bilmeyen sıfır anlam çıkarır |
-| Two Top | Birebir yok | Steam'de "Two the Top" var; ayrıca Türkçe sesli okumada sorunlu, bkz. bölüm 5 |
-| Comp | Birebir yok, okunmuyor | Kısaltma olarak oyun adı taşımıyor, "computer" gibi okunuyor |
-| Turn and Burn | Oyun serisi olarak kullanılmış | Turn and Burn: The F-14 Dogfight Simulator (1992), Turn and Burn: No-Fly Zone (1994) |
+| Diner Story | **Taken, multiple times** | Happy Diner Story (Play), Diner Story: Merge Cook Decor (Play), Restaurant Story / TeamLava (Play) |
+| My Restaurant | **Taken, multiple times** | My Restaurant - Cooking Game (Play), My Restaurant Empire-Deco Game (Play), Penguin Diner 2: My Restaurant (Play) |
+| Table Service | No exact match, the field is saturated | Service Please and Service Please: First Dinner (Steam); the word "service" is right in the middle of the shelf |
+| Full House | No exact game match, the associations are heavy | The search is completely swallowed by the Full House / Fuller House series and the poker term; SEO is impossible |
+| Covers | No exact match | There is no game on Steam whose full name is "Covers", but the term returns 7,646 results; and there is restaurant reservation software called CoverManager that is established in the industry |
+| Service Charge | No exact match | 358 results on Steam, no exact match; but the name means "an extra fee" and sends the player the wrong pricing signal |
+| Mise en Place | No exact game match | Not on Steam; but there are real restaurants carrying the same name, and on top of that it is three words and French |
+| Family Meal | No exact match | There are Family Dinner and Family Style on Steam, no exact match; in old US trademark filings "FAMILY MEAL" was considered descriptive and disclaimed |
+| Eighty Six | **Taken, multiple times** | On Steam there is both "86" (2020) and "86'd" (a cooking game, straight from the same restaurant idiom); plus the 86: Eighty Six anime brand |
+| Deuce | No exact match, the associations are dirty | Deuces Wild - Video Poker; the term is identified with tennis and poker |
+| The Pass | No exact match, search is dead | On Steam a "pass" search is full of Season Pass and Battle Pass products; the name is not searchable |
+| Front of House | No exact game found | Three words and entirely industry jargon; a non-English speaker gets zero meaning out of it |
+| Two Top | No exact match | There is "Two the Top" on Steam; also problematic read aloud in Turkish, see section 5 |
+| Comp | No exact match, does not read | It carries no game name as an abbreviation, and it reads like "computer" |
+| Turn and Burn | Has been used as a game series | Turn and Burn: The F-14 Dogfight Simulator (1992), Turn and Burn: No-Fly Zone (1994) |
 
-**Özet:** On beş jenerik adayın üçü doğrudan alınmış, beşi arama açısından ölü, üçü çok uzun ya da çok içeriden. Kullanılabilir kalan yok.
+**Summary:** of the fifteen generic candidates, three are taken outright, five are dead as far as search goes, three are too long or too insider. None survive as usable.
 
 ---
 
-## 4. On aday
+## 4. Ten candidates
 
-### 4.1 Anlam uyumu
+### 4.1 Fit of meaning
 
-| # | Ad | Kelime | Bu oyuna neden uyuyor |
+| # | Name | Words | Why it fits this game |
 |---|---|---|---|
-| 1 | **Last Seating** | 2 | Gecenin son oturan masası. Restoranda gerçekten kullanılan bir ifade ("last seating is at 21:30"). Oyunun gün döngüsünü, kapanış baskısını ve altmışıncı günde biten sezonu aynı anda taşıyor. Sıcak, ama içinde bir kapanış hüznü var |
-| 2 | **Lokanta** | 1 | Küçük, sahibinin işlettiği, gösterişsiz yemek yerinin tam karşılığı. Oyunun konsepti bu. İngilizce konuşana uydurma bir kelime gibi geldiği için markalaşması kolay; Recettear, Moonlighter, Spiritfarer kalıbı |
-| 3 | **Family Meal** | 2 | Servisten önce ekibin birlikte yediği personel yemeği. Oyun paranın olduğu kadar ekibin de oyunu; personel sistemi moral üzerine kurulu. En sıcak aday |
-| 4 | **Soft Opening** | 2 | Restoranın resmî açılıştan önceki deneme dönemi. Oyuncu oyun boyunca hep bu durumda; adın kendisi kuru bir espri |
-| 5 | **Open Late** | 2 | Patronun hayatının tarifi: herkes gittikten sonra hâlâ açıksın. Somut, iki basit kelime |
-| 6 | **Covers** | 1 | Sektörde ağırlanan misafir sayısı. Patronun baktığı asıl sayı; gün sonu ekranının merkezindeki metrik |
-| 7 | **Line Check** | 2 | Servis öncesi istasyon kontrolü: mal var mı, hazırlık tamam mı, ekip yerinde mi. Oyunun her sabah yaptırdığı şey |
-| 8 | **Half Full** | 2 | Yarı dolu salon ve yarı dolu bardak. İki anlam da oyunun tonunda: baskı var ama umut da var |
-| 9 | **Walk-In** | 1 | Hem soğuk hava deposu hem rezervasyonsuz gelen müşteri. İki anlamın da oyunda mekanik karşılığı var |
-| 10 | **The Float** | 2 | Kasaya gün başında konan bozukluk, ve "batmadan yüzmek". Ekonomi baskısının tam karşılığı |
+| 1 | **Last Seating** | 2 | The last table seated of the night. An expression genuinely used in restaurants ("last seating is at 21:30"). It carries the game's day cycle, the closing pressure and the season that ends on the sixtieth day all at once. Warm, but with a closing sadness inside it |
+| 2 | **Lokanta** | 1 | The exact word for a small, owner-run, unpretentious eating place. That is the game's concept. Because it feels like a made-up word to an English speaker it is easy to brand; the Recettear, Moonlighter, Spiritfarer pattern |
+| 3 | **Family Meal** | 2 | The staff meal the crew eats together before service. The game is as much about the crew as about the money; the staff system is built on morale. The warmest candidate |
+| 4 | **Soft Opening** | 2 | A restaurant's trial period before the official opening. The player is in this state for the whole game; the name itself is a dry joke |
+| 5 | **Open Late** | 2 | The description of the owner's life: after everyone has gone, you are still open. Concrete, two simple words |
+| 6 | **Covers** | 1 | The number of guests served, in industry terms. The real number the owner watches; the metric at the centre of the end-of-day screen |
+| 7 | **Line Check** | 2 | The pre-service station check: is there stock, is the prep done, is the crew in place. What the game makes you do every morning |
+| 8 | **Half Full** | 2 | A half-full dining room and a half-full glass. Both meanings are in the game's tone: there is pressure but there is hope too |
+| 9 | **Walk-In** | 1 | Both the walk-in cooler and the customer who arrives without a reservation. Both meanings have a mechanical counterpart in the game |
+| 10 | **The Float** | 2 | The change put in the till at the start of the day, and "staying afloat". The exact counterpart of the economic pressure |
 
-### 4.2 Çarpışma, aranabilirlik, telaffuz
+### 4.2 Collision, searchability, pronunciation
 
-| # | Ad | Kar. | Birebir çarpışma | Yakın çarpışma | Steam aranabilirliği | İngilizce bilmeyene | Türkçe sesli test |
+| # | Name | Chars | Exact collision | Near collision | Steam searchability | To a non-English speaker | Turkish read-aloud test |
 |---|---|---|---|---|---|---|---|
-| 1 | **Last Seating** | 12 | **Yok** (Steam, Play, App Store) | Last Man Sitting, Is This Seat Taken? — ikisi de tür ve sözcük olarak uzak | **İyi**, iki kelimelik öbek boş | Kısmen okunur: "last" bilinir, "seating" orta seviye | **Temiz.** "last siting", zorlanılacak ses yok, kötü çağrışım yok |
-| 2 | **Lokanta** | 7 | **Yok** | Pinball Storm: Lokanta (Steam, ilgisiz tür, alt başlık olarak) | **Çok iyi**, kelime neredeyse tekil | Türk, Yunan, İtalyan, Romen, Bulgar, Arap okuyucu tanır (locanda, λοκάντα, لوكاندة). İngiliz ve Amerikalı tanımaz | **Mükemmel.** Zaten Türkçe kelime |
-| 3 | **Family Meal** | 11 | **Yok** | Family Dinner (Steam), Family Style (Play) | Orta; yemek tarifi ve fast food SEO'suyla yarışır | **En iyisi**; iki kelime de dünyanın bildiği İngilizce | **Temiz.** "femili mil" |
-| 4 | **Soft Opening** | 12 | **Yok** | Yok | İyi | İyi; ikisi de yaygın kelime, ayrıca Türkiye dahil çok ülkede "soft opening" olduğu gibi kullanılıyor | **Temiz.** "soft" Türkçede zaten kullanılıyor |
-| 5 | **Open Late** | 9 | **Yok** | Late Hours, Late Night Manifest (Steam, ikisi de uzak) | Orta iyi | **İyi**; iki temel kelime | **Temiz.** "open leyt" |
-| 6 | **Covers** | 6 | **Yok** | CoverManager (restoran rezervasyon yazılımı, sektörde yerleşik marka) | **Kötü.** Terim 7.646 Steam sonucu döndürüyor | **Kötü**; müzik cover'ı, kitap kapağı, sigorta teminatı olarak okunur | Söylenişi temiz ama anlam kayıyor: "kavırs" müzik cover'ı olarak anlaşılır |
-| 7 | **Line Check** | 10 | **Yok** | Linechecker (iOS uygulaması, oyun değil) | Orta | **Zayıf**; "line" sıra mı çizgi mi, "check" çek mi kontrol mü belli değil | Temiz ama "layn çek" bir şey anlatmıyor |
-| 8 | **Half Full** | 9 | **Yok** | Yok, ama arama Half-Life tarafından yutuluyor (1.042 sonuç) | **Kötü** | İyi; deyim çoğu dilde birebir var | **Temiz.** "haf ful" |
-| 9 | **Walk-In** | 7 | **Yok** | A Walk in the Park / Woods / Dark (Steam, hepsi uzak) | Orta zayıf | **Kötü**; "walk-in dolap" veya korku oyunu çağrışımı | Kabul edilebilir: /w/ sesi /v/ olur, "vokin" |
-| 10 | **The Float** | 9 | **Yok** | The Float Never Stops (Steam, duyurulmamış). Ayrıca **Float**, yerleşik bir yazılım markası (float.com, kaynak planlama) | Orta | **Kötü**; kasa parası anlamını kimse bilmez | **Sorunlu.** "flot", Türkçedeki "flüt" ile karışıyor |
+| 1 | **Last Seating** | 12 | **None** (Steam, Play, App Store) | Last Man Sitting, Is This Seat Taken? — both distant in genre and in wording | **Good**, the two-word phrase is empty | Partly readable: "last" is known, "seating" is intermediate level | **Clean.** "last siting", no difficult sound, no bad association |
+| 2 | **Lokanta** | 7 | **None** | Pinball Storm: Lokanta (Steam, unrelated genre, as a subtitle) | **Very good**, the word is almost unique | Turkish, Greek, Italian, Romanian, Bulgarian and Arab readers recognise it (locanda, λοκάντα, لوكاندة). The English and Americans do not | **Perfect.** It is a Turkish word already |
+| 3 | **Family Meal** | 11 | **None** | Family Dinner (Steam), Family Style (Play) | Medium; it competes with recipe and fast food SEO | **The best**; both words are English the world knows | **Clean.** "femili mil" |
+| 4 | **Soft Opening** | 12 | **None** | None | Good | Good; both are common words, and "soft opening" is also used as-is in many countries including Turkey | **Clean.** "soft" is already used in Turkish |
+| 5 | **Open Late** | 9 | **None** | Late Hours, Late Night Manifest (Steam, both distant) | Medium good | **Good**; two basic words | **Clean.** "open leyt" |
+| 6 | **Covers** | 6 | **None** | CoverManager (restaurant reservation software, an established brand in the industry) | **Bad.** The term returns 7,646 Steam results | **Bad**; it reads as a music cover, a book cover, an insurance cover | The pronunciation is clean but the meaning slips: "kavirs" is understood as a music cover |
+| 7 | **Line Check** | 10 | **None** | Linechecker (an iOS app, not a game) | Medium | **Weak**; is "line" a queue or a line, is "check" a cheque or a check — it is not clear | Clean, but "layn chek" does not tell you anything |
+| 8 | **Half Full** | 9 | **None** | None, but the search is swallowed by Half-Life (1,042 results) | **Bad** | Good; the idiom exists word for word in most languages | **Clean.** "haf ful" |
+| 9 | **Walk-In** | 7 | **None** | A Walk in the Park / Woods / Dark (Steam, all distant) | Medium weak | **Bad**; it evokes a walk-in closet or a horror game | Acceptable: the /w/ sound becomes /v/, "vokin" |
+| 10 | **The Float** | 9 | **None** | The Float Never Stops (Steam, unannounced). Also **Float** is an established software brand (float.com, resource planning) | Medium | **Bad**; nobody knows the till-money meaning | **Problematic.** "flot" gets mixed up with the Turkish word for flute, which is pronounced almost identically |
 
 ---
 
-## 5. Türkçe sesli okuma testi
+## 5. The Turkish read-aloud test
 
-Bu bölüm ayrı tutuldu, çünkü geliştirici adı yıllarca yüksek sesle söyleyecek.
+This section was kept separate, because the developer will be saying the name out loud for years.
 
-| Kural | Etki | Elenen adaylar |
+| Rule | Effect | Candidates eliminated |
 |---|---|---|
-| "six" hecesi Türkçede müstehcen bir kökle çakışıyor ("siks-") | İçinde six geçen hiçbir ad sesli söylenemez | **Sixty Covers, Sixty Days, Table Six** elendi |
-| "top" Türkçede hem "ball" hem argo bir hakaret | İki anlamlı ve kaba | **Two Top** elendi |
-| Türkçede /θ/ ve /ð/ sesi yok; "The" başlangıcı "dı" ya da "zı" olur | "The" ile başlayan her ad Türkçe ağızda tökezliyor, ayrıca alfabetik listelerde T'ye düşüyor | **The Pass, The Float, The Books** zayıfladı |
-| Türkçede /w/ yok, /v/ olur | Kabul edilebilir ama ad bozuluyor | **Walk-In** zayıfladı |
-| "float" ile "flüt" karışıyor | Anlam kayması | **The Float** elendi |
-| Yabancı kısaltmalar Türkçede okunmuyor | Anlam sıfır | **Comp, Chit, Mise, Till** elendi |
+| The syllable "six" collides with an obscene root in Turkish ("siks-") | No name with six in it can be said out loud | **Sixty Covers, Sixty Days, Table Six** eliminated |
+| "top" in Turkish is both "ball" and a slang insult | Ambiguous and crude | **Two Top** eliminated |
+| Turkish has no /θ/ or /ð/ sound; a leading "The" comes out as a /d/ or a /z/ followed by a vowel Turkish does have | Every name beginning with "The" trips up in a Turkish mouth, and it also falls under T in alphabetical lists | **The Pass, The Float, The Books** weakened |
+| Turkish has no /w/, it becomes /v/ | Acceptable, but the name is deformed | **Walk-In** weakened |
+| "float" gets mixed up with the Turkish word for flute | A shift of meaning | **The Float** eliminated |
+| Foreign abbreviations are not read in Turkish | Zero meaning | **Comp, Chit, Mise, Till** eliminated |
 
-**Testi temiz geçenler:** Last Seating, Lokanta, Family Meal, Soft Opening, Open Late, Half Full, Line Check.
+**Passing the test cleanly:** Last Seating, Lokanta, Family Meal, Soft Opening, Open Late, Half Full, Line Check.
 
 ---
 
-## 6. Elenen adlar ve sebepleri
+## 6. Eliminated names and the reasons
 
-| Ad | Sebep |
+| Name | Reason |
 |---|---|
-| Sixty Covers, Sixty Days, Table Six | Türkçe sesli okuma; "six" hecesi |
-| Two Top | Türkçe argo; ayrıca Steam'de "Two the Top" var |
-| The Pass | Steam araması Season Pass ve Battle Pass ile dolu, SEO ölü |
-| The Float | Float yazılım markasıyla sınıf 9 riski; Türkçede "flüt" karışması |
-| Eighty Six, 86 | Steam'de hem "86" hem "86'd" var, ikincisi doğrudan yemek oyunu |
-| Turnover | Üç heceli, Türkçe zor; ayrıca hamur işi olarak okunuyor |
-| Mise, Mise en Place | Fransızca; İngilizce konuşan bile telaffuz edemiyor, Türkçe hiç okunmuyor |
-| Comp, Chit, Till | Kısaltma ya da çok dar jargon, kimse çözemiyor |
-| Margin, Overhead | Anlamca doğru ama soğuk; istenen sıcak ton yok |
-| Open Table | OpenTable şirketinin tescilli markası, doğrudan çarpışma |
-| Dinner Rush, Rush Hour, Closing Time | Film ve şarkı adlarıyla dolu |
-| Rent Day | Steam'de "Rent Due" (Ağustos 2026) ve "Please pay the rent!" var, fazla yakın |
-| In the Weeds, On the House | Yalnızca İngilizce deyim bilgisiyle çalışıyor, üstelik üç kelime |
-| Esnaf, Ocakbaşı | Türkçe ama küresel okuyucuya sıfır; aynı işi "Lokanta" daha iyi yapıyor |
+| Sixty Covers, Sixty Days, Table Six | Turkish read-aloud; the syllable "six" |
+| Two Top | Turkish slang; and "Two the Top" exists on Steam |
+| The Pass | The Steam search is full of Season Pass and Battle Pass, SEO is dead |
+| The Float | Class 9 risk against the Float software brand; the confusion with the Turkish word for flute |
+| Eighty Six, 86 | Steam has both "86" and "86'd", the second one a food game outright |
+| Turnover | Three syllables, hard in Turkish; and it also reads as a pastry |
+| Mise, Mise en Place | French; even an English speaker cannot pronounce it, and it does not read at all in Turkish |
+| Comp, Chit, Till | An abbreviation or very narrow jargon, nobody can decode it |
+| Margin, Overhead | Correct in meaning but cold; not the warm tone wanted |
+| Open Table | A registered trademark of the OpenTable company, a direct collision |
+| Dinner Rush, Rush Hour, Closing Time | Full of film and song titles |
+| Rent Day | Steam has "Rent Due" (August 2026) and "Please pay the rent!", too close |
+| In the Weeds, On the House | They only work with knowledge of English idiom, and they are three words on top of that |
+| Esnaf, Ocakbasi | Turkish, but zero to a global reader; "Lokanta" does the same job better |
 
 ---
 
-## 7. Sıralama
+## 7. The ranking
 
-| Sıra | Ad | Çarpışma | Aranabilirlik | Ton | Küresel okunurluk | Türkçe | Değerlendirme |
+| Rank | Name | Collision | Searchability | Tone | Global readability | Turkish | Assessment |
 |---|---|---|---|---|---|---|---|
-| 1 | **Last Seating** | Temiz | İyi | Tam isabet | Orta | Temiz | Dört eksende de eksisi yok; tek zayıflığı "seating" kelimesinin orta seviye İngilizce olması, alt başlıkla kapanıyor |
-| 2 | **Lokanta** | Temiz | Çok iyi | İyi | Düşük ama markalaşabilir | Mükemmel | En sahiplenilebilir ad; tek riski mutfak beklentisi yaratması |
-| 3 | **Family Meal** | Temiz | Orta | Sıcak ama yumuşak | Çok iyi | Temiz | En anlaşılır ad; ekonomik baskıyı hiç anlatmıyor, yanlış kitleyi çekebilir |
-| 4 | **Soft Opening** | Temiz | İyi | İyi, kuru espri | İyi | Temiz | "Soft" kelimesiyle başlamak dişli bir oyun için ters sinyal |
-| 5 | **Open Late** | Temiz | Orta iyi | İyi | Çok iyi | Temiz | Restoranı anlatmıyor; bar ya da bakkal da olabilir |
-| 6 | **Half Full** | Temiz | Kötü | İyi | İyi | Temiz | Arama Half-Life tarafından yutuluyor |
-| 7 | **Line Check** | Temiz | Orta | Orta | Zayıf | Temiz | Hokey terimi ve yazılım testi çağrışımı |
-| 8 | **Covers** | Temiz | Kötü | Tam isabet | Kötü | Anlam kayması | Sektörel olarak en doğru kelime, pratikte en kullanışsızı |
-| 9 | **Walk-In** | Temiz | Orta zayıf | İyi | Kötü | Zayıf | Korku oyunu gibi duruyor |
-| 10 | **The Float** | Marka riski | Orta | İyi | Kötü | Sorunlu | Tek marka riski taşıyan aday, bu yüzden sonda |
+| 1 | **Last Seating** | Clean | Good | Bullseye | Medium | Clean | No minus on any of the four axes; its only weakness is that "seating" is intermediate-level English, which the subtitle covers |
+| 2 | **Lokanta** | Clean | Very good | Good | Low but brandable | Perfect | The most ownable name; its only risk is creating an expectation about the cuisine |
+| 3 | **Family Meal** | Clean | Medium | Warm but soft | Very good | Clean | The most understandable name; it says nothing at all about the economic pressure and could attract the wrong audience |
+| 4 | **Soft Opening** | Clean | Good | Good, a dry joke | Good | Clean | Starting with the word "Soft" is the wrong signal for a game with teeth |
+| 5 | **Open Late** | Clean | Medium good | Good | Very good | Clean | It does not say restaurant; it could be a bar or a corner shop |
+| 6 | **Half Full** | Clean | Bad | Good | Good | Clean | The search is swallowed by Half-Life |
+| 7 | **Line Check** | Clean | Medium | Medium | Weak | Clean | Hockey-term and software-testing associations |
+| 8 | **Covers** | Clean | Bad | Bullseye | Bad | The meaning slips | The most correct word in industry terms, the most useless in practice |
+| 9 | **Walk-In** | Clean | Medium weak | Good | Bad | Weak | It looks like a horror game |
+| 10 | **The Float** | Trademark risk | Medium | Good | Bad | Problematic | The only candidate carrying a trademark risk, which is why it is last |
 
 ---
 
-## 8. Öneri
+## 8. The recommendation
 
-### Birinci: **Last Seating**
+### First: **Last Seating**
 
-**Gerekçe:**
+**The reasoning:**
 
-1. **Sıfır çarpışma.** Steam, Google Play ve App Store'da birebir bu adı taşıyan ürün bulunamadı. En yakın örnekler (Last Man Sitting, Is This Seat Taken?) tür ve sözcük olarak uzak. Tek kişilik bir stüdyo için birinci ölçüt buydu.
-2. **Aranabilir.** İki kelimelik öbek olarak arama sonucu boş; oyun çıktığında o öbeğin tek sahibi olur. "Covers" ve "Half Full" bu testi geçemiyor.
-3. **Oyunu anlatıyor.** Gecenin son masası: gün döngüsü, kapanış baskısı ve altmışıncı günde biten sezon aynı ifadenin içinde. Oyun zaten "servis biter, kasa sayılır, kira gelir" üzerine kurulu.
-4. **Ton doğru.** Sıcak ama içinde bir bitiş var. Sevimli değil, kurumsal değil, "Tycoon" değil.
-5. **Türkçe temiz.** Zor ses yok, argo çakışması yok, "The" yok.
-6. **Raftan ayrışıyor.** Komşuların hepsi tür kelimesi taşıyor; bu ad taşımıyor.
+1. **Zero collision.** No product carrying this exact name was found on Steam, Google Play or the App Store. The nearest examples (Last Man Sitting, Is This Seat Taken?) are distant in genre and in wording. For a one-person studio, that was the first criterion.
+2. **Searchable.** As a two-word phrase the search result is empty; when the game comes out it becomes the sole owner of that phrase. "Covers" and "Half Full" cannot pass this test.
+3. **It describes the game.** The last table of the night: the day cycle, the closing pressure and the season that ends on the sixtieth day are all inside the same expression. The game is built on "service ends, the till is counted, the rent comes" anyway.
+4. **The tone is right.** Warm, but with an ending in it. Not cute, not corporate, not "Tycoon".
+5. **Clean in Turkish.** No difficult sound, no slang collision, no "The".
+6. **It separates from the shelf.** All the neighbours carry a genre word; this name does not.
 
-**Mağaza yazımları:**
+**Store wordings:**
 
-| Yer | Metin | Karakter |
+| Place | Text | Characters |
 |---|---|---|
-| Google Play adı | `Last Seating: Restaurant` | 24 |
-| App Store adı | `Last Seating` | 12 |
-| App Store alt başlığı | `Own the place, not the pans` | 27 |
-| Steam adı | `Last Seating` | 12 |
+| Google Play name | `Last Seating: Restaurant` | 24 |
+| App Store name | `Last Seating` | 12 |
+| App Store subtitle | `Own the place, not the pans` | 27 |
+| Steam name | `Last Seating` | 12 |
 
-### İkinci: **Lokanta**
+### Second: **Lokanta**
 
-Gerçekten sahiplenilebilir tek aday bu. İngilizce konuşana uydurma bir kelime gibi geldiği için arama sonucunda tek başına kalır, marka olarak tescil edilebilirliği en yüksek adaydır ve Türk geliştiricinin imzasını taşır. Recettear, Moonlighter ve Spiritfarer aynı yolu yürüdü.
+This is the only genuinely ownable candidate. Because it feels like a made-up word to an English speaker it stands alone in a search result, it is the candidate most registrable as a trademark, and it carries the Turkish developer's signature. Recettear, Moonlighter and Spiritfarer walked the same road.
 
-**Tek riski:** Türk mutfağı ücretli bir açılım olduğu halde adın Türkçe olması, oyuncuda "bu bir Türk mutfağı oyunu" beklentisi yaratabilir. Ücretsiz taban fast food. Bu, iade ve yorum sürtüşmesi üretir. Ad Lokanta seçilirse mağaza görselinin ilk karesinde tabanın fast food olduğu açıkça görünmeli.
+**Its only risk:** Turkish cuisine is a paid expansion, yet the name being Turkish can create the expectation in the player that "this is a Turkish cuisine game". The free base is fast food. That produces refund and review friction. If Lokanta is chosen, the first frame of the store artwork must clearly show that the base is fast food.
 
-### Üçüncü, güvenli seçenek: **Family Meal**
+### Third, the safe option: **Family Meal**
 
-En sıcak ve İngilizce bilmeyen için en okunaklı aday; çarpışması da yok. Üçüncü sırada olmasının sebebi ekonomik baskıyı hiç anlatmaması: oyuncu rahat bir yemek oyunu bekleyip kira gününe çarpar.
+The warmest and most legible candidate for a non-English speaker; and it has no collision. The reason it is third is that it says nothing at all about the economic pressure: the player expects a relaxed cooking game and hits rent day.
 
 ---
 
-## 9. Karara kadar yapılacaklar
+## 9. What to do before the decision
 
-| İş | Nerede | Neden |
+| Job | Where | Why |
 |---|---|---|
-| Marka taraması | TÜRKPATENT, EUIPO, USPTO, TMview; sınıf 9 ve sınıf 41 | Bu doküman mağaza taramasıdır, marka taraması değildir |
-| Alan adı | `.com`, yedek olarak `.game` | Steam sayfasından önce basın kiti bir yerde durmalı |
-| Sosyal hesap | Aynı ad, iki platform | Ad seçilir seçilmez alınmalı, sonra alınamıyor |
-| Steam ad denemesi | Steamworks ad çakışma kontrolü | Valve aynı adı reddedebiliyor |
-| Play başlık kuralları | 30 karakter, emoji yok; "ücretsiz", "en iyi", "1 numara" gibi kelimeler yasak | Yaygın reddedilme sebebi |
-| Beş kişilik sesli test | Üç İngilizce konuşan, iki Türkçe konuşan; adı duyup tekrar etsinler | Yazılı test yeterli değil |
+| Trademark sweep | The Turkish Patent and Trademark Office (TURKPATENT), EUIPO, USPTO, TMview; class 9 and class 41 | This document is a store sweep, not a trademark sweep |
+| Domain name | `.com`, with `.game` as backup | The press kit has to live somewhere before the Steam page |
+| Social accounts | The same name, two platforms | They have to be taken the moment the name is chosen, or they cannot be taken later |
+| Steam name attempt | The Steamworks name-conflict check | Valve can reject the same name |
+| Play title rules | 30 characters, no emoji; words like "free", "best", "number 1" are forbidden | A common rejection reason |
+| A five-person read-aloud test | Three English speakers, two Turkish speakers; have them hear the name and repeat it | A written test is not enough |
 
-**Not:** Marka taraması yapılmadan hiçbir ad kesinleşmiş sayılmaz. Bu dokümandaki "çarpışma yok" ifadeleri mağaza ve web araması sonucudur, hukuki görüş değildir.
+**Note:** no name counts as settled until a trademark sweep has been done. The "no collision" statements in this document are the result of store and web searches, not a legal opinion.

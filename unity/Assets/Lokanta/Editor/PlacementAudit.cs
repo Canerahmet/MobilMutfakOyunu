@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Lokanta.Game;
 using UnityEditor;
 using UnityEngine;
@@ -6,21 +6,20 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Sahnedeki nesneler BIRBIRINE GIRIYOR MU.
+    /// DO THE OBJECTS IN THE SCENE RUN INTO EACH OTHER?
     ///
-    /// Kullanicinin cumlesi: "Restorana yerlesen modeller ust uste
-    /// binmis gibi." Goz karariyla bakmak yetmiyor - 34 derecelik bir
-    /// bakista arkadaki bir nesne ondekinin ustune biniyormus gibi
-    /// gorunebilir, ve gercekten binen iki nesne de masum durabilir.
-    /// Bu arac soruyu olcuye ceviriyor: her nesnenin GERCEK POZDAKI
-    /// kutusunu cikariyor ve kesisen ciftleri yaziyor.
+    /// The user's sentence: "the models placed around the restaurant look like
+    /// they are on top of each other." Judging by eye is not enough - at a
+    /// 34 degree view an object behind can look as though it sits on top of the
+    /// one in front, and two objects that really do intersect can look
+    /// innocent. This tool turns the question into a measurement: it takes each
+    /// object's box IN ITS REAL POSE and writes down the pairs that intersect.
     ///
-    /// NEDEN BakeMesh: Renderer.bounds derili bir mesh'te yalan
-    /// soyluyor. Unity onu kok kemikten turetiyor ve poz degistikce
-    /// guncellemiyor - ilk olcumde OTURAN bir figur 1,68 m boyunda ve
-    /// 1,66 m eninde gorundu, ikisi de imkansiz. BakeMesh pozlanmis
-    /// mesh'i gercekten uretiyor, yani kutusu o anda ekranda gorunen
-    /// seyin kutusu.
+    /// WHY BakeMesh: on a skinned mesh Renderer.bounds lies. Unity derives it
+    /// from the root bone and does not update it as the pose changes - in the
+    /// first measurement a SEATED figure came out 1.68 m tall and 1.66 m wide,
+    /// both impossible. BakeMesh actually produces the posed mesh, so its box
+    /// is the box of what is on screen at that moment.
     ///
     ///   Unity.exe -batchmode -quit -projectPath ...
     ///     -executeMethod Lokanta.EditorTools.PlacementAudit.Run
@@ -28,15 +27,16 @@ namespace Lokanta.EditorTools
     public static class PlacementAudit
     {
         /// <summary>
-        /// Kesisme sayilmasi icin gereken en kucuk ortusme.
+        /// The smallest overlap that counts as an intersection.
         ///
-        /// Sifir olamaz: bir sandalye masaya DEGMELI, bir tabak tezgahin
-        /// USTUNDE durmali. Dokunmak ust uste binmek degil. 4 cm, low-poly
-        /// bir sahnede "iki nesne ayni yeri paylasiyor" demenin esigi.
+        /// It cannot be zero: a chair HAS TO touch the table, a plate HAS TO
+        /// stand ON the counter. Touching is not overlapping. 4 cm is the
+        /// threshold at which, in a low-poly scene, two objects are sharing the
+        /// same place.
         /// </summary>
-        private const float Esik = 0.04f;
+        private const float Threshold = 0.04f;
 
-        [MenuItem("Lokanta/Yerlesim denetimi")]
+        [MenuItem("Lokanta/Placement audit")]
         public static void Run()
         {
             try
@@ -44,7 +44,7 @@ namespace Lokanta.EditorTools
                 UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
                     "Assets/Lokanta/Game.unity");
 
-                Debug.Log("=== Lokanta yerlesim denetimi ===");
+                Debug.Log("=== Lokanta placement audit ===");
 
                 foreach (string cuisine in new[] { "turk", "fastfood" })
                 {
@@ -52,7 +52,7 @@ namespace Lokanta.EditorTools
                     if (sim == null) continue;
 
                     RestaurantView view = Object.FindFirstObjectByType<RestaurantView>();
-                    if (view == null) { Debug.LogError("SORUNLAR: RestaurantView yok"); return; }
+                    if (view == null) { Debug.LogError("PROBLEMS: no RestaurantView"); return; }
 
                     view.Preview = sim;
                     view.PreviewPoses = true;
@@ -60,452 +60,461 @@ namespace Lokanta.EditorTools
                     view.Rebuild();
                     GameShot.Kick(view, "Update");
 
-                    Denetle(cuisine, sim, view);
+                    Audit(cuisine, sim, view);
 
                     view.Preview = null;
                     view.PreviewPoses = false;
                     view.Clear();
                 }
 
-                Debug.Log("=== yerlesim denetimi tamam ===");
+                Debug.Log("=== placement audit done ===");
                 if (Application.isBatchMode) EditorApplication.Exit(0);
             }
             catch (System.Exception e)
             {
-                Debug.LogError("SORUNLAR: yerlesim -> " + e.GetType().Name + ": " + e.Message);
+                Debug.LogError("PROBLEMS: placement -> " + e.GetType().Name + ": " + e.Message);
                 if (Application.isBatchMode) EditorApplication.Exit(2);
             }
         }
 
-        private struct Nesne
+        private struct Item
         {
-            public string Ad;
-            public Bounds Kutu;
-            public bool Figur;
-            /// <summary>Hangi masa takimina ait. Yoksa bos.</summary>
-            public string Masa;
+            public string Name;
+            public Bounds Box;
+            public bool IsFigure;
+            /// <summary>Which table set it belongs to. Empty if none.</summary>
+            public string Table;
         }
 
-        private static void Denetle(string cuisine, Core.Sim.Simulation sim,
+        private static void Audit(string cuisine, Core.Sim.Simulation sim,
                                     RestaurantView view)
         {
-            List<Nesne> hepsi = new List<Nesne>();
+            List<Item> all = new List<Item>();
 
-            // FIGURLER - pozlanmis mesh'ten.
+            // THE FIGURES - from the posed mesh.
             foreach (Figure f in view.GetComponentsInChildren<Figure>(true))
             {
                 if (!f.gameObject.activeInHierarchy) continue;
-                Bounds? b = PozKutusu(f.transform);
+                Bounds? b = PosedBounds(f.transform);
                 if (b == null) continue;
-                // MISAFIRIN MASASI KONUMDAN BULUNUYOR.
+                // A GUEST'S TABLE IS FOUND FROM THE POSITION.
                 //
-                // Once ebeveyn zincirine bakiliyordu. Musteriler
-                // yurumeye baslayinca gorunum onlari masadan ayirdi -
-                // yuruyus dunya uzayinda olmali - ve eslesme kopunca
-                // oturan her misafir kendi sandalyesiyle "cakisik"
-                // sayildi: 45 sahte kayit.
+                // The parent chain was consulted before. Once the customers
+                // started walking the view detached them from the table - the
+                // walk has to happen in world space - and when the pairing
+                // broke, every seated guest counted as "intersecting" with
+                // their own chair: 45 false records.
                 //
-                // 1,2 m esigi: oturan figur en fazla 0,48 m uzakta
-                // (SeatRadius), komsu masa 1,85 m otede.
-                string masa = "";
-                float enYakin = 1.2f;
+                // The 1.2 m threshold: a seated figure is at most 0.48 m away
+                // (SeatRadius), while the next table is 1.85 m off.
+                //
+                // "Table_" is the name RestaurantView gives the table holders it
+                // creates, so it stays as that file spells it.
+                string table = "";
+                float nearest = 1.2f;
                 foreach (Transform mt in view.transform)
                 {
-                    if (!mt.name.StartsWith("Masa_")) continue;
+                    if (!mt.name.StartsWith("Table_")) continue;
                     float d = Vector3.Distance(
                         new Vector3(mt.position.x, 0f, mt.position.z),
                         new Vector3(b.Value.center.x, 0f, b.Value.center.z));
-                    if (d < enYakin) { enYakin = d; masa = mt.name; }
+                    if (d < nearest) { nearest = d; table = mt.name; }
                 }
 
-                hepsi.Add(new Nesne
+                all.Add(new Item
                 {
-                    Ad = "figur " + f.transform.parent.name + "/" + f.name,
-                    Kutu = b.Value,
-                    Figur = true,
-                    Masa = masa,
+                    Name = "figure " + f.transform.parent.name + "/" + f.name,
+                    Box = b.Value,
+                    IsFigure = true,
+                    Table = table,
                 });
             }
 
-            // MOBILYA VE ESYA - RestaurantView'in dogrudan cocuklari,
-            // figur tasimayanlar. Zemin ve rozet disarida: zemin her
-            // seyin altinda, rozet her seyin ustunde.
+            // FURNITURE AND PROPS - the direct children of RestaurantView that
+            // carry no figure. The floor and the badges are left out: the floor
+            // is under everything, the badge is above everything.
+            //
+            // THE OBJECT NAMES BELOW ARE THE ONES RestaurantView CREATES. They
+            // are matched by exact string, so they stay as that file spells
+            // them.
             foreach (Transform t in view.transform)
             {
                 if (!t.gameObject.activeInHierarchy) continue;
-                if (t.name.StartsWith("Oda_")) continue;
+                if (t.name.StartsWith("Room_")) continue;
 
-                // DUVAR DISARIDA: oda sinirinda duruyor ve o sinira
-                // dayali her tezgahla tanim geregi kesisiyor. Saydam,
-                // carpisansiz, 6 cm kalinliginda bir levhanin "yerlesim
-                // cakismasi" diye sayilmasi, denetimi gurultuye bogar.
-                if (t.name == "Duvar" || t.name == "Kapi") continue;
+                // THE WALL IS LEFT OUT: it stands on a room boundary and by
+                // definition intersects every counter pushed against that
+                // boundary. Counting a transparent, collisionless, 6 cm thick
+                // panel as a "placement clash" would drown the audit in noise.
+                if (t.name == "Wall" || t.name == "Door") continue;
 
-                // SOKAK da disarida: arsanin disinda, zemin seviyesinde
-                // ve hicbir seyle yarismiyor.
-                if (t.name == "Kaldirim" || t.name == "Bordur"
-                    || t.name == "Asfalt") continue;
+                // THE STREET is left out too: outside the plot, at ground level
+                // and competing with nothing.
+                if (t.name == "Pavement" || t.name == "Kerb"
+                    || t.name == "Asphalt") continue;
 
-                // SOKAK LAMBASI ve TAVAN ISIGI da disarida.
+                // THE STREET LAMP and THE CEILING LIGHT are left out as well.
                 //
-                // Lamba arsanin disinda, bordurun uzerinde. Govde
-                // hizasindaki tek parcasi 9 cm'lik direk ve yayalar ona
-                // artik ETKIN OLARAK carpmiyor (StreetLife itismesi
-                // direkleri de engel sayiyor) - o mesafe ayrica kendi
-                // satirinda olculuyor. Kutuya girmesinin tek sebebi
-                // figur kutusunun KOL ACIKLIGINI olcmesi; 1,14 m'lik bir
-                // kol acikligi dar bir kaldirimda her seye "carpiyor".
+                // The lamp is outside the plot, on the kerb. Its only part at
+                // body height is a 9 cm post, and the pedestrians now ACTIVELY
+                // avoid it (StreetLife's shoving counts the posts as obstacles
+                // too) - that clearance is measured on its own line. The only
+                // reason it entered the box at all is that a figure's box
+                // measures the ARM SPAN; a 1.14 m arm span "hits" everything on
+                // a narrow pavement.
                 //
-                // Tavan isigi govdesiz: yalnizca yerde yatan bir isik
-                // levhasi. Zemin gibi, her seyin altinda.
-                if (t.name == "SokakLambasi" || t.name == "TavanIsigi") continue;
+                // The ceiling light has no body: it is only a light panel lying
+                // on the floor. Like the floor, it is under everything.
+                if (t.name == "StreetLamp" || t.name == "CeilingLight") continue;
                 if (t.GetComponentInChildren<Figure>(true) != null
-                    && !t.name.StartsWith("Masa_")) continue;
+                    && !t.name.StartsWith("Table_")) continue;
 
-                if (t.name.StartsWith("Masa_"))
+                if (t.name.StartsWith("Table_"))
                 {
-                    // Masa takimi TEK PARCA degil: masa ve dort sandalye
-                    // ayri nesneler ve birbirlerine degmeleri normal.
-                    // Ayri ayri toplaniyorlar ki komsu takimla cakisma
-                    // gorunsun.
+                    // A table set is NOT ONE PIECE: the table and the four
+                    // chairs are separate objects and touching each other is
+                    // normal. They are gathered separately so that a clash with
+                    // the neighbouring set becomes visible.
                     foreach (Transform c in t)
                     {
-                        // Figur BU DONGUDE sayilmiyor; yukarida zaten
-                        // pozlanmis hali toplandi. Ilk yazimda
-                        // GetComponent kullaniliyordu ve Figure bileseni
-                        // bir alt cocukta oldugu icin her misafir IKI KEZ
-                        // giriyordu - arac her figuru kendisiyle cakisik
-                        // buluyordu.
+                        // A figure is NOT counted IN THIS LOOP; its posed form
+                        // was already gathered above. The first version used
+                        // GetComponent, and because the Figure component sits on
+                        // a grandchild every guest was entered TWICE - the tool
+                        // found every figure intersecting with itself.
                         if (c.GetComponentInChildren<Figure>(true) != null) continue;
-                        if (c.name == "Rozet") continue;
-                        Bounds? cb = PozKutusu(c);
+                        if (c.name == "Badge") continue;
+                        Bounds? cb = PosedBounds(c);
                         if (cb != null)
-                            hepsi.Add(new Nesne { Ad = t.name + "/" + c.name,
-                                                  Kutu = cb.Value, Masa = t.name });
+                            all.Add(new Item { Name = t.name + "/" + c.name,
+                                               Box = cb.Value, Table = t.name });
                     }
                     continue;
                 }
 
-                Bounds? b = PozKutusu(t);
-                if (b != null) hepsi.Add(new Nesne { Ad = t.name, Kutu = b.Value });
+                Bounds? b = PosedBounds(t);
+                if (b != null) all.Add(new Item { Name = t.name, Box = b.Value });
             }
 
-            int cakisan = 0, figurCakisan = 0;
-            float enBuyuk = 0f;
-            string enBuyukAd = "";
+            int clashes = 0, figureClashes = 0;
+            float largest = 0f;
+            string largestName = "";
 
-            for (int i = 0; i < hepsi.Count; i++)
+            for (int i = 0; i < all.Count; i++)
             {
-                for (int j = i + 1; j < hepsi.Count; j++)
+                for (int j = i + 1; j < all.Count; j++)
                 {
-                    // AYNI MASA TAKIMININ PARCALARI HESAPLANMIYOR.
+                    // PARTS OF THE SAME TABLE SET ARE NOT COUNTED.
                     //
-                    // Misafir sandalyesinin uzerinde oturuyor ve dizleri
-                    // masanin altinda; ikisi de tanim geregi kesisiyor.
-                    // Bunlari saymak, gercek cakismalari 47 sahte
-                    // kaydin arasinda gizliyordu.
-                    if (!string.IsNullOrEmpty(hepsi[i].Masa)
-                        && hepsi[i].Masa == hepsi[j].Masa) continue;
+                    // The guest is sitting on their chair with their knees under
+                    // the table; both intersect by definition. Counting those was
+                    // hiding the real clashes among 47 false records.
+                    if (!string.IsNullOrEmpty(all[i].Table)
+                        && all[i].Table == all[j].Table) continue;
 
-                    Vector3 o = Ortusme(hepsi[i].Kutu, hepsi[j].Kutu);
-                    if (o.x <= Esik || o.y <= Esik || o.z <= Esik) continue;
+                    Vector3 o = Overlap(all[i].Box, all[j].Box);
+                    if (o.x <= Threshold || o.y <= Threshold || o.z <= Threshold) continue;
 
-                    // YATAY ortusme olculuyor: bir tabagin tezgahin
-                    // ustunde durmasi cakisma degil, ayni YER PARCASINI
-                    // paylasmak cakisma.
-                    float yatay = Mathf.Min(o.x, o.z);
-                    cakisan++;
-                    if (hepsi[i].Figur || hepsi[j].Figur) figurCakisan++;
-                    if (yatay > enBuyuk)
+                    // The HORIZONTAL overlap is what is measured: a plate
+                    // standing on a counter is not a clash, sharing the same
+                    // PATCH OF FLOOR is.
+                    float horizontal = Mathf.Min(o.x, o.z);
+                    clashes++;
+                    if (all[i].IsFigure || all[j].IsFigure) figureClashes++;
+                    if (horizontal > largest)
                     {
-                        enBuyuk = yatay;
-                        enBuyukAd = hepsi[i].Ad + "  x  " + hepsi[j].Ad;
+                        largest = horizontal;
+                        largestName = all[i].Name + "  x  " + all[j].Name;
                     }
 
-                    if (cakisan <= 12)
+                    if (clashes <= 12)
                         Debug.Log(string.Format(
-                            "  CAKISMA {0,-34} x {1,-34} ortusme {2:0.00} x {3:0.00} m",
-                            Kisa(hepsi[i].Ad), Kisa(hepsi[j].Ad), o.x, o.z));
+                            "  CLASH {0,-34} x {1,-34} overlap {2:0.00} x {3:0.00} m",
+                            Short(all[i].Name), Short(all[j].Name), o.x, o.z));
                 }
             }
 
             Debug.Log(string.Format(
-                "  SONUC {0}: {1} nesne, {2} cakisan cift ({3} figurlu), en buyuk {4:0.00} m [{5}]",
-                cuisine, hepsi.Count, cakisan, figurCakisan, enBuyuk, Kisa(enBuyukAd)));
+                "  RESULT {0}: {1} objects, {2} clashing pairs ({3} with a figure), largest {4:0.00} m [{5}]",
+                cuisine, all.Count, clashes, figureClashes, largest, Short(largestName)));
 
-            // Bir figurun ekranda kapladigi yer: ortalama ayak izi.
-            float en = 0f, derin = 0f, boy = 0f;
+            // How much room a figure takes on screen: the average footprint.
+            float width = 0f, depth = 0f, height = 0f;
             int n = 0;
-            foreach (Nesne x in hepsi)
+            foreach (Item x in all)
             {
-                if (!x.Figur) continue;
-                en += x.Kutu.size.x; derin += x.Kutu.size.z; boy += x.Kutu.size.y; n++;
+                if (!x.IsFigure) continue;
+                width += x.Box.size.x; depth += x.Box.size.z; height += x.Box.size.y; n++;
             }
             if (n > 0)
             {
                 Debug.Log(string.Format(
-                    "  FIGUR {0}: oturan ortalama en {1:0.00} derinlik {2:0.00} boy {3:0.00} m"
-                    + " | oturak araligi 0,88 m | masa araligi {4:0.00} m",
-                    cuisine, en / n, derin / n, boy / n, RoomPlan.CellX));
+                    "  FIGURE {0}: seated average width {1:0.00} depth {2:0.00} height {3:0.00} m"
+                    + " | seat pitch 0.88 m | table pitch {4:0.00} m",
+                    cuisine, width / n, depth / n, height / n, RoomPlan.CellX));
 
-                // MASA BASLARA DEGIYOR MU.
+                // DOES THE TABLE REACH THEIR HEADS?
                 //
-                // Kullanici "masa karakterlerin basina degiyor gibi"
-                // dedi. Olculebilir hali: oturan figurun CENE hizasi
-                // (kutusunun ust noktasinin biraz altindaki govde) ile
-                // masa tablasinin ustu arasindaki fark. Masa tablasi
-                // 0,74 m; oturan bir insanin masasi gogus hizasinda
-                // olmali, cene hizasinda degil.
-                foreach (Nesne x in hepsi)
+                // The user said "the table looks like it touches the
+                // characters' heads". Turned into something measurable: the
+                // difference between a seated figure's CHIN line (the body just
+                // below the top of its box) and the top of the table. The table
+                // top is 0.74 m; a seated person's table should be at chest
+                // height, not at chin height.
+                foreach (Item x in all)
                 {
-                    if (!x.Figur) continue;
-                    float basUstu = x.Kutu.max.y;
-                    float masaUstu = 0f;
-                    foreach (Nesne y in hepsi)
+                    if (!x.IsFigure) continue;
+                    float headTop = x.Box.max.y;
+                    float tableTop = 0f;
+                    foreach (Item y in all)
                     {
-                        if (y.Figur || y.Masa != x.Masa) continue;
-                        if (y.Ad.IndexOf("table", System.StringComparison.Ordinal) < 0) continue;
-                        masaUstu = y.Kutu.max.y;
+                        if (y.IsFigure || y.Table != x.Table) continue;
+                        if (y.Name.IndexOf("table", System.StringComparison.Ordinal) < 0) continue;
+                        tableTop = y.Box.max.y;
                         break;
                     }
-                    if (masaUstu <= 0f) continue;
+                    if (tableTop <= 0f) continue;
                     Debug.Log(string.Format(
-                        "  MASA-BAS oturan figur ustu {0:0.00} m, masa tablasi {1:0.00} m"
-                        + "  -> bas masanin {2:0.00} m ustunde",
-                        basUstu, masaUstu, basUstu - masaUstu));
+                        "  TABLE-HEAD top of the seated figure {0:0.00} m, table top {1:0.00} m"
+                        + "  -> the head is {2:0.00} m above the table",
+                        headTop, tableTop, headTop - tableTop));
                     break;
                 }
 
-                // DURUS GERCEKTEN UYGULANIYOR MU.
+                // IS THE POSE ACTUALLY BEING APPLIED?
                 //
-                // Yakin plan goruntude misafirler sandalyelerin ONUNDE
-                // AYAKTA duruyordu ve minderler bostu. Bu, "figurler
-                // buyuk" sorusundan AYRI bir sey: poz hic
-                // uygulanmiyorsa olcek ne olursa olsun yanlis gorunur.
+                // In the close-up screenshot the guests were STANDING IN FRONT
+                // OF their chairs and the cushions were empty. That is SEPARATE
+                // from the "the figures are big" question: if the pose is never
+                // applied, the scale can be anything and it will still look
+                // wrong.
                 //
-                // Ayni figur iki pozda olculuyor. Kutular AYNI cikarsa
-                // klip etkisiz demektir; oturan bir govde ayakta
-                // durandan belirgin sekilde ALCAK olmali.
+                // The same figure is measured in two poses. If the boxes come
+                // out THE SAME the clip is doing nothing; a seated body has to
+                // be noticeably LOWER than a standing one.
                 foreach (Figure f in view.GetComponentsInChildren<Figure>(true))
                 {
                     if (!f.gameObject.activeInHierarchy) continue;
 
                     f.Sample(Figure.Pose.Idle, 0.4f);
-                    Bounds? ayakta = PozKutusu(f.transform);
+                    Bounds? standing = PosedBounds(f.transform);
                     f.Sample(Figure.Pose.Sit, 0.4f);
-                    Bounds? oturan = PozKutusu(f.transform);
-                    if (ayakta == null || oturan == null) break;
+                    Bounds? seated = PosedBounds(f.transform);
+                    if (standing == null || seated == null) break;
 
-                    Vector3 a = ayakta.Value.size, o = oturan.Value.size;
-                    bool degisti = Mathf.Abs(a.y - o.y) > 0.05f
+                    Vector3 a = standing.Value.size, o = seated.Value.size;
+                    bool changed = Mathf.Abs(a.y - o.y) > 0.05f
                                    || Mathf.Abs(a.z - o.z) > 0.05f;
                     Debug.Log(string.Format(
-                        "  DURUS idle {0:0.00}x{1:0.00}x{2:0.00} | sit {3:0.00}x{4:0.00}x{5:0.00}"
+                        "  POSE idle {0:0.00}x{1:0.00}x{2:0.00} | sit {3:0.00}x{4:0.00}x{5:0.00}"
                         + "  -> {6}",
                         a.x, a.y, a.z, o.x, o.y, o.z,
-                        degisti ? "poz UYGULANIYOR" : "POZ UYGULANMIYOR - klip etkisiz"));
+                        changed ? "the pose IS APPLIED" : "THE POSE IS NOT APPLIED - the clip does nothing"));
                     break;
                 }
 
-                // ESYANIN DOGRULTUSU.
+                // THE ORIENTATION OF THE PROPS.
                 //
-                // Kullanicinin istegi: "restoran icerisindeki esyalarin
-                // yerlesimini ve dogrultularini kontrol et".
+                // The user's request: "check the placement and the orientation
+                // of the props inside the restaurant".
                 //
-                // Kural olculebilir: DUVARA DAYALI bir esya odanin
-                // ICINE bakmali. Ocagin agzi duvara donmus olamaz,
-                // tezgahin on yuzu duvara bakamaz. Esyanin "onu"
-                // RestaurantView.PropYaw kuralindan geliyor (mobilya
-                // yaw 0'da -Z'ye bakiyor), yani burada ikinci bir
-                // varsayim yok.
+                // The rule is measurable: a prop PUSHED AGAINST A WALL has to
+                // face INTO the room. A stove's mouth cannot be turned to the
+                // wall, a counter's front cannot face the wall. A prop's
+                // "front" comes from the RestaurantView.PropYaw rule (furniture
+                // faces -Z at yaw 0), so there is no second assumption here.
                 //
-                // NEDEN OLCUM: "gozle bakildi" bir kez dogrudur; kat
-                // plani ya da yerlesim degisince kimse yeniden bakmaz.
+                // WHY MEASURE: "somebody looked at it" is true once; when the
+                // floor plan or the layout changes nobody looks again.
                 {
-                    int bakilan = 0, ters = 0;
-                    var kotu = new System.Text.StringBuilder();
+                    int checkedProps = 0, backwards = 0;
+                    var bad = new System.Text.StringBuilder();
 
                     foreach (Transform t in view.transform)
                     {
                         if (!t.gameObject.activeInHierarchy) continue;
                         if (t.GetComponentInChildren<Figure>(true) != null) continue;
-                        if (t.name.StartsWith("Oda_") || t.name == "Duvar"
-                            || t.name == "Kapi" || t.name == "Kaldirim"
-                            || t.name == "Bordur" || t.name == "Asfalt"
-                            || t.name == "SokakLambasi"
-                            // ESIK PASPASI yatay bir levha: "on yuzu"
-                            // yok, dolayisiyla dogrultu kurali da yok.
-                            // Denetim onu duvara donuk sayiyordu ve bu
-                            // bir hata degil, kuralin o nesneye
-                            // uymamasiydi.
-                            || t.name == "Esik"
-                            || t.name.StartsWith("Masa_")) continue;
+                        if (t.name.StartsWith("Room_") || t.name == "Wall"
+                            || t.name == "Door" || t.name == "Pavement"
+                            || t.name == "Kerb" || t.name == "Asphalt"
+                            || t.name == "StreetLamp"
+                            // THE DOORMAT is a flat panel: it has no "front",
+                            // and therefore no orientation rule either. The
+                            // audit was counting it as facing the wall, and that
+                            // was not a bug but the rule not applying to that
+                            // object.
+                            || t.name == "Threshold"
+                            || t.name.StartsWith("Table_")) continue;
 
                         Vector3 p = t.localPosition;
-                        int oda = Lokanta.Game.Paths.RoomAt(p);
-                        if (oda < 0) continue;
+                        int roomIndex = Lokanta.Game.Paths.RoomAt(p);
+                        if (roomIndex < 0) continue;
 
-                        RoomPlan.Room r = RoomPlan.Rooms[oda];
+                        RoomPlan.Room r = RoomPlan.Rooms[roomIndex];
 
-                        // Hangi duvara dayali: en yakin kenar.
-                        float dSol = p.x - r.X0;
-                        float dSag = r.X0 + r.W - p.x;
-                        float dOn = p.z - r.Z0;
-                        float dArka = r.Z0 + r.D - p.z;
-                        float enYakin = Mathf.Min(Mathf.Min(dSol, dSag), Mathf.Min(dOn, dArka));
-                        if (enYakin > 1.0f) continue;   // ortada duran esya: kurali yok
+                        // Which wall it is against: the nearest edge.
+                        float dLeft = p.x - r.X0;
+                        float dRight = r.X0 + r.W - p.x;
+                        float dFront = p.z - r.Z0;
+                        float dBack = r.Z0 + r.D - p.z;
+                        float nearestEdge = Mathf.Min(Mathf.Min(dLeft, dRight), Mathf.Min(dFront, dBack));
+                        if (nearestEdge > 1.0f) continue;   // a prop out in the middle: no rule
 
-                        Vector3 iceri;
-                        if (enYakin == dSol) iceri = Vector3.right;
-                        else if (enYakin == dSag) iceri = Vector3.left;
-                        else if (enYakin == dOn) iceri = Vector3.forward;
-                        else iceri = Vector3.back;
+                        Vector3 inwards;
+                        if (nearestEdge == dLeft) inwards = Vector3.right;
+                        else if (nearestEdge == dRight) inwards = Vector3.left;
+                        else if (nearestEdge == dFront) inwards = Vector3.forward;
+                        else inwards = Vector3.back;
 
-                        // Mobilyanin onu: yaw 0'da -Z (RestaurantView.PropYaw).
-                        Vector3 on = t.localRotation * Vector3.back;
-                        on.y = 0f;
+                        // A piece of furniture's front: -Z at yaw 0
+                        // (RestaurantView.PropYaw).
+                        Vector3 front = t.localRotation * Vector3.back;
+                        front.y = 0f;
 
-                        bakilan++;
-                        float aci = Vector3.Angle(on, iceri);
-                        if (aci > 100f)
+                        checkedProps++;
+                        float angle = Vector3.Angle(front, inwards);
+                        if (angle > 100f)
                         {
-                            ters++;
-                            if (kotu.Length < 220)
-                                kotu.Append(t.name + "(" + r.Name + ","
-                                            + aci.ToString("0") + ") ");
+                            backwards++;
+                            if (bad.Length < 220)
+                                bad.Append(t.name + "(" + r.Name + ","
+                                           + angle.ToString("0") + ") ");
                         }
                     }
 
                     Debug.Log(string.Format(
-                        "  YON {0} esya duvara dayali, {1} tanesi duvara donuk {2}",
-                        bakilan, ters, kotu.ToString()));
+                        "  FACING {0} props are against a wall, {1} of them face the wall {2}",
+                        checkedProps, backwards, bad.ToString()));
                 }
 
-                // KENDINI DOGRULAMA: ayakta duran bir personel figurunun
-                // olculen boyu, ArtPrefabs'in hedefiyle ayni cikmali.
-                // Cikmiyorsa olculen sey bu sahnedeki figur degil.
+                // SELF-VERIFICATION: the measured height of a standing member
+                // of staff has to come out the same as ArtPrefabs' target. If it
+                // does not, what is being measured is not the figure in this
+                // scene.
                 foreach (Figure f in view.GetComponentsInChildren<Figure>(true))
                 {
                     if (!f.gameObject.activeInHierarchy) continue;
                     if (f.Current == Figure.Pose.Sit) continue;
 
-                    // AYAKTA DURUŞU ACIKCA ORNEKLE.
+                    // SAMPLE THE STANDING POSE EXPLICITLY.
                     //
-                    // Onceden figur SAHNEDEKI durusuyla olculuyordu ve
-                    // mutfak isleri eklenince o duruş artik "ayakta"
-                    // degildi: dograyan asci 0,90 m olctu, hedef 1,00.
-                    // Kontrolun adi "ayakta figur boyu" - o zaman
-                    // ayakta durmasi saglanmali.
+                    // The figure used to be measured in whatever pose IT HAD IN
+                    // THE SCENE, and once the kitchen work was added that pose
+                    // was no longer "standing": a cook chopping measured 0.90 m
+                    // against a target of 1.00. The check is called "standing
+                    // figure height" - so it has to be made to stand.
                     f.Sample(Figure.Pose.Idle, 0.4f);
-                    Bounds? b = PozKutusu(f.transform);
+                    Bounds? b = PosedBounds(f.transform);
                     if (b == null) continue;
                     Debug.Log(string.Format(
-                        "  DOGRULAMA ayakta figur boyu {0:0.00} m (ArtPrefabs hedefi"
-                        + " referans model icin " + ArtPrefabs.CharacterHeight.ToString("0.00")
-                        + ") - sapma buyukse olcum yanlis",
+                        "  VERIFICATION standing figure height {0:0.00} m (the ArtPrefabs target"
+                        + " for the reference model is " + ArtPrefabs.CharacterHeight.ToString("0.00")
+                        + ") - if the gap is large the measurement is wrong",
                         b.Value.size.y));
 
-                    // GOVDE GENISLIGI: sokakta iki yayanin arasindaki
-                    // en az mesafeyi (StreetLife.Personal) bu sayi
-                    // belirliyor.
+                    // BODY WIDTH: this number sets the minimum distance between
+                    // two pedestrians on the street (StreetLife.Personal).
                     //
-                    // Neden olculmesi gerekti: kullanici yayalarin
-                    // birbirinin icinden gectigini gordu ve cozum iki
-                    // yaya seridi ile itisme oldu - ikisi de bir MESAFE
-                    // istiyor. O mesafeyi tahmin etmek, ayni hatanin
-                    // ikinci kez yapilmasi olurdu.
+                    // Why it had to be measured: the user saw pedestrians
+                    // walking through one another, and the fix was two pedestrian
+                    // lanes plus shoving - both of which want a DISTANCE.
+                    // Guessing that distance would have been making the same
+                    // mistake a second time.
                     //
-                    // NEDEN SINIRLAYICI KUTU DEGIL: ilk yazim kutuyu
-                    // kullandi ve 0,60 x 1,14 m olctu - bir metre boyunda
-                    // bir figur icin sacma bir ayak izi. Kutu KOL
-                    // ACIKLIGINI olcuyor; bu paketin figurleri
-                    // boylarindan cok enleriyle buyuk (ayni tuzak oturma
-                    // olcumunde de yasandi, docs/35). Iki yayanin
-                    // "birbirinin icinden gectigi" ise kollarinin degil
-                    // GOVDELERININ ust uste binmesi: 34 derecelik bir
-                    // bakista salinan bir kol gorulmuyor, ic ice gecen
-                    // iki bacak goruluyor.
+                    // WHY NOT THE BOUNDING BOX: the first version used the box
+                    // and measured 0.60 x 1.14 m - an absurd footprint for a
+                    // figure a metre tall. The box measures the ARM SPAN; the
+                    // figures in this package are larger across than they are
+                    // tall (the same trap was hit in the sitting measurement,
+                    // docs/35). And two pedestrians "walking through each other"
+                    // is their BODIES overlapping, not their arms: at a 34 degree
+                    // view a swinging arm is not visible, two interpenetrating
+                    // legs are.
                     //
-                    // IKINCI OLCUM DE YANILDI: kalca hizasi (boyun
-                    // %18-%50) 1,08 m verdi, cunku bu oranlarda ELLER de
-                    // o hizada duruyor. Iki bant da "makul" bir
-                    // gerekceyle secilmisti ve ikisi de kol olcuyordu.
+                    // THE SECOND MEASUREMENT WAS ALSO WRONG: the hip band (18%
+                    // to 50% of the height) gave 1.08 m, because at those
+                    // proportions THE HANDS are at that height too. Both bands
+                    // had been chosen with a "reasonable" justification and both
+                    // were measuring arms.
                     //
-                    // Dogru bandi bulmanin tek yolu BUTUN PROFILI basmak
-                    // oldu; Profil() o yuzden kalici bir tani. Kullanilan
-                    // sayi kollar disinda en genis bant - bu figurlerde
-                    // BAS (0,67 m), omuzlardan (0,58) genis.
-                    YuruyusHizi(f);
+                    // The only way to find the right band was to print THE WHOLE
+                    // PROFILE; that is why Profile() is a permanent diagnostic.
+                    // The number used is the widest band excluding the arms - on
+                    // these figures that is THE HEAD (0.67 m), wider than the
+                    // shoulders (0.58).
+                    WalkSpeed(f);
                     f.Sample(Figure.Pose.Idle, 0.4f);
-                    b = PozKutusu(f.transform);
+                    b = PosedBounds(f.transform);
                     if (b == null) break;
 
-                    float govde = GovdeGenisligi(f.transform, b.Value);
+                    float body = BodyWidth(f.transform, b.Value);
                     Debug.Log(string.Format(
-                        "  GOVDE kollar disinda en genis bant {0:0.00} m"
-                        + " (kutu {1:0.00} x {2:0.00} - KOLLARLA)"
-                        + " | yaya en az mesafesi {3:0.00} | serit araligi {4:0.00}"
+                        "  BODY widest band excluding the arms {0:0.00} m"
+                        + " (box {1:0.00} x {2:0.00} - WITH THE ARMS)"
+                        + " | pedestrian minimum distance {3:0.00} | lane pitch {4:0.00}"
                         + " - {5}",
-                        govde, b.Value.size.x, b.Value.size.z,
+                        body, b.Value.size.x, b.Value.size.z,
                         StreetLife.Personal, Paths.LaneHalf * 2f,
-                        (StreetLife.Personal >= govde && Paths.LaneHalf * 2f >= govde)
-                            ? "mesafe yeterli"
-                            : "MESAFE KISA - Personal / LaneHalf buyutulmeli"));
+                        (StreetLife.Personal >= body && Paths.LaneHalf * 2f >= body)
+                            ? "the distance is enough"
+                            : "THE DISTANCE IS SHORT - Personal / LaneHalf must be raised"));
                     break;
                 }
             }
         }
 
         /// <summary>
-        /// KOLLAR DISINDA figurun en genis yatay bandi.
+        /// The figure's widest horizontal band EXCLUDING THE ARMS.
         ///
-        /// Iki yayanin ne kadar yakin gecebilecegi sorusunun cevabi bu.
-        /// Sinirlayici kutu kol acikligini olcuyor (1,14 m) ve el
-        /// hizasindaki bantlar da (1,08 m) - ikisi de yanlis. Kollar
-        /// govdenin alt yarisinda sarkiyor, o yuzden olcum GOVDENIN UST
-        /// YARISINA bakiyor: omuzlar, bas ve arasi. Bu paketin
-        /// oranlarinda en genis olan BAS (kafa govdenin ucte biri).
+        /// This is the answer to how close two pedestrians can pass. The
+        /// bounding box measures the arm span (1.14 m) and so do the bands at
+        /// hand height (1.08 m) - both are wrong. The arms hang down the lower
+        /// half of the body, so the measurement looks at THE UPPER HALF: the
+        /// shoulders, the head and what is between them. At this package's
+        /// proportions the widest of those is THE HEAD (the head is a third of
+        /// the body).
         ///
-        /// Pisirilmis mesh'in koseleri okunabiliyor; paketin kendi
-        /// mesh'i okunamaz (isReadable: 0) ve bu ayrimi bilmemek bu
-        /// projede bir kez bos bir olcume yol acti.
+        /// The vertices of a baked mesh can be read; the package's own mesh
+        /// cannot (isReadable: 0), and not knowing that distinction led to one
+        /// empty measurement on this project.
         /// </summary>
-        private static float GovdeGenisligi(Transform t, Bounds kutu)
+        private static float BodyWidth(Transform t, Bounds box)
         {
-            Profil(t, kutu);
+            Profile(t, box);
 
-            float enBuyuk = 0f;
-            int toplamKose = 0;
+            float widest = 0f;
+            int totalVertices = 0;
 
-            // Ust yarinin bantlari: %50'den %100'e, onda birer.
+            // The bands of the upper half: from 50% to 100%, a tenth at a time.
             for (int k = 5; k < 10; k++)
             {
-                float y0 = kutu.min.y + kutu.size.y * (k / 10f);
-                float y1 = kutu.min.y + kutu.size.y * ((k + 1) / 10f);
-                int sayi;
-                float g = BantCapi(t, y0, y1, out sayi);
-                toplamKose += sayi;
-                if (g > enBuyuk) enBuyuk = g;
+                float y0 = box.min.y + box.size.y * (k / 10f);
+                float y1 = box.min.y + box.size.y * ((k + 1) / 10f);
+                int count;
+                float g = BandDiameter(t, y0, y1, out count);
+                totalVertices += count;
+                if (g > widest) widest = g;
             }
 
-            // KOSE BULUNAMADI ise sifir dondurmuyoruz: sifir "govde yok"
-            // demek ve o, her esigi sessizce gecen bir sayi. Kutunun
-            // kendisi donuyor - guvenli tarafta, gorunur sekilde buyuk.
-            if (toplamKose < 8)
+            // IF NO VERTICES WERE FOUND we do not return zero: zero means "there
+            // is no body", and that is a number that passes every threshold
+            // silently. The box itself is returned - on the safe side, and
+            // visibly large.
+            if (totalVertices < 8)
             {
-                Debug.LogWarning("  GOVDE olcumu bos: " + toplamKose
-                                 + " kose bulundu, kutuya donuluyor");
-                return Mathf.Max(kutu.size.x, kutu.size.z);
+                Debug.LogWarning("  the BODY measurement is empty: " + totalVertices
+                                 + " vertices found, falling back to the box");
+                return Mathf.Max(box.size.x, box.size.z);
             }
-            return enBuyuk;
+            return widest;
         }
 
-        /// <summary>Bir y bandindaki en buyuk yatay cap.</summary>
-        private static float BantCapi(Transform t, float y0, float y1, out int sayi)
+        /// <summary>The largest horizontal diameter within one y band.</summary>
+        private static float BandDiameter(Transform t, float y0, float y1, out int count)
         {
             float xa = float.MaxValue, xb = float.MinValue;
             float za = float.MaxValue, zb = float.MinValue;
-            sayi = 0;
+            count = 0;
 
             foreach (SkinnedMeshRenderer smr in
                      t.GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -517,9 +526,9 @@ namespace Lokanta.EditorTools
                 Vector3[] v = baked.vertices;
                 Object.DestroyImmediate(baked);
 
-                // Olcek BakeMesh ciktisinin icinde (kemikler olcekli
-                // kokun altinda); yalnizca konum ve donme uygulaniyor -
-                // PozKutusu ayni gerekceyi tasiyor.
+                // The scale is already inside BakeMesh's output (the bones sit
+                // under the scaled root); only the position and the rotation are
+                // applied - PosedBounds carries the same justification.
                 Matrix4x4 m = Matrix4x4.TRS(smr.transform.position,
                                             smr.transform.rotation, Vector3.one);
                 for (int i = 0; i < v.Length; i++)
@@ -530,95 +539,95 @@ namespace Lokanta.EditorTools
                     if (p.x > xb) xb = p.x;
                     if (p.z < za) za = p.z;
                     if (p.z > zb) zb = p.z;
-                    sayi++;
+                    count++;
                 }
             }
-            return sayi == 0 ? 0f : Mathf.Max(xb - xa, zb - za);
+            return count == 0 ? 0f : Mathf.Max(xb - xa, zb - za);
         }
 
         /// <summary>
-        /// Figurun yukseklige gore YATAY PROFILI - tek satirlik bir tani
-        /// degil, on bant.
+        /// The figure's HORIZONTAL PROFILE against height - not a one-line
+        /// diagnostic but ten bands.
         ///
-        /// Neden kalici: bu figurlerin hangi hizada ne kadar genis
-        /// oldugunu tek bir sayi soylemiyor. Kutu 1,14 dedi (kol), kalca
-        /// bandi 1,08 dedi (el), omuz 0,58, bas 0,67. Bu dordu ancak yan
-        /// yana gorununce anlasildi ve yaya seridi araligi o profile
-        /// bakilarak secildi. Figur olcegi ya da paketi degisirse
-        /// bakilacak yer bu satirlar.
+        /// Why it is permanent: no single number says how wide these figures
+        /// are at which height. The box said 1.14 (the arms), the hip band said
+        /// 1.08 (the hands), the shoulders 0.58, the head 0.67. Those four only
+        /// made sense side by side, and the pedestrian lane pitch was chosen by
+        /// looking at that profile. If the figure scale or the package changes,
+        /// these lines are where to look.
         /// </summary>
-        private static void Profil(Transform t, Bounds kutu)
+        private static void Profile(Transform t, Bounds box)
         {
             for (int k = 0; k < 10; k++)
             {
-                float y0 = kutu.min.y + kutu.size.y * (k / 10f);
-                float y1 = kutu.min.y + kutu.size.y * ((k + 1) / 10f);
+                float y0 = box.min.y + box.size.y * (k / 10f);
+                float y1 = box.min.y + box.size.y * ((k + 1) / 10f);
                 int n;
-                float cap = BantCapi(t, y0, y1, out n);
+                float diameter = BandDiameter(t, y0, y1, out n);
                 Debug.Log(string.Format(
-                    "  PROFIL y {0:0.00}-{1:0.00} kose {2,4} | en genis cap {3:0.00} m",
-                    y0, y1, n, cap));
+                    "  PROFILE y {0:0.00}-{1:0.00} vertices {2,4} | widest diameter {3:0.00} m",
+                    y0, y1, n, diameter));
             }
         }
 
         /// <summary>
-        /// YURUYUS KLIBININ DOGAL HIZI (m/sn).
+        /// THE WALK CLIP'S NATURAL SPEED (m/s).
         ///
-        /// Neden olculmesi gerekti: figurun yer hizi (Walker.Speed x oyun
-        /// hizi) ile klibin oynatma hizi BIRBIRINE BAGLI DEGILDI -
-        /// Anim.speed hicbir yerde ayarlanmiyordu. Yani figur x4'te dort
-        /// kat hizli gidiyor ama bacaklar ayni tempoda: ayaklar yerde
-        /// kayiyor. Kullanicinin gordugu sey buydu.
+        /// Why it had to be measured: the figure's ground speed (Walker.Speed x
+        /// the game speed) and the clip's playback rate WERE NOT TIED TOGETHER -
+        /// Anim.speed was not set anywhere. So at x4 the figure moves four times
+        /// as fast while the legs keep the same tempo: the feet slide along the
+        /// floor. That is what the user was seeing.
         ///
-        /// Duzeltmek icin klibin KENDI hizi lazim ve o sayi hicbir yerde
-        /// yazmiyor (klip yerinde sayan bir dongu; kok hareketi yok).
-        /// Olcum:
+        /// To fix it you need the clip's OWN speed, and that number is written
+        /// nowhere (the clip is a loop marking time; there is no root motion).
+        /// The measurement:
         ///
-        ///   adim boyu = cevrim boyunca iki ayagin EN UZAK acilmasi
-        ///   bir cevrim = iki adim
-        ///   dogal hiz  = 2 x adim / klip suresi
+        ///   stride length = the WIDEST the two feet open across the cycle
+        ///   one cycle     = two steps
+        ///   natural speed = 2 x stride / clip length
         ///
-        /// Ayaklar KEMIKTEN degil MESH'ten bulunuyor: bu iskelette ayak
-        /// kemigi yok (bacak basina tek kemik + sonradan eklenen diz).
-        /// Her bacagin etkiledigi koseler arasindan EN ALCAK olani o
-        /// bacagin ayagi sayiliyor.
+        /// The feet are found FROM THE MESH, not from a bone: this skeleton has
+        /// no foot bone (one bone per leg plus a knee added later). Among the
+        /// vertices each leg influences, THE LOWEST one counts as that leg's
+        /// foot.
         /// </summary>
-        private static void YuruyusHizi(Figure f)
+        private static void WalkSpeed(Figure f)
         {
             if (f == null || f.Clips == null) return;
             int idx = (int)Figure.Pose.Walk;
             if (idx >= f.Clips.Length || f.Clips[idx] == null) return;
 
-            AnimationClip klip = f.Clips[idx];
-            float sure = klip.length;
-            if (sure <= 0.001f) return;
+            AnimationClip clip = f.Clips[idx];
+            float length = clip.length;
+            if (length <= 0.001f) return;
 
             SkinnedMeshRenderer smr = null;
             foreach (SkinnedMeshRenderer r in f.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 if (r.sharedMesh != null && r.sharedMesh.isReadable) { smr = r; break; }
             if (smr == null)
             {
-                Debug.Log("  YURUYUS olculemedi: okunabilir mesh yok");
+                Debug.Log("  WALK could not be measured: no readable mesh");
                 return;
             }
 
-            int sol = BoneIndex(smr.bones, "knee-left");
-            int sag = BoneIndex(smr.bones, "knee-right");
-            if (sol < 0) sol = BoneIndex(smr.bones, "leg-left");
-            if (sag < 0) sag = BoneIndex(smr.bones, "leg-right");
-            if (sol < 0 || sag < 0)
+            int left = BoneIndex(smr.bones, "knee-left");
+            int right = BoneIndex(smr.bones, "knee-right");
+            if (left < 0) left = BoneIndex(smr.bones, "leg-left");
+            if (right < 0) right = BoneIndex(smr.bones, "leg-right");
+            if (left < 0 || right < 0)
             {
-                Debug.Log("  YURUYUS olculemedi: bacak kemigi bulunamadi");
+                Debug.Log("  WALK could not be measured: no leg bone found");
                 return;
             }
 
             BoneWeight[] w = smr.sharedMesh.boneWeights;
-            const int Ornek = 24;
-            float enUzak = 0f;
+            const int Samples = 24;
+            float widest = 0f;
 
-            for (int i = 0; i < Ornek; i++)
+            for (int i = 0; i < Samples; i++)
             {
-                f.Sample(Figure.Pose.Walk, sure * i / Ornek);
+                f.Sample(Figure.Pose.Walk, length * i / Samples);
 
                 Mesh baked = new Mesh();
                 smr.BakeMesh(baked, false);
@@ -626,40 +635,40 @@ namespace Lokanta.EditorTools
                 Object.DestroyImmediate(baked);
                 if (v.Length != w.Length) return;
 
-                Vector3 aSol = Ayak(v, w, sol);
-                Vector3 aSag = Ayak(v, w, sag);
-                if (aSol == Vector3.zero || aSag == Vector3.zero) continue;
+                Vector3 footLeft = Foot(v, w, left);
+                Vector3 footRight = Foot(v, w, right);
+                if (footLeft == Vector3.zero || footRight == Vector3.zero) continue;
 
-                Vector3 d = aSol - aSag;
+                Vector3 d = footLeft - footRight;
                 d.y = 0f;
-                if (d.magnitude > enUzak) enUzak = d.magnitude;
+                if (d.magnitude > widest) widest = d.magnitude;
             }
 
             f.Sample(Figure.Pose.Idle, 0.4f);
 
-            if (enUzak <= 0.001f)
+            if (widest <= 0.001f)
             {
-                Debug.Log("  YURUYUS olculemedi: adim bulunamadi");
+                Debug.Log("  WALK could not be measured: no stride found");
                 return;
             }
 
-            float dogal = 2f * enUzak / sure;
+            float natural = 2f * widest / length;
             Debug.Log(string.Format(
-                "  YURUYUS klip {0:0.00} sn | adim {1:0.000} m | DOGAL HIZ {2:0.00} m/sn"
+                "  WALK clip {0:0.00} s | stride {1:0.000} m | NATURAL SPEED {2:0.00} m/s"
                 + " | Figure.WalkClipSpeed {3:0.00} - {4}",
-                sure, enUzak, dogal, Figure.WalkClipSpeed,
-                Mathf.Abs(dogal - Figure.WalkClipSpeed) < 0.12f
-                    ? "uyumlu" : "SAPMA VAR - WalkClipSpeed guncellenmeli"));
+                length, widest, natural, Figure.WalkClipSpeed,
+                Mathf.Abs(natural - Figure.WalkClipSpeed) < 0.12f
+                    ? "in step" : "THEY HAVE DRIFTED - WalkClipSpeed must be updated"));
         }
 
-        /// <summary>Bir bacagin etkiledigi koseler arasinda EN ALCAK olan.</summary>
-        private static Vector3 Ayak(Vector3[] v, BoneWeight[] w, int bone)
+        /// <summary>THE LOWEST of the vertices one leg influences.</summary>
+        private static Vector3 Foot(Vector3[] v, BoneWeight[] w, int bone)
         {
             Vector3 best = Vector3.zero;
             float low = float.MaxValue;
             for (int i = 0; i < v.Length; i++)
             {
-                if (!Etkiliyor(w[i], bone)) continue;
+                if (!Influences(w[i], bone)) continue;
                 if (v[i].y >= low) continue;
                 low = v[i].y;
                 best = v[i];
@@ -667,7 +676,7 @@ namespace Lokanta.EditorTools
             return best;
         }
 
-        private static bool Etkiliyor(BoneWeight b, int bone)
+        private static bool Influences(BoneWeight b, int bone)
         {
             return (b.boneIndex0 == bone && b.weight0 > 0.5f)
                 || (b.boneIndex1 == bone && b.weight1 > 0.5f)
@@ -675,21 +684,21 @@ namespace Lokanta.EditorTools
                 || (b.boneIndex3 == bone && b.weight3 > 0.5f);
         }
 
-        private static int BoneIndex(Transform[] bones, string ad)
+        private static int BoneIndex(Transform[] bones, string name)
         {
             for (int i = 0; i < bones.Length; i++)
-                if (bones[i] != null && bones[i].name == ad) return i;
+                if (bones[i] != null && bones[i].name == name) return i;
             return -1;
         }
 
-        private static string Kisa(string s)
+        private static string Short(string s)
         {
-            s = s.Replace("(Clone)", "").Replace("figur ", "");
+            s = s.Replace("(Clone)", "").Replace("figure ", "");
             return s.Length <= 34 ? s : s.Substring(0, 34);
         }
 
-        /// <summary>Iki kutunun her eksende ortusme miktari.</summary>
-        private static Vector3 Ortusme(Bounds a, Bounds b)
+        /// <summary>How much two boxes overlap on each axis.</summary>
+        private static Vector3 Overlap(Bounds a, Bounds b)
         {
             return new Vector3(
                 Mathf.Min(a.max.x, b.max.x) - Mathf.Max(a.min.x, b.min.x),
@@ -698,14 +707,13 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Nesnenin GERCEK POZDAKI dunya kutusu. Derili mesh'ler
-        /// pozlanip olculuyor, digerleri dogrudan.
+        /// The object's world box IN ITS REAL POSE. Skinned meshes are posed
+        /// and then measured, the rest are measured directly.
+        ///
+        /// FigureShot calls it FROM HERE too: writing a second copy has drifted
+        /// apart silently five times on this project.
         /// </summary>
-        /// <summary>
-        /// Pozlanmis sinir kutusu. FigureShot da BURADAN cagiriyor:
-        /// ikinci bir kopya yazmak, bu projede bes kez sessizce ayristi.
-        /// </summary>
-        internal static Bounds? PozKutusu(Transform t)
+        internal static Bounds? PosedBounds(Transform t)
         {
             Bounds? acc = null;
 
@@ -714,22 +722,22 @@ namespace Lokanta.EditorTools
             {
                 if (smr.sharedMesh == null || !smr.gameObject.activeInHierarchy) continue;
 
-                // OLCEK BIR KEZ. Bu iki kez yanlis yapildi:
+                // THE SCALE ONCE ONLY. This was got wrong twice:
                 //
-                //   1. useScale=true + localToWorldMatrix -> olcek iki kez
-                //   2. useScale=false + localToWorldMatrix -> YINE iki kez
+                //   1. useScale=true + localToWorldMatrix -> the scale twice
+                //   2. useScale=false + localToWorldMatrix -> STILL twice
                 //
-                // Sebep ikincisinde gorundu: BakeMesh mesh'i KEMIKLERE
-                // gore deforme ediyor ve kemikler zaten olcekli kokun
-                // altinda duruyor, yani ciktinin icinde olcek VAR.
-                // useScale bayragi yalnizca RENDERER'IN kendi olcegini
-                // ekliyor. Dogrusu: bayrak kapali ve donusumden olcek
-                // cikarilmis - yalnizca konum ve donme.
+                // The second one showed why: BakeMesh deforms the mesh against
+                // THE BONES, and the bones already sit under the scaled root, so
+                // the scale IS inside the output. The useScale flag only adds
+                // THE RENDERER'S own scale. The right way: the flag off and the
+                // scale taken out of the transform - position and rotation only.
                 //
-                // Bu araci yazma sebebi "yanlis seyi olcmek"ti ve arac
-                // kendisi iki kez tam onu yapti. Asagidaki DOGRULAMA
-                // satiri o yuzden var: olculen boy ArtPrefabs'taki
-                // hedefle karsilastiriliyor, tutmuyorsa sayilar cope.
+                // The reason this tool was written was "measuring the wrong
+                // thing", and the tool did exactly that to itself twice. That is
+                // why the VERIFICATION line below exists: the measured height is
+                // compared against the target in ArtPrefabs, and if they do not
+                // agree the numbers are rubbish.
                 Mesh baked = new Mesh();
                 smr.BakeMesh(baked, false);
                 Bounds lb = baked.bounds;
@@ -737,21 +745,21 @@ namespace Lokanta.EditorTools
 
                 Matrix4x4 m = Matrix4x4.TRS(smr.transform.position,
                                             smr.transform.rotation, Vector3.one);
-                acc = Birlestir(acc, Cevir(lb, m));
+                acc = Merge(acc, ToWorld(lb, m));
             }
 
             foreach (MeshRenderer mr in t.GetComponentsInChildren<MeshRenderer>(true))
             {
                 if (!mr.gameObject.activeInHierarchy) continue;
-                if (mr.name == "Rozet" || mr.transform.parent != null
-                    && mr.transform.parent.name == "Rozet") continue;
-                acc = Birlestir(acc, mr.bounds);
+                if (mr.name == "Badge" || mr.transform.parent != null
+                    && mr.transform.parent.name == "Badge") continue;
+                acc = Merge(acc, mr.bounds);
             }
 
             return acc;
         }
 
-        private static Bounds? Birlestir(Bounds? a, Bounds b)
+        private static Bounds? Merge(Bounds? a, Bounds b)
         {
             if (a == null) return b;
             Bounds x = a.Value;
@@ -759,7 +767,7 @@ namespace Lokanta.EditorTools
             return x;
         }
 
-        private static Bounds Cevir(Bounds b, Matrix4x4 m)
+        private static Bounds ToWorld(Bounds b, Matrix4x4 m)
         {
             Vector3 c = m.MultiplyPoint3x4(b.center);
             Vector3 e = b.extents;

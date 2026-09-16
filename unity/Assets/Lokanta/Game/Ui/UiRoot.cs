@@ -1,50 +1,51 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// Bir ekran. Kendi agacini kurar, kapatilinca temizlenir.
+    /// One screen. It builds its own tree and is cleaned up when closed.
     ///
-    /// Adi "UiScreen", "Screen" degil: UnityEngine.Screen zaten var ve
-    /// ayni ad iki tipi kapistirir - her dosyada hangisini kastettigimi
-    /// yazmak zorunda kalirdim.
+    /// It is called "UiScreen", not "Screen": UnityEngine.Screen already
+    /// exists and the same name would set two types against each other -
+    /// I would have to spell out which one I meant in every file.
     /// </summary>
     public abstract class UiScreen
     {
         public UiRoot Ui { get; internal set; }
         public GameApp App { get { return Ui.App; } }
 
-        /// <summary>Ekranin agacini kurar.</summary>
+        /// <summary>Builds the screen's tree.</summary>
         public abstract VisualElement Build();
 
-        /// <summary>Her karede cagriliyor; yalnizca EN USTTEKI ekran icin.</summary>
+        /// <summary>Called every frame; only for the TOPMOST screen.</summary>
         public virtual void Tick() { }
 
-        /// <summary>Geri tusu. false donerse ekran kapanmiyor.</summary>
+        /// <summary>The back key. Returning false keeps the screen open.</summary>
         public virtual bool OnBack() { return true; }
 
         /// <summary>
-        /// Ekran KAPANDI - nasil kapandigi fark etmeksizin.
+        /// The screen HAS CLOSED - no matter how it closed.
         ///
-        /// Geri tusu, dugme ya da yigin temizligi; uc yol da buradan
-        /// geciyor. Kuresel bir durumu degistiren bir ekran (duraklatma
-        /// gibi) onu burada geri veriyor. Yalnizca OnBack'e guvenmek
-        /// yetmiyordu: "Devam" dugmesi dogrudan Pop cagiriyor ve
-        /// duraklatma geri alinmiyordu.
+        /// The back key, a button, or the stack being cleared; all three
+        /// routes come through here. A screen that changes a global state
+        /// (pausing, for instance) gives it back here. Trusting OnBack
+        /// alone was not enough: the "Continue" button calls Pop directly
+        /// and the pause was never lifted.
         /// </summary>
         public virtual void OnClosed() { }
     }
 
     /// <summary>
-    /// Ekran yigini. Menu -> mutfak secimi -> yuva -> oyun seklinde
-    /// ust uste biniyor, geri tusu en ustekini kapatiyor.
+    /// The screen stack. Menu -> cuisine choice -> save slot -> game,
+    /// stacked one on top of another, with the back key closing the
+    /// topmost one.
     ///
-    /// Yigin olmasinin sebebi Android: donanim geri tusu her ekranda
-    /// calismali ve "geri" her zaman BIR ONCEKI ekran olmali. Ekranlar
-    /// arasi elle gecis yazan bir yapida bu her seferinde yeniden
-    /// dusunulmesi gereken bir sey oluyor.
+    /// The reason it is a stack is Android: the hardware back key has to
+    /// work on every screen and "back" always has to be THE PREVIOUS
+    /// screen. In a design that writes out each transition by hand, that
+    /// becomes something to be thought through again every single time.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class UiRoot : MonoBehaviour
@@ -52,36 +53,39 @@ namespace Lokanta.Game.Ui
         public GameApp App;
 
         /// <summary>
-        /// Butun arayuzun yazi tipi (Rubik, SIL OFL 1.1).
+        /// The font for the whole interface (Rubik, SIL OFL 1.1).
         ///
-        /// ACIKCA baglaniyor, temaya birakilmiyor. Unity'nin varsayilan
-        /// calisma zamani temasi EDITORDE calisiyor ama YAPIDA yazi tipini
-        /// cozemedi: ilk masaustu yapisinda dugmeler ciziliyor, uzerlerinde
-        /// hicbir yazi gorunmuyordu. Kok ogeye yazi tipi vermek butun
-        /// agaca miras kaliyor ve temadan bagimsiz.
+        /// Bound EXPLICITLY, not left to the theme. Unity's default
+        /// runtime theme works IN THE EDITOR but could not resolve the
+        /// font IN A BUILD: in the first desktop build the buttons were
+        /// drawn with no text on them at all. Giving the font to the root
+        /// element inherits down the whole tree and does not depend on
+        /// the theme.
         /// </summary>
         public Font Font;
 
         /// <summary>
-        /// CJK yazi tipi (Noto Sans SC, SIL OFL 1.1).
+        /// The CJK font (Noto Sans SC, SIL OFL 1.1).
         ///
-        /// Rubik Latin, Kiril, Ibrani ve ARAPCA tasiyor - ama CJK
-        /// tasimiyor. Cince tablosunda 765 karakteri karsilamadi
-        /// (tools/art/check_font.py bunu olcuyor). Ikinci bir yazi tipi
-        /// ALT KUME olarak eklendi: 10,5 MB'lik fonttan, oyunun gercekten
-        /// kullandigi 827 karakter -> 227 KB.
+        /// Rubik carries Latin, Cyrillic, Hebrew and ARABIC - but not
+        /// CJK. It failed to cover 765 characters of the Chinese table
+        /// (tools/art/check_font.py measures this). A second font was
+        /// added as a SUBSET: from a 10.5 MB font down to the 827
+        /// characters the game actually uses -> 227 KB.
         ///
-        /// Dil Cince oldugunda BUTUN agac bununla ciziliyor; alt kume
-        /// bu yuzden Latin harfleri, rakamlari ve para simgesini de
-        /// tasiyor - yoksa Cince ekranda "12 ¤" bos kutu olurdu.
+        /// When the language is Chinese the WHOLE tree is drawn with it,
+        /// which is why the subset also carries the Latin letters, the
+        /// digits and the currency glyph - otherwise "12 ¤" would be an
+        /// empty box on the Chinese screen.
         /// </summary>
         public Font FontCJK;
 
         /// <summary>
-        /// Su anki dilin yazi tipi.
+        /// The font for the current language.
         ///
-        /// KARAR DILDE, EKRANDA DEGIL: her ekranin ayri ayri "ben Cince
-        /// miyim" diye sormasi, bir ekranin unutulmasi demekti.
+        /// THE DECISION LIVES IN THE LANGUAGE, NOT IN THE SCREEN: having
+        /// each screen ask "am I Chinese" separately meant one screen
+        /// would be forgotten.
         /// </summary>
         public Font FontForLanguage
         {
@@ -93,13 +97,14 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Kok ogeyi su anki dile gore kuruyor: yazi tipi, yazi yonu
-        /// ve metin ureticisi.
+        /// Sets the root element up for the current language: font, text
+        /// direction and text generator.
         ///
-        /// Dil degisince cagriliyor. Kok ogeye vermek butun agaca miras
-        /// kaliyor - ekranlar tek tek dokunmuyor. Ucu de KOKTE duruyor
-        /// cunku ucu de dilin ozelligi; birini ekranda birakmak, o
-        /// ekranin unutulmasi demek.
+        /// Called when the language changes. Giving it to the root element
+        /// inherits down the whole tree - the screens do not touch it one
+        /// by one. All three live AT THE ROOT because all three are
+        /// properties of the language; leaving one of them to a screen
+        /// means that screen gets forgotten.
         /// </summary>
         public void ApplyLanguage()
         {
@@ -109,17 +114,20 @@ namespace Lokanta.Game.Ui
             if (f != null)
                 _root.style.unityFontDefinition = FontDefinition.FromFont(f);
 
-            // YAZI YONU ve METIN URETICISI.
+            // TEXT DIRECTION and TEXT GENERATOR.
             //
-            // Arapca harfleri BIRLESIR: ayni harf sozcugun basinda,
-            // ortasinda ve sonunda baska bir sekil alir. Olcunlu uretici
-            // harfleri tek tek ve soldan saga diziyor - cikan sey Arapca
-            // degil, Arap harflerinden bir liste.
+            // Arabic letters JOIN UP: the same letter takes a different
+            // shape at the start, in the middle and at the end of a word.
+            // The standard generator lays the letters out one by one and
+            // left to right - what comes out is not Arabic, it is a list
+            // of Arabic letters.
             //
-            // Gelismis uretici (ATG) birlestirmeyi, iki yonlu siralamayi
-            // ve satir sonunu yapiyor. Ama YALNIZCA ARAPCA'DA aciliyor:
-            // dort dil olcunlu ureticiyle calisiyor ve olculdu. Calisan
-            // dordunu, besincisi icin riske atmanin bir karsiligi yok.
+            // The advanced generator (ATG) does the joining, the
+            // bidirectional ordering and the line breaking. But it is
+            // turned on FOR ARABIC ONLY: four languages work with the
+            // standard generator and have been measured doing so. There is
+            // nothing to be gained from risking the four that work for the
+            // sake of the fifth.
             bool rtl = Loc.IsRightToLeft;
             _root.style.unityTextGenerator = rtl
                 ? TextGeneratorType.Advanced
@@ -136,7 +144,7 @@ namespace Lokanta.Game.Ui
         public UiScreen Top { get { return _stack.Count > 0 ? _stack[_stack.Count - 1] : null; } }
 
 
-        /// <summary>En ustteki ekranin agaci. Yalnizca bu gorunur ve tiklanir.</summary>
+        /// <summary>The topmost screen's tree. Only this one is visible and clickable.</summary>
         public VisualElement TopView
         {
             get { return _views.Count > 0 ? _views[_views.Count - 1] : null; }
@@ -151,7 +159,7 @@ namespace Lokanta.Game.Ui
             _root.style.backgroundColor = Color.clear;
 
             if (FontForLanguage == null)
-                Debug.LogWarning("Arayuz yazi tipi baglanmadi; metinler gorunmeyebilir.");
+                Debug.LogWarning("No interface font bound; text may not appear.");
             ApplyLanguage();
 
             ApplySafeArea();
@@ -161,17 +169,18 @@ namespace Lokanta.Game.Ui
         private Rect _safe;
 
         /// <summary>
-        /// Cihazin GUVENLI ALANINI kok ogeye dolgu olarak uygular.
+        /// Applies the device's SAFE AREA to the root element as padding.
         ///
-        /// Yatay tutusta centik ya da kamera deligi SOL veya SAG kenarda
-        /// oluyor ve tipik olarak 30-45 dp iceri giriyor. Su anki yerlesimde
-        /// gun/kasa sol basta, menu dugmesi sag basta - ucu de centigin
-        /// altinda kalirdi. Menu dugmesinin kaybolmasi, oyuncunun oyundan
-        /// cikamamasi demek.
+        /// Held in landscape, the notch or camera cut-out is on the LEFT or
+        /// RIGHT edge and typically eats 30-45 dp inwards. In the current
+        /// layout the day and till sit at the far left and the menu button
+        /// at the far right - all three would end up under the notch.
+        /// Losing the menu button means the player cannot get out of the
+        /// game.
         ///
-        /// Donusum: guvenli alan FIZIKSEL pikselde, panel ise kendi
-        /// biriminde olcuyor. Oran, kokun olculen genisliginin ekran
-        /// genisligine bolumu.
+        /// The conversion: the safe area is measured in PHYSICAL pixels,
+        /// the panel in its own units. The ratio is the root's resolved
+        /// width divided by the screen width.
         /// </summary>
         private void ApplySafeArea()
         {
@@ -180,7 +189,7 @@ namespace Lokanta.Game.Ui
             if (Screen.width <= 0 || Screen.height <= 0) return;
 
             float w = _root.resolvedStyle.width;
-            if (w <= 1f) return;                       // henuz duzenlenmedi
+            if (w <= 1f) return;                       // not laid out yet
 
             _safe = safe;
             float k = w / Screen.width;
@@ -195,7 +204,7 @@ namespace Lokanta.Game.Ui
         {
             Top?.Tick();
 
-            // Android geri tusu ve masaustunde Esc.
+            // The Android back key, and Esc on the desktop.
             if (BackPressed() && _stack.Count > 0)
             {
                 if (Top.OnBack()) Pop();
@@ -203,29 +212,31 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Bu ekran noktasinda tiklanabilir bir arayuz ogesi var mi.
+        /// Is there a clickable interface element at this screen point.
         ///
-        /// Kamera bunu soruyor: eylem cubugundaki bir dugmeye basmak,
-        /// arkadaki odayi da secip kamerayi oraya ucuruyordu.
+        /// The camera asks this: pressing a button on the action bar was
+        /// also selecting the room behind it and flying the camera over
+        /// there.
         ///
-        /// Panelin kendi SECICISI kullaniliyor (Pick), kendi yazdigimiz
-        /// bir dikdortgen hesabi degil: cubuklarin yuksekligi icerige gore
-        /// degisiyor ve elle yazilan bir sinir kaciniIlmaz olarak
-        /// ayrisirdi.
+        /// The panel's own PICKER is used (Pick), not a rectangle
+        /// calculation of our own: the bars' heights change with their
+        /// content and a hand-written boundary would inevitably drift
+        /// apart from them.
         /// </summary>
         public bool BlocksPoint(Vector2 screenPoint)
         {
             if (_root == null || _root.panel == null) return false;
 
-            // Panelin y ekseni ekranin TERSI yonunde.
+            // The panel's y axis runs the OPPOSITE way to the screen's.
             Vector2 flipped = new Vector2(screenPoint.x, Screen.height - screenPoint.y);
             Vector2 local = RuntimePanelUtils.ScreenToPanel(_root.panel, flipped);
 
             VisualElement hit = _root.panel.Pick(local);
             if (hit == null) return false;
 
-            // Kok ogenin kendisi saydam ve butun ekrani kapliyor; onu
-            // engel saymak, salona hic dokunulamamasi demek olurdu.
+            // The root element itself is transparent and covers the whole
+            // screen; counting it as a blocker would mean the hall could
+            // never be touched at all.
             return hit != _root;
         }
 
@@ -242,16 +253,17 @@ namespace Lokanta.Game.Ui
         // ---------------------------------------------------------------------
         public void Push(UiScreen s)
         {
-            // Alttaki ekran GIZLENIYOR, sadece ustu ortulmuyor.
+            // The screen underneath is HIDDEN, not merely covered over.
             //
-            // Once yalnizca ustune yeni bir ekran ekleniyordu; eski agac
-            // yerinde kaliyor, dugmeleri hala secilebiliyordu. Kendi kendine
-            // gezen tur tam bu yuzden yanlis dugmeye bastı (alttaki mutfak
-            // ekranindaki "Basla"ya). Oyuncuda da klavye/oyun kolu gezinmesi
-            // gorunmeyen bir dugmeye dusebilirdi.
+            // At first a new screen was only added on top; the old tree
+            // stayed where it was and its buttons were still pickable. That
+            // is exactly why the self-driving tour pressed the wrong button
+            // (the "Start" on the cuisine screen underneath). For a player,
+            // keyboard/gamepad navigation could land on an invisible button
+            // in the same way.
             //
-            // Yan faydasi mobilde olcum: gizli bir agac duzenlenmiyor ve
-            // cizilmiyor.
+            // The side benefit is measurable on mobile: a hidden tree is
+            // neither laid out nor drawn.
             if (_views.Count > 0) _views[_views.Count - 1].style.display = DisplayStyle.None;
 
             s.Ui = this;
@@ -265,32 +277,32 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Acilan ekran icin giris hareketi: saydamlik 0 -> 1 ve
-        /// asagidan 12 px yukari.
+        /// The entrance motion for a screen being opened: opacity 0 -> 1
+        /// and 12 px upwards from below.
         ///
-        /// NEDEN ELLE, USS ILE DEGIL: bu projede stil sayfasi yok, butun
-        /// arayuz C# ile kuruluyor. UI Toolkit'in gecisleri IStyle
-        /// uzerinden de erisilebiliyor, yani UXML/USS olmadan da tam
-        /// olarak ayni sey yapilabiliyor.
+        /// WHY BY HAND AND NOT WITH USS: this project has no stylesheet,
+        /// the whole interface is built in C#. UI Toolkit's transitions
+        /// are reachable through IStyle as well, so exactly the same thing
+        /// can be done without UXML/USS.
         ///
-        /// YALNIZCA DONUSUM VE SAYDAMLIK. Unity'nin kendi belgesi
-        /// genislik/yukseklik gibi YERLESIM ozelliklerinin gecisinde
-        /// yerlesimin yeniden hesaplandigini ve kare hizinin dustugunu
-        /// soyluyor; translate/scale/opacity ise geometriyi yeniden
-        /// uretmiyor. Dusuk seviye bir telefonda tek onemli olan bu.
+        /// TRANSFORM AND OPACITY ONLY. Unity's own documentation says that
+        /// transitioning LAYOUT properties such as width/height makes the
+        /// layout be recalculated and drops the frame rate; translate,
+        /// scale and opacity do not regenerate the geometry. On a low-end
+        /// phone that is the only thing that matters.
         ///
-        /// SURELER 30 fps'e GORE. Bir kare 33 ms; 100 ms'lik bir gecis
-        /// uc kare demek ve pratikte gorulmuyor. Material'in olceginde
-        /// bir basamak yukari cikiliyor: giris 220 ms (yavaslayarak),
-        /// cikis 140 ms. Giris ve cikisin ayni egriyi kullanmamasi
-        /// kural - gelen sey yavaslayarak yerlesir, giden hizlanarak
-        /// cikar.
+        /// THE DURATIONS ARE SET AGAINST 30 fps. One frame is 33 ms; a
+        /// 100 ms transition is three frames and in practice is not seen.
+        /// We go one step up Material's scale: 220 ms in (decelerating),
+        /// 140 ms out. That the entrance and the exit do not share a curve
+        /// is a rule - what arrives settles by slowing down, what leaves
+        /// goes by speeding up.
         /// </summary>
         private static void Enter(VisualElement v)
         {
-            // usageHints ONCEDEN veriliyor: gecis basladiktan sonra
-            // verilirse Unity o kare icin butun alt agacin cizim
-            // verisini yeniden uretiyor.
+            // usageHints is given UP FRONT: given after the transition has
+            // started, Unity regenerates the draw data for the whole
+            // subtree on that frame.
             v.usageHints |= UsageHints.DynamicTransform;
 
             v.style.opacity = 0f;
@@ -317,26 +329,26 @@ namespace Lokanta.Game.Ui
             int i = _stack.Count - 1;
             _stack[i].OnClosed();
 
-            // KAPANAN EKRAN AGACTAN HEMEN CIKIYOR, gorsel olarak
-            // solarak gidiyor.
+            // THE CLOSING SCREEN LEAVES THE TREE IMMEDIATELY; what fades
+            // away is only what you see.
             //
-            // Kaldirmayi gecisin sonuna ERTELEMEK yanlis olurdu: ekran
-            // hala agacta oldugu surece dugmeleri secilebilir kalir ve
-            // tur bunun aynisini bir kez yasadi (alttaki ekranin
-            // dugmesine basildi). O yuzden asil oge cikiyor, yerine
-            // yalnizca solup yok olan bir KOPYA konmuyor - sade ve
-            // dogru olan, cikisi altttaki ekranin GIRISIYLE
-            // gostermek.
-            VisualElement giden = _views[i];
-            _root.Remove(giden);
+            // DEFERRING the removal to the end of the transition would be
+            // wrong: as long as the screen is still in the tree its buttons
+            // stay pickable, and the tour lived through exactly this once
+            // (a button on the screen underneath was pressed). So the real
+            // element leaves and no fading COPY is put in its place - the
+            // plain and honest thing is to show the exit through the
+            // ENTRANCE of the screen underneath.
+            VisualElement leaving = _views[i];
+            _root.Remove(leaving);
             _views.RemoveAt(i);
             _stack.RemoveAt(i);
 
             if (_views.Count > 0)
             {
-                VisualElement alt = _views[_views.Count - 1];
-                alt.style.display = DisplayStyle.Flex;
-                Enter(alt);
+                VisualElement below = _views[_views.Count - 1];
+                below.style.display = DisplayStyle.Flex;
+                Enter(below);
             }
         }
 
@@ -350,14 +362,14 @@ namespace Lokanta.Game.Ui
             v.style.display = DisplayStyle.Flex;
         }
 
-        /// <summary>Yigini bosaltip tek bir ekranla basliyor.</summary>
+        /// <summary>Empties the stack and starts again with a single screen.</summary>
         public void Replace(UiScreen s)
         {
             while (_stack.Count > 0) Pop();
             Push(s);
         }
 
-        /// <summary>Ustteki ekrani yeniden kurar. Veri degisince.</summary>
+        /// <summary>Rebuilds the top screen. For when the data changes.</summary>
         public void Refresh()
         {
             if (_stack.Count == 0) return;

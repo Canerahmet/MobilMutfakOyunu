@@ -4,234 +4,237 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// PROSEDUREL MODEL KURUCUSU: kutu, prizma, levha.
+    /// A PROCEDURAL MODEL BUILDER: boxes, prisms, slabs.
     ///
-    /// Neden var: sahnenin esyalari bugune kadar ya hazir prefablardan
-    /// ya da tek tek GameObject'lerden kuruluyordu. Ikisi de ayni
-    /// bedeli odetiyor - her parca ayri bir cizim cagrisi. Sokak
-    /// lambasi bunu bir kez cozdu (onbes kutu -> iki orgu); bu sinif
-    /// ayni cozumu butun esyalara aciyor.
+    /// Why it exists: until now the scene's furnishings were built either
+    /// from ready-made prefabs or from GameObjects one by one. Both cost
+    /// the same thing - one draw call per part. The street lamp solved
+    /// that once (fifteen boxes -> two meshes); this class opens the same
+    /// solution to every piece of furniture.
     ///
-    /// RENGE GORE GRUPLANIYOR. URP/Lit kose rengi okumuyor, yani tek
-    /// orguye birden fazla renk koymanin yolu yok. Kurucu parcalari
-    /// RENKLERINE gore ayri orgulere topluyor: uc renkli bir esya uc
-    /// cizim, onbes parcali bir esya degil.
+    /// GROUPED BY COLOUR. URP/Lit does not read vertex colour, so there is
+    /// no way of putting more than one colour into a single mesh. The
+    /// builder gathers the parts into separate meshes BY THEIR COLOUR: a
+    /// three-colour item is three draws, not a fifteen-part one.
     ///
-    /// Butun olculer YEREL: kurucunun kokune gore. Yerlestirme cagiran
-    /// tarafin isi.
+    /// Every measurement is LOCAL: relative to the builder's root. Placing
+    /// it is the caller's business.
     /// </summary>
     public sealed class Modeler
     {
-        private sealed class Parca
+        private sealed class Part
         {
             public readonly List<Vector3> V = new List<Vector3>();
             public readonly List<Vector3> N = new List<Vector3>();
             public readonly List<int> T = new List<int>();
         }
 
-        private readonly Dictionary<Color32, Parca> _renkler =
-            new Dictionary<Color32, Parca>();
+        private readonly Dictionary<Color32, Part> _parts =
+            new Dictionary<Color32, Part>();
 
-        private Parca Al(Color c)
+        private Part Get(Color c)
         {
             Color32 k = c;
-            Parca p;
-            if (!_renkler.TryGetValue(k, out p))
+            Part p;
+            if (!_parts.TryGetValue(k, out p))
             {
-                p = new Parca();
-                _renkler[k] = p;
+                p = new Part();
+                _parts[k] = p;
             }
             return p;
         }
 
         /// <summary>
-        /// PAH (chamfer) YARICAPI, metre. 0 = kapali, kutular keskin.
+        /// THE CHAMFER RADIUS, in metres. 0 = off, the boxes are sharp.
         ///
-        /// Kullanicinin cumlesi: "modeller cok keskin duruyor, biraz
-        /// daha yuvarlaksi koseleri olsa daha yumusak bir goruntu".
+        /// The user's sentence: "the models look very sharp, it would be a
+        /// softer picture if the corners were a bit more rounded".
         ///
-        /// Bu kamera mesafesinde pahin asil isi SILUETI degistirmek
-        /// degil - 3 cm'lik bir pah ekranda bir iki piksel. Isi, kenar
-        /// boyunca ISIGI KIRMAK: pah yuzeyi komsu iki yuzden farkli bir
-        /// aciyla duruyor, yani her kenarda ince bir acik (ya da koyu)
-        /// serit beliriyor. Duz golgelemeli bir sahnede yumusakligi
-        /// veren sey o serit.
+        /// At this camera distance the chamfer's real job is not to change
+        /// the SILHOUETTE - a 3 cm chamfer is a pixel or two on screen. Its
+        /// job is to BREAK THE LIGHT along the edge: the chamfer face sits at
+        /// a different angle from its two neighbours, so a thin light (or
+        /// dark) strip appears along every edge. In a flat-shaded scene that
+        /// strip is what gives the softness.
         ///
-        /// Modeler ornegi basina ayarlanabiliyor: bir cagiran kendi
-        /// esyasini keskin isterse 0 yaziyor.
+        /// It can be set per Modeler instance: a caller that wants its own
+        /// item sharp writes 0.
         /// </summary>
-        public float Pah = 0.055f;
+        public float Chamfer = 0.055f;
 
         /// <summary>
-        /// Pah, kutunun HER ekseninde o eksenin uzunluguna gore
-        /// kisitlaniyor: en ince eksende bile kutuyu yiyemesin.
-        /// 0,32 = eksenin en fazla %32'si (iki uctan %64).
+        /// The chamfer is limited on EVERY axis of the box by the length of
+        /// that axis: so that it cannot eat the box even on the thinnest one.
+        /// 0.32 = at most 32% of the axis (64% from the two ends).
         /// </summary>
-        private const float PahOran = 0.32f;
+        private const float ChamferRatio = 0.32f;
 
         /// <summary>
-        /// Pah icin bir eksenin "buyuk" sayildigi esik.
+        /// The threshold at which an axis counts as "big" for the chamfer.
         ///
-        /// KAPI EN INCE KENARA BAKMIYOR, KAC KENARIN BUYUK OLDUGUNA
-        /// BAKIYOR. Ilk yazisimda kosul "en ince kenar >= 5 cm" idi ve
-        /// oyunun EN GORUNUR parcasini eliyordu: masa tablasi
-        /// 0,80 x 0,04 x 0,80, yani en ince kenari 4 cm. Tabla, tezgah
-        /// ustu, sandalye oturagi, raf - hepsi yassi levha ve hepsi
-        /// eleniyordu. Olcum de bunu soyledi: butun sahnede ucgen
-        /// sayisi yalnizca %12 artti, cunku pah asil mobilyaya hic
-        /// deymemisti.
+        /// THE GATE DOES NOT LOOK AT THE THINNEST EDGE, IT LOOKS AT HOW MANY
+        /// EDGES ARE BIG. In the first version the condition was "the
+        /// thinnest edge >= 5 cm", and it ruled out the game's MOST VISIBLE
+        /// part: a table top is 0.80 x 0.04 x 0.80, that is, its thinnest
+        /// edge is 4 cm. The table top, the counter top, the chair seat, the
+        /// shelf - all of them flat slabs and all of them ruled out. The
+        /// measurement said the same: across the whole scene the triangle
+        /// count rose by only 12%, because the chamfer had never touched the
+        /// actual furniture.
         ///
-        /// Ince ekseni korumak zaten kapinin isi degil: pah HER eksende
-        /// o eksenin %22'siyle kisitli, yani 4 cm'lik bir tablada dikey
-        /// pah kendiliginden 0,9 cm'ye iniyor. Yatayda 3 cm, dikeyde
-        /// 0,9 cm - yassi bir levhanin dogru pahi tam olarak bu.
+        /// Protecting the thin axis is not the gate's job anyway: the chamfer
+        /// is limited on EVERY axis to 22% of that axis, so on a 4 cm top the
+        /// vertical chamfer comes down to 0.9 cm by itself. 3 cm across, 0.9
+        /// cm vertically - which is exactly the right chamfer for a flat
+        /// slab.
         ///
-        /// Iki buyuk kenar sarti, cubuk seklindeki parcalari (korkuluk
-        /// citasi, masa ayagi, direk) disarida birakiyor: tek uzun
-        /// ekseni var, pah gorunmez kalir ama 44 ucgene mal olurdu.
-        /// </summary>
-        private const float PahBuyukKenar = 0.10f;
+        /// The two-big-edges condition leaves rod-shaped parts out (a railing
+        /// baluster, a table leg, a post): they have one long axis, the
+        /// chamfer would stay invisible and cost 44 triangles.
+        private const float ChamferBigEdge = 0.10f;
 
-        /// <summary>Merkezi verilen eksen hizali kutu.</summary>
+        /// <summary>An axis-aligned box about the given centre.</summary>
         public Modeler Box(Vector3 center, Vector3 size, Color c)
         {
             return BoxAt(center, size, Quaternion.identity, c);
         }
 
-        /// <summary>Donmus kutu. Yaslanan levhalar ve egik parcalar icin.</summary>
+        /// <summary>A turned box. For leaning slabs and slanted parts.</summary>
         public Modeler BoxAt(Vector3 center, Vector3 size, Quaternion rot, Color c)
         {
-            Parca p = Al(c);
+            Part p = Get(c);
             Vector3 h = size * 0.5f;
             Matrix4x4 m = Matrix4x4.TRS(center, rot, Vector3.one);
 
-            int buyukKenar = (size.x >= PahBuyukKenar ? 1 : 0)
-                           + (size.y >= PahBuyukKenar ? 1 : 0)
-                           + (size.z >= PahBuyukKenar ? 1 : 0);
-            if (Pah > 0.0001f && buyukKenar >= 2)
+            int bigEdges = (size.x >= ChamferBigEdge ? 1 : 0)
+                           + (size.y >= ChamferBigEdge ? 1 : 0)
+                           + (size.z >= ChamferBigEdge ? 1 : 0);
+            if (Chamfer > 0.0001f && bigEdges >= 2)
             {
-                PahliKutu(p, m, h, new Vector3(
-                    Mathf.Min(Pah, size.x * PahOran),
-                    Mathf.Min(Pah, size.y * PahOran),
-                    Mathf.Min(Pah, size.z * PahOran)));
+                ChamferedBox(p, m, h, new Vector3(
+                    Mathf.Min(Chamfer, size.x * ChamferRatio),
+                    Mathf.Min(Chamfer, size.y * ChamferRatio),
+                    Mathf.Min(Chamfer, size.z * ChamferRatio)));
                 return this;
             }
 
-            // Alti yuz, her biri KENDI koseleriyle: duz golgeleme, keskin
-            // kenar. Paylasilan kose yumusak bir kutu verirdi ve oyunun
-            // butun modelleri az yuzeyli.
-            Yuz(p, m, new Vector3(-h.x, -h.y, h.z), new Vector3(h.x, -h.y, h.z),
+            // Six faces, each with ITS OWN corners: flat shading, sharp edges.
+            // Shared corners would give a soft box, and every model in the
+            // game is low-poly.
+            Face(p, m, new Vector3(-h.x, -h.y, h.z), new Vector3(h.x, -h.y, h.z),
                 new Vector3(h.x, h.y, h.z), new Vector3(-h.x, h.y, h.z));      // +Z
-            Yuz(p, m, new Vector3(h.x, -h.y, -h.z), new Vector3(-h.x, -h.y, -h.z),
+            Face(p, m, new Vector3(h.x, -h.y, -h.z), new Vector3(-h.x, -h.y, -h.z),
                 new Vector3(-h.x, h.y, -h.z), new Vector3(h.x, h.y, -h.z));    // -Z
-            Yuz(p, m, new Vector3(h.x, -h.y, h.z), new Vector3(h.x, -h.y, -h.z),
+            Face(p, m, new Vector3(h.x, -h.y, h.z), new Vector3(h.x, -h.y, -h.z),
                 new Vector3(h.x, h.y, -h.z), new Vector3(h.x, h.y, h.z));      // +X
-            Yuz(p, m, new Vector3(-h.x, -h.y, -h.z), new Vector3(-h.x, -h.y, h.z),
+            Face(p, m, new Vector3(-h.x, -h.y, -h.z), new Vector3(-h.x, -h.y, h.z),
                 new Vector3(-h.x, h.y, h.z), new Vector3(-h.x, h.y, -h.z));    // -X
-            Yuz(p, m, new Vector3(-h.x, h.y, h.z), new Vector3(h.x, h.y, h.z),
+            Face(p, m, new Vector3(-h.x, h.y, h.z), new Vector3(h.x, h.y, h.z),
                 new Vector3(h.x, h.y, -h.z), new Vector3(-h.x, h.y, -h.z));    // +Y
-            Yuz(p, m, new Vector3(-h.x, -h.y, -h.z), new Vector3(h.x, -h.y, -h.z),
+            Face(p, m, new Vector3(-h.x, -h.y, -h.z), new Vector3(h.x, -h.y, -h.z),
                 new Vector3(h.x, -h.y, h.z), new Vector3(-h.x, -h.y, h.z));    // -Y
             return this;
         }
 
         /// <summary>
-        /// PAHLI KUTU: 6 icerlek yuz + 12 kenar seridi + 8 kose ucgeni.
+        /// A CHAMFERED BOX: 6 inset faces + 12 edge strips + 8 corner
+        /// triangles.
         ///
-        /// 44 ucgen (keskin kutu 12). Bedel gercek, o yuzden kisit
-        /// cagiran tarafta degil BURADA: PahEnAzKalinlik.
+        /// 44 triangles (a sharp box is 12). The cost is real, so the limit
+        /// is not at the caller but HERE: ChamferBigEdge.
         ///
-        /// Her kosede uc nokta var - kutunun uc yuzune ait olanlar:
+        /// At every corner there are three points - the ones belonging to the
+        /// box's three faces:
         ///
-        ///     Nokta(..., eksen, ...) = o eksende KENARDA (h), oteki iki
-        ///     eksende ICERIDE (h - r) duran nokta.
+        ///     Point(..., axis, ...) = the point that is AT THE EDGE (h) on
+        ///     that axis and INSIDE (h - r) on the other two.
         ///
-        /// Yuzler o noktalarin dordunden, kenar seritleri iki komsu
-        /// yuzun ikiser noktasindan, kose ucgenleri bir kosenin uc
-        /// noktasindan kuruluyor.
+        /// The faces are built from four of those points, the edge strips
+        /// from two points each of two neighbouring faces, and the corner
+        /// triangles from the three points of one corner.
         ///
-        /// ON IKI KENAR TAM BIR KEZ: (eksen, s) yuzu yalnizca `c`
-        /// ekseninin iki yuzuyle eslestiriliyor. Uc eksen donunce
-        /// 3 x 2 x 2 = 12 kenarin hepsi bir kez geciyor ve hicbiri iki
-        /// kez gecmiyor.
+        /// TWELVE EDGES EXACTLY ONCE: the (axis, s) face is paired only with
+        /// the two faces of axis `c`. As the three axes come round, all
+        /// 3 x 2 x 2 = 12 edges are covered once and none of them twice.
         ///
-        /// SARIM YONU ELLE YAZILMIYOR, HESAPLANIYOR. Yirmi alti yuzeyin
-        /// sarimini elle dogru yazmak, bir tanesinin ters olup iceri
-        /// bakan bir yuzey uretmesi demekti - ve ters yuzey hicbir hata
-        /// vermeden GORUNMEZ oluyor. Sekil digbukey ve yerelde merkezi
-        /// baslangicta oldugu icin olcut basit: yuzeyin normali kendi
-        /// merkezinden DISARI bakmali; bakmiyorsa sira ters ceviriliyor.
+        /// THE WINDING IS NOT WRITTEN BY HAND, IT IS WORKED OUT. Writing the
+        /// winding of twenty-six surfaces correctly by hand meant one of them
+        /// coming out reversed and producing an inward-facing surface - and a
+        /// reversed surface becomes INVISIBLE without raising any error at
+        /// all. Because the shape is convex and its centre is at the local
+        /// origin, the test is simple: a surface's normal has to point AWAY
+        /// from its own centre; if it does not, the order is reversed.
         /// </summary>
-        private static void PahliKutu(Parca p, Matrix4x4 m, Vector3 h, Vector3 r)
+        private static void ChamferedBox(Part p, Matrix4x4 m, Vector3 h, Vector3 r)
         {
-            Vector3 ic = new Vector3(h.x - r.x, h.y - r.y, h.z - r.z);
+            Vector3 inner = new Vector3(h.x - r.x, h.y - r.y, h.z - r.z);
 
-            for (int eksen = 0; eksen < 3; eksen++)
+            for (int axis = 0; axis < 3; axis++)
             {
-                int b = (eksen + 1) % 3;
-                int c = (eksen + 2) % 3;
+                int b = (axis + 1) % 3;
+                int c = (axis + 2) % 3;
 
                 for (int s = -1; s <= 1; s += 2)
                 {
-                    DisariYuz(p, m,
-                        Nokta(h, ic, eksen, s, b, -1, c, -1),
-                        Nokta(h, ic, eksen, s, b, 1, c, -1),
-                        Nokta(h, ic, eksen, s, b, 1, c, 1),
-                        Nokta(h, ic, eksen, s, b, -1, c, 1));
+                    OutwardFace(p, m,
+                        Point(h, inner, axis, s, b, -1, c, -1),
+                        Point(h, inner, axis, s, b, 1, c, -1),
+                        Point(h, inner, axis, s, b, 1, c, 1),
+                        Point(h, inner, axis, s, b, -1, c, 1));
 
                     for (int sc = -1; sc <= 1; sc += 2)
-                        DisariYuz(p, m,
-                            Nokta(h, ic, eksen, s, b, -1, c, sc),
-                            Nokta(h, ic, eksen, s, b, 1, c, sc),
-                            Nokta(h, ic, c, sc, eksen, s, b, 1),
-                            Nokta(h, ic, c, sc, eksen, s, b, -1));
+                        OutwardFace(p, m,
+                            Point(h, inner, axis, s, b, -1, c, sc),
+                            Point(h, inner, axis, s, b, 1, c, sc),
+                            Point(h, inner, c, sc, axis, s, b, 1),
+                            Point(h, inner, c, sc, axis, s, b, -1));
                 }
             }
 
             for (int sx = -1; sx <= 1; sx += 2)
                 for (int sy = -1; sy <= 1; sy += 2)
                     for (int sz = -1; sz <= 1; sz += 2)
-                        DisariUcgen(p, m,
-                            new Vector3(sx * h.x, sy * ic.y, sz * ic.z),
-                            new Vector3(sx * ic.x, sy * h.y, sz * ic.z),
-                            new Vector3(sx * ic.x, sy * ic.y, sz * h.z));
+                        OutwardTriangle(p, m,
+                            new Vector3(sx * h.x, sy * inner.y, sz * inner.z),
+                            new Vector3(sx * inner.x, sy * h.y, sz * inner.z),
+                            new Vector3(sx * inner.x, sy * inner.y, sz * h.z));
         }
 
         /// <summary>
-        /// Pahli kutunun kose noktasi: <paramref name="eksen"/> ekseninde
-        /// kenarda (h), oteki iki eksende iceride (h - r).
+        /// A corner point of the chamfered box: at the edge (h) on the
+        /// <paramref name="axis"/> axis, inside (h - r) on the other two.
         /// </summary>
-        private static Vector3 Nokta(Vector3 h, Vector3 ic,
-                                     int eksen, int sEksen,
+        private static Vector3 Point(Vector3 h, Vector3 inner,
+                                     int axis, int sAxis,
                                      int b, int sb, int c, int sc)
         {
             Vector3 v = Vector3.zero;
-            v[eksen] = sEksen * h[eksen];
-            v[b] = sb * ic[b];
-            v[c] = sc * ic[c];
+            v[axis] = sAxis * h[axis];
+            v[b] = sb * inner[b];
+            v[c] = sc * inner[c];
             return v;
         }
 
-        /// <summary>Sarimi DISARI bakacak sekilde duzelterek dortgen ekler.</summary>
-        private static void DisariYuz(Parca p, Matrix4x4 m,
+        /// <summary>Adds a quad, fixing the winding so that it faces OUTWARDS.</summary>
+        private static void OutwardFace(Part p, Matrix4x4 m,
                                       Vector3 a, Vector3 b, Vector3 c, Vector3 d)
         {
             Vector3 n = Vector3.Cross(b - a, c - a);
-            Vector3 merkez = (a + b + c + d) * 0.25f;
-            if (Vector3.Dot(n, merkez) < 0f) Yuz(p, m, d, c, b, a);
-            else Yuz(p, m, a, b, c, d);
+            Vector3 center = (a + b + c + d) * 0.25f;
+            if (Vector3.Dot(n, center) < 0f) Face(p, m, d, c, b, a);
+            else Face(p, m, a, b, c, d);
         }
 
-        /// <summary>Sarimi DISARI bakacak sekilde duzelterek ucgen ekler.</summary>
-        private static void DisariUcgen(Parca p, Matrix4x4 m,
+        /// <summary>Adds a triangle, fixing the winding so that it faces OUTWARDS.</summary>
+        private static void OutwardTriangle(Part p, Matrix4x4 m,
                                         Vector3 a, Vector3 b, Vector3 c)
         {
             Vector3 n = Vector3.Cross(b - a, c - a);
-            if (Vector3.Dot(n, (a + b + c) / 3f) < 0f) Ucgen(p, m, c, b, a);
-            else Ucgen(p, m, a, b, c);
+            if (Vector3.Dot(n, (a + b + c) / 3f) < 0f) Triangle(p, m, c, b, a);
+            else Triangle(p, m, a, b, c);
         }
 
-        private static void Ucgen(Parca p, Matrix4x4 m, Vector3 a, Vector3 b, Vector3 c)
+        private static void Triangle(Part p, Matrix4x4 m, Vector3 a, Vector3 b, Vector3 c)
         {
             int i = p.V.Count;
             Vector3 pa = m.MultiplyPoint3x4(a);
@@ -243,7 +246,7 @@ namespace Lokanta.Game
             p.T.Add(i); p.T.Add(i + 2); p.T.Add(i + 1);
         }
 
-        private static void Yuz(Parca p, Matrix4x4 m,
+        private static void Face(Part p, Matrix4x4 m,
                                 Vector3 a, Vector3 b, Vector3 c, Vector3 d)
         {
             int i = p.V.Count;
@@ -259,15 +262,15 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Cok kenarli prizma; tabani verilen noktada, +Y yonunde.
+        /// A many-sided prism; its base at the given point, running along +Y.
         ///
-        /// Sekiz kenar sutun ve abajur icin, alti kenar saksi icin,
-        /// dort kenar ise dondurulmus bir kutu demek.
+        /// Eight sides for a column and a lampshade, six for a plant pot; and
+        /// four sides means a turned box.
         /// </summary>
         public Modeler Prism(int sides, float rBottom, float rTop, float height,
                              Vector3 at, Quaternion rot, Color c, bool caps = true)
         {
-            Parca p = Al(c);
+            Part p = Get(c);
             Matrix4x4 m = Matrix4x4.TRS(at, rot, Vector3.one);
 
             for (int i = 0; i < sides; i++)
@@ -292,17 +295,17 @@ namespace Lokanta.Game
             }
 
             if (!caps) return this;
-            Kapak(p, m, sides, rTop, height, true);
-            Kapak(p, m, sides, rBottom, 0f, false);
+            Cap(p, m, sides, rTop, height, true);
+            Cap(p, m, sides, rBottom, 0f, false);
             return this;
         }
 
-        private static void Kapak(Parca p, Matrix4x4 m, int sides, float r,
-                                  float y, bool ust)
+        private static void Cap(Part p, Matrix4x4 m, int sides, float r,
+                                  float y, bool top)
         {
             if (r <= 0.0001f) return;
             int b = p.V.Count;
-            Vector3 n = m.MultiplyVector(ust ? Vector3.up : Vector3.down);
+            Vector3 n = m.MultiplyVector(top ? Vector3.up : Vector3.down);
             for (int i = 0; i < sides; i++)
             {
                 float a = Mathf.PI * 2f * i / sides;
@@ -312,30 +315,31 @@ namespace Lokanta.Game
             }
             for (int i = 1; i < sides - 1; i++)
             {
-                if (ust) { p.T.Add(b); p.T.Add(b + i); p.T.Add(b + i + 1); }
+                if (top) { p.T.Add(b); p.T.Add(b + i); p.T.Add(b + i + 1); }
                 else { p.T.Add(b); p.T.Add(b + i + 1); p.T.Add(b + i); }
             }
         }
 
         /// <summary>
-        /// Orguleri kuruyor ve sahneye asiyor. Renk basina bir cizim.
+        /// Builds the meshes and hangs them in the scene. One draw per
+        /// colour.
         ///
-        /// ISIKLI PARCA DALI KALDIRILDI. `glowMat`/`glowColor`
-        /// parametreleri vardi ama hicbir cagri dort argumandan
-        /// fazlasini vermiyordu: isikli parcalar (tabela, neon) ayri
-        /// bir Modeler ornegiyle ve ayri malzemeyle kuruluyor
-        /// (_decorGlow). Olu dal yaniltiyordu - "isikli parca ayri
-        /// malzeme alir" diye okunuyor, gercekte hic calismiyordu.
+        /// THE GLOWING-PART BRANCH WAS REMOVED. There were `glowMat` /
+        /// `glowColor` parameters, but no call ever passed more than four
+        /// arguments: the glowing parts (the sign, the neon) are built with a
+        /// separate Modeler instance and a separate material (_decorGlow).
+        /// The dead branch was misleading - it read as "a glowing part gets a
+        /// separate material", when in fact it never ran.
         /// </summary>
         public GameObject Build(Transform parent, string name, Material mat,
                                 MaterialPropertyBlock block)
         {
-            GameObject kok = new GameObject(name);
-            kok.transform.SetParent(parent, false);
+            GameObject root = new GameObject(name);
+            root.transform.SetParent(parent, false);
 
-            foreach (KeyValuePair<Color32, Parca> kv in _renkler)
+            foreach (KeyValuePair<Color32, Part> kv in _parts)
             {
-                Parca p = kv.Value;
+                Part p = kv.Value;
                 if (p.V.Count == 0) continue;
 
                 Mesh mesh = new Mesh();
@@ -346,13 +350,13 @@ namespace Lokanta.Game
                 mesh.RecalculateBounds();
 
                 GameObject go = new GameObject(mesh.name);
-                go.transform.SetParent(kok.transform, false);
+                go.transform.SetParent(root.transform, false);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
 
-                // ORGU SAHIPLENILIYOR. Mesh bir UnityEngine.Object ve
-                // GameObject yok edilince PESINDEN GITMEZ; OwnedMesh
-                // onu nesnenin omruyle baglar. Ayrintili gerekce
-                // OwnedMesh.cs'te.
+                // THE MESH IS OWNED. A Mesh is a UnityEngine.Object and it DOES
+                // NOT FOLLOW the GameObject when that is destroyed; OwnedMesh
+                // ties it to the object's lifetime. The full reasoning is in
+                // OwnedMesh.cs.
                 go.AddComponent<OwnedMesh>().Mesh = mesh;
                 MeshRenderer r = go.AddComponent<MeshRenderer>();
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -363,7 +367,7 @@ namespace Lokanta.Game
                 block.SetColor(Shader.PropertyToID("_BaseColor"), (Color)kv.Key);
                 r.SetPropertyBlock(block);
             }
-            return kok;
+            return root;
         }
     }
 }

@@ -1,18 +1,19 @@
-# 44 — Mağaza metinleri ve gizlilik politikası
+# 44 — Store texts and the privacy policy
 
-*13 Eylül 2026.* [docs/21](21-business-and-release.md) yayın denetiminin 8. maddesi
-"kısa açıklama, tam açıklama, öne çıkan görsel ve ekran görüntüleri yok" diyordu.
-Bu belge **metin** tarafını kapatıyor; görsel tarafın otomatikleşen kısmı da
-aşağıda.
+*13 September 2026.* Item 8 of [docs/21](21-business-and-release.md)'s release
+audit said "there is no short description, no full description, no feature
+graphic and no screenshots". This document closes the **text** side; the part of
+the graphics side that can be automated is below too.
 
-Metinler **taslak**: ad kararı ([docs/25](25-game-name.md)) ve marka taraması
-kesinleşmeden mağazaya girmemeli, çünkü ad metinlerin içinde geçiyor.
+The texts are a **draft**: they must not go into the store before the name
+decision ([docs/25](25-game-name.md)) and the trademark search are settled,
+because the name appears inside the texts.
 
 ---
 
-## 1. Kısa açıklama (≤80 karakter)
+## 1. Short description (≤80 characters)
 
-| dil | metin | karakter |
+| language | text | characters |
 |---|---|---:|
 | TR | Patronsun, aşçı değil. Altmış günde bir lokantayı ayakta tut. | 61 |
 | EN | You're the owner, not the cook. Keep a restaurant alive for 60 days. | 68 |
@@ -20,15 +21,17 @@ kesinleşmeden mağazaya girmemeli, çünkü ad metinlerin içinde geçiyor.
 | ZH | 你是老板，不是厨子。让一家馆子撑过六十天。 | 21 |
 | AR | أنت صاحب المطعم لا الطاهي. أبقِ المطعم صامدًا ستين يومًا. | 57 |
 
-Kısa açıklama arama sonucunda başlığın altında görünüyor ve **tek işi** oyunun
-ne olduğunu söylemek. "Patronsun, aşçı değil" cümlesi zaten oyunun ana menüsünde
-duruyor ([docs/02](02-design-proposal.md)'nin temel ayrımı): bu bir yemek
-yapma oyunu değil, bir **yönetim** oyunu. Mağazada bu ayrımın ilk satırda
-olması gerekiyor, çünkü yanlış beklentiyle indiren oyuncu kötü yorum bırakıyor.
+The short description appears under the title in search results and its **only
+job** is to say what the game is. The sentence "Patronsun, aşçı değil" ("You're
+the owner, not the cook") already sits in the game's main menu (the fundamental
+distinction of [docs/02](02-design-proposal.md)): this is not a cooking game, it
+is a **management** game. That distinction has to be on the first line in the
+store, because a player who installs it with the wrong expectation leaves a bad
+review.
 
 ---
 
-## 2. Tam açıklama (≤4000 karakter)
+## 2. Full description (≤4000 characters)
 
 ### Türkçe
 
@@ -225,27 +228,30 @@ En español, inglés, turco, chino y árabe.
 بالعربية والإنجليزية والتركية والإسبانية والصينية.
 ```
 
-**Müdahale cümlesi 14 Eylül'de güncellendi.** Üç yerden eskimişti: hak
-sayısı artık sabit dört değil masayla büyüyor, çay tek masaya değil salona
-gidiyor, ve ilgilenilen masanın salon işi yarıya iniyor — yani müdahale
-yalnızca krizi savuşturmakla kalmıyor, masa devir hızını da artırıyor
-(docs/45 §16). Metin ölçülene uydu, tersi değil.
+**The intervention sentence was updated on 14 September.** It had gone stale in
+three places: the number of interventions is no longer a fixed four but grows
+with the tables, the tea goes to the room rather than to a single table, and the
+attended table's hall work is halved — that is, an intervention no longer only
+averts a crisis, it also raises the table turnover rate (docs/45 §16). The text
+followed the measurement, not the other way round.
 
-**Neden bu yapı.** Play listesinde ilk üç satır kesilmeden görünüyor, gerisi
-"devamını oku" ardında. O yüzden ilk paragraf oyunun kendisini anlatıyor ve
-madde işaretleri **mekanikleri değil KARARLARI** sayıyor — bir yönetim oyununun
-satış noktası özellik listesi değil, oyuncunun vereceği kararlar.
+**Why this structure.** In the Play listing the first three lines are visible
+without being cut off, the rest is behind "read more". So the first paragraph
+describes the game itself and the bullet points list **DECISIONS, not
+mechanics** — the selling point of a management game is not a feature list but
+the decisions the player will make.
 
-"Reklam yok / veri toplanmıyor" satırı sonda ve kısa: doğrulanmış bir gerçek
-([docs/21](21-business-and-release.md) yayın denetimi) ve bu kategoride ayırt edici.
+The "no ads / no data collected" line is at the end and short: it is a verified
+fact ([docs/21](21-business-and-release.md)'s release audit) and it is a
+differentiator in this category.
 
 ---
 
-## 3. Gizlilik politikası
+## 3. The privacy policy
 
-Play, veri toplanmasa bile **her** uygulamadan bir URL istiyor. Metin kısa,
-çünkü söylenecek şey tek cümle. Kullanıcının barındırması gerekiyor (GitHub
-Pages yeterli).
+Play asks **every** app for a URL, even when no data is collected. The text is
+short, because there is one sentence to say. The user has to host it (GitHub
+Pages is enough).
 
 ```
 GİZLİLİK POLİTİKASI — Lokanta
@@ -335,79 +341,85 @@ Contacto: <dirección de correo>
 للتواصل: <عنوان البريد الإلكتروني>
 ```
 
-**Doğrulanmış.** Bu iddiaların hepsi [docs/21](21-business-and-release.md)'deki yayın
-denetiminde paketin **içinden** kontrol edildi: izin listesi boş, INTERNET yok,
-`UnityConnectSettings` kapalı, kodda ağ çağrısı yok. Yani Veri Güvenliği formu
-da aynı cevabı verecek.
+**Verified.** Every one of these claims was checked **from inside** the package
+in the release audit in [docs/21](21-business-and-release.md): the permission
+list is empty, there is no INTERNET, `UnityConnectSettings` is off, there is no
+network call in the code. So the Data Safety form will give the same answer.
 
-*Bir gizlilik politikası, doğruluğu ölçülmeden yazılırsa yasal bir risktir —
-burada ölçüldü.*
+*A privacy policy written without measuring whether it is true is a legal risk —
+here it was measured.*
 
 ---
 
-## 4. Ekran görüntüleri
+## 4. Screenshots
 
-Otomatik tur artık mağaza çözünürlüğünde de koşuyor:
+The automatic tour now runs at store resolution as well:
 
 ```
-.\tools\unity\tour.ps1 -Magaza
+.\tools\unity\tour.ps1 -Store
 ```
 
-Ne yapıyor: turu **2183×983** piksel penceresinde, `-lokanta-olcek 2.5` ile
-koşuyor. Bu, 873×393 dp'nin tam iki buçuk katı — yani **aynı arayüz yerleşimi**,
-farklı bir düzen değil. Oran da aynı (20:9), yani çerçeve telefonda görünenin
-birebir aynısı. Görüntüler `render/magaza/` altına kopyalanıyor.
+What it does: it runs the tour in a **2183×983** pixel window with
+`-lokanta-scale 2.5`. That is exactly two and a half times 873×393 dp — so it is
+**the same interface layout**, not a different one. The aspect ratio is the same
+too (20:9), so the frame is exactly what is seen on the phone. The images are
+copied under `render/store/`.
 
-Farklar ölçüm turundan:
+Differences from the measurement tour:
 
-| | ölçüm turu | mağaza turu |
+| | measurement tour | store tour |
 |---|---|---|
-| ölçek | 1 px = 1 dp (873×393) | 2,5 px = 1 dp (2183×983) |
-| ipuçları | **açık** (katılım katmanı da ölçülüyor) | **kapalı** (şerit salonun üstüne biniyordu) |
-| an | 1. gün, servis başı | **40. gün, günün ortası** |
+| scale | 1 px = 1 dp (873×393) | 2.5 px = 1 dp (2183×983) |
+| hints | **on** (the onboarding layer is measured too) | **off** (the strip was overlapping the hall) |
+| moment | day 1, start of service | **day 40, the middle of the day** |
 
-İpucu şeridi ölçüm turunda görünmeli — oyunun yeni oyuncuya gösterdiği hâli o.
-Mağazada ise listeye öğreticinin kendisi çıkıyordu.
+The hint strip has to be visible in the measurement tour — that is the game as it
+shows itself to a new player. In the store, though, what was going into the
+listing was the tutorial itself.
 
-**Anın seçimi önemliydi.** İlk hâli 1. günü çekiyordu: dört masa, "Ciro 0",
-"Memnuniyet 0,0" ve çerçevenin yarısı boş gökyüzü — oyunu olduğundan küçük
-gösteriyordu. Üstelik tur o zaman **hiç genişlemiyordu**, yani mağaza için
-büyümüş bir restoran zaten yoktu.
+**The choice of moment mattered.** The first version captured day 1: four tables,
+"Ciro 0" ("Revenue 0"), "Memnuniyet 0,0" ("Satisfaction 0.0") and half the frame
+empty sky — it showed the game as smaller than it is. On top of that the tour
+**never expanded** back then, so there was no grown restaurant for the store in
+the first place.
 
-İkisi birden düzeldi: tur artık kampanya boyunca genişliyor (`Buyu()`, bir
-kademe ve ancak bedelin üç katı kasada varsa) ve görüntü kırkıncı günün
-ortasında alınıyor. Sonuç: **14 masa, 10'u dolu, Ciro 1.188, Memnuniyet 78,5,
-itibar 96,8/100.** Hâlâ oynanan oyun — hızlandırılmış ama uydurulmuş değil.
+Both were fixed at once: the tour now expands over the course of the campaign
+(`Buyu()`, one tier, and only if three times the cost is in the till) and the
+image is taken in the middle of the fortieth day. Result: **14 tables, 10 of them
+full, revenue 1,188, satisfaction 78.5, reputation 96.8/100.** Still the game as
+played — sped up, but not faked.
 
-**Üçüncü bir koşul daha gerekti: salonun üstü açık olmalı.** Bir koşuda üç
-bildirim balonu ("Soruldu ama yok: ...") görüntünün tam ortasına yığıldı ve
-restoran görünmez oldu; bir öncekinde hiç balon yoktu. Yakalama artık
-`NoticeCount == 0` olan bir kare bekliyor ve bunu ölçüyor — yoksa mağaza
-görseli koşudan koşuya değişiyordu.
+**A third condition was needed: the hall must be unobstructed.** In one run three
+notice bubbles ("Soruldu ama yok: ...", "Asked for but not available: ...") piled
+up in the dead centre of the image and the restaurant became invisible; in the
+run before it there had been no bubbles at all. The capture now waits for a frame
+where `NoticeCount == 0` and measures that — otherwise the store image changed
+from run to run.
 
-Turun genişlemesi ayrıca bir **ölçüm boşluğunu** kapattı: genişleme
-kampanyanın ana ilerleme yolu ve tur onu hiç koşmuyordu (kademe geçişinde
-sahnenin yeniden kurulması, kadro tavanının büyümesi, kiranın artması —
-hiçbiri sınanmıyordu).
+The tour's expansion also closed a **measurement gap**: expansion is the
+campaign's main progression path and the tour never ran it (the scene being
+rebuilt on a tier change, the crew ceiling growing, the rent rising — none of it
+was tested).
 
-**Kalan görsel işi kullanıcıda:** öne çıkan görsel (1024×500) bir kapak
-tasarımı ve ad kararına bağlı; mağaza simgesi zaten hazır
+**The remaining graphics work is the user's:** the feature graphic (1024×500) is
+a cover design and depends on the name decision; the store icon is already ready
 (`Art/Icons/store-icon-512.png`).
 
 ---
 
-## 5. Bunlar neyi kapatmıyor
+## 5. What these do not close
 
-[docs/21](21-business-and-release.md)'in kullanıcı listesinden kapanan: **yok.** Bu belge
-o listenin 8. maddesinin *metin* yarısını ve ekran görüntüsü üretimini
-hazırlıyor; kararların hepsi yerinde duruyor:
+Items closed from [docs/21](21-business-and-release.md)'s user list: **none.**
+This document prepares the *text* half of item 8 of that list and the screenshot
+production; all the decisions still stand:
 
-1. Yükleme anahtarı (parola)
-2. Ad kararı ve marka taraması — **bu belgedeki metinler ona bağlı**
-3. Play Console hesabı ve 14 günlük kapalı test
-4. Gizlilik politikası URL'si — metin hazır, barındırma gerekiyor
-5. Veri Güvenliği formu — cevap hazır ("veri toplanmıyor")
-6. IARC yaş derecelendirmesi
-7. Para modeli — satın alma kodu **yok**, oyun bugün ücretsiz ve iki mutfak
-   açık olarak yayınlanabilir; bu geri dönüşsüz bir karar
-8. Öne çıkan görsel
+1. The upload key (password)
+2. The name decision and the trademark search — **the texts in this document
+   depend on it**
+3. A Play Console account and the 14-day closed test
+4. The privacy policy URL — the text is ready, hosting is needed
+5. The Data Safety form — the answer is ready ("no data collected")
+6. The IARC age rating
+7. The money model — there is **no** purchase code; the game can be released
+   today as free with two cuisines open; that is an irreversible decision
+8. The feature graphic

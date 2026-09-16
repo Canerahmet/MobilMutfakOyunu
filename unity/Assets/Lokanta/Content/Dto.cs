@@ -3,8 +3,9 @@ using Newtonsoft.Json;
 
 namespace Lokanta.Content
 {
-    // docs/23-core-contract.md 6.1: her alan acikca isaretlenir,
-    // yansima ad turetmez. IL2CPP budamasi icin link.xml bu tipleri korur.
+    // docs/23-core-contract.md 6.1: every field is marked explicitly, no
+    // name is derived by reflection. link.xml keeps these types safe from
+    // the IL2CPP trimmer.
 
     public sealed class TierDto
     {
@@ -14,11 +15,11 @@ namespace Lokanta.Content
         [JsonProperty("staffCap")] public int StaffCap { get; set; }
         [JsonProperty("reputationCapCenti")] public int ReputationCapCenti { get; set; }
 
-        /// <summary>Bu kademedeki tabak sayisi. Tabak dongusunun toplami.</summary>
+        /// <summary>How many plates this tier has. The total of the plate cycle.</summary>
         [JsonProperty("plates")] public int Plates { get; set; }
     }
 
-    /// <summary>Personel huyu. docs/13 staff-traits.json.</summary>
+    /// <summary>A staff trait. docs/13 staff-traits.json.</summary>
     public sealed class TraitDto
     {
         [JsonProperty("id")] public string Id { get; set; }
@@ -27,7 +28,7 @@ namespace Lokanta.Content
         [JsonProperty("conflictsWith")] public List<string> ConflictsWith { get; set; }
     }
 
-    /// <summary>Moral ayarlari. docs/14 "Moral" tablosu.</summary>
+    /// <summary>Morale settings. The docs/14 "Morale" table.</summary>
     public sealed class MoraleDto
     {
         [JsonProperty("starting")] public int Starting { get; set; }
@@ -41,7 +42,7 @@ namespace Lokanta.Content
         [JsonProperty("recoveryDelta")] public int RecoveryDelta { get; set; }
     }
 
-    /// <summary>Patron mudahalesi ayarlari. docs/12 5.4.</summary>
+    /// <summary>Owner intervention settings. docs/12 5.4.</summary>
     public sealed class InterventionDto
     {
         [JsonProperty("attentionSatisfactionCenti")]
@@ -53,7 +54,7 @@ namespace Lokanta.Content
         [JsonProperty("treatPatienceMult")] public int TreatPatienceMult { get; set; }
     }
 
-    /// <summary>Isimli duzenli musteri ayarlari. docs/11.</summary>
+    /// <summary>Named regular customer settings. docs/11.</summary>
     public sealed class RegularsDto
     {
         [JsonProperty("visitChanceBp")] public int VisitChanceBp { get; set; }
@@ -122,12 +123,12 @@ namespace Lokanta.Content
         [JsonProperty("staffing")] public StaffingDto Staffing { get; set; }
     }
 
-    /// <summary>content/equipment.json. Uretilen dosya, elle degistirilmez.</summary>
+    /// <summary>content/equipment.json. A generated file, never hand-edited.</summary>
     public sealed class EquipmentFileDto
     {
         [JsonProperty("schemaVersion")] public int SchemaVersion { get; set; }
         [JsonProperty("stations")] public List<StationDto> Stations { get; set; }
-        /// <summary>Mutfaga ozel adlandirilmis ekipman: mutfak kimligi -> istasyonlar.</summary>
+        /// <summary>Equipment named per cuisine: cuisine id -> stations.</summary>
         [JsonProperty("cuisineStations")]
         public Dictionary<string, List<StationDto>> CuisineStations { get; set; }
         [JsonProperty("storage")] public StorageDto Storage { get; set; }
@@ -151,7 +152,7 @@ namespace Lokanta.Content
         [JsonProperty("id")] public string Id { get; set; }
         [JsonProperty("nameKey")] public string NameKey { get; set; }
         [JsonProperty("tiers")] public List<StationTierDto> Tiers { get; set; }
-        /// <summary>Bu ekipmanin actigi yemekler. Yalnizca dogrulama icin.</summary>
+        /// <summary>The dishes this equipment unlocks. For validation only.</summary>
         [JsonProperty("opens")] public List<string> Opens { get; set; }
     }
 

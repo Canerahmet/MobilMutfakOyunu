@@ -1,54 +1,54 @@
-# Çekirdek Sözleşmesi
+# The Core Contract
 
-**Son güncelleme:** 10 Eylül 2026
-**Kütük maddeleri:** B3 veri şemaları, B6 kayıt formatı, A11 kayıt sistemi, ve değerlendirmenin "determinizm tasarlanmamış" bulgusu
-**Durum:** Parti B. Bu dosya bağlayıcıdır. Faz 0 kodu buradaki kurallara uymak zorunda.
-**Değerlendirme kaynağı:** [review/02-technical-architecture.md](review/02-technical-architecture.md)
-
----
-
-## Neden bu dosya var
-
-Mimari değerlendirmesi şunu buldu: [04-architecture.md](04-architecture.md) determinizmi **istiyor** ama **tasarlamıyor**. `Tick(deltaTime)` değişken kare süresini çekirdeğe sokuyor, rastgelelik kaynağı belirsiz, kayan nokta üç derleyicide üç farklı sonuç verebiliyor, Türkçe kültür ayarı `ToUpper` çağrısını bozuyor.
-
-Kayıt sistemi, denge aracı ve hata ayıklama üçü de "aynı girdi, aynı çıktı" varsayımına yaslanıyor. Bu varsayım kendiliğinden sağlanmaz. Aşağıdaki on kural onu sağlar.
-
-Her kuralın yanında **nasıl doğrulanacağı** yazıyor. Doğrulanamayan kural yoktur.
+**Last updated:** 10 September 2026
+**Register items:** B3 data schemas, B6 save format, A11 save system, and the review's "determinism is not designed" finding
+**Status:** Batch B. This file is binding. Phase 0 code has to obey the rules here.
+**Review source:** [review/02-technical-architecture.md](review/02-technical-architecture.md)
 
 ---
 
-## 1. Determinizm sözleşmesi
+## Why this file exists
 
-### 1.1 Tanım
+The architecture review found this: [04-architecture.md](04-architecture.md) **wants** determinism but does not **design** it. `Tick(deltaTime)` pushes a variable frame time into the core, the source of randomness is unclear, floating point can give three different results on three compilers, and the Turkish culture setting breaks the `ToUpper` call.
 
-**Aynı içerik, aynı tohum, aynı komut günlüğü → aynı durum, bayt bayt.** Platform, derleyici, işletim sistemi, kültür ayarı, kare hızı ve gerçek zamanın hiçbiri sonucu değiştiremez.
+The save system, the balance tool and debugging all three lean on the assumption "same input, same output". That assumption does not hold by itself. The ten rules below make it hold.
 
-"Aynı durum" şu demek: bölüm 9'daki durum özeti (hash) eşit.
+Next to every rule is **how it is verified**. There is no rule that cannot be verified.
 
-### 1.2 Sabit adım
+---
+
+## 1. The determinism contract
+
+### 1.1 Definition
+
+**Same content, same seed, same command log → same state, byte for byte.** Platform, compiler, operating system, culture setting, frame rate and real time: none of them may change the result.
+
+"Same state" means this: the state hash in section 9 is equal.
+
+### 1.2 Fixed step
 
 ```csharp
 public sealed class Simulation
 {
-    public const int TickMs = 100;          // bir tick = 100 ms simülasyon zamanı
+    public const int TickMs = 100;          // one tick = 100 ms of simulation time
     public long TickIndex { get; private set; }
 
-    public void Tick();                      // parametresiz. Gerçek zaman girmez.
-    public void Apply(in Command c);         // oyuncu girdisi
+    public void Tick();                      // no parameters. Real time does not get in.
+    public void Apply(in Command c);         // player input
     public IReadOnlyList<SimEvent> DrainEvents();
 }
 ```
 
-`Tick()` parametre almaz. Çekirdek gerçek zamanı hiç görmez.
+`Tick()` takes no parameters. The core never sees real time.
 
-Unity tarafı biriktirir:
+The Unity side accumulates:
 
 ```csharp
 // Lokanta.App.SimDriver : MonoBehaviour
 float _acc;
 void Update()
 {
-    _acc += Time.unscaledDeltaTime * Speed;       // Speed = 1 veya 2, oyuncu seçer
+    _acc += Time.unscaledDeltaTime * Speed;       // Speed = 1 or 2, the player picks
     int n = 0;
     while (_acc >= 0.1f && n < MaxTicksPerFrame)  // MaxTicksPerFrame = 5
     {
@@ -56,71 +56,71 @@ void Update()
         _acc -= 0.1f;
         n++;
     }
-    if (n == MaxTicksPerFrame) _acc = 0f;         // kare düştüyse zaman yavaşlar, sapmaz
+    if (n == MaxTicksPerFrame) _acc = 0f;         // if frames drop, time slows down, it does not drift
 }
 ```
 
-**Kare düşünce ne olur:** simülasyon yavaşlar, bozulmaz. Beş tick tavanı "ölüm sarmalını" engeller. Oyuncu bir saniye fazla bekler, ama kayıt dosyası bozulmaz.
+**What happens when a frame drops:** the simulation slows down, it does not break. The five-tick ceiling prevents the "death spiral". The player waits one extra second, but the save file does not corrupt.
 
-**Hız 2x:** sürücü iki kat tick çağırır. Çekirdek hızdan habersizdir. Bu yüzden 2x oynayan ve 1x oynayan aynı komutları aynı tick'te verirse aynı sonucu alır.
+**Speed 2x:** the driver calls tick twice as often. The core knows nothing about speed. That is why a player on 2x and a player on 1x who issue the same commands on the same tick get the same result.
 
-### 1.3 Zaman birimleri
+### 1.3 Time units
 
-| Süre | Tick | Not |
+| Duration | Ticks | Note |
 |---|---|---|
-| Bir tick | 1 | 100 ms |
-| Bir müşteri servisi | ~1.200 | 120 s, [12-economy.md](12-economy.md) §5.2 |
-| Bir servis günü | 4.800 | 8 dakika 1x hızda |
-| Altmış günlük sezon | 288.000 | Denge aracı 50 µs/tick ile 15 saniyede biter |
+| One tick | 1 | 100 ms |
+| One customer service | ~1,200 | 120 s, [12-economy.md](12-economy.md) §5.2 |
+| One service day | 4,800 | 8 minutes at 1x speed |
+| A sixty-day season | 288,000 | The balance tool finishes it in 15 seconds at 50 µs/tick |
 
-Sabır değerleri ([12-economy.md](12-economy.md) §5.2) saniye cinsinden yazılı; çekirdekte ms olarak tutulur, 8 s = 8.000 ms = 80 tick.
+The patience values ([12-economy.md](12-economy.md) §5.2) are written in seconds; in the core they are held as ms, 8 s = 8,000 ms = 80 ticks.
 
-### 1.4 Doğrulama
+### 1.4 Verification
 
-- **Tekrar oynatma testi:** aynı tohum ve komut günlüğüyle iki kez çalıştır, hash eşit olmalı.
-- **Kare bağımsızlık testi:** aynı komutları `MaxTicksPerFrame = 1` ve `= 5` ile çalıştır, hash eşit olmalı.
+- **Replay test:** run twice with the same seed and command log, the hashes must be equal.
+- **Frame independence test:** run the same commands with `MaxTicksPerFrame = 1` and `= 5`, the hashes must be equal.
 
 ---
 
-## 2. Tamsayı durum
+## 2. Integer state
 
-### 2.1 Kural
+### 2.1 The rule
 
-`Lokanta.Core` altındaki hiçbir tipte `float`, `double` veya `decimal` bulunmaz. Alan, parametre, dönüş değeri, yerel değişken, sabit: hiçbiri.
+No type under `Lokanta.Core` holds a `float`, `double` or `decimal`. Field, parameter, return value, local variable, constant: none of them.
 
-Sebep: IL2CPP (Android), Mono (editör) ve RyuJIT (denge aracı, .NET) kayan nokta işlemlerini farklı sırayla ve farklı hassasiyetle yapabilir. `0.1f + 0.2f` üç ortamda üç farklı bit deseni verebilir. Tamsayı toplama her yerde aynıdır.
+Reason: IL2CPP (Android), Mono (editor) and RyuJIT (the balance tool, .NET) can perform floating-point operations in a different order and at a different precision. `0.1f + 0.2f` can give three different bit patterns in three environments. Integer addition is the same everywhere.
 
-### 2.2 Birim tablosu
+### 2.2 Unit table
 
-| Büyüklük | Birim | Tip | Örnek |
+| Quantity | Unit | Type | Example |
 |---|---|---|---|
-| Zaman | milisaniye | `int` (gün içi), `long` (tickIndex) | 8 s sabır = 8000 |
-| Para | **santi-sikke**, 1 sikke = 100 birim | `long` | 45 sikke = 4500 |
-| Ağırlık | gram | `int` | 120 g köfte harcı |
-| Memnuniyet, itibar, moral | **santi-puan**, 0..10000 | `int` | itibar 30 = 3000 |
-| Oran, çarpan, yüzde | **baz puan (bp)**, 10000 = 1,0 | `int` | %32 malzeme = 3200; hız +%18 = 11800 |
-| Kapasite | müşteri/gün | `int` | garson 25 |
-| Patron iş gücü | santi-iş-günü | `int` | 1,4 iş-günü = 140 |
-| Sayaçlar | adet | `int` | masa 14 |
+| Time | millisecond | `int` (within a day), `long` (tickIndex) | 8 s of patience = 8000 |
+| Money | **centi-coin**, 1 coin = 100 units | `long` | 45 coins = 4500 |
+| Weight | gram | `int` | 120 g of patty mix |
+| Satisfaction, reputation, morale | **centi-point**, 0..10000 | `int` | reputation 30 = 3000 |
+| Rate, multiplier, percentage | **basis point (bp)**, 10000 = 1.0 | `int` | 32% ingredients = 3200; speed +18% = 11800 |
+| Capacity | customers/day | `int` | waiter 25 |
+| Owner labour | centi-work-day | `int` | 1.4 work-days = 140 |
+| Counters | count | `int` | table 14 |
 
-Para `long`, çünkü 60 günlük toplam ciro santi-sikke cinsinden 2³¹'i aşabilir (43.425 sikke/hafta × 100 × 9 hafta ≈ 39 milyon, sınır 2,1 milyar; güvenli ama kredi ve yıl sonu puanı çarpımlarında `int` taşar).
+Money is `long`, because a 60-day total revenue in centi-coins can exceed 2³¹ (43,425 coins/week × 100 × 9 weeks ≈ 39 million, the limit is 2.1 billion; safe, but `int` overflows in the credit and year-end score multiplications).
 
-### 2.3 Bölme ve yuvarlama
+### 2.3 Division and rounding
 
-Tek yardımcı sınıf, başka yol yok:
+One helper class, no other way:
 
-Uygulanmış hâli `src/Lokanta.Core/Fx.cs`:
+The implemented version is `src/Lokanta.Core/Fx.cs`:
 
 ```csharp
 public static class Fx
 {
-    public const int  One   = 10_000;         // 1,0 bp
-    public const int  Micro = 1_000_000;      // 1 iş-günü
-    public const long Nano  = 1_000_000_000L; // birikimli çarpanların iç hassasiyeti
-    public const int  Coin  = 100;            // 1 sikke = 100 santi-sikke
+    public const int  One   = 10_000;         // 1.0 bp
+    public const int  Micro = 1_000_000;      // 1 work-day
+    public const long Nano  = 1_000_000_000L; // the internal precision of compounding multipliers
+    public const int  Coin  = 100;            // 1 coin = 100 centi-coins
 
-    /// a * b / c, yarısı sıfırdan uzağa. Ara çarpım checked:
-    /// sessiz taşma, yanlış sonuçtan daha kötüdür.
+    /// a * b / c, half away from zero. The intermediate product is checked:
+    /// a silent overflow is worse than a wrong result.
     public static long MulDiv(long a, long b, long c)
     {
         if (c == 0) throw new DivideByZeroException();
@@ -128,7 +128,7 @@ public static class Fx
         long q = p / c;
         long r = p - q * c;
         if (r == 0) return q;
-        long ar = r < 0 ? -r : r;          // Math.Abs değil: long.MinValue atar
+        long ar = r < 0 ? -r : r;          // not Math.Abs: it throws on long.MinValue
         long ac = c < 0 ? -c : c;
         long twice; checked { twice = ar * 2; }
         if (twice >= ac) q += ((p < 0) == (c < 0)) ? 1 : -1;
@@ -136,46 +136,46 @@ public static class Fx
     }
 
     public static long Bp(long value, int bp) => MulDiv(value, bp, One);
-    public static int  CeilDiv(int a, int b);      // kadro hesabı
+    public static int  CeilDiv(int a, int b);      // crew arithmetic
     public static long CeilDivL(long a, long b);
-    public static long PowNano(long baseNano, int exp);   // birikimli zam
+    public static long PowNano(long baseNano, int exp);   // compounding rise
     public static long BpToNano(int bp);
 }
 ```
 
-`PowNano` neden var: deneyim zammını baz puanla üslemek sekizinci haftada yaklaşık %0,03 sapma, yani birkaç sikke üretiyordu. Birikimli çarpanlar nano ölçeğinde hesaplanır, sonuç santi-sikkeye tek seferde iner.
+Why `PowNano` exists: exponentiating the experience raise in basis points produced roughly 0.03% of drift by the eighth week, that is, a few coins. Compounding multipliers are computed at nano scale, and the result comes down to centi-coins in a single step.
 
-- `Math.Round`, `Math.Floor`, `(int)` ile kesme: **yasak.** Sadece `Fx`.
-- Banker's rounding (yarıyı çifte yuvarlama) **yasak**; `MulDiv` yarıyı sıfırdan uzağa yuvarlar. Sebep: `Math.Round` varsayılanı banker's, ve iki geliştirici ikisini karıştırır.
-- Formül dokümanlarındaki ondalıklar bp'ye çevrilir: `(0,5 + itibar/100)` → `5000 + itibar_santi / 1` yani `5000 + 3000 = 8000 bp = 0,8`.
+- `Math.Round`, `Math.Floor`, truncation with `(int)`: **forbidden.** Only `Fx`.
+- Banker's rounding (half to even) is **forbidden**; `MulDiv` rounds half away from zero. Reason: `Math.Round`'s default is banker's, and two developers will mix the two up.
+- The decimals in the formula documents are converted to bp: `(0.5 + reputation/100)` → `5000 + reputation_centi / 1`, that is `5000 + 3000 = 8000 bp = 0.8`.
 
-### Bu kural uygulamada ne yakaladı
+### What this rule caught in practice
 
-10 Eylül 2026, çekirdeğin ilk dilimi yazılırken. C# çekirdeği ile Python modeli sekizinci haftaya kadar aynı sonucu verirken **altıncı haftada ayrıştı**: hafta sonu talebi Python'da 62, C#'ta 63.
+10 September 2026, while the first slice of the core was being written. The C# core and the Python model agreed all the way to the eighth week but **diverged in the sixth week**: weekend demand was 62 in Python and 63 in C#.
 
-Sebep tam olarak bu bölümün yasakladığı şeydi.
+The reason was exactly the thing this section forbids.
 
-| | Hesap | Sonuç |
+| | Calculation | Result |
 |---|---|---|
-| Ham değer | 10 masa × 4 × 1,25 × 1,25 | **62,5** tam ortada |
-| Python `round(62,5)` | Bankacı yuvarlaması, yarıyı çifte götürür | 62 |
-| C# `Fx.MulDiv` | Yarısı sıfırdan uzağa | 63 |
+| Raw value | 10 tables × 4 × 1.25 × 1.25 | **62.5**, exactly halfway |
+| Python `round(62.5)` | Banker's rounding, half goes to even | 62 |
+| C# `Fx.MulDiv` | Half away from zero | 63 |
 
-Daha kötüsü, Python **tutarlı bile değildi.** Dördüncü haftada ham değer 38,5 olması gerekirken kayan nokta gürültüsü 38,500000000000007 üretiyor ve `round()` bu kez yukarı, 39'a gidiyordu. Yani aynı betik bir satırda bankacı yuvarlaması, bir satırda gürültüye bağlı yuvarlama yapıyordu.
+Worse, Python **was not even consistent.** In the fourth week the raw value should have been 38.5, but floating-point noise produced 38.500000000000007 and `round()` went up this time, to 39. So the same script was doing banker's rounding on one line and noise-dependent rounding on another.
 
-**Düzeltme:** ayrık kararlar (müşteri sayısı, kadro) Python tarafında da tamsayı aritmetiğine geçti. `tools/balance/model.py` içindeki `mul_div` fonksiyonu `Fx.MulDiv` ile aynı kuralı uyguluyor. Para alanları ondalık kalabilir; onların toleransı 1 sikke, çünkü sonuçta yuvarlanıp gösteriliyorlar.
+**The fix:** discrete decisions (customer count, crew) moved to integer arithmetic on the Python side too. The `mul_div` function in `tools/balance/model.py` applies the same rule as `Fx.MulDiv`. Money fields may stay decimal; their tolerance is 1 coin, because in the end they are rounded and displayed.
 
-**Ders:** bu hata iki bağımsız uygulama karşılaştırılmasaydı hiç görünmezdi. Tek uygulama kendi kendini onaylar. Bölüm 9'daki çapraz doğrulama hattının varlık sebebi bu.
+**The lesson:** this bug would never have shown up if two independent implementations had not been compared. A single implementation confirms itself. That is the reason the cross-validation line in section 9 exists.
 
-### 2.4 Formül çevirisi örneği
+### 2.4 An example of translating a formula
 
 [12-economy.md](12-economy.md) §5.1:
 
 ```
-müşteri = masa × 4 × (0,5 + itibar/100) × gün_katsayısı
+customers = tables × 4 × (0.5 + reputation/100) × day_factor
 ```
 
-Çekirdekte:
+In the core:
 
 ```csharp
 // src/Lokanta.Core/Economy/DemandModel.cs
@@ -188,22 +188,22 @@ public static int CustomersPerDay(int tables, int reputationCenti,
 }
 ```
 
-**Ara adımda yuvarlama yok.** İlk taslak `Fx.Bp` çağrısını iki kez yapıyordu, yani iki kez yuvarlıyordu; Python modeli ise tek kez yuvarlıyor. Pay sonuna kadar bölünmeden taşınır, yuvarlama bir kere yapılır.
+**No rounding in an intermediate step.** The first draft called `Fx.Bp` twice, that is, it rounded twice; the Python model rounds a single time. The numerator is carried all the way without dividing, and the rounding happens at the end.
 
-Denge aracı `tools/balance/model.py` artık aynı tamsayı yolunu kullanıyor (bkz. yukarıdaki bulgu). **Faz 0'ın ilk testi:** Python modeli ile C# çekirdeği aynı sekiz haftalık tabloyu üretmeli. Ayrık alanlar birebir, para alanları 1 sikke toleransında. `tests/Lokanta.Core.Tests/GoldenWeeklyTests.cs`.
+The balance tool `tools/balance/model.py` now uses the same integer path (see the finding above). **Phase 0's first test:** the Python model and the C# core must produce the same eight-week table. Discrete fields exactly, money fields within 1 coin. `tests/Lokanta.Core.Tests/GoldenWeeklyTests.cs`.
 
-### 2.5 Doğrulama
+### 2.5 Verification
 
-- **Yansıma testi:** `Lokanta.Core` derlemesindeki bütün tiplerin bütün alan, özellik, parametre ve dönüş tipleri taranır; `float`, `double`, `decimal` görülürse test başarısız.
-- **Analizör (sonra):** Faz 1'de aynı kural bir Roslyn analizörüne taşınır, derleme hatası olur.
+- **Reflection test:** all the field, property, parameter and return types of all the types in the `Lokanta.Core` assembly are scanned; if a `float`, `double` or `decimal` is seen, the test fails.
+- **Analyzer (later):** in Phase 1 the same rule moves into a Roslyn analyzer and becomes a compile error.
 
 ---
 
-## 3. Rastgelelik
+## 3. Randomness
 
-### 3.1 Üreteç: xoshiro128**
+### 3.1 The generator: xoshiro128**
 
-Seçildi. Sebepler: durumu dört `uint` (kayıt dosyasına doğrudan yazılır), ayırma yapmaz, 32 bit ARM'de 64 bit çarpma gerektirmez, referans uygulaması on satır, kalitesi oyun için fazlasıyla yeterli. PCG32 de olurdu; farkı yok, biri seçildi.
+Chosen. Reasons: its state is four `uint`s (written straight into the save file), it does not allocate, it does not need 64-bit multiplication on 32-bit ARM, its reference implementation is ten lines, and its quality is more than enough for a game. PCG32 would have done as well; there is no difference, one was picked.
 
 ```csharp
 public struct Rng
@@ -220,8 +220,8 @@ public struct Rng
         return result;
     }
 
-    /// [0, maxExclusive). Lemire çarp-kaydır. Çok küçük bir sapma var,
-    /// deterministik olduğu için kabul edildi; oyun için önemsiz.
+    /// [0, maxExclusive). Lemire multiply-shift. There is a very small bias,
+    /// accepted because it is deterministic; irrelevant for a game.
     public int NextInt(int maxExclusive) => (int)(((ulong)Next() * (ulong)maxExclusive) >> 32);
     public int NextBp() => NextInt(Fx.One + 1);                 // 0..10000
     public bool Chance(int bp) => NextInt(Fx.One) < bp;
@@ -230,32 +230,32 @@ public struct Rng
 }
 ```
 
-### 3.2 Akışlar
+### 3.2 Streams
 
-Her alt sistemin kendi akışı var. Bir sisteme çağrı eklemek diğerinin dizisini kaydırmaz.
+Every subsystem has its own stream. Adding a call to one system does not shift another one's sequence.
 
 ```csharp
 public enum RngStream
 {
-    Arrival,      // müşteri geliş zamanı
-    Archetype,    // hangi arketip
-    Order,        // ne sipariş eder
-    StaffError,   // personel hata atar mı
-    Market,       // günlük malzeme fiyatı
-    Event,        // günlük olay zarı
-    Hiring,       // aday havuzu
-    ReviewText,   // yorum şablonu seçimi
+    Arrival,      // the customer's arrival time
+    Archetype,    // which archetype
+    Order,        // what they order
+    StaffError,   // does the staff member make a mistake
+    Market,       // the daily ingredient price
+    Event,        // the daily event die
+    Hiring,       // the candidate pool
+    ReviewText,   // choosing the review template
     Count
 }
 ```
 
-Tohumlama:
+Seeding:
 
 ```csharp
 static Rng Seed(ulong master, RngStream stream)
 {
     ulong z = master ^ ((ulong)(stream + 1) * 0x9E3779B97F4A7C15UL);
-    // splitmix64, dört kez
+    // splitmix64, four times
     uint Mix() {
         z += 0x9E3779B97F4A7C15UL;
         ulong x = z;
@@ -267,92 +267,92 @@ static Rng Seed(ulong master, RngStream stream)
 }
 ```
 
-Kayıt dosyası her akışın dört `uint` durumunu yazar. Çağrı sayacı tutulmaz: durumu geri yüklemek O(1), sayaçla ileri sarmak O(n).
+The save file writes the four `uint`s of state for every stream. No call counter is kept: restoring the state is O(1), fast-forwarding with a counter is O(n).
 
-### 3.3 Yasaklar
+### 3.3 Prohibitions
 
-| Yasak | Sebep |
+| Forbidden | Reason |
 |---|---|
-| `System.Random` | Tohumlanabilir ama .NET sürümleri arasında algoritması değişti |
-| `Guid.NewGuid()` | Rastgele ve platforma bağlı |
-| `string.GetHashCode()` | .NET Core'da her süreçte farklı; sözlük sırasını bile değiştirir |
-| `Dictionary` üstünde sıraya bağlı döngü | Sıra garanti değil. Liste kullan, ya da `SortedDictionary` ordinal anahtarla |
-| `HashSet` üstünde sıraya bağlı döngü | Aynı |
-| `DateTime.Now`, `Environment.TickCount` | Gerçek zaman çekirdeğe girmez |
-| `UnityEngine.Random` | Zaten erişilemez, asmdef engelliyor |
+| `System.Random` | Seedable, but its algorithm changed between .NET versions |
+| `Guid.NewGuid()` | Random and platform dependent |
+| `string.GetHashCode()` | Different in every process on .NET Core; it even changes dictionary order |
+| Order-dependent iteration over a `Dictionary` | The order is not guaranteed. Use a list, or a `SortedDictionary` with an ordinal key |
+| Order-dependent iteration over a `HashSet` | Same |
+| `DateTime.Now`, `Environment.TickCount` | Real time does not get into the core |
+| `UnityEngine.Random` | Unreachable anyway, the asmdef blocks it |
 
-### 3.4 Doğrulama
+### 3.4 Verification
 
-- **Akış bağımsızlık testi:** `Event` akışına bin fazladan çağrı ekle, `Arrival` dizisi değişmemeli.
-- **Bilinen değer testi:** tohum 0 için ilk beş `Next()` çıktısı sabitlenir ve referans uygulamayla karşılaştırılır.
+- **Stream independence test:** add a thousand extra calls to the `Event` stream, the `Arrival` sequence must not change.
+- **Known value test:** for seed 0 the first five `Next()` outputs are pinned and compared against a reference implementation.
 
 ---
 
-## 4. Kültür ve metin
+## 4. Culture and text
 
-### 4.1 Tuzak
+### 4.1 The trap
 
-Türkçe kültürde `"ID".ToLower()` sonucu `"ıd"`, `"file".ToUpper()` sonucu `"FİLE"`. Ordinal olmayan her karşılaştırma, sıralama ve arama Türkçe cihazda farklı çalışır. Geliştirici Türk, cihazı Türkçe, oyuncuların çoğu değil: **hata sadece geliştiricinin makinesinde görünmez.**
+Turkish has two separate letter i's: a dotless one (U+0131 lowercase, U+0049 uppercase) and a dotted one (U+0069 lowercase, U+0130 uppercase). So in the Turkish culture `"ID".ToLower()` does not give `"id"` — the capital I lowercases to the **dotless** i — and `"file".ToUpper()` does not give `"FILE"`, because the i uppercases to a **dotted** capital I. Every non-ordinal comparison, sort and search behaves differently on a Turkish device. The developer is Turkish, his device is Turkish, most of the players are not: **the bug is invisible precisely on the developer's machine.**
 
-### 4.2 Kurallar
+### 4.2 The rules
 
-| Kural | Nasıl |
+| Rule | How |
 |---|---|
-| Kimlik karşılaştırma | `string.Equals(a, b, StringComparison.Ordinal)` veya `a == b` (zaten ordinal) |
-| Kimlik sıralama | `StringComparer.Ordinal` |
-| Küçük harfe çevirme | `ToLowerInvariant()`; çekirdekte zaten gerekmemeli, kimlikler küçük harf ASCII |
-| Sayı ayrıştırma | Çekirdek sayı ayrıştırmaz. İçerik yükleyici `CultureInfo.InvariantCulture` ile |
-| Sayı biçimleme | Çekirdek metin üretmez. Sayı ve anahtar döner, görünüm katmanı biçimler |
-| Kimlik alfabesi | `[a-z0-9_]+`, doğrulama reddeder |
+| Comparing identifiers | `string.Equals(a, b, StringComparison.Ordinal)` or `a == b` (already ordinal) |
+| Sorting identifiers | `StringComparer.Ordinal` |
+| Lowercasing | `ToLowerInvariant()`; it should not be needed in the core anyway, identifiers are lowercase ASCII |
+| Number parsing | The core does not parse numbers. The content loader uses `CultureInfo.InvariantCulture` |
+| Number formatting | The core does not produce text. It returns numbers and keys, the view layer formats them |
+| Identifier alphabet | `[a-z0-9_]+`, validation rejects anything else |
 
-`Lokanta.Core` hiçbir yerde `CultureInfo` referansı taşımaz, çünkü kültüre duyarlı işlem yapmaz. Bu, kuraldan daha güçlü: ihtiyaç yok.
+`Lokanta.Core` carries no `CultureInfo` reference anywhere, because it does no culture-sensitive operation. This is stronger than the rule: there is no need.
 
-### 4.3 Doğrulama
+### 4.3 Verification
 
-- **Kültür testi:** aynı 60 günlük koşu `tr-TR`, `en-US` ve `de-DE` kültürlerinde (`CultureInfo.CurrentCulture` değiştirilerek) çalıştırılır, üç hash eşit olmalı.
-- **Kimlik testi:** içerik yüklenirken `[a-z0-9_]+` dışında kimlik görülürse yükleme reddedilir.
+- **Culture test:** the same 60-day run is executed in the `tr-TR`, `en-US` and `de-DE` cultures (by changing `CultureInfo.CurrentCulture`), the three hashes must be equal.
+- **Identifier test:** if an identifier outside `[a-z0-9_]+` is seen while content is loading, the load is rejected.
 
 ---
 
-## 5. Kayan noktanın sınırı
+## 5. The boundary of floating point
 
-`float` şurada serbest: `Lokanta.View`, `Lokanta.UI`. Konum, animasyon, kamera, arayüz geçişleri. Bunlar görünüştür, simülasyon değil.
+`float` is allowed here: `Lokanta.View`, `Lokanta.UI`. Position, animation, camera, interface transitions. These are appearance, not simulation.
 
-**Sınır kuralı:** portlardan ve `Simulation` yüzeyinden `float` geçmez. Görünüm katmanı tamsayı alır ve kendisi çevirir:
+**The boundary rule:** no `float` crosses a port or the `Simulation` surface. The view layer takes integers and converts them itself:
 
 ```csharp
-// View tarafı
-Vector3 pos = new Vector3(tableX * 1.0f, 0f, tableY * 1.0f);   // tamsayı ızgaradan
-float fill = patienceMs / (float)patienceMaxMs;                  // çubuk için
+// the View side
+Vector3 pos = new Vector3(tableX * 1.0f, 0f, tableY * 1.0f);   // from the integer grid
+float fill = patienceMs / (float)patienceMaxMs;                  // for the bar
 ```
 
-Görünüm katmanı simülasyonu asla `float` ile etkilemez. Dokunuş konumu masa kimliğine çevrilir, komut olarak gönderilir; koordinat çekirdeğe girmez.
+The view layer never affects the simulation with a `float`. A touch position is converted into a table id and sent as a command; the coordinate does not get into the core.
 
 ---
 
-## 6. Kütüphane ve altyapı kararları
+## 6. Library and infrastructure decisions
 
-### 6.1 İçerik yükleme: Newtonsoft, sadece açılışta, sadece Content katmanında
+### 6.1 Content loading: Newtonsoft, only at startup, only in the Content layer
 
-Seçenekler değerlendirildi:
+The options were evaluated:
 
-| Seçenek | Durum |
+| Option | Status |
 |---|---|
-| Newtonsoft (`com.unity.nuget.newtonsoft-json`) | **Seçildi.** Unity'nin resmi paketi, IL2CPP'de çalışıyor, `link.xml` ile tip koruma gerekiyor |
-| System.Text.Json kaynak üretimi | En doğru teknik cevap ama Unity'ye yedi DLL taşımak gerekiyor; Faz 0'da bu sürtünmeye değmez |
-| Elle yazılmış ayrıştırıcı | Şema değiştikçe bakım yükü; on bir şema için fazla |
+| Newtonsoft (`com.unity.nuget.newtonsoft-json`) | **Chosen.** Unity's official package, works under IL2CPP, needs type protection via `link.xml` |
+| System.Text.Json source generation | The technically most correct answer, but it means carrying seven DLLs into Unity; not worth that friction in Phase 0 |
+| A hand-written parser | Maintenance load as the schema changes; too much for eleven schemas |
 
-Kurallar:
+The rules:
 
-- Newtonsoft yalnızca `Lokanta.Content` derlemesinde referanslanır. `Lokanta.Core` JSON bilmez; hazır DTO alır.
-- Her DTO alanı `[JsonProperty("adı")]` ile açıkça işaretlenir. Yansıma adı türetmez.
-- `link.xml` bütün DTO tiplerini korur. IL2CPP budaması yüzünden "alan boş geldi" hatası Faz 0'da bir kez yaşanır, sonra bir daha yaşanmaz.
-- Yükleme açılışta bir kez. Servis sırasında JSON işlemi yok.
-- Sayısal alanlar JSON'da **tamsayı** yazılır (santi-sikke, bp, ms). Ondalık görülürse doğrulama reddeder.
+- Newtonsoft is referenced only in the `Lokanta.Content` assembly. `Lokanta.Core` knows nothing about JSON; it receives ready DTOs.
+- Every DTO field is marked explicitly with `[JsonProperty("name")]`. Reflection does not derive the name.
+- `link.xml` protects all DTO types. The "the field came back empty" bug caused by IL2CPP stripping is lived through once in Phase 0, and never again.
+- Loading happens once at startup. No JSON work during service.
+- Numeric fields are written as **integers** in JSON (centi-coins, bp, ms). If a decimal is seen, validation rejects it.
 
-### 6.2 Kayıt dosyası: tek yürüyüş, iki çıktı
+### 6.2 The save file: one walk, two outputs
 
-[15-save-system.md](15-save-system.md) JSON + gzip + sağlama toplamına karar verdi; değerlendirme bunu onayladı (B6). Bu karar korunuyor. Ama **serileştirme yansımayla değil, elle yazılmış yürüyüşle** yapılır:
+[15-save-system.md](15-save-system.md) decided on JSON + gzip + checksum; the review approved it (B6). That decision stands. But **serialization is done with a hand-written walk, not with reflection**:
 
 ```csharp
 public interface IStateWriter
@@ -360,11 +360,11 @@ public interface IStateWriter
     void Begin(string key);  void End();
     void Int(string key, int v);
     void Long(string key, long v);
-    void Str(string key, string v);          // sadece kimlikler
-    void Arr(string key, int count);         // ardından count kadar eleman
+    void Str(string key, string v);          // identifiers only
+    void Arr(string key, int count);         // followed by count elements
 }
 
-public interface IStateReader { /* simetrik */ }
+public interface IStateReader { /* symmetric */ }
 
 public interface ISerializable
 {
@@ -372,73 +372,73 @@ public interface ISerializable
 }
 ```
 
-Her durum tipi (`TableState`, `StaffState`, `CustomerState`, `Inventory`, `Loan`, ...) `Write` ve statik `Read` uygular. Alan sırası sabittir ve sınıfta yorumla numaralanır.
+Every state type (`TableState`, `StaffState`, `CustomerState`, `Inventory`, `Loan`, ...) implements `Write` and a static `Read`. The field order is fixed and numbered in a comment in the class.
 
-`IStateWriter`'ın iki uygulaması:
+`IStateWriter` has two implementations:
 
-| Uygulama | Nerede | İş |
+| Implementation | Where | Job |
 |---|---|---|
-| `JsonStateWriter` | `Lokanta.App` | Kayıt dosyasını yazar |
-| `HashStateWriter` | `Lokanta.Core` | FNV-1a 64 ile durum özeti üretir |
+| `JsonStateWriter` | `Lokanta.App` | Writes the save file |
+| `HashStateWriter` | `Lokanta.Core` | Produces the state hash with FNV-1a 64 |
 
-**Aynı yürüyüş** hem dosyayı hem özeti üretir. Bir alan kayıtta unutulursa özet de onu görmez ve determinizm testi yakalayamaz; bu yüzden her yeni alan için "yürüyüşe eklendi mi" kontrol listesi maddesi var (§10).
+**The same walk** produces both the file and the hash. If a field is forgotten in the save, the hash will not see it either and the determinism test cannot catch it; that is why there is a "was it added to the walk" checklist item for every new field (§10).
 
-### 6.3 Olay mekanizması
+### 6.3 The event mechanism
 
-Çekirdekten dışarı C# `event` veya `delegate` çıkmaz. Sebep: görünüm katmanı çekirdeğe abone olursa yaşam döngüsü karışır ve çekirdek görünümün istisnalarını yer.
+No C# `event` or `delegate` leaves the core. Reason: if the view layer subscribes to the core, the lifecycles get tangled and the core swallows the view's exceptions.
 
 ```csharp
 public readonly struct SimEvent
 {
     public readonly long Tick;
     public readonly SimEventKind Kind;
-    public readonly int A, B, C, D;     // yük yuvaları; anlamı Kind'a bağlı, enum'da belgelenir
+    public readonly int A, B, C, D;     // payload slots; the meaning depends on Kind, documented in the enum
 }
 ```
 
-- Çekirdek olayları 4.096 kapasiteli halka tampona yazar.
-- Sürücü her tick partisinden sonra `DrainEvents()` çağırır, görünüm katmanına dağıtır.
-- Tampon dolarsa: hata ayıklama derlemesinde assertion, yayın derlemesinde en eskisi düşer. Bir tick partisinde 4.096 olay üretilmesi zaten tasarım hatası.
-- Olay yükü tamsayı. Metin yok. Görünüm, kimliği anahtara, anahtarı metne çevirir.
+- The core writes events into a ring buffer of capacity 4,096.
+- The driver calls `DrainEvents()` after every batch of ticks and distributes them to the view layer.
+- If the buffer fills up: an assertion in the debug build, the oldest is dropped in the release build. Producing 4,096 events in one batch of ticks is a design error to begin with.
+- The event payload is integers. No text. The view converts the id into a key and the key into text.
 
-### 6.4 Kompozisyon kökü
+### 6.4 The composition root
 
-Tek yer, sabit sıra. `Lokanta.App.Bootstrap`, ilk sahnedeki tek `MonoBehaviour`:
+One place, fixed order. `Lokanta.App.Bootstrap`, the only `MonoBehaviour` in the first scene:
 
 ```
-1. Platform portları oluşturulur   (ISaveStore, IStoreFront, IAnalytics ... Platform.Mobile)
-2. İçerik yüklenir                 (Content.Loader → ContentSet)
-3. İçerik doğrulanır               (Content.Validator; hata varsa oyun açılmaz, hata ekranı)
-4. Kayıt yuvası seçilir / okunur   (ISaveStore → SaveEnvelope)
-5. Simulation kurulur              (ContentSet + tohum + varsa anlık görüntü + komut günlüğü)
-6. Komut günlüğü tekrar oynatılır  (§7)
-7. View kurulur, olay tamponuna bağlanır
-8. SimDriver başlar
+1. The platform ports are created   (ISaveStore, IStoreFront, IAnalytics ... Platform.Mobile)
+2. The content is loaded            (Content.Loader → ContentSet)
+3. The content is validated         (Content.Validator; on an error the game does not open, error screen)
+4. A save slot is picked / read     (ISaveStore → SaveEnvelope)
+5. Simulation is constructed        (ContentSet + seed + snapshot if any + command log)
+6. The command log is replayed      (§7)
+7. The View is built, bound to the event buffer
+8. SimDriver starts
 ```
 
-Hiçbir `MonoBehaviour` kendi kendine `new Simulation()` yapmaz. Hiçbir `static` tekil yok. Test, 5. adımdan başlayıp 7 ve 8'i atlar.
+No `MonoBehaviour` does `new Simulation()` on its own. There is no `static` singleton. A test starts at step 5 and skips 7 and 8.
 
 ---
 
-## 7. Servis ortası kayıt: komut günlüğü
+## 7. Saving mid-service: the command log
 
-### 7.1 Model
+### 7.1 The model
 
-Kayıt dosyası üç parçadır:
+The save file is three parts:
 
 ```
 SaveEnvelope
-├── header        sürüm, mutfak, gün, tickIndex, tohum, sağlama, yazılma zamanı (sadece bilgi)
-├── snapshot      gün başındaki tam durum (§6.2 yürüyüşü)
-└── commands[]    gün başından beri uygulanan komutlar, tick sırasıyla
+├── header        version, cuisine, day, tickIndex, seed, checksum, time written (informational only)
+├── snapshot      the full state at the start of the day (the §6.2 walk)
+└── commands[]    the commands applied since the start of the day, in tick order
 ```
 
-Yükleme: anlık görüntü geri yüklenir, komutlar sırayla uygulanırken aradaki tick'ler azami hızda çalıştırılır. Deterministik olduğu için sonuç, kesintisiz oyunla bayt bayt aynıdır.
+Loading: the snapshot is restored, and while the commands are applied in order the ticks in between are run at maximum speed. Because it is deterministic the result is byte for byte the same as uninterrupted play.
 
-### 7.2 Komut
+### 7.2 The command
 
 ```csharp
-public readonly struct Command          // 20 bayt
+public readonly struct Command          // 20 bytes
 {
     public readonly long Tick;
     public readonly CommandKind Kind;   // int
@@ -447,69 +447,69 @@ public readonly struct Command          // 20 bayt
 
 public enum CommandKind
 {
-    OpenService,          // sabah → servis
-    CloseDay,             // servis → gün sonu
-    SetPrice,             // A yemek, B santi-sikke
-    SetMenuSlot,          // A yuva, B yemek (−1 boş)
-    SetDailySpecial,      // A yemek
-    OrderIngredient,      // A malzeme, B gram
-    Hire,                 // A aday
-    Fire,                 // A personel
-    AssignStation,        // A personel, B istasyon
-    Intervene,            // A masa, B müdahale türü (özür, ikram, patron ilgisi)
-    Expand,               // A kademe
-    BuyEquipment,         // A ekipman
-    TakeLoan,             // A kredi
-    ExtendCredit,         // A düzenli müşteri, B santi-sikke  (veresiye, Türk mutfağı)
-    CollectCredit,        // A düzenli müşteri
-    RefillBroth,          // (Japon mutfağı)
+    OpenService,          // morning → service
+    CloseDay,             // service → end of day
+    SetPrice,             // A dish, B centi-coins
+    SetMenuSlot,          // A slot, B dish (−1 empty)
+    SetDailySpecial,      // A dish
+    OrderIngredient,      // A ingredient, B grams
+    Hire,                 // A candidate
+    Fire,                 // A staff member
+    AssignStation,        // A staff member, B station
+    Intervene,            // A table, B intervention kind (apology, treat, the owner's attention)
+    Expand,               // A tier
+    BuyEquipment,         // A equipment
+    TakeLoan,             // A loan
+    ExtendCredit,         // A regular, B centi-coins  (a tab, Turkish cuisine)
+    CollectCredit,        // A regular
+    RefillBroth,          // (Japanese cuisine)
     Count
 }
 ```
 
-**Komut olmayanlar:** hız, duraklatma, kamera, ekran geçişi. Bunlar görünüm durumu; simülasyona girmez, kaydedilmez.
+**What are not commands:** speed, pause, camera, screen transitions. These are view state; they do not get into the simulation and are not saved.
 
-### 7.3 Sınırlar
+### 7.3 Limits
 
-| Büyüklük | Değer | Kaynak |
+| Quantity | Value | Source |
 |---|---|---|
-| Gün başına azami komut | 256 | Dokunuş bütçesi 60, [16-screens-and-tutorial.md](16-screens-and-tutorial.md); 4 kat pay |
-| Günlük azami tick | 4.800 servis + 1.200 sabah/akşam | §1.3 |
-| Günlük tekrar oynatma süresi | < 0,5 s | 6.000 tick × 50 µs |
-| Komut günlüğü boyutu | ≤ 5 KB | 256 × 20 bayt |
-| Anlık görüntü | ≤ 40 KB sıkıştırılmadan | 14 masa, 12 personel, 30 müşteri, 26 malzeme, 32 yemek, 10 düzenli |
+| Maximum commands per day | 256 | Touch budget 60, [16-screens-and-tutorial.md](16-screens-and-tutorial.md); 4× headroom |
+| Maximum ticks per day | 4,800 service + 1,200 morning/evening | §1.3 |
+| Daily replay time | < 0.5 s | 6,000 ticks × 50 µs |
+| Command log size | ≤ 5 KB | 256 × 20 bytes |
+| Snapshot | ≤ 40 KB uncompressed | 14 tables, 12 staff, 30 customers, 26 ingredients, 32 dishes, 10 regulars |
 
-256 aşılırsa komut reddedilir ve olay üretilir; pratikte ulaşılmaz.
+If 256 is exceeded the command is rejected and an event is produced; in practice it is unreachable.
 
-### 7.4 Ne zaman yazılır
+### 7.4 When it is written
 
-| An | Ne yazılır |
+| Moment | What is written |
 |---|---|
-| `CloseDay` | Yeni anlık görüntü, günlük temizlenir. **Tam kayıt** |
-| Her komuttan sonra | Sadece günlük eki. Ucuz; 20 bayt |
-| Android `OnApplicationPause(true)` | Günlük; anlık görüntü zaten var |
-| Her 30 s servis | Günlük; komut olmasa da tickIndex ilerlemiştir |
+| `CloseDay` | A new snapshot, the log is cleared. **Full save** |
+| After every command | The log appendix only. Cheap; 20 bytes |
+| Android `OnApplicationPause(true)` | The log; the snapshot already exists |
+| Every 30 s of service | The log; even with no commands, tickIndex has moved on |
 
-Yazma [15-save-system.md](15-save-system.md) ve [19-technical-setup.md](19-technical-setup.md) kurallarıyla: geçici dosyaya yaz, `Flush(true)`, yeniden adlandır, `.bak` tut, CRC32.
+The write follows the rules in [15-save-system.md](15-save-system.md) and [19-technical-setup.md](19-technical-setup.md): write to a temporary file, `Flush(true)`, rename, keep a `.bak`, CRC32.
 
-### 7.5 Gün sınırı
+### 7.5 The day boundary
 
-`CloseDay` uygulanınca: gün sonu hesabı yapılır, durum yeni güne geçer, anlık görüntü **yeni günün başlangıcı** olarak yazılır, günlük sıfırlanır. Böylece bir kayıt dosyası en fazla bir günlük komut taşır.
+When `CloseDay` is applied: the end-of-day accounting is done, the state moves to the new day, the snapshot is written as **the start of the new day**, the log is reset. That way a save file carries at most one day's worth of commands.
 
-### 7.6 Doğrulama
+### 7.6 Verification
 
-- **Kesinti testi:** 60 günlük koşu; rastgele 200 noktada kaydet, yükle, devam et. Son hash kesintisiz koşuyla eşit olmalı.
-- **Sürüm testi:** eski sürüm anlık görüntüsü + günlük, göç zinciriyle yüklenir ve tekrar oynatılır.
+- **Interruption test:** a 60-day run; save, load and continue at 200 random points. The final hash must equal the uninterrupted run.
+- **Version test:** an old-version snapshot + log is loaded through the migration chain and replayed.
 
 ---
 
-## 8. Şema eklemeleri
+## 8. Schema additions
 
-Değerlendirme [13-data-schemas.md](13-data-schemas.md)'de dört eksik buldu. Hepsi tamsayı birimlerle (§2.2) yazılır.
+The review found four gaps in [13-data-schemas.md](13-data-schemas.md). All of them are written with integer units (§2.2).
 
-### 8.1 Personel kapasitesi ve havuz
+### 8.1 Staff capacity and pool
 
-[14-staff-system.md](14-staff-system.md) iki havuzlu modeli tanımlıyor. Şemaya:
+[14-staff-system.md](14-staff-system.md) defines the two-pool model. Into the schema:
 
 ```json
 {
@@ -523,7 +523,7 @@ Değerlendirme [13-data-schemas.md](13-data-schemas.md)'de dört eksik buldu. He
 }
 ```
 
-`economy.json` içine:
+Into `economy.json`:
 
 ```json
 "staffing": {
@@ -539,11 +539,11 @@ Değerlendirme [13-data-schemas.md](13-data-schemas.md)'de dört eksik buldu. He
 }
 ```
 
-Bu sayılar `tools/balance/model.py` çıktısıdır; JSON elle değil, yazıcıyla üretilir (Faz 0 işi: `render.py`'ye JSON hedefi eklenir).
+These numbers are the output of `tools/balance/model.py`; the JSON is produced by the writer, not by hand (a Phase 0 job: a JSON target is added to `render.py`).
 
-### 8.2 İmza mekaniği parametreleri
+### 8.2 Signature mechanic parameters
 
-Mekanik kodda, sayılar veride. `cuisines.json` içine mutfak başına bir `signature` bloğu:
+The mechanic lives in code, the numbers live in data. A `signature` block per cuisine inside `cuisines.json`:
 
 ```json
 "signature": { "kind": "combo",
@@ -560,11 +560,11 @@ Mekanik kodda, sayılar veride. `cuisines.json` içine mutfak başına bir `sign
   "broth": { "potPortions": 40, "refillMs": 1800000, "soldOutPenaltyCenti": -3000, "freshBonusCenti": 500 } }
 ```
 
-`kind` bilinmiyorsa doğrulama reddeder. Blok eksikse mutfak yüklenmez.
+If the `kind` is unknown, validation rejects it. If the block is missing, the cuisine is not loaded.
 
-### 8.3 Yemek parametreleri
+### 8.3 Dish parameters
 
-Değerlendirmenin ortak bulgusu: "32 yemek ancak her yemek parametreliyse anlamlı." Dört zorunlu alan:
+The review's shared finding: "32 dishes only mean something if every dish is parameterised." Four mandatory fields:
 
 ```json
 {
@@ -581,101 +581,101 @@ Değerlendirmenin ortak bulgusu: "32 yemek ancak her yemek parametreliyse anlaml
 }
 ```
 
-| Alan | Ne yapar |
+| Field | What it does |
 |---|---|
-| `prepMs` | Aşçı kapasitesini yemek bazında ağırlıklandırır; ağır yemek çok satılırsa mutfak tıkanır |
-| `station` | Hangi ekipman gerekli; yoksa yemek menüye konamaz |
-| `complexity` | 1-3; personel hata olasılığı ve çırak cezası buna bağlı |
-| `ingredients[].grams` | Malzeme maliyeti fiyattan değil gramajdan türer; piyasa dalgalanması buradan işler |
-| `plating` | Görünüm katmanı için; simülasyon okumaz. Bkz. [24-art-pipeline.md](24-art-pipeline.md) |
+| `prepMs` | Weights the cook's capacity per dish; if a heavy dish sells a lot the kitchen jams |
+| `station` | Which equipment is needed; without it the dish cannot go on the menu |
+| `complexity` | 1-3; the staff error probability and the apprentice penalty depend on it |
+| `ingredients[].grams` | The ingredient cost derives from the gram weight, not from the price; market fluctuation works through here |
+| `plating` | For the view layer; the simulation does not read it. See [24-art-pipeline.md](24-art-pipeline.md) |
 
-### 8.4 Tamsayı birimler, her yerde
+### 8.4 Integer units, everywhere
 
-Mevcut şemalardaki bütün ondalık alanlar dönüştürülür:
+Every decimal field in the existing schemas is converted:
 
-| Eski | Yeni |
+| Old | New |
 |---|---|
 | `"baseSpeed": 1.0` | `"baseSpeedBp": 10000` |
 | `"effects": { "speed": 0.18 }` | `"effects": { "speedBp": 1800 }` |
-| `"dailyWage": 140` | `"dailyWage": 14000` (santi-sikke) |
+| `"dailyWage": 140` | `"dailyWage": 14000` (centi-coins) |
 | `"patienceSec": 8` | `"patienceMs": 8000` |
 | `"priceSensitivity": 2.5` | `"priceSensitivityBp": 25000` |
 
-Doğrulayıcı JSON'da ondalık nokta görürse dosyayı reddeder. İstisna yok.
+If the validator sees a decimal point in the JSON it rejects the file. No exceptions.
 
 ---
 
-## 9. Doğrulama ve sürekli tümleştirme
+## 9. Verification and continuous integration
 
-### 9.1 Açılış doğrulaması
+### 9.1 Startup validation
 
-İçerik yüklenirken, oyun açılmadan:
+While the content is loading, before the game opens:
 
-1. Bütün kimlikler `[a-z0-9_]+` ve dosya içinde tekil
-2. Bütün çapraz referanslar çözülüyor (yemek → malzeme, rol → istasyon, düzenli → arketip)
-3. Ondalık sayı yok
-4. Her mutfakta `signature` var ve `kind` tanınıyor
-5. Her yemekte dört zorunlu parametre var
-6. `staffing.tiers` masa sayısına göre artan, `staffCap` artan
-7. `nameKey` her dilde karşılık buluyor (uyarı, hata değil)
+1. All ids are `[a-z0-9_]+` and unique within the file
+2. All cross references resolve (dish → ingredient, role → station, regular → archetype)
+3. There are no decimal numbers
+4. Every cuisine has a `signature` and the `kind` is recognised
+5. Every dish has the four mandatory parameters
+6. `staffing.tiers` is increasing by table count, `staffCap` is increasing
+7. Every `nameKey` has a counterpart in every language (a warning, not an error)
 
-Hata varsa oyun açılmaz, hata ekranı gösterir, hangi dosya hangi satır. Sessiz varsayılan yok.
+On an error the game does not open, it shows an error screen with which file and which line. No silent defaults.
 
-### 9.2 Durum özeti
+### 9.2 The state hash
 
 ```csharp
 public static ulong Hash(Simulation sim)
 {
-    var w = new HashStateWriter();        // FNV-1a 64; her int 4 bayt little-endian, long 8 bayt
+    var w = new HashStateWriter();        // FNV-1a 64; every int is 4 bytes little-endian, long is 8 bytes
     sim.Write(w);
     return w.Result;
 }
 ```
 
-Özet, nesne `GetHashCode` değil; açık bayt yürüyüşü. Alan sırası `Write` içindeki sıradır.
+The hash is not an object's `GetHashCode`; it is an explicit byte walk. The field order is the order inside `Write`.
 
-### 9.3 Determinizm hattı
+### 9.3 The determinism line
 
-| Test | Nerede | Ne |
+| Test | Where | What |
 |---|---|---|
-| Altın koşu | `dotnet test`, masaüstü | Tohum 20260909, "iyi oyuncu" betiği, 60 gün → hash sabitlenir ve depoya yazılır |
-| Çapraz platform | Android IL2CPP derlemesi, hata ayıklama sahnesi | Aynı koşu cihazda, hash logcat'e yazılır, masaüstüyle karşılaştırılır |
-| Kültür | `dotnet test` | tr-TR, en-US, de-DE |
-| Kare bağımsızlık | `dotnet test` | MaxTicksPerFrame 1 ve 5 |
-| Kesinti | `dotnet test` | 200 rastgele kayıt/yükleme |
-| Python eşleşmesi | `dotnet test` | C# sekiz haftalık tablo, `model.py` tablosuyla ±1 |
+| Golden run | `dotnet test`, desktop | Seed 20260909, the "good player" script, 60 days → the hash is pinned and written into the repository |
+| Cross platform | Android IL2CPP build, debug scene | The same run on the device, the hash is written to logcat and compared with the desktop |
+| Culture | `dotnet test` | tr-TR, en-US, de-DE |
+| Frame independence | `dotnet test` | MaxTicksPerFrame 1 and 5 |
+| Interruption | `dotnet test` | 200 random save/loads |
+| Python match | `dotnet test` | The C# eight-week table, within ±1 of the `model.py` table |
 
-Altın hash değişirse ya bir hata düzeltildi ya bir hata eklendi; ikisi de commit mesajında açıklanır.
+If the golden hash changes, either a bug was fixed or a bug was added; either way it is explained in the commit message.
 
-### 9.4 Cihaz testi olmadan
+### 9.4 Without a device test
 
-Mac yok, ilk sürüm Android. Çapraz platform testi bir Android cihazla yapılır. Emülatör kabul edilmez ([20-production-decisions.md](20-production-decisions.md)); IL2CPP'nin gerçek ARM derlemesi test ediliyor.
-
----
-
-## 10. Kabul ölçütleri: Parti B ne zaman bitti
-
-- [ ] `Simulation.Tick()` parametresiz; `SimDriver` biriktiriyor, tavan 5
-- [x] **`Lokanta.Core` yansıma testi geçiyor:** alan, özellik, imza ve yapıcılarda hiç `float`/`double`/`decimal` yok; Unity, Newtonsoft ve System.Text.Json referansı da yok
-- [x] **`Fx` sınıfı var**, çekirdekte başka bölme/yuvarlama yok. `MulDiv`, `Bp`, `CeilDiv`, `PowNano`
-- [x] **`Rng` xoshiro128**, sekiz akış.** Bilinen değer testi C# çıktısını değil, bağımsız bir Python uygulamasını (`tools/balance/rng_reference.py`) tutturuyor
-- [ ] Yasak liste (§3.3) için kod arama testi: `System.Random`, `GetHashCode()`, `DateTime.Now`, `Guid.NewGuid` çekirdekte geçmiyor
-- [x] **Kültür testi** tr-TR, en-US, de-DE ve ar-SA kültürlerinde aynı sonucu veriyor
-- [ ] Newtonsoft sadece `Lokanta.Content`'te; `link.xml` DTO'ları koruyor
-- [ ] `IStateWriter` iki uygulama; her durum tipi `Write`/`Read`; yeni alan kontrol listesi PR şablonunda
-- [ ] `SimEvent` halka tamponu, çekirdekten `event` çıkmıyor
-- [ ] `Bootstrap` sekiz adım, sırayla; `static` tekil yok
-- [ ] Komut günlüğü: on altı komut türü, 256 sınırı, kesinti testi geçiyor
-- [ ] Şemalar §8'e göre güncellendi; doğrulayıcı yedi kuralı uyguluyor
-- [ ] Altın hash depoda; Android cihazda aynı hash bir kez görüldü ve kaydedildi
-- [x] **C# çekirdek ile `tools/balance/model.py` sekiz haftalık tabloda eşleşiyor.** 10 Eylül 2026. Ayrık alanlar (müşteri, kadro) birebir; para alanları 1 sikke toleransında. 68 test geçiyor
-
-Son madde Faz 0'ın kendisi: bu dosya onu mümkün kılıyor, yerine geçmiyor.
+There is no Mac, the first release is Android. The cross-platform test is done with one Android device. An emulator is not accepted ([20-production-decisions.md](20-production-decisions.md)); it is IL2CPP's real ARM build that is being tested.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## 10. Acceptance criteria: when is Batch B done
 
-1. Servis günü 4.800 tick (8 dakika 1x) doğru uzunluk mu; oynanabilirlik testi söyleyecek
-2. `MaxTicksPerFrame = 5` düşük cihazda yeterli mi; cihaz testi söyleyecek
-3. Roslyn analizörü Faz 1'de mi, daha erken mi
+- [ ] `Simulation.Tick()` takes no parameters; `SimDriver` accumulates, ceiling 5
+- [x] **The `Lokanta.Core` reflection test passes:** no `float`/`double`/`decimal` in fields, properties, signatures or constructors; and no reference to Unity, Newtonsoft or System.Text.Json either
+- [x] **The `Fx` class exists**, and there is no other division or rounding in the core. `MulDiv`, `Bp`, `CeilDiv`, `PowNano`
+- [x] **`Rng` is xoshiro128**, eight streams.** The known value test matches not the C# output but an independent Python implementation (`tools/balance/rng_reference.py`)
+- [ ] A code search test for the prohibition list (§3.3): `System.Random`, `GetHashCode()`, `DateTime.Now`, `Guid.NewGuid` do not appear in the core
+- [x] **The culture test** gives the same result in the tr-TR, en-US, de-DE and ar-SA cultures
+- [ ] Newtonsoft only in `Lokanta.Content`; `link.xml` protects the DTOs
+- [ ] `IStateWriter` has two implementations; every state type has `Write`/`Read`; the new-field checklist is in the PR template
+- [ ] The `SimEvent` ring buffer; no `event` leaves the core
+- [ ] `Bootstrap` has eight steps, in order; no `static` singleton
+- [ ] The command log: sixteen command kinds, the 256 limit, the interruption test passes
+- [ ] The schemas are updated per §8; the validator applies the seven rules
+- [ ] The golden hash is in the repository; the same hash was seen once on an Android device and recorded
+- [x] **The C# core matches `tools/balance/model.py` on the eight-week table.** 10 September 2026. Discrete fields (customers, crew) exactly; money fields within 1 coin. 68 tests pass
+
+The last item is Phase 0 itself: this file makes it possible, it does not replace it.
+
+---
+
+## Details awaiting a decision
+
+1. Is a 4,800-tick service day (8 minutes at 1x) the right length; playability testing will say
+2. Is `MaxTicksPerFrame = 5` enough on a low-end device; device testing will say
+3. Is the Roslyn analyzer a Phase 1 job, or earlier

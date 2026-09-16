@@ -1,140 +1,153 @@
-# 50 — Mutfağın dokusu: duvar, zemin, dışarısı
+# 50 — The kitchen's texture: wall, floor, outside
 
-*15 Eylül 2026.* İstek: *"restoranın genel dokusu ve arka planı, duvarlar vs.
-üzerine çalışalım… internetten tipik bir fast food ve diğer mutfakların arka
-plan görüntüsünü al, bunları bizim oyuna uygula."*
+*15 September 2026.* The request:
+
+> *"restoranın genel dokusu ve arka planı, duvarlar vs. üzerine çalışalım…
+> internetten tipik bir fast food ve diğer mutfakların arka plan görüntüsünü al,
+> bunları bizim oyuna uygula."*
+>
+> *("let's work on the restaurant's general texture and background, the walls and
+> so on… take a typical fast food and other cuisines' background image from the
+> internet and apply them to our game.")*
 
 ---
 
-## 1. İnternetten görsel indirilmedi — ve indirilmemeliydi
+## 1. No image was downloaded from the internet — and none should have been
 
-İki sebep, ikisi de bağlayıcı:
+Two reasons, both binding:
 
-**Lisans.** Kullanıcının kendi kuralı "varlık lisansları ticari yayına izin
-vermeli" ve `tools/check_licenses.py` her varlığı atıf defterinde arıyor.
-Telifli bir fotoğraf oyuna girseydi denetim kırmızı yanardı — doğru olarak.
+**Licence.** The user's own rule is "asset licences must permit commercial
+release" and `tools/check_licenses.py` looks for every asset in the attribution
+ledger. Had a copyrighted photograph entered the game the audit would have gone
+red — correctly.
 
-**Teknik.** Low-poly bir sahnede fotoğraf dokusu yanlış durur: 40 derecelik
-sabit kamerada duvar birkaç yüz piksel ve perspektifi tutmayan bir fotoğraf
-"yapıştırılmış" görünür.
+**Technical.** A photographic texture sits wrong in a low-poly scene: under a
+fixed 40-degree camera the wall is a few hundred pixels and a photograph whose
+perspective does not match looks "pasted on".
 
-Üçüncü ve pratik bir sınır daha var: web aramasından **metin** dönüyor.
-Görüntüyü gözle göremiyorum, dolayısıyla "şu görseli uygula" diyemem.
+There is a third, practical limit as well: a web search returns **text**. I
+cannot see the image with my eyes, so I cannot say "apply this image".
 
-Bunun yerine internet **referans** olarak kullanıldı: o mekânların
-karakteristik malzemeleri araştırıldı, görünüş kendi geometrimizle kuruldu.
+Instead the internet was used as a **reference**: the characteristic materials of
+those places were researched, and the look was built out of our own geometry.
 
-### Araştırmanın verdiği ayrım
+### The distinction the research gave
 
-| | karakteristik yüzey |
+| | characteristic surface |
 |---|---|
-| **Fast food** | dayanıklı ve silinir: paslanmaz çelik, laminat, seramik; nötr zemin üstünde cesur sıcak vurgu |
-| **Esnaf lokantası** | *"ahşap lambri, sade duvar fayansı ve basit dekorasyon"*; rustik — ahşap, taş, metal aksesuar |
+| **Fast food** | durable and wipeable: stainless steel, laminate, ceramic; a bold warm accent over a neutral base |
+| **Tradesman's restaurant** | "wooden wainscot, plain wall tile and simple decoration"; rustic — wood, stone, metal accessories |
 
 ---
 
-## 2. Paletin kimliğine dokunulmadı
+## 2. The palette's identity was not touched
 
-Fast food'un duvarı **koyu** ve bu ilk bakışta araştırmayla çelişiyor (QSR'ler
-açık nötr duvar kullanır). Koda bakınca sebebi çıktı — palet kullanıcının
-kendi getirdiği referans görsellerden türetilmiş:
+Fast food's wall is **dark**, and at first glance that contradicts the research
+(QSRs use light neutral walls). Looking at the code gave the reason — the palette
+was derived from reference images the user brought themselves:
 
-> *"Referansın birinci karesi tam olarak bu: kırmızı tabela, paslanmaz
-> tezgâh, siyah-kırmızı zemin."*
+> The first frame of the reference is exactly this — a red sign, a stainless
+> counter, a black-and-red floor.
 
-Yani bu bilinçli bir karar, modern bir burger dükkânı. **Değiştirilmedi.**
-Araştırma bir tasarım kararını bozmak için değil, eksik olanı tamamlamak için
-kullanıldı.
+So this is a deliberate decision, a modern burger place. **It was not changed.**
+The research was used to complete what was missing, not to break a design
+decision.
 
 ---
 
-## 3. Eksik olan: duvarın yüzeyi
+## 3. What was missing: the surface of the wall
 
-Duvar tek düz kutuydu — gövde + süpürgelik + korniş. İki mutfak **aynı
-duvarı farklı renkte** gösteriyordu, yani "başka bir yere girdim" hissinin
-yarısı eksikti.
+The wall was a single flat box — body + skirting + cornice. The two cuisines
+showed **the same wall in a different colour**, so half of the "I have walked
+into somewhere else" feeling was missing.
 
-| | Türk lokantası | Fast food |
+| | Turkish restaurant | Fast food |
 |---|---|---|
-| yüzey | **ahşap lambri** 1,05 m | panel + çelik bant 1,15 m |
-| üst kuşak | bakır | paslanmaz |
-| düşey derz | 0,85 m (tahta) | 1,15 m (levha) |
+| surface | **wooden wainscot** 1.05 m | panel + steel strip 1.15 m |
+| upper band | copper | stainless |
+| vertical joint | 0.85 m (board) | 1.15 m (sheet) |
 
-Lambri yüksekliği keyfî değil: **oturan kişinin sırtı o hizada.** Lambri
-gerçek hayatta da sandalye yüksekliğini korumak için var, süs değil.
+The wainscot height is not arbitrary: **a seated person's back is at that
+line.** Wainscot exists in real life to protect chair height too; it is not
+decoration.
 
-Hepsi `Modeler` kutusu — yeni varlık yok, indirilen doku yok, atıf defterine
-eklenen bir şey yok.
+All of it is `Modeler` boxes — no new asset, no downloaded texture, nothing added
+to the attribution ledger.
 
-## 4. Dışarısı da mutfağa ait oldu
+## 4. The outside came to belong to the cuisine too
 
-Arka plan gökyüzü yerine geçiyor ([19](19-technical-setup.md) doldurma
-bütçesi) ve **iki mutfakta birebir aynıydı** — yani ayrım salonun dört
-duvarında bitiyordu.
+The background stands in for the sky ([19](19-technical-setup.md)'s fill budget)
+and was **identical in both cuisines** — so the distinction stopped at the hall's
+four walls.
 
-Artık mutfağın tonu karışıyor: fast food soğuk ve şehirli, Türk sıcak.
-Ölçüldü, göz kararı değil:
+Now the cuisine's tone bleeds into it: fast food cold and urban, Turkish warm.
+Measured, not eyeballed:
 
 ```
-Turk: (93,123,157) -> (116,130,144)     mavi dustu, kirmizi cikti
+Turk: (93,123,157) -> (116,130,144)     blue fell, red rose
 ```
 
-**Gece dokunulmadı.** Gecenin neredeyse siyah olması, "açık bir lokanta"
-görüntüsünün karşıtlığını taşıyan şey; onu ton yüzünden aydınlatmak bütün
-geceyi bozardı.
+**Night was not touched.** Night being almost black is what carries the contrast
+of the "an open restaurant" image; lighting it up for the sake of a tone would
+have ruined the whole night.
 
 ---
 
-## 5. Tur mutfağı sabit seçiyordu
+## 5. The tour was picking a fixed cuisine
 
-`Autopilot` mutfak seçim ekranında **her zaman 1'e** basıyordu (Türk). Yani
-fast food'un duvarı, paleti, zemin deseni, dışarısının rengi — ve **kombo
-düğmesi** — turun hiç görmediği şeylerdi.
+`Autopilot` always pressed **1** on the cuisine selection screen (Turkish). So
+fast food's wall, palette, floor pattern, the colour of its outside — and the
+**combo button** — were things the tour never saw.
 
-`-Mutfak fastfood` bayrağı eklendi (varsayılan `turk`, yani mevcut koşular
-birebir aynı kalıyor). İlk fast food koşusu anında kırmızı yaktı:
+A `-Cuisine fastfood` flag was added (default `turk`, so existing runs stay
+identical). The first fast food run went red immediately:
 
 ```
-HATA: kirpilan yazi (gun 40): 2 - Hızlandır | Kombo kapalı
+FAIL : clipped text (day 40): 2 - Hızlandır | Kombo kapalı
 ```
+
+("Hızlandır" = "Speed up", "Kombo kapalı" = "Combo off".)
 
 ---
 
-## 6. Kırpılma ölçümü: üç deneme, bir ders
+## 6. The clipping measurement: three attempts, one lesson
 
-Kareye bakınca "Kombo kapalı" **iki satıra sarmış ve eksiksiz okunuyordu**.
-Yani hata oyunda değil, kontrolün kendisindeydi.
+Looking at the frame, "Kombo kapalı" **had wrapped to two lines and was fully
+readable**. So the fault was not in the game, it was in the check itself.
 
-| deneme | sonuç |
+| attempt | result |
 |---|---|
-| "saran etiketi yükseklikle ölç" | 1 → **7** yanlış alarm |
-| "iki satıra sardıysa muaf" | 7 → 1 |
-| **"yalnızca gerçekten kırpan kutuyu ölç"** | 0 |
+| "measure the wrapping label by height" | 1 → **7** false alarms |
+| "exempt it if it wrapped to two lines" | 7 → 1 |
+| **"only measure a box that really clips"** | 0 |
 
-Birinci deneme neden ters tepti: UI Toolkit'te sarma **varsayılan olarak
-açık**, yani bütün etiketler yeni dala düştü ve "×4", "8.000 ¤" gibi apaçık
-sığan yazılar kırmızı yandı.
+Why the first attempt backfired: in UI Toolkit wrapping is **on by default**, so
+every label fell into the new branch and obviously-fitting texts like "×4" and
+"8.000 ¤" went red.
 
-Üçüncüde yamamayı bırakıp asıl soruyu sordum ve cevap şuydu: **UI Toolkit'te
-`overflow` varsayılanı görünür** — yazı kutusunu aşsa bile çizilir, kesilmez.
-Bütün arayüzde `Overflow.Hidden` yalnızca iki yerde var (bir simge kutusu, bir
-ilerleme çubuğu) ve hiçbir yazı etiketinde yok.
+On the third I stopped patching and asked the real question, and the answer was:
+**in UI Toolkit the `overflow` default is visible** — the text is drawn even if
+it overruns the box, it is not cut. Across the whole interface `Overflow.Hidden`
+appears in only two places (an icon box and a progress bar) and on no text label
+at all.
 
-Yani ölçüm, bu arayüzde **var olmayan bir hata biçimini** arıyordu ve
-yalnızca yanlış alarm üretebilirdi. Türkçe etiketler tesadüfen dar kutulara
-sığdığı için yıllarca patlamadı.
+So the measurement was looking for **a form of bug that does not exist** in this
+interface, and could only produce false alarms. It never went off for years
+because the Turkish labels happened to fit their narrow boxes.
 
-Kontrol artık yalnızca gerçekten kırpan bir kutunun içini ölçüyor: bugün
-sessiz, ama biri bir yazı kabına `Overflow.Hidden` koyduğu gün konuşur. Asıl
-koruma zaten iki komşu ölçümde — **üst üste binen düğme** (Türk mutfağındaki
-gerçek hatayı o yakalamıştı) ve ekranın dışına taşan öge.
+The check now only measures the inside of a box that really clips: silent today,
+but it will speak on the day somebody puts `Overflow.Hidden` on a text
+container. The real protection is already in two neighbouring measurements —
+**overlapping buttons** (that one caught the real bug in the Turkish cuisine) and
+an element spilling off the screen.
 
-*Bir kontrolü üç kez yamamak, onun neyi ölçtüğünü hiç sormamış olmanın
-bedelidir.*
+*Patching a check three times is the price of never having asked what it
+measures.*
 
-### Yeşil bir özet yeterli değil
+### A green summary is not enough
 
-Ara koşulardan biri "140 geçti, 0 kaldı" dedi ve **hiçbir şey kanıtlamıyordu**:
-fast food derlenememişti (`IResolvedStyle`'da `overflow` yok) ve Türk koşusu
-`-SkipBuild` ile **eski ikiliyi** çalıştırmıştı. Özetin sonuna değil, çıktının
-başındaki derleme satırına bakmak kurtardı.
+One of the intermediate runs said "140 passed, 0 failed" and **proved nothing**:
+fast food had failed to compile (`IResolvedStyle` has no `overflow`) and the
+Turkish run had executed **the old binary** with `-SkipBuild`. What saved it was
+looking at the build line at the top of the output, not at the end of the
+summary.

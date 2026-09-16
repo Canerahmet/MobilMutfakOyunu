@@ -1,4 +1,4 @@
-﻿using Lokanta.Core;
+using Lokanta.Core;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 using Lokanta.Core.Sim;
@@ -8,11 +8,11 @@ using UnityEngine.UIElements;
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// Icinde kaydirilabilir bir liste olan tam ekran panel.
+    /// A full-screen panel with a scrollable list inside it.
     ///
-    /// Ortak taban, cunku dort sabah ekrani da ayni sekilde: baslik,
-    /// liste, altta kapat. Her birinde ayri yazmak, dordunun zamanla
-    /// birbirinden ayrismasi demek.
+    /// A shared base, because all four morning screens are the same shape:
+    /// heading, list, close at the bottom. Writing it out in each of them
+    /// means the four drift apart from one another over time.
     /// </summary>
     public abstract class ListScreen : UiScreen
     {
@@ -27,22 +27,23 @@ namespace Lokanta.Game.Ui
             outer.style.backgroundColor = new Color(Theme.Bg.r, Theme.Bg.g, Theme.Bg.b, 0.97f);
             outer.style.alignItems = Align.Center;
 
-            // Okunur genislik siniri. 1280 genisliginde bir telefonda
-            // ekrani bastan basa kaplayan bir satirda goz, sol bastaki
-            // etiketten sag bastaki degere gidemiyor.
+            // The readable width limit. On a phone 1280 wide, in a row that
+            // runs right across the screen, the eye cannot travel from the
+            // label at the far left to the value at the far right.
             VisualElement root = new VisualElement();
             root.style.flexGrow = 1;
             root.style.width = Length.Percent(100);
             root.style.maxWidth = Theme.ReadWidth;
 
-            // --- baslik -------------------------------------------------------
-            // Baslik ve alt satir EZILMEZ. Kaydirilabilir liste butun
-            // bos alani aliyor ve varsayilan flex-shrink 1 ile baslik
-            // ekranin disina tasiniyordu: ilk masaustu yapisinda "Hal"
-            // basligi hic gorunmuyor, alt satiri da yariya kesiliyordu.
-            // Seritlerin ZEMINI var. Saydam birakildiginda kaydirilan
-            // liste onlarin altindan gorunuyor ve "Tamam" dugmesinin
-            // etrafinda yarim kalmis kartlar okunuyordu.
+            // --- the heading --------------------------------------------------
+            // The heading and its second line ARE NOT SQUASHED. The
+            // scrollable list takes all the free space and, with the default
+            // flex-shrink of 1, it was pushing the heading off the screen: in
+            // the first desktop build the "Market" heading did not appear at
+            // all and its second line was cut in half.
+            // The strips HAVE A BACKGROUND. Left transparent, the scrolling
+            // list showed through them and half-finished cards could be read
+            // around the "OK" button.
             VisualElement head = new VisualElement();
             head.style.flexShrink = 0;
             head.style.backgroundColor = Theme.Bg;
@@ -55,17 +56,16 @@ namespace Lokanta.Game.Ui
                 head.Add(Theme.Text(Subtitle, Theme.FontSmall, Theme.InkDim));
             root.Add(head);
 
-            // --- liste --------------------------------------------------------
+            // --- the list -----------------------------------------------------
             ScrollView scroll = Theme.Mobile(new ScrollView(ScrollViewMode.Vertical));
             scroll.style.flexGrow = 1;
 
-            // minHeight SIFIR olmali.
+            // minHeight has to be ZERO.
             //
-            // Esnek yerlesimde bir ogenin en az yuksekligi varsayilan
-            // olarak ICERIGI kadardir; yani uzun bir listeyi tasiyan
-            // kaydirma alani kuculmeyi REDDEDIYOR. Sonuc: alan alt
-            // seridin altina tasiyor ve kartlar alt dugmenin arkasindan
-            // devam ediyordu.
+            // In a flex layout an element's minimum height defaults to ITS
+            // CONTENT; that is, a scroll area carrying a long list REFUSES to
+            // get smaller. The result: the area spilled below the bottom
+            // strip and the cards carried on behind the bottom button.
             scroll.style.minHeight = 0;
 
             scroll.style.paddingLeft = Theme.Pad;
@@ -74,16 +74,16 @@ namespace Lokanta.Game.Ui
             VisualElement list = Theme.Column(Theme.Gap);
             list.style.flexShrink = 0;
 
-            // ALT DOLGU: son kart, sabit alt seridin arkasinda kalmasin.
-            // Kaydirma sonuna gelindiginde son kartin dugmesi cubugun
-            // altinda kaliyordu ve basilamiyordu.
+            // BOTTOM PADDING: so the last card does not end up behind the
+            // fixed bottom strip. At the end of the scroll the last card's
+            // button sat under the bar and could not be pressed.
             list.style.paddingBottom = Theme.Touch + Theme.Pad;
 
             Fill(list);
             scroll.Add(list);
             root.Add(scroll);
 
-            // --- alt ----------------------------------------------------------
+            // --- the foot -----------------------------------------------------
             VisualElement foot = new VisualElement();
             foot.style.flexShrink = 0;
             foot.style.backgroundColor = Theme.Bg;
@@ -91,10 +91,10 @@ namespace Lokanta.Game.Ui
             foot.style.paddingRight = Theme.Pad;
             foot.style.paddingTop = Theme.Gap;
             foot.style.paddingBottom = Theme.Pad;
-            // "TAMAM" VURGULU DEGIL. Bir ekrani kapatmak tavsiye
-            // edilen eylem degil - oyuncu zaten oraya bir sey yapmaya
-            // geldi. Vurgulu olunca alisveris ekranindaki en gurultulu
-            // dugme, ekrani KAPATAN dugme oluyordu.
+            // "OK" IS NOT THE PRIMARY. Closing a screen is not the
+            // recommended action - the player came here to do something.
+            // Made primary, the loudest button on the shopping screen was
+            // the one that CLOSES it.
             foot.Add(Theme.Btn(Loc.T("ui.common.ok"), () => Ui.Pop(), wide: true));
             root.Add(foot);
 
@@ -104,12 +104,13 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Hal. docs/12 3: "ucuz gune denk gelmek sans degil, TAKIP meselesi."
+    /// The market. docs/12 §3: "catching a cheap day is not luck, it is a
+    /// matter of KEEPING TRACK."
     ///
-    /// O yuzden ekranin isi FIYATI KARSILASTIRMAK: bugunku fiyatin yil
-    /// ortalamasina gore nerede durdugu, ve malzemenin dayanip
-    /// dayanmadigi. Ucuz bir gun, saklayabiliyorsan firsat; saklayamiyorsan
-    /// yalnizca bir gider oynamasi.
+    /// So the screen's job is to COMPARE THE PRICE: where today's price
+    /// sits against the year's average, and whether the ingredient keeps.
+    /// A cheap day is an opportunity if you can store it; if you cannot, it
+    /// is only a wobble in your costs.
     /// </summary>
     public sealed class MarketScreen : ListScreen
     {
@@ -130,18 +131,22 @@ namespace Lokanta.Game.Ui
         {
             Simulation sim = App.Sim;
 
-            // MALZEME KALITESI - MEKANIK KODDAYDI, OYUNDA YOKTU.
+            // INGREDIENT QUALITY - THE MECHANIC WAS IN THE CODE AND NOT IN
+            // THE GAME.
             //
-            // `CommandKind.SetQuality` cekirdekte eksiksiz yaziliydi,
-            // denge botu onu olcuyordu (`ucuz_malzeme`), testleri vardi -
-            // ve HICBIR EKRANDA dugmesi yoktu. Yani uc kademeli, itibara
-            // mal olan bir karar ekseni oyuncuya kapaliydi. Veresiye
-            // tahsilati da tipatip ayni sekilde bulunmustu (docs/45).
+            // `CommandKind.SetQuality` was written out in full in the core,
+            // the balance bot measured it with a cheap-ingredients strategy
+            // and it had tests - and there was no button for it ON ANY
+            // SCREEN. So a three-step decision axis that costs reputation
+            // was closed to the player.
+            // Tab collection had been found in exactly the same way
+            // (docs/45).
             //
-            // BURADA duruyor cunku secim bu ekranin KENDISINI degistiriyor:
-            // `IngredientPriceToday` zaten `_quality` ile hesapliyor, yani
-            // kademeye basinca asagidaki butun fiyatlar aninda oynuyor.
-            // Sonucu baska bir ekranda anlatmak gerekmiyor - goruluyor.
+            // It lives HERE because the choice changes THIS SCREEN itself:
+            // `IngredientPriceToday` already computes with `_quality`, so
+            // pressing a step moves every price below it immediately. There
+            // is no need to explain the effect on another screen - it is
+            // seen.
             list.Add(QualityPicker(sim));
 
             list.Add(Theme.Btn(Loc.T("ui.morning.restock"), () =>
@@ -152,9 +157,9 @@ namespace Lokanta.Game.Ui
 
             for (int i = 0; i < sim.IngredientCount; i++)
             {
-                // Yalnizca BU MUTFAKTA kullanilan ve bugun anlamli olan
-                // malzemeler. Yetmis yedi satir, kirk dokunusluk bir gunde
-                // okunamaz (docs/16).
+                // Only the ingredients used IN THIS CUISINE that mean
+                // something today. Seventy-seven rows cannot be read in a
+                // forty-tap day (docs/16).
                 int need = sim.RecommendedRestock(i);
                 int stock = sim.StockOf(i);
                 if (need <= 0 && stock <= 0) continue;
@@ -164,12 +169,13 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Kalite kademesinin metin anahtari.
+        /// The text key for a quality step.
         ///
-        /// Anahtar DUZ YAZILIYOR ("ui.quality." + q degil): metin ureteci
-        /// ekranlari tarayip kullanilmayan metni reddediyor ve hesaplanan
-        /// bir anahtari goremiyor. Ayni kural nisanlarda da var
-        /// (Badges.NameKey). Yan faydasi: grep eden insan da buluyor.
+        /// The key is WRITTEN OUT IN FULL (not "ui.quality." + q): the text
+        /// generator scans the screens and rejects any text that is not
+        /// used, and it cannot see a computed key. The same rule applies to
+        /// the accolades (Badges.NameKey). A side benefit: someone grepping
+        /// finds it too.
         /// </summary>
         private static string QualityKey(int q)
         {
@@ -182,46 +188,48 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Uc kademeli malzeme kalitesi.
+        /// Three-step ingredient quality.
         ///
-        /// Etki IKI TARAFLI ve ikisi de gosteriliyor:
-        ///   fiyat  - asagidaki butun kartlarda aninda goruluyor
-        ///   memnuniyet - gorunmez, o yuzden BURADA yaziliyor
+        /// The effect works BOTH WAYS and both are shown:
+        ///   price        - seen immediately on every card below
+        ///   satisfaction - invisible, so it is written out HERE
         ///
-        /// Memnuniyet sayisi UYDURULMUYOR: malzeme basina etki uc ayri
-        /// kaliba ayriliyor (ucuzda -5,0 / pahalida -20,0) ve tek bir
-        /// ortalama vermek yaniltirdi. Onun yerine OYUNCUNUN MENUSUNDEKI
-        /// yemeklerin gercek etkisi hesaplaniyor - simulasyonun kendi
-        /// `DishQualityCentiOf` olcusuyle, yani ekranin yazdigi sayi
-        /// servisin kullandigi sayinin ta kendisi.
+        /// The satisfaction number is NOT MADE UP: the per-ingredient effect
+        /// splits into three separate moulds (-5.0 on cheap, -20.0 on
+        /// expensive) and a single average would mislead. Instead the real
+        /// effect on the dishes ON THE PLAYER'S MENU is computed - with the
+        /// simulation's own `DishQualityCentiOf` measure, so the number the
+        /// screen writes is the very number the service uses.
         /// </summary>
         private VisualElement QualityPicker(Simulation sim)
         {
-            // KART DAR TUTULUYOR.
+            // THE CARD IS KEPT NARROW.
             //
-            // Ilk hali `Theme.Head` ile buyuk baslik kullaniyordu ve
-            // magaza goruntusunde olculdu: kart ekranin ucte birinden
-            // fazlasini yiyip MALZEME LISTESINI ekranin altina itiyordu -
-            // yani hal ekraninin asil icerigi acilista hic gorunmuyordu.
-            // Kalite bir baslik degil bir ayar; boyutu da oyle olmali.
-            // PANEL YOK, ETIKET SATIRIN ICINDE.
+            // The first version used a large heading via `Theme.Head` and it
+            // was measured in a store screenshot: the card ate more than a
+            // third of the screen and pushed THE INGREDIENT LIST below the
+            // fold - so the market screen's actual content was not visible at
+            // all when it opened. Quality is not a heading, it is a setting;
+            // its size should say so.
+            // NO PANEL, THE LABEL SITS INSIDE THE ROW.
             //
-            // Iki kez olculdu: once buyuk baslikli bir panel ekranin
-            // ucte birinden fazlasini yiyordu, sonra kucultulmus haliyle
-            // bile MALZEME LISTESI ekranin altinda kaliyordu. Hal
-            // ekranini acan kisinin ilk gordugu sey HAL olmali - iki
-            // kontrol degil.
+            // Measured twice: first a panel with a large heading ate more
+            // than a third of the screen, then even in its reduced form THE
+            // INGREDIENT LIST stayed below the fold. The first thing someone
+            // opening the market screen sees should be THE MARKET - not two
+            // controls.
             //
-            // Kalite sik degisen bir sey degil; yer kaplamasi da oyle.
+            // Quality is not something that changes often; the room it takes
+            // should match.
             VisualElement card = Theme.Column(2);
 
             VisualElement row = Theme.Row(Theme.Gap);
             row.style.alignItems = Align.Center;
-            Label etiket = Theme.Text(Loc.T("ui.morning.quality"), Theme.FontSmall,
-                                      Theme.InkDim);
-            etiket.style.minWidth = 96;
-            etiket.style.flexShrink = 0;
-            row.Add(etiket);
+            Label label = Theme.Text(Loc.T("ui.morning.quality"), Theme.FontSmall,
+                                     Theme.InkDim);
+            label.style.minWidth = 96;
+            label.style.flexShrink = 0;
+            row.Add(label);
             for (int q = 0; q < Simulation.QualityCount; q++)
             {
                 int level = q;
@@ -237,34 +245,34 @@ namespace Lokanta.Game.Ui
             }
             card.Add(row);
 
-            // MENUYE ETKISI, santi-puan ortalamasi.
-            int toplam = 0, adet = 0;
+            // The effect on the menu, as an average in centi-points.
+            int total = 0, count = 0;
             for (int d = 0; d < sim.DishCount; d++)
             {
                 if (!sim.IsOnMenu(d) || !sim.IsUnlocked(d)) continue;
-                toplam += sim.DishQualityCentiOf(d);
-                adet++;
+                total += sim.DishQualityCentiOf(d);
+                count++;
             }
-            int ort = adet > 0 ? toplam / adet : 0;
+            int mean = count > 0 ? total / count : 0;
 
-            // METIN UC DURUMU AYIRIYOR.
+            // THE TEXT SEPARATES THREE STATES.
             //
-            // Ilk hali ikisini karistiriyordu: standart kademede etki
-            // sifir oldugu icin "Menu bos - etkisi yok" yaziyordu ve
-            // menu bos DEGILDI. Ekran, oyuncuya olmayan bir sey
-            // soyluyordu. Bos menu (adet == 0) ile sifir etki (standart
-            // kademe) ayri seyler.
-            if (adet == 0)
+            // The first version confused two of them: because the effect is
+            // zero on the standard step it said "Menu empty - no effect" and
+            // the menu WAS NOT empty. The screen was telling the player
+            // something that was not so. An empty menu (count == 0) and a
+            // zero effect (the standard step) are different things.
+            if (count == 0)
                 card.Add(Theme.Text(Loc.T("ui.morning.quality_none"),
                                     Theme.FontSmall, Theme.InkFaint));
-            else if (ort != 0)
+            else if (mean != 0)
                 card.Add(Theme.Text(
-                    Loc.T(ort > 0 ? "ui.morning.quality_up"
-                                  : "ui.morning.quality_down",
-                          Loc.Reputation(ort < 0 ? -ort : ort)),
-                    Theme.FontSmall, ort > 0 ? Theme.Good : Theme.Bad));
-            // Standart kademede satir hic yok: olcut odur, soylenecek
-            // bir fark yoktur.
+                    Loc.T(mean > 0 ? "ui.morning.quality_up"
+                                   : "ui.morning.quality_down",
+                          Loc.Reputation(mean < 0 ? -mean : mean)),
+                    Theme.FontSmall, mean > 0 ? Theme.Good : Theme.Bad));
+            // On the standard step there is no row at all: that is the
+            // benchmark, so there is no difference to report.
             return card;
         }
 
@@ -291,13 +299,14 @@ namespace Lokanta.Game.Ui
             head.Add(Theme.Text(tag, Theme.FontSmall, tagColor));
             card.Add(head);
 
-            // Fiyat, yil ortalamasina gore FARK olarak: mutlak iki sayi
-            // ayni karsilastirmayi iki kez anlatiyordu ve kart uzuyordu.
+            // The price as a DIFFERENCE against the year's average: two
+            // absolute numbers told the same comparison twice and made the
+            // card longer.
             VisualElement facts = Theme.Row(Theme.Pad);
             facts.style.justifyContent = Justify.SpaceBetween;
             facts.Add(Theme.Text(Loc.Money(today) + " / kg", Theme.FontBody, Theme.Ink));
-            // "Yil ortalamasi +%9" CUMLE DEGILDI: ortalamanin kendisi
-            // %9'mus gibi okunuyordu. Simdi ne oldugunu soyluyor.
+            // "Year average +9%" WAS NOT A SENTENCE: it read as though the
+            // average itself were 9%. Now it says what it is.
             int diffPct = (bp - 10000) / 100;
             facts.Add(Theme.Text(
                 diffPct == 0
@@ -310,8 +319,8 @@ namespace Lokanta.Game.Ui
                                  Theme.FontSmall, Theme.InkDim));
             card.Add(facts);
 
-            // Raf omru uc durum: hic bozulmayan (tuz, un, yag), soguk
-            // havayla gun sayisi, ve gece biten.
+            // Shelf life has three states: never spoils (salt, flour, oil),
+            // a number of days with cold storage, and gone by morning.
             if (!sim.IsPerishable(i))
             {
                 facts.Add(Theme.Text(Loc.T("ui.morning.never_spoils"),
@@ -326,17 +335,18 @@ namespace Lokanta.Game.Ui
                     Theme.FontSmall, keeps ? Theme.Good : Theme.Warn));
             }
 
-            // --- MIKTAR KARARI -------------------------------------------
+            // --- THE QUANTITY DECISION -----------------------------------
             //
-            // Once tek bir dugme vardi ve tam olarak "onerilen" kadar
-            // aliyordu. Yani "bugun ucuz" etiketi cikinca oyuncu HICBIR SEY
-            // yapamiyordu: fazladan alamiyor, saklayamiyordu. Ayni sebeple
-            // soguk hava deposu yukseltmesinin de karsiligi yoktu - daha
-            // uzun saklayacak fazla mali alamiyorsun.
+            // There used to be a single button and it bought exactly the
+            // "recommended" amount. So when the "cheap today" tag appeared
+            // the player could do NOTHING with it: they could not buy extra
+            // and they could not store it. For the same reason the cold
+            // store upgrade had no payoff either - there is no extra stock
+            // to keep longer.
             //
-            // Simdi gun cinsinden aliniyor ve tavani soguk hava kademesi
-            // belirliyor: bozulmayanda uc gun, bozulabilende sakladigi
-            // kadar.
+            // Now it is bought in days, and the ceiling is set by the cold
+            // storage tier: three days for what does not spoil, as many as
+            // it keeps for what does.
             int daily = sim.DailyNeed(i);
             int maxDays = sim.MaxUsefulDays(i);
 
@@ -350,18 +360,18 @@ namespace Lokanta.Game.Ui
 
                     long cost = Fx.MulDiv(today, want, 1000);
 
-                    // BIR SIKKENIN ALTI DUGME OLMAZ.
+                    // UNDER ONE COIN IS NOT A BUTTON.
                     //
-                    // Stok neredeyse doluyken kalan ihtiyac birkac grama
-                    // iniyor: tuzda uc gunluk eksik 2 gram, yani 2 santi.
-                    // Ekranda "3 gunluk - 0 [sikke]" yazan bir dugme
-                    // kaliyordu - bedava gorunuyor, basinca hicbir sey
-                    // degismiyor. Esik "sifir" degil "BIR SIKKE" olmali,
-                    // cunku arayuz sikke gosteriyor ve 99 santi de 0
-                    // yaziyor.
+                    // With the stock nearly full the remaining need drops to
+                    // a few grams: for salt the three-day shortfall is 2
+                    // grams, that is 2 centi. What was left on screen was a
+                    // button reading "3 days - 0 [coin]" - it looks free and
+                    // pressing it changes nothing. The threshold has to be
+                    // "ONE COIN" rather than "zero", because the interface
+                    // shows coins and writes 99 centi as 0 as well.
                     //
-                    // Bu kalemler kaybolmuyor: "Onerilen stogu al"
-                    // hepsini birden aliyor.
+                    // These items are not lost: "Buy the recommended stock"
+                    // takes all of them at once.
                     if (cost < 100) continue;
                     int amount = want;
                     Button b = Theme.Btn(
@@ -387,11 +397,12 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Menu tahtasi.
+    /// The menu board.
     ///
-    /// Iki karar var ve ikisi de gorunur olmali: hangi yemek MENUDE, ve
-    /// kilitli olanlar NEDEN kilitli. Kilidi sebepsiz gostermek, oyuncuya
-    /// "bir sey eksik" deyip ne oldugunu soylememek olur.
+    /// There are two decisions and both have to be visible: which dish is
+    /// ON THE MENU, and WHY the locked ones are locked. Showing a lock with
+    /// no reason is telling the player "something is missing" and not
+    /// saying what.
     /// </summary>
     public sealed class MenuBoardScreen : ListScreen
     {
@@ -401,83 +412,83 @@ namespace Lokanta.Game.Ui
             get { return Loc.T("ui.menu.subtitle"); }
         }
 
-        /// <summary>Su an acilmis yemek. -1: hicbiri.</summary>
+        /// <summary>The dish currently opened out. -1: none of them.</summary>
         private int _open = -1;
 
-        /// <summary>Kilitli liste acik mi.</summary>
+        /// <summary>Is the locked list expanded.</summary>
         private bool _showLocked;
 
         /// <summary>
-        /// Liste SIRALI ve SIKISTIRILMIS.
+        /// The list is ORDERED and COMPRESSED.
         ///
-        /// Olculdu (873x393 gercek telefon penceresinde alinan tur
-        /// goruntusu): ekranda TEK yemek karti goruunuyordu, otuz iki
-        /// yemeklik bir listede. Ustelik liste ham icerik sirasindaydi;
-        /// oyuncu birinci gun ekrani actiginda bir acik yemek ve hemen
-        /// altinda ART ARDA ALTI KILITLI satir goruyordu - "bu oyunun
-        /// %90'i kilitli" diyen bir ekran.
+        /// Measured (a tour screenshot taken in a real 873x393 phone
+        /// window): ONE dish card was visible on screen, in a list of
+        /// thirty-two dishes. And the list was in raw content order; opening
+        /// the screen on day one the player saw one available dish and,
+        /// directly beneath it, SIX LOCKED ROWS IN A ROW - a screen that
+        /// says "90% of this game is locked".
         ///
-        /// Uc degisiklik, sifir yeni mekanik:
-        ///   1. SIRA: menude olanlar, sonra acik olanlar, sonra yakinda
-        ///      acilacak IKI tane, sonra kilitliler katlanmis.
-        ///   2. SIKISTIRMA: yalnizca DOKUNULAN yemek kart olarak
-        ///      aciliyor; digerleri tek satir. Boylece ekrana bir yemek
-        ///      yerine yedi sekiz yemek giriyor.
-        ///   3. BASLIK: her bolumun ustunde ne oldugu yaziyor.
+        /// Three changes, no new mechanic:
+        ///   1. ORDER: what is on the menu, then what is available, then the
+        ///      TWO that open soonest, then the locked ones folded away.
+        ///   2. COMPRESSION: only the dish being TOUCHED opens as a card;
+        ///      the rest are single rows. That puts seven or eight dishes on
+        ///      the screen instead of one.
+        ///   3. HEADINGS: each section says what it is.
         /// </summary>
         protected override void Fill(VisualElement list)
         {
             Simulation sim = App.Sim;
 
-            var menude = new System.Collections.Generic.List<int>();
-            var acik = new System.Collections.Generic.List<int>();
-            var kilitli = new System.Collections.Generic.List<int>();
+            var onMenu = new System.Collections.Generic.List<int>();
+            var available = new System.Collections.Generic.List<int>();
+            var locked = new System.Collections.Generic.List<int>();
 
             for (int i = 0; i < sim.DishCount; i++)
             {
-                if (!sim.IsUnlocked(i)) kilitli.Add(i);
-                else if (sim.IsOnMenu(i)) menude.Add(i);
-                else acik.Add(i);
+                if (!sim.IsUnlocked(i)) locked.Add(i);
+                else if (sim.IsOnMenu(i)) onMenu.Add(i);
+                else available.Add(i);
             }
 
-            // Kilitliler ACILIS GUNUNE gore: "yakinda" gercekten yakin
-            // olani gostersin.
-            kilitli.Sort((a, b) => App.Content.Dishes[a].UnlockDay
-                                     .CompareTo(App.Content.Dishes[b].UnlockDay));
+            // The locked ones go by THE DAY THEY OPEN: let "soon" show what
+            // is really soon.
+            locked.Sort((a, b) => App.Content.Dishes[a].UnlockDay
+                                    .CompareTo(App.Content.Dishes[b].UnlockDay));
 
-            if (menude.Count > 0)
+            if (onMenu.Count > 0)
             {
-                list.Add(Heading(Loc.T("ui.menu.group_on") + " (" + menude.Count + ")"));
-                foreach (int i in menude) list.Add(Row(i));
+                list.Add(Heading(Loc.T("ui.menu.group_on") + " (" + onMenu.Count + ")"));
+                foreach (int i in onMenu) list.Add(Row(i));
             }
-            if (acik.Count > 0)
+            if (available.Count > 0)
             {
-                list.Add(Heading(Loc.T("ui.menu.group_open") + " (" + acik.Count + ")"));
-                foreach (int i in acik) list.Add(Row(i));
+                list.Add(Heading(Loc.T("ui.menu.group_open") + " (" + available.Count + ")"));
+                foreach (int i in available) list.Add(Row(i));
             }
 
-            int yakin = kilitli.Count < 2 ? kilitli.Count : 2;
-            if (yakin > 0)
+            int soon = locked.Count < 2 ? locked.Count : 2;
+            if (soon > 0)
             {
                 list.Add(Heading(Loc.T("ui.menu.group_soon")));
-                for (int k = 0; k < yakin; k++) list.Add(Row(kilitli[k]));
+                for (int k = 0; k < soon; k++) list.Add(Row(locked[k]));
             }
 
-            int kalan = kilitli.Count - yakin;
-            if (kalan > 0)
+            int rest = locked.Count - soon;
+            if (rest > 0)
             {
                 Button more = Theme.Btn(
-                    Loc.T("ui.menu.group_locked") + " (" + kalan + ")"
-                    // Ok isareti DEGIL yazi: yazi tipi kapsama
-                    // denetimi U+25BE'yi yakaladi - paketin yazi tipinde
-                    // o glif yok ve kutu olarak cizilirdi.
-                    + (_showLocked ? "  gizle" : "  goster"),
+                    Loc.T("ui.menu.group_locked") + " (" + rest + ")"
+                    // A word, NOT an arrow glyph: the font coverage check
+                    // caught U+25BE - the shipped font does not have that
+                    // glyph and it would be drawn as a box.
+                    + (_showLocked ? "  hide" : "  show"),
                     () => { _showLocked = !_showLocked; Ui.Refresh(); });
                 more.style.marginTop = Theme.Gap;
                 list.Add(more);
 
                 if (_showLocked)
-                    for (int k = yakin; k < kilitli.Count; k++) list.Add(Row(kilitli[k]));
+                    for (int k = soon; k < locked.Count; k++) list.Add(Row(locked[k]));
             }
         }
 
@@ -491,24 +502,25 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Kapali yemek satiri: ad, fiyat, durum. Dokununca aciliyor.
+        /// A collapsed dish row: name, price, state. Touching it opens it
+        /// out.
         ///
-        /// Kart 150 dp; bu satir 40 dp. Ayni ekrana bir yemek yerine
-        /// yedi sekiz yemek giriyor ve oyuncu menusunu BIR BAKISTA
-        /// goruyor - menu ekraninin butun isi bu.
+        /// The card is 150 dp; this row is 40 dp. Seven or eight dishes fit
+        /// on the same screen instead of one and the player sees their menu
+        /// AT A GLANCE - which is the menu screen's entire job.
         /// </summary>
         private VisualElement CompactRow(int i)
         {
             Simulation sim = App.Sim;
             DishDef d = App.Content.Dishes[i];
 
-            // SATIRIN KENDISI DUGME.
+            // THE ROW ITSELF IS THE BUTTON.
             //
-            // Ayri bir "ac" dugmesi koymak satiri 64 dp yapiyordu
-            // (dokunma hedefi icin dugme yuksekligi 52) ve 219 dp'lik
-            // gorunur alana yalnizca uc satir giriyordu. Satirin
-            // tamami dokunulabilir olunca hem satir 44 dp'ye iniyor hem
-            // de dokunma hedefi BUYUYOR - 873 dp genisliginde bir serit.
+            // Putting a separate "open" button on it made the row 64 dp (a
+            // button is 52 tall for the touch target) and only three rows fit
+            // the 219 dp visible area. With the whole row touchable the row
+            // comes down to 44 dp AND the touch target GROWS - a strip 873 dp
+            // wide.
             Button row = new Button(() => { _open = i; Ui.Refresh(); });
             row.text = string.Empty;
             row.style.flexDirection = Theme.RowFlow;
@@ -551,16 +563,17 @@ namespace Lokanta.Game.Ui
             DishDef d = App.Content.Dishes[i];
             bool unlocked = sim.IsUnlocked(i);
 
-            // Acilmamis olan tek satir; acilan tam kart.
+            // Anything not opened out is a single row; the opened one is a
+            // full card.
             if (unlocked && i != _open) return CompactRow(i);
 
-            // KILITLI YEMEK KART DEGIL, TEK SATIR.
+            // A LOCKED DISH IS A SINGLE ROW, NOT A CARD.
             //
-            // Olculdu: acik bir yemek karti hedef telefonda 232 dp ve
-            // listenin gorunur alani 219 dp - yani BIR yemek bile
-            // sigmiyordu, otuz iki yemeklik bir listede. Kilitli
-            // yemekler de tam kart kapliyordu ve tasidiklari bilgi iki
-            // satirdi: adi, ve ne zaman acilacagi.
+            // Measured: an available dish's card is 232 dp on the target
+            // phone and the list's visible area is 219 dp - so not even ONE
+            // dish fitted, in a list of thirty-two. The locked dishes took a
+            // full card too, and what they carried was two lines: the name,
+            // and when it opens.
             if (!unlocked) return LockedRow(i, d);
 
             VisualElement card = Theme.PanelBox();
@@ -569,9 +582,9 @@ namespace Lokanta.Game.Ui
             head.style.justifyContent = Justify.SpaceBetween;
             head.style.alignItems = Align.Center;
 
-            // Ad ve istasyon TEK SATIR. Alt alta konulduklarinda kart
-            // 250 dp'yi asiyordu ve 393 dp'lik bir telefonda ekrana TEK
-            // kart sigiyordu - bir liste olmaktan cikiyordu.
+            // The name and the station ON ONE LINE. Stacked, the card went
+            // over 250 dp and on a 393 dp phone ONE card filled the screen -
+            // it stopped being a list.
             VisualElement left = Theme.Row(Theme.Gap);
             left.style.alignItems = Align.Center;
             left.Add(Theme.Text(Loc.T(d.NameKey), Theme.FontBody));
@@ -579,16 +592,16 @@ namespace Lokanta.Game.Ui
                                 Theme.FontSmall, Theme.InkFaint));
             head.Add(left);
 
-            // SEVILEN YEMEK: NOKTA DEGIL AD.
+            // A FAVOURITE DISH: THE NAME, NOT A DOT.
             //
-            // Once turuncu bir nokta ve bir tooltip vardi. DOKUNMATIK
-            // EKRANDA TOOLTIP HIC GORUNMEZ - yani hikaye ile mekanigin
-            // bulustugu tek menu sinyali fiilen gorunmuyordu. Metin
-            // ("{0} bunu seviyor") tabloda zaten YAZILIYDI ve hicbir
-            // kod onu okumuyordu.
+            // It used to be an orange dot and a tooltip. A TOOLTIP NEVER
+            // APPEARS ON A TOUCHSCREEN - so the one menu signal where the
+            // story meets the mechanic was in effect invisible. The text
+            // ("{0} loves this") was ALREADY WRITTEN in the table and no
+            // code read it.
             //
-            // Nokta duruyor: bir bakista taranabilen isaret o. Yaninda
-            // artik kimin sevdigi yaziyor.
+            // The dot stays: it is the mark that can be scanned at a glance.
+            // Beside it, it now says whose favourite it is.
             int fan = sim.FavouriteRegularOf(i);
             if (fan >= 0)
             {
@@ -598,14 +611,15 @@ namespace Lokanta.Game.Ui
                     Theme.FontSmall, Theme.Accent));
             }
 
-            // MENUDE ANAHTARI BASLIK SATIRINDA VE VURGU RENGI DEGIL.
+            // THE ON-THE-MENU TOGGLE IS IN THE HEADING ROW AND IS NOT THE
+            // ACCENT COLOUR.
             //
-            // Once kartin altinda TAM GENISLIKTE bir turuncu cubuktu.
-            // Iki sorun birden: karta 62 dp ekliyordu, ve vurgu rengini
-            // dokuzuncu bir ise kosuyordu - ayni turuncu hem "tek
-            // onerilen eylem" hem "bu acik" demek olamaz. Acik olan
-            // anahtar artik YESIL YAZIYLA isaretleniyor; renk bir DURUM
-            // bildiriyor, bir cagri degil.
+            // It used to be a FULL-WIDTH orange bar at the bottom of the
+            // card. Two problems at once: it added 62 dp to the card, and it
+            // put the accent colour to a ninth job - the same orange cannot
+            // mean both "the one recommended action" and "this one is on".
+            // A toggle that is on is now marked WITH GREEN TEXT; the colour
+            // reports a STATE, not a call to act.
             bool on = sim.IsOnMenu(i);
             Button toggle = Theme.Btn(
                 on ? Loc.T("ui.menu.onmenu") : Loc.T("ui.menu.add"),
@@ -626,20 +640,21 @@ namespace Lokanta.Game.Ui
             int marginBp = price > 0 ? (int)((price - cost) * 10000 / price) : 0;
             int vsMarketBp = market > 0 ? (int)((price - market) * 10000 / market) : 0;
 
-            // --- FIYAT KARARI --------------------------------------------
+            // --- THE PRICE DECISION --------------------------------------
             //
-            // Bu satir oyunun en patronca karariydi ve arayuzde YOKTU:
-            // SetPrice komutu cekirdekte yazili ve uygulaniyor, fiyat
-            // duyarliligi formulu docs/12'de, arketip basina katsayilar
-            // icerikte, denge aracinda "yuksek_fiyat" diye bir strateji
-            // bile var - ama oyuncu bu eksene dokunamiyordu. Bir tycoon
-            // oyununda fiyat koyamamak, yaris oyununda direksiyon
-            // olmamasidir.
+            // This row was the game's most owner-like decision and it was NOT
+            // IN the interface: the SetPrice command is written and applied
+            // in the core, the price-sensitivity formula is in docs/12, the
+            // per-archetype coefficients are in the content, the balance tool
+            // even has a strategy that does nothing but raise prices - but the
+            // player
+            // could not touch this axis. Not being able to set a price in a
+            // tycoon game is a racing game with no steering wheel.
             //
-            // Adim PIYASANIN %5'i: mutlak bir sikke adimi ucuz bir icecekte
-            // devasa, pahali bir ana yemekte gorunmez olurdu.
+            // The step is 5% OF THE MARKET: a fixed coin step would be
+            // enormous on a cheap drink and invisible on an expensive main.
             long step = market / 20;
-            if (step < 50) step = 50;                 // en az yarim sikke
+            if (step < 50) step = 50;                 // at least half a coin
 
             VisualElement priceRow = Theme.Row(Theme.Gap);
             priceRow.style.alignItems = Align.Center;
@@ -672,15 +687,20 @@ namespace Lokanta.Game.Ui
             priceRow.Add(up);
             card.Add(priceRow);
 
-            // Piyasaya gore nerede duruyoruz - kararin GERI BILDIRIMI.
-            // Sayinin kendisi bilgi degil; "piyasanin %12 ustunde" bilgi.
-            // Uc sayi TEK SATIRDA: piyasaya gore, maliyet, marj. Uc ayri
-            // satir, kartin yuksekliginin yarisini yiyordu.
+            // Where we stand against the market - the decision's FEEDBACK.
+            // The number on its own is not information; "12% above the
+            // market" is. Three numbers ON ONE ROW: against the market, the
+            // cost, the margin. Three separate rows ate half the card's
+            // height.
             VisualElement facts = Theme.Row(Theme.Pad);
             facts.style.justifyContent = Justify.SpaceBetween;
             facts.Add(Theme.Text(
                 Loc.T("ui.menu.vs_market") + " "
-                + Loc.Percent(vsMarketBp, isaretli: true),
+                // The second argument is Loc.Percent's "put a + in front"
+                // flag. Passed positionally on purpose: Loc.cs is owned
+                // elsewhere and a named argument would break here the moment
+                // that parameter is renamed.
+                + Loc.Percent(vsMarketBp, true),
                 Theme.FontSmall, MarketColor(vsMarketBp)));
             facts.Add(Theme.Text(Loc.T("ui.menu.cost") + " " + Loc.Money(cost),
                                  Theme.FontSmall, Theme.InkDim));
@@ -693,8 +713,8 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Kilitli yemek: tek satir, kutu yok. Ad, istasyon ve KILIDIN
-        /// SEBEBI yan yana.
+        /// A locked dish: one row, no box. The name, the station and THE
+        /// REASON FOR THE LOCK, side by side.
         /// </summary>
         private VisualElement LockedRow(int i, DishDef d)
         {
@@ -716,26 +736,26 @@ namespace Lokanta.Game.Ui
             spacer.style.flexGrow = 1;
             row.Add(spacer);
 
-            string sebep;
+            string reason;
             if (d.UnlockDay > sim.Day)
-                sebep = Loc.T("ui.menu.unlock_day", d.UnlockDay);
+                reason = Loc.T("ui.menu.unlock_day", d.UnlockDay);
             else if (sim.ReputationCenti < d.UnlockReputationCenti)
-                sebep = Loc.T("ui.menu.needs_reputation",
-                              Loc.Reputation(d.UnlockReputationCenti));
+                reason = Loc.T("ui.menu.needs_reputation",
+                               Loc.Reputation(d.UnlockReputationCenti));
             else if (d.RequiresStationTier > sim.StationTier(d.StationIndex))
-                sebep = Loc.T("ui.menu.needs_equipment",
-                              Loc.T("station." + App.Content.Stations[d.StationIndex].Id));
+                reason = Loc.T("ui.menu.needs_equipment",
+                               Loc.T("station." + App.Content.Stations[d.StationIndex].Id));
             else
-                sebep = Loc.T("ui.menu.locked");
+                reason = Loc.T("ui.menu.locked");
 
-            row.Add(Theme.Text(sebep, Theme.FontSmall, Theme.Warn));
+            row.Add(Theme.Text(reason, Theme.FontSmall, Theme.Warn));
             return row;
         }
 
         /// <summary>
-        /// Piyasaya gore fiyat rengi. Yesil ucuz, sari pahali, kirmizi cok
-        /// pahali - esikler docs/12 5.3 fiyat duyarliligi kirilmalariyla
-        /// ayni yerde duruyor.
+        /// The price colour against the market. Green cheap, amber dear, red
+        /// very dear - the thresholds sit in the same places as the price
+        /// sensitivity breaks in docs/12 §5.3.
         /// </summary>
         private static Color MarketColor(int bp)
         {
@@ -747,11 +767,13 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Personel. docs/14: uc aday gorunur, oyuncu secer.
+    /// The crew. docs/14: three candidates are visible and the player
+    /// chooses.
     ///
-    /// Adaylarin HUYLARI acikca yaziyor - secim ancak neyi sectigini
-    /// gorursen karar olur. Kor bir ise alim, olculdu ve iyi oyuncunun
-    /// itibarini 96,5'ten 87'ye indirdi (docs/34 21).
+    /// The candidates' TRAITS are written out plainly - a choice is only a
+    /// decision if you can see what you are choosing. Blind hiring was
+    /// measured and took a good player's reputation from 96.5 down to 87
+    /// (docs/34 §21).
     /// </summary>
     public sealed class StaffScreen : ListScreen
     {
@@ -762,59 +784,61 @@ namespace Lokanta.Game.Ui
         {
             get
             {
-                // "GEREKEN" DEGIL "HERKESE YETISMEK ICIN".
+                // NOT "REQUIRED" BUT "TO SERVE EVERYONE".
                 //
-                // Sayi bir kapasite hesabi: bugunku talebin TAMAMINA
-                // yetismek icin kac kisi lazim. Kar icin en iyi sayi
-                // DEGIL - denge araci olctu: bir garson eksik calisan
-                // oyuncu 60 gunde yaklasik 4.000 sikke daha fazla
-                // kazaniyor ve karsiliginda yuze yakin kisiyi
-                // agirlayamiyor.
+                // The number is a capacity calculation: how many people it
+                // takes to keep up with ALL of today's demand. It is NOT the
+                // best number for profit - the balance tool measured it: a
+                // player running one waiter short earns about 4,000 coins
+                // more over 60 days and, in exchange, cannot seat close to a
+                // hundred people.
                 //
-                // ITIBAR DEGISMIYOR. Bu yorum bir sure "itibari biraz
-                // dusuyor" diyordu; docs/42 §4 onu OLCUP curuttu (78 /
-                // 78). Dusen sey EKIP puani - yani bedel yil sonu
-                // degerlendirmesinde, gunluk itibarda degil.
+                // REPUTATION DOES NOT CHANGE. This comment said "drops the
+                // reputation a little" for a while; docs/42 §4 MEASURED it
+                // and disproved it (78 / 78). What drops is the CREW score -
+                // so the price is paid in the year-end evaluation, not in the
+                // daily reputation.
                 //
-                // Yani burada bir KARAR var ve oyun onu oyuncuya
-                // birakmali. "Gereken" demek karari gizliyordu:
-                // oyuncu sayiyi tutturuyor, parayi kaybediyor ve neden
-                // kaybettigini hicbir yerden ogrenemiyordu.
+                // So there is a DECISION here and the game should leave it to
+                // the player. Saying "required" hid the decision: the player
+                // matched the number, lost money, and had nowhere to learn
+                // why.
                 //
-                // Hafta sonu ayrica yaziyor: kadro karari hafta icine
-                // degil HAFTAYA bakilarak verilir.
+                // The weekend is written out separately: a crew decision is
+                // made by looking at THE WEEK, not at the weekdays.
                 Crew need = App.Sim.RequiredCrewToday();
                 Crew peak = App.Sim.RequiredCrewPeak();
-                string zirve = peak.Salon != need.Salon || peak.Cooks != need.Cooks
+                string peakText = peak.Hall != need.Hall || peak.Cooks != need.Cooks
                     ? string.Format("   ·   {0}: {1} + {2}",
-                                    Loc.T("ui.staff.weekend"), peak.Cooks, peak.Salon)
+                                    Loc.T("ui.staff.weekend"), peak.Cooks, peak.Hall)
                     : string.Empty;
                 return string.Format("{0}: {1} + {2}{3}   ·   {4}: {5}",
-                    Loc.T("ui.staff.to_serve_all"), need.Cooks, need.Salon, zirve,
+                    Loc.T("ui.staff.to_serve_all"), need.Cooks, need.Hall, peakText,
                     Loc.T("ui.staff.cap"), App.Sim.StaffCap);
             }
         }
 
         /// <summary>
-        /// Salon calisaninin ADI mutfaga gore degisiyor.
+        /// The NAME of the hall worker changes with the cuisine.
         ///
-        /// Hizli yemek SELF SERVIS: masaya garson gelmiyor, siparis ve
-        /// odeme tezgahta. Salonda kalan is tepsileri toplamak - yani o
-        /// kisi garson degil TEMIZLIKCI. Ad da oyle olmali, cunku
-        /// oyuncunun ise aldigi kisinin NE YAPTIGINI bilmesi gerekiyor.
+        /// Fast food is SELF SERVICE: no waiter comes to the table, ordering
+        /// and paying happen at the counter. What is left to do in the hall
+        /// is clearing trays - so that person is not a waiter but a BUSSER.
+        /// The name should say so, because the player needs to know WHAT the
+        /// person they hired actually does.
         ///
-        /// Anahtarlar duz yaziliyor: metin ureteci ekranlari tarayip
-        /// kullanilmayan metni reddediyor ve hesaplanan anahtari
-        /// goremiyor (bkz. Badges.NameKey, QualityKey).
+        /// The keys are written out in full: the text generator scans the
+        /// screens and rejects text that is not used, and it cannot see a
+        /// computed key (see Badges.NameKey, QualityKey).
         ///
-        /// Temizlikcinin anahtari "role." degil "ui." ailesinde:
-        /// "role.*" adlari ICERIKTEN geliyor (staff-roles.json nameKey)
-        /// ve staff-roles'ta temizlikci diye bir rol yok - fast food'un
-        /// salonu kasiyer + bulasikci. Burada secilen sey rolun kendisi
-        /// degil, oyuncuya GOSTERILEN ad.
+        /// The busser's key is in the "ui." family rather than "role.":
+        /// "role.*" names come FROM THE CONTENT (staff-roles.json nameKey)
+        /// and staff-roles has no busser role - fast food's hall is a
+        /// cashier plus a dishwasher. What is chosen here is not the role
+        /// itself but the name SHOWN to the player.
         /// </summary>
-        // STATIC DEGIL: `App` UiScreen'in ORNEK uyesi.
-        private string SalonRoleKey()
+        // NOT STATIC: `App` is an INSTANCE member of UiScreen.
+        private string HallRoleKey()
         {
             return App.Content != null && App.Content.SelfService
                 ? "ui.staff.busser" : "role.garson";
@@ -826,19 +850,20 @@ namespace Lokanta.Game.Ui
             for (int i = 0; i < App.Sim.Cooks; i++) list.Add(Person(0, i));
 
 
-            list.Add(Theme.Head(Loc.T("ui.staff.salon")));
-            for (int i = 0; i < App.Sim.SalonStaff; i++) list.Add(Person(1, i));
+            list.Add(Theme.Head(Loc.T("ui.staff.hall")));
+            for (int i = 0; i < App.Sim.HallStaff; i++) list.Add(Person(1, i));
 
-            // BOS DURUM yaziliyor. Once basligin altinda hicbir sey
-            // yoktu ve oyuncu uc seyi ayirt edemiyordu: kadro sifir mi,
-            // liste yuklenemedi mi, hata mi.
-            if (App.Sim.SalonStaff == 0)
+            // THE EMPTY STATE is written out. There used to be nothing under
+            // the heading and the player could not tell three things apart:
+            // is the crew zero, did the list fail to load, or is this an
+            // error.
+            if (App.Sim.HallStaff == 0)
             {
                 Crew n = App.Sim.RequiredCrewToday();
-                list.Add(n.Salon > 0
-                    ? Theme.Text(Loc.T("ui.staff.salon_needed", n.Salon),
+                list.Add(n.Hall > 0
+                    ? Theme.Text(Loc.T("ui.staff.hall_needed", n.Hall),
                                  Theme.FontSmall, Theme.Warn)
-                    : Theme.Text(Loc.T("ui.staff.salon_none"),
+                    : Theme.Text(Loc.T("ui.staff.hall_none"),
                                  Theme.FontSmall, Theme.InkDim));
             }
 
@@ -862,17 +887,18 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// BULASIK NOBETI.
+        /// SINK DUTY.
         ///
-        /// Kullanicinin cumlesi: "bulasikci alinca herkes kendi isini
-        /// yapar". Bulasikci ayri bir kadro DEGIL - docs/14 salonu
-        /// "garson + bulasikci + kasiyer, tek is havuzu" diye kuruyor ve
-        /// maas o harmandan geliyor. Ayri bir havuz, ayni kisiyi iki
-        /// ucret tablosunda saymak olurdu.
+        /// The user's own sentence: "once you take on a dishwasher everyone
+        /// does their own job". A dishwasher is NOT a separate crew -
+        /// docs/14 sets the hall up as "waiter + dishwasher + cashier, one
+        /// work pool" and the wage comes out of that blend. A separate pool
+        /// would be counting the same person in two wage tables.
         ///
-        /// Oyuncunun karari ayni: bir kisilik kadroyu lavaboya ayiriyor.
-        /// Ayirmazsa bulasik birikince garson kendiliginden lavaboya
-        /// geciyor ve servis aksiyor - bedeli gorunur, secim gercek.
+        /// The player's decision is the same: they set one person's worth of
+        /// crew aside for the sink. If they do not, then once the plates pile
+        /// up a waiter goes over to the sink of their own accord and the
+        /// service falters - the price is visible, the choice is real.
         /// </summary>
         private VisualElement SinkDuty()
         {
@@ -885,31 +911,31 @@ namespace Lokanta.Game.Ui
                 : Theme.Text(Loc.T("ui.staff.sink_none"), Theme.FontSmall, Theme.InkDim));
 
             VisualElement row = Theme.Row(Theme.Gap);
-            Button az = Theme.Btn(Loc.T("ui.staff.sink_remove"), () =>
+            Button fewer = Theme.Btn(Loc.T("ui.staff.sink_remove"), () =>
             {
                 App.Send(CommandKind.SetDishwashers, App.Sim.Dishwashers - 1);
                 Ui.Refresh();
             });
-            az.SetEnabled(n > 0);
-            row.Add(az);
+            fewer.SetEnabled(n > 0);
+            row.Add(fewer);
 
-            Button cok = Theme.Btn(Loc.T("ui.staff.sink_add"), () =>
+            Button more = Theme.Btn(Loc.T("ui.staff.sink_add"), () =>
             {
                 App.Send(CommandKind.SetDishwashers, App.Sim.Dishwashers + 1);
                 Ui.Refresh();
             });
-            // Salon kadrosunun TAMAMI lavaboya verilemiyor: o zaman kimse
-            // servis yapmaz. Cekirdek de ayni sinirla kirpiyor; dugmenin
-            // kapali olmasi, reddedilen bir dokunustan iyi.
-            cok.SetEnabled(n < App.Sim.SalonStaff);
-            row.Add(cok);
+            // The WHOLE hall crew cannot be put on the sink: nobody would be
+            // serving. The core clips at the same limit; a disabled button is
+            // better than a tap that gets rejected.
+            more.SetEnabled(n < App.Sim.HallStaff);
+            row.Add(more);
             card.Add(row);
 
             card.Add(Theme.Text(Loc.T("ui.staff.sink_hint"),
                                 Theme.FontSmall, Theme.InkFaint));
 
-            // TEMIZ TABAK: darbogazin sayisi. Oyuncunun "neden mutfak
-            // bekliyor" sorusunun cevabi burada duruyor.
+            // CLEAN PLATES: the bottleneck's number. The answer to the
+            // player's "why is the kitchen waiting" sits right here.
             card.Add(Theme.Field(Loc.T("ui.hud.plates"),
                                  App.Sim.PlatesClean + " / " + App.Sim.PlatesTotal));
             return card;
@@ -922,15 +948,15 @@ namespace Lokanta.Game.Ui
 
             VisualElement head = Theme.Row(0);
             head.style.justifyContent = Justify.SpaceBetween;
-            // ADI varsa AD, yoksa sirali etiket.
+            // THE NAME if there is one, otherwise a numbered label.
             //
-            // "Asci 2 istifa etti" cumlesi "kapasite -28" ile ayni sey;
-            // "Nurten Abla birakti" degil. Personel sisteminin butun
-            // duygusal agirligi bu tek satirda.
+            // The sentence "Cook 2 has resigned" is the same thing as
+            // "capacity -28"; "Nurten Abla has left" is not. The whole
+            // emotional weight of the staff system is in that one line.
             string name = Loc.PersonName(sim.StaffName(pool, index));
             head.Add(Theme.Text(
                 string.IsNullOrEmpty(name)
-                    ? Loc.T(pool == 0 ? "role.asci" : SalonRoleKey()) + " " + (index + 1)
+                    ? Loc.T(pool == 0 ? "role.asci" : HallRoleKey()) + " " + (index + 1)
                     : name,
                 Theme.FontBody));
 
@@ -939,19 +965,20 @@ namespace Lokanta.Game.Ui
                                 Theme.FontSmall, MoraleColor(morale)));
             card.Add(head);
 
-            // ROL ADI HUYUN YANINDA.
+            // THE ROLE NAME SITS NEXT TO THE TRAIT.
             //
-            // Kart ADI yaziyor ve rol adi yalnizca ad yoksa yedek olarak
-            // cikiyordu - personelin adi oldugu icin "Temizlikci" HIC
-            // gorunmuyordu. Yani hizli yemekte salondaki kisinin garson
-            // DEGIL temizlikci oldugunu oyuncu ogrenemiyordu; self
-            // servis degisikliginin (docs/51) gorunur yarisi eksikti.
+            // The card shows THE NAME, and the role name only came out as a
+            // fallback when there was no name - so because the staff have
+            // names, "Busser" NEVER appeared. That is, in fast food the
+            // player could not learn that the person in the hall was a busser
+            // and NOT a waiter; the visible half of the self-service change
+            // (docs/51) was missing.
             //
-            // Tur bunu yakaladi: etiket kontrolu Turk'te gecti, hizli
-            // yemekte KALDI. Ilk yazdigimda "ekranda Temizlikci yaziyor"
-            // demistim ve gormemistim.
+            // The tour caught it: the label check passed on Turkish cuisine
+            // and STAYED on fast food. When I first wrote it I said "the
+            // screen says Busser" and I had not looked.
             card.Add(Theme.Text(
-                Loc.T(pool == 0 ? "role.asci" : SalonRoleKey())
+                Loc.T(pool == 0 ? "role.asci" : HallRoleKey())
                     + " · " + TraitText(pool, index),
                 Theme.FontSmall, Theme.InkDim));
             card.Add(Theme.Field(Loc.T("ui.staff.level"),
@@ -960,17 +987,19 @@ namespace Lokanta.Game.Ui
                                        sim.StaffDaysWorked(pool, index)),
                                  Theme.InkDim));
 
-            // Kartin SAHIBI cikariliyor ve ONAY isteniyor.
+            // It is the card's OWN PERSON who is let go, and CONFIRMATION is
+            // asked for.
             //
-            // Once indis gonderilmiyordu: "Asci 2" kartindaki dugme Asci
-            // 1'i cikariyordu. Ustelik onay da yoktu - tek dokunusla,
-            // seviye ve gun biriktirmis bir personel gidiyordu.
+            // The index was not being sent at first: the button on the "Cook
+            // 2" card let Cook 1 go. And there was no confirmation either -
+            // one tap and a member of staff who had built up levels and days
+            // was gone.
             int key = pool * 100 + index;
             if (_confirmFire == key)
             {
                 card.Add(Theme.Text(Loc.T("ui.staff.fire_confirm"),
                                     Theme.FontSmall, Theme.Bad));
-                // VAZGEC ONCE VE VURGULU, KOV KIRMIZI.
+                // CANCEL FIRST AND AS THE PRIMARY, DISMISS IN RED.
                 VisualElement ask = Theme.Row(Theme.Gap);
                 ask.Add(Theme.Btn(Loc.T("ui.common.cancel"),
                     () => { _confirmFire = -1; Ui.Refresh(); },
@@ -1001,35 +1030,35 @@ namespace Lokanta.Game.Ui
             VisualElement card = Theme.PanelBox();
             card.style.backgroundColor = Theme.PanelHi;
 
-            card.Add(Theme.Head(Loc.T(pool == 0 ? "role.asci" : SalonRoleKey())));
+            card.Add(Theme.Head(Loc.T(pool == 0 ? "role.asci" : HallRoleKey())));
 
-            // HUYUN ADI YETMIYOR, NE YAPTIGI LAZIM.
+            // THE TRAIT'S NAME IS NOT ENOUGH, WHAT IT DOES IS NEEDED.
             //
-            // Kart yalnizca adi ve %ucret/%hiz gosteriyordu. Hiza ve
-            // ucrete dokunmayan dort huy ("Sakin", "Dayanikli",
-            // "Musteriyle Iyi Anlasan", "Suratsiz") kartta
-            // "normal / normal" diye goruunuyordu - yani oyuncu
-            // hesabi alirken musteriyi +8 puan memnun eden biriyle
-            // hicbir sey yapmayanini ayirt edemiyordu.
-            // HUYUN SESI: kartin en ustunde, bir cumle.
+            // The card showed only the name and the wage/speed percentages.
+            // The four traits that touch neither speed nor wage ("Calm",
+            // "Hardy", "Good With Guests", "Surly") appeared on the card as
+            // "normal / normal" - so the player could not tell someone who
+            // sends a guest away +8 points happier from someone who does
+            // nothing at all.
+            // THE TRAIT'S VOICE: one sentence, at the top of the card.
             //
-            // Yirmi muMdavimin ucer sahnesi vardi; personelin SIFIR
-            // satiri vardi (docs/53). Aday karti oyuncunun bir personeli
-            // DIKKATLE okudugu tek an - bir cumlenin en cok is yaptigi
-            // yer orasi.
+            // Twenty regulars had three beats each; the staff had ZERO lines
+            // (docs/53). The candidate card is the only moment the player
+            // reads a member of staff CAREFULLY - that is where a sentence
+            // does the most work.
             //
-            // Cumle BIRINCI huydan geliyor, ikisinden degil: iki ses
-            // ust uste binince kisi degil liste okunuyor.
+            // The sentence comes from the FIRST trait, not from both: two
+            // voices on top of one another and you read a list, not a person.
             {
-                int ilk = sim.CandidateTrait(pool, slot, 0);
-                if (ilk >= 0)
+                int first = sim.CandidateTrait(pool, slot, 0);
+                if (first >= 0)
                 {
-                    Label ses = Theme.Text(
-                        Loc.T(App.Economy.TraitAt(ilk).NameKey + ".voice"),
+                    Label voice = Theme.Text(
+                        Loc.T(App.Economy.TraitAt(first).NameKey + ".voice"),
                         Theme.FontSmall, Theme.InkFaint);
-                    ses.style.whiteSpace = WhiteSpace.Normal;
-                    ses.style.marginBottom = 6;
-                    card.Add(ses);
+                    voice.style.whiteSpace = WhiteSpace.Normal;
+                    voice.style.marginBottom = 6;
+                    card.Add(voice);
                 }
             }
 
@@ -1039,23 +1068,25 @@ namespace Lokanta.Game.Ui
                 if (t < 0) continue;
                 TraitDef d = App.Economy.TraitAt(t);
                 card.Add(Theme.Text("• " + Loc.T(d.NameKey), Theme.FontSmall, Theme.Ink));
-                Label ne = Theme.Text(Loc.T(d.NameKey + ".desc"),
-                                      Theme.FontSmall, Theme.InkFaint);
-                ne.style.marginLeft = 14;
-                ne.style.whiteSpace = WhiteSpace.Normal;
-                card.Add(ne);
+                Label what = Theme.Text(Loc.T(d.NameKey + ".desc"),
+                                        Theme.FontSmall, Theme.InkFaint);
+                what.style.marginLeft = 14;
+                what.style.whiteSpace = WhiteSpace.Normal;
+                card.Add(what);
             }
 
             int wage = sim.CandidateWageBp(pool, slot);
             int speed = sim.CandidateSpeedBp(pool, slot);
+            // The `true` is Loc.Percent's "put a + in front" flag; see the
+            // note on the menu card for why it is positional.
             card.Add(Theme.Field(Loc.T("ui.staff.wage"),
-                                 (wage == 0 ? Loc.T("ui.staff.normal") : Loc.Percent(wage, isaretli: true)),
+                                 (wage == 0 ? Loc.T("ui.staff.normal") : Loc.Percent(wage, true)),
                                  wage > 0 ? Theme.Bad : (wage < 0 ? Theme.Good : Theme.InkDim)));
             card.Add(Theme.Field(Loc.T("ui.hud.speed"),
-                                 (speed == 0 ? Loc.T("ui.staff.normal") : Loc.Percent(speed, isaretli: true)),
+                                 (speed == 0 ? Loc.T("ui.staff.normal") : Loc.Percent(speed, true)),
                                  speed > 0 ? Theme.Good : (speed < 0 ? Theme.Bad : Theme.InkDim)));
 
-            bool room = sim.Cooks + sim.SalonStaff < sim.StaffCap;
+            bool room = sim.Cooks + sim.HallStaff < sim.StaffCap;
             Button hire = Theme.Btn(Loc.T("ui.staff.hire"), () =>
             {
                 App.Send(CommandKind.Hire, pool, slot);
@@ -1074,14 +1105,14 @@ namespace Lokanta.Game.Ui
         {
             string a = TraitName(App.Sim.StaffTrait(pool, index, 0));
             string b = TraitName(App.Sim.StaffTrait(pool, index, 1));
-            // HUYU OLMAYAN = DEVRALINAN. Ama devralinan IKI kisi var:
-            // asci ve salondaki (Simulation.cs, ikisinin de huyu -1).
-            // Tek metin kullanilinca garsonun kartinda "devraldigin
-            // asci" yaziyordu - bes dilde birden.
+            // NO TRAIT = INHERITED. But there are TWO people inherited: the
+            // cook and the one in the hall (Simulation.cs, both with trait
+            // -1). Using a single piece of text put "the cook you inherited"
+            // on the waiter's card - in five languages at once.
             if (a == null && b == null)
                 return Loc.T(pool == 0
                     ? "ui.staff.inherited"
-                    : "ui.staff.inherited_salon");
+                    : "ui.staff.inherited_hall");
             if (b == null) return a;
             return a + " · " + b;
         }
@@ -1100,9 +1131,10 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Ekipman. docs/27 Karar D: yukseltme ya yuva ekler ya asciyi erken
-    /// birakir; yemegin pisme suresine DOKUNMAZ. Ekran da bunu boyle
-    /// anlatiyor, cunku "hizlandirir" demek yanlis olurdu.
+    /// Equipment. docs/27 Decision D: an upgrade either adds a slot or lets
+    /// the cook go earlier; it DOES NOT TOUCH a dish's cooking time. The
+    /// screen says it that way too, because saying "makes it faster" would
+    /// be wrong.
     /// </summary>
     public sealed class EquipmentScreen : ListScreen
     {
@@ -1116,7 +1148,7 @@ namespace Lokanta.Game.Ui
         {
             Simulation sim = App.Sim;
 
-            // Soguk hava once: menu genisligi satin aliyor.
+            // Cold storage first: it buys menu breadth.
             long cold = sim.NextStoragePrice();
             VisualElement storage = Theme.PanelBox();
             storage.Add(Theme.Head(Loc.T("storage.soguk_hava")));
@@ -1143,7 +1175,8 @@ namespace Lokanta.Game.Ui
 
             for (int st = 0; st < sim.StationCount; st++) list.Add(Station(st));
 
-            // Genisleme en altta: en pahali ve en geri donulmez karar.
+            // Expansion at the very bottom: the most expensive and the least
+            // reversible decision.
             list.Add(Theme.Divider());
             list.Add(Expansion());
         }
@@ -1157,8 +1190,8 @@ namespace Lokanta.Game.Ui
             VisualElement head = Theme.Row(0);
             head.style.justifyContent = Justify.SpaceBetween;
             head.Add(Theme.Head(Loc.T(def.NameKey)));
-            // "mutfaga ozel" bir ETIKET, bir cagri degil - vurgu rengi
-            // yerine soluk murekkep.
+            // "cuisine only" is a LABEL, not a call to act - muted ink rather
+            // than the accent colour.
             if (!def.Shared)
                 head.Add(Theme.Text(Loc.T("ui.station.cuisine_only"),
                                     Theme.FontSmall, Theme.InkFaint));
@@ -1218,14 +1251,14 @@ namespace Lokanta.Game.Ui
 
             Button buy = Theme.Btn(Loc.T("ui.expand.buy", Loc.Money(price)), () =>
             {
-                // KADEME INDISI SART.
+                // THE TIER INDEX IS ESSENTIAL.
                 //
-                // Bu satir bir sure indissiz duruyordu ve komut sessizce
-                // her seferinde reddediliyordu: varsayilan 0 kademesi
-                // zaten dort masa, ve Expand "hedef kademe mevcuttan
-                // buyuk olmali" diyor. Yani restoran HIC BUYUYEMIYORDU -
-                // oyunun butun ilerleme ekseni kapaliydi ve hicbir sey
-                // hata vermiyordu.
+                // This line went without an index for a while and the command
+                // was being silently rejected every time: the default tier 0
+                // is already four tables, and Expand says "the target tier
+                // must be greater than the current one". So the restaurant
+                // COULD NEVER GROW - the game's entire progression axis was
+                // closed and nothing raised an error.
                 App.Send(CommandKind.Expand, tier + 1);
                 Sfx.Confirm();
                 Ui.Refresh();

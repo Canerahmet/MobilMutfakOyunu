@@ -4,77 +4,84 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// GUNUN SAATI EKRANDA.
+    /// THE TIME OF DAY, ON SCREEN.
     ///
-    /// Kullanicinin cumlesi: "oyun icerisinde sabah ogle ve aksam
-    /// ayirimi belli degil". Dogruydu - gunun evresi yalnizca arayuzdeki
-    /// bir yazidan okunuyordu, salon her saatte ayni aydinliktaydi.
+    /// The user's sentence: "inside the game you cannot tell morning,
+    /// midday and evening apart". It was true - the phase of the day could
+    /// only be read from a line of text in the interface, and the hall was
+    /// equally bright at every hour.
     ///
-    /// Dort kanal birden degisiyor, cunku tek kanal (orn. yalnizca isik
-    /// siddeti) "aksam oldu" degil "biri lambayi kistı" diye okunuyor:
+    /// Four channels change at once, because a single channel (say, the
+    /// light intensity alone) does not read as "evening has come" but as
+    /// "someone turned the lamp down":
     ///
-    ///   1. GUNESIN ACISI  - sabah dogudan yatik, ogle tepede, aksam
-    ///      batidan yatik. Golgelerin yonu ve boyu gunun en guclu
-    ///      saat isareti.
-    ///   2. ISIGIN RENGI   - sabah soguk, ogle notr, ikindi sicak,
-    ///      aksam mor-mavi.
-    ///   3. ARKA PLAN      - gokyuzu yerine duz renk (docs/19 bütçesi);
-    ///      gunduz acik gri-mavi, gece neredeyse siyah.
-    ///   4. LAMBALAR       - sokak lambalari, restoranin ic tavan
-    ///      isiklari ve icerinin sicak dolgusu aksam yaniyor.
+    ///   1. THE SUN'S ANGLE - low from the east in the morning, overhead
+    ///      at midday, low from the west in the evening. The direction
+    ///      and the length of the shadows are the day's strongest clock.
+    ///   2. THE LIGHT'S COLOUR - cold in the morning, neutral at midday,
+    ///      warm in the afternoon, purple-blue in the evening.
+    ///   3. THE BACKGROUND - a flat colour instead of a sky (the docs/19
+    ///      budget); pale grey-blue by day, nearly black at night.
+    ///   4. THE LAMPS - the street lamps, the restaurant's own ceiling
+    ///      lights and the warm fill inside come on in the evening.
     ///
-    /// IC ISIKLAR SOKAKTAKINDEN ONCE YANIYOR (RoomThreshold 0,62 -
-    /// LampThreshold 0,76). Ikisi ayni anahtarda oldugunda aksam ustu
-    /// salon karanlik kaliyordu; kullanicinin "aksam olunca restoranin
-    /// ici karanlik oluyor" sikayeti tam olarak o araligi tarif
-    /// ediyordu. Bir lokanta zaten kendi isigini sokak lambalarindan
-    /// once acar.
+    /// THE INSIDE LIGHTS COME ON BEFORE THE ONES OUTSIDE (RoomThreshold
+    /// 0.62 - LampThreshold 0.76). With both on the same switch the hall
+    /// stayed dark in the early evening; the user's complaint that "when
+    /// evening comes the inside of the restaurant goes dark" described
+    /// exactly that interval. A restaurant turns its own lights on before
+    /// the street lamps anyway.
     ///
-    /// DEGERLER ARA DEGERLENIYOR: gun icinde kesme gecis yok, yoksa
-    /// "saat 14 oldu" diye bir kare atliyor. Servis ilerlemesi 0-1
-    /// arasi bir orana cevriliyor ve butun kanallar o orandan okunuyor.
+    /// THE VALUES ARE INTERPOLATED: there is no cut during the day,
+    /// otherwise it jumps a frame saying "it is 2 o'clock". The service
+    /// progress is turned into a 0-1 ratio and every channel is read from
+    /// that ratio.
     /// </summary>
     public sealed class DayLight : MonoBehaviour
     {
         public Light Sun;
         public Light Fill;
-        public Light Warm;      // aksam ici dolgu
+        public Light Warm;      // the warm evening fill inside
         public Camera Cam;
 
-        /// <summary>Sokak lambalarinin isikli parcalari.</summary>
+        /// <summary>The glowing parts of the street lamps.</summary>
         public Renderer[] LampHeads;
 
         /// <summary>
-        /// MUTFAGIN DISARISI. Arka plan rengine karisan hafif ton.
+        /// THE OUTSIDE OF THE CUISINE. The faint tint mixed into the
+        /// background colour.
         ///
-        /// Arka plan gokyuzu yerine geciyor (asagida) ve iki mutfakta
-        /// BIREBIR AYNIYDI - yani "baska bir yere girdim" hissi salonun
-        /// dort duvarinda bitiyordu. Disarisi da mutfaga ait olmali:
-        /// hizli yemek daha soguk ve sehirli, Turk lokantasi daha sicak.
+        /// The background stands in for the sky (below) and it was EXACTLY
+        /// THE SAME in both cuisines - so the feeling of "I have walked into
+        /// somewhere else" ended at the hall's four walls. The outside has to
+        /// belong to the cuisine too: fast food colder and more urban, the
+        /// Turkish restaurant warmer.
         ///
-        /// Ton yalnizca GUNDUZ uc duraga karisiyor; gece dokunulmuyor.
-        /// Gecenin neredeyse siyah olmasi, "acik bir lokanta"
-        /// goruntusunun karsitligini tasiyan sey - onu ton yuzunden
-        /// aydinlatmak bütün geceyi bozardi.
+        /// The tint is mixed into the three DAYTIME stops only; the night is
+        /// left alone. The night being almost black is what carries the
+        /// contrast of the "a restaurant that is open" picture - lighting it
+        /// up for the sake of a tint would spoil the whole night.
         ///
-        /// Varsayilan beyaz = karisim yok, yani kimse ayarlamazsa
-        /// davranis eskisiyle birebir ayni.
+        /// The default white = no mixing, so if nobody sets it the behaviour
+        /// is exactly what it was.
+        /// </summary>
         public Color SkyTint = Color.white;
 
-        /// <summary>Tonun gucu, 0-1. Olculerek secildi: 0,22.</summary>
+        /// <summary>The strength of the tint, 0-1. Chosen by measurement: 0.22.</summary>
         public float SkyTintStrength = 0.22f;
 
-        /// <summary>Lambalarin yerdeki isik havuzlari.</summary>
+        /// <summary>The lamps' pools of light on the ground.</summary>
         public GameObject[] LampGlow;
 
         /// <summary>
-        /// RESTORANIN ICI tavan isiklari.
+        /// The ceiling lights INSIDE THE RESTAURANT.
         ///
-        /// Sokak lambalarindan ayri tutuluyor, cunku ikisi ayri zamanda
-        /// yaniyor: bir lokanta kendi isigini sokak lambalarindan ONCE
-        /// aciyor (ortalik karardiginda degil, kararmaya basladiginda).
-        /// Ayni anahtara baglanmis olsalar aksam ustu salon karanlik
-        /// kalirdi - kullanicinin bildirdigi sey tam olarak bu.
+        /// They are kept apart from the street lamps, because the two come on
+        /// at different times: a restaurant turns its own lights on BEFORE
+        /// the street lamps do (not when it has gone dark, but when it starts
+        /// to). Had they been wired to the same switch the hall would stay
+        /// dark in the early evening - which is exactly what the user
+        /// reported.
         /// </summary>
         public GameObject[] RoomGlow;
 
@@ -86,38 +93,39 @@ namespace Lokanta.Game
         private bool _roomOn;
         private float _applied = -1f;
 
-        /// <summary>Gunun orani, 0 sabah - 1 gece. Turun sorabilmesi icin.</summary>
+        /// <summary>The day's ratio, 0 morning - 1 night. So the tour can ask.</summary>
         public float DayProgress { get; private set; }
 
-        /// <summary>Lambalar yaniyor mu. Turun sorabilmesi icin.</summary>
+        /// <summary>Are the lamps lit? So the tour can ask.</summary>
         public bool LampsOn { get { return _lampsOn; } }
 
-        /// <summary>Sokak lambalarinin yanmaya basladigi oran.</summary>
+        /// <summary>The ratio at which the street lamps start to light.</summary>
         public const float LampThreshold = 0.76f;
 
         /// <summary>
-        /// Restoranin ic isiklarinin yanmaya basladigi oran.
+        /// The ratio at which the restaurant's inside lights start to light.
         ///
-        /// Sokak lambalarindan ONCE: gun ortasindan sonra salonun
-        /// icindeki isik gunesten degil kendi lambalarindan geliyor.
-        /// 0,62 servisin yaklasik ucte ikisi - ikindi.
+        /// BEFORE the street lamps: after the middle of the day the light in
+        /// the hall comes from its own lamps rather than from the sun. 0.62
+        /// is about two thirds of service - late afternoon.
         /// </summary>
         public const float RoomThreshold = 0.62f;
 
-        /// <summary>Ic isiklar yaniyor mu. Turun sorabilmesi icin.</summary>
+        /// <summary>Are the inside lights on? So the tour can ask.</summary>
         public bool RoomLightsOn { get { return _roomOn; } }
 
-        /// <summary>Bagli ic tavan isigi sayisi. Turun sorabilmesi icin.</summary>
+        /// <summary>The number of inside ceiling lights bound. So the tour can ask.</summary>
         public int RoomLightCount { get { return RoomGlow == null ? 0 : RoomGlow.Length; } }
 
         // =====================================================================
         /// <summary>
-        /// Evreyi ve servis ilerlemesini gunun oranina cevirir.
+        /// Turns the phase and the service progress into the day's ratio.
         ///
-        /// Sabah 0,00-0,12 arasinda duruyor (servis acilmadan once kisa
-        /// bir sabah), servis 0,12-0,88'i kapliyor, aksam 0,88-1,00.
-        /// Boylece servisin kendisi gunun govdesi oluyor ve oyuncu
-        /// servisi acar acmaz "gun basladi" hissini aliyor.
+        /// The morning sits between 0.00 and 0.12 (a short morning before
+        /// service opens), service covers 0.12-0.88, and the evening
+        /// 0.88-1.00. That makes service itself the body of the day, and the
+        /// player gets the feeling that "the day has begun" the moment they
+        /// open service.
         /// </summary>
         public void Apply(DayPhase phase, float serviceProgress01)
         {
@@ -135,39 +143,40 @@ namespace Lokanta.Game
             }
             DayProgress = t;
 
-            // Ayni kareyi iki kez yazmak yok: isik ayarlari ucuz degil
-            // ve gun orani karede binde bir degisiyor.
+            // The same frame is never written twice: light settings are not
+            // cheap and the day's ratio changes by a thousandth per frame.
             if (Mathf.Abs(t - _applied) < 0.002f) return;
             _applied = t;
 
             if (Sun != null)
             {
-                // EGIM BIR BANTTA KALIYOR: 44-66 derece.
+                // THE PITCH STAYS IN A BAND: 44-66 degrees.
                 //
-                // Kullanicinin bildirdigi sey: "odalardaki golgeler
-                // baska odalara kayiyor". Ikinci sebep buydu - egim
-                // sabah 26, aksam 10 dereceydi ve golge boyu h/tan(aci):
-                // 1,8 m'lik bir buzdolabi aksam 10 derecede 10 metre
-                // golge birakiyor, yani uc odayi birden gecen koyu bir
-                // bant.
+                // What the user reported: "the shadows in the rooms slide into
+                // other rooms". This was the second cause - the pitch was 26
+                // degrees in the morning and 10 in the evening, and shadow
+                // length is h/tan(angle): a 1.8 m fridge at 10 degrees in the
+                // evening throws a 10 metre shadow, that is, a dark band
+                // crossing three rooms at once.
                 //
-                // Bant icinde en uzun golge ~1,9 m; odalarin en dari
-                // 3,2 m, yani golge kendi odasinda kaliyor.
+                // Inside the band the longest shadow is ~1.9 m; the narrowest
+                // room is 3.2 m, so a shadow stays in its own room.
                 //
-                // GUNUN SAATI KAYBOLMUYOR: yon (azimut) 148'den 268'e
-                // donmeye devam ediyor ve saati asil o soyluyor -
-                // golgeler sabah bir yana, aksam ote yana uzuyor. Boy
-                // degil YON okunuyor.
+                // THE TIME OF DAY IS NOT LOST: the direction (the azimuth) goes
+                // on turning from 148 to 268 and that is what really tells the
+                // time - the shadows stretch one way in the morning and the
+                // other way in the evening. It is the DIRECTION that is read,
+                // not the length.
                 Sun.transform.rotation = Quaternion.Euler(
                     Curve(t, 44f, 66f, 52f, 46f),
                     Curve(t, 148f, 208f, 246f, 268f), 0f);
 
-                // AKSAM GOLGESI SILIKLESIYOR.
+                // THE EVENING SHADOW FADES.
                 //
-                // Gece salonu aydinlatan sey yonlu gunes degil, ic
-                // isiklar (havuzlar + sicak dolgu). Tam guclu bir
-                // yonlu golge o isigin altinda yanlis duruyor: isik
-                // tavandan geliyor ama golge yandan.
+                // What lights the hall at night is not the directional sun but
+                // the inside lights (the pools + the warm fill). A full-strength
+                // directional shadow looks wrong under that light: the light
+                // comes from the ceiling but the shadow from the side.
                 Sun.shadowStrength = Curve(t, 0.85f, 1.00f, 0.90f, 0.35f);
                 Sun.color = Mix(t,
                     new Color(1.00f, 0.88f, 0.74f),
@@ -177,25 +186,25 @@ namespace Lokanta.Game
                 Sun.intensity = Curve(t, 1.05f, 1.55f, 1.25f, 0.32f);
             }
 
-            // DOLGU ISIGI = YANSIMANIN TAKLIDI.
+            // THE FILL LIGHT = AN IMITATION OF BOUNCE.
             //
-            // Kullanicinin sorusu: "normalde isik yansiyarak diger
-            // kisimlari da aydinlatmaz mi gercekte". Evet - ve bu
-            // sahnede HIC yansima yok: kuresel aydinlatma yok, isik
-            // haritasi da PISIRILEMEZ, cunku butun restoran calisma
-            // aninda kuruluyor (RestaurantView geometriyi masa sayisina
-            // gore uretiyor). Yansimanin yerini tutacak tek sey, ters
-            // yonden gelen golgesiz bir dolgu ile ortam isigi.
+            // The user's question: "wouldn't light in reality bounce and
+            // light the other parts too". Yes - and in this scene there is NO
+            // bounce at all: there is no global illumination, and a light map
+            // CANNOT BE BAKED either, because the whole restaurant is built at
+            // runtime (RestaurantView generates the geometry from the table
+            // count). The only thing that can stand in for bounce is a
+            // shadowless fill from the opposite direction, plus ambient light.
             //
-            // Gece bu dolgu MAVIYDI (0,42 / 0,46 / 0,70) ve 0,22
-            // siddetindeydi. Yani sicak anahtarin vurmadigi her yuzey
-            // SOGUK bir isikla dolduruluyordu - sicak bir salonun icinde
-            // yansimanin yapacaginin tam tersi. "Icerisi yeterince aydinlik
-            // degil" sikayetinin buyuk kismi buradan geliyordu: govdelerin
-            // anahtara bakmayan yarisi hem karanlik hem yanlis renkti.
+            // At night this fill used to be BLUE (0.42 / 0.46 / 0.70) at an
+            // intensity of 0.22. So every surface the warm key did not reach
+            // was filled with a COLD light - the exact opposite of what bounce
+            // does inside a warm hall. Most of the "it is not bright enough
+            // inside" complaint came from here: the half of each body that did
+            // not face the key was both dark and the wrong colour.
             //
-            // Gece artik sicak ve guclu: gercek bir yansima da tavandan
-            // ve duvarlardan gelen SICAK isiktir.
+            // At night it is now warm and strong: real bounce is the WARM
+            // light coming off the ceiling and the walls too.
             if (Fill != null)
             {
                 Fill.color = Mix(t,
@@ -210,54 +219,56 @@ namespace Lokanta.Game
                 new Color(0.30f, 0.32f, 0.39f),
                 new Color(0.38f, 0.39f, 0.43f),
                 new Color(0.35f, 0.31f, 0.31f),
-                // Gece ortami TAMAMEN kararmiyor: oyuncunun hangi
-                // masanin dolu oldugunu gormesi gerekiyor. Karanlik bir
-                // atmosfer, okunmayan bir salon pahasina olmamali.
+                // The night ambient does NOT go fully dark: the player has to
+                // be able to see which table is occupied. A dark atmosphere
+                // must not come at the price of a hall that cannot be read.
                 //
-                // SICAK ve daha parlak (0,21/0,20/0,25 -> 0,32/0,28/0,26).
-                // Ortam isigi bu boru hattinda yansimanin tek karsiligi:
-                // kuresel aydinlatma yok ve geometri calisma aninda
-                // uretildigi icin isik haritasi pisirilemiyor. Soguk bir
-                // ortam, sicak isikli bir salonda yanlis cevap.
+                // WARM and brighter (0.21/0.20/0.25 -> 0.32/0.28/0.26). In this
+                // pipeline the ambient is the only counterpart of bounce: there
+                // is no global illumination and, because the geometry is
+                // generated at runtime, no light map can be baked. A cold
+                // ambient is the wrong answer in a warmly lit hall.
                 //
-                // Ortam GLOBAL: sokagi da vuruyor. Kabul edilebilir ve
-                // hatta dogru - aydinlik bir lokantanin onundeki kaldirim
-                // gercekte de vitrinden sizan isikla aydinlanir. Karsitligi
-                // koruyan sey ortam degil, gokyuzunun gece neredeyse
-                // siyah olmasi.
+                // The ambient is GLOBAL: it hits the street as well. That is
+                // acceptable and in fact right - in reality the pavement outside
+                // a brightly lit restaurant is lit by the light spilling from
+                // its window. What keeps the contrast is not the ambient but the
+                // sky being nearly black at night.
                 new Color(0.66f, 0.58f, 0.50f));
 
-            // ARKA PLAN GOKYUZU YERINE GECIYOR.
+            // THE BACKGROUND STANDS IN FOR THE SKY.
             //
-            // docs/19 gokyuzu kubbesi tasimiyor (doldurma butcesi); arka
-            // plan duz renk. Sokak goruununce o duz rengin "disarisi"
-            // olmasi gerekti - once neredeyse siyahti ve gunduz bile
-            // gece gibi okunuyordu. Simdi sabah soluk mavi, ogle acik
-            // mavi, ikindi sicak, aksam gercekten karanlik.
+            // docs/19 does not carry a sky dome (the fill-rate budget); the
+            // background is a flat colour. Once the street became visible that
+            // flat colour had to be "the outside" - it was nearly black at
+            // first and even the daytime read as night. Now it is a pale blue
+            // in the morning, a light blue at midday, warm in the afternoon
+            // and really dark in the evening.
             if (Cam != null)
                 Cam.backgroundColor = Mix(t,
                     Tint(new Color(0.30f, 0.38f, 0.48f)),
                     Tint(new Color(0.38f, 0.51f, 0.65f)),
                     Tint(new Color(0.44f, 0.34f, 0.31f)),
-                    new Color(0.04f, 0.05f, 0.09f));   // gece: ton YOK
+                    new Color(0.04f, 0.05f, 0.09f));   // night: NO tint
 
-            // ICERININ SICAK DOLGUSU: salonun kendi isigi. Disarisi
-            // soguyup kararirken icerinin sicak kalmasi, "acik bir
-            // lokanta" goruntusunun butun anlami.
+            // THE WARM FILL INSIDE: the hall's own light. The outside going
+            // cold and dark while the inside stays warm is the whole meaning
+            // of the "a restaurant that is open" picture.
             //
-            // IC ISIKLARLA AYNI ANDA BASLIYOR VE ESKIDEN DAHA GUCLU.
+            // IT STARTS AT THE SAME MOMENT AS THE INSIDE LIGHTS AND IS
+            // STRONGER THAN IT USED TO BE.
             //
-            // Havuzlar yalnizca ZEMINI aydinlatiyor: masa, sandalye ve
-            // figurler onlardan hicbir sey almiyor. Kullanicinin gordugu
-            // "restoranin ici karanlik" sikayetinin asil sebebi buydu -
-            // zemin aydinlaniyordu ama uzerindeki her sey karanlikta
-            // kaliyordu. Yon neredeyse tepeden (62 derece) ve golge yok,
-            // yani tavandan gelen bir aydinlatma gibi okunuyor.
+            // The pools light only the FLOOR: the tables, the chairs and the
+            // figures take nothing from them. This was the real reason behind
+            // the user's "the inside of the restaurant is dark" complaint -
+            // the floor was lit but everything standing on it stayed in the
+            // dark. The direction is almost overhead (62 degrees) and there
+            // is no shadow, so it reads like lighting coming from the ceiling.
             //
-            // Yonlu isik disariyi da vuruyor (URP'de isik katmanlari
-            // kapali, m_SupportsLightLayers: 0) ama sokakta govde yok:
-            // yalnizca uc levha ve uc direk. Karsit etki, gokyuzunun
-            // gece neredeyse siyah olmasiyla zaten kuruluyor.
+            // The directional light hits the outside as well (light layers are
+            // off in URP, m_SupportsLightLayers: 0) but there are no bodies on
+            // the street: only three slabs and three posts. The contrast is
+            // already set up by the sky being nearly black at night.
             if (Warm != null)
             {
                 float w = Mathf.InverseLerp(RoomThreshold - 0.06f, 1f, t);
@@ -265,32 +276,32 @@ namespace Lokanta.Game
                 Warm.intensity = w * 3.20f;
             }
 
-            // SOKAK GECE KOYULASIYOR.
+            // THE STREET GOES DARKER AT NIGHT.
             //
-            // Kureseli yukseltip yereli dusurmek: ortam ve sicak dolgu
-            // kaldirimi da aydinlatiyor (yerel isik yok), o yuzden
-            // disarisi kendi malzemesinden karartiliyor. Olcum bunu
-            // gerektirdi - salonun ortanca parlakligi sokagin
-            // ortalamasindan DUSUKTU.
+            // Raising the global and lowering the local: the ambient and the
+            // warm fill light the pavement too (there is no local light), so
+            // the outside is darkened through its own material. The
+            // measurement demanded it - the hall's median brightness was
+            // LOWER than the street's average.
             if (_view != null)
                 _view.TintStreet(Mathf.Lerp(1f, 0.28f,
                     Mathf.InverseLerp(RoomThreshold - 0.06f, 0.95f, t)));
 
-            bool yanmali = t >= LampThreshold;
-            if (yanmali != _lampsOn) Lamps(yanmali);
+            bool shouldLight = t >= LampThreshold;
+            if (shouldLight != _lampsOn) Lamps(shouldLight);
 
-            bool icYanmali = t >= RoomThreshold;
-            if (icYanmali != _roomOn) RoomLights(icYanmali);
+            bool roomShouldLight = t >= RoomThreshold;
+            if (roomShouldLight != _roomOn) RoomLights(roomShouldLight);
         }
 
         // =====================================================================
         /// <summary>
-        /// Sokak lambalarini bagliyor.
+        /// Binds the street lamps.
         ///
-        /// Restoran buyudugunde gorunum yeniden kuruluyor ve lambalar da
-        /// yeniden olusuyor; eski basvurular silinmis nesnelere isaret
-        /// eder ve aksam hicbir sey yanmazdi - uyarisiz. Kurulus damgasi
-        /// degisince yeniden bagliyor.
+        /// When the restaurant grows the view is rebuilt and the lamps are
+        /// created again; the old references then point at destroyed objects
+        /// and nothing lit up in the evening - with no warning. It binds
+        /// again when the build stamp changes.
         /// </summary>
         private void BindLamps()
         {
@@ -302,15 +313,15 @@ namespace Lokanta.Game
             LampHeads = _view.LampHeads;
             LampGlow = _view.LampGlow;
             RoomGlow = _view.RoomGlow;
-            _applied = -1f;       // yeni lambalara durumu yeniden yaz
-            _lampsOn = !_lampsOn; // Lamps() cagrilsin diye zorluyoruz
-            _roomOn = !_roomOn;   // RoomLights() de
+            _applied = -1f;       // write the state again to the new lamps
+            _lampsOn = !_lampsOn; // forced so that Lamps() gets called
+            _roomOn = !_roomOn;   // and RoomLights() too
         }
 
         private RestaurantView _view;
         private int _bound = -1;
 
-        /// <summary>Bagli sokak lambasi sayisi. Turun sorabilmesi icin.</summary>
+        /// <summary>The number of street lamps bound. So the tour can ask.</summary>
         public int LampCount { get { return LampHeads == null ? 0 : LampHeads.Length; } }
 
         private void Lamps(bool on)
@@ -319,12 +330,12 @@ namespace Lokanta.Game
 
             if (_block == null) _block = new MaterialPropertyBlock();
 
-            // SONUK LAMBA DA BIR SEY: BEYAZ CAM.
+            // AN UNLIT LAMP IS SOMETHING TOO: WHITE GLASS.
             //
-            // Kapaliyken bas KOYU GRIYDI (0,24) - yani gunduz lambanin
-            // camı ile demiri ayni renkti ve fener "ucu kalinlasmis bir
-            // direk" diye okunuyordu. Gercek bir fenerin camı gunduz de
-            // beyazdir; referans gorselde de oyle.
+            // When it was off the head was DARK GREY (0.24) - so by day the
+            // lamp's glass and its iron were the same colour and the lantern
+            // read as "a post with a thicker end". A real lantern's glass is
+            // white by day as well; it is in the reference image too.
             Color c = on ? new Color(1.00f, 0.86f, 0.52f)
                          : new Color(0.86f, 0.87f, 0.85f);
 
@@ -334,10 +345,10 @@ namespace Lokanta.Game
                     if (LampHeads[i] == null) continue;
                     LampHeads[i].GetPropertyBlock(_block);
                     _block.SetColor(BaseColorId, c);
-                    // 2,2 -> 3,4: cam artik kucuk bir levha degil bir
-                    // fener govdesi ve huzmenin ciktigi yer olarak
-                    // okunmasi gerekiyor. Emisyon 1'in uzerinde olmali,
-                    // yoksa parlama degil yalnizca "acik renk" olur.
+                    // 2.2 -> 3.4: the glass is no longer a small slab but a
+                    // lantern body, and it has to read as the place the beam
+                    // comes out of. The emission has to be above 1, otherwise it
+                    // is not a glow but merely "a light colour".
                     _block.SetColor(EmissionId, on ? c * 2.6f : Color.black);
                     LampHeads[i].SetPropertyBlock(_block);
                 }
@@ -348,12 +359,12 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Ic tavan isiklarini acar/kapatir.
+        /// Turns the inside ceiling lights on and off.
         ///
-        /// Govdesi olmayan isiklar: yalnizca yerdeki havuz. Bir
-        /// armaturun kendisi cizilmiyor - kamera tavani olmayan bir
-        /// binaya bakiyor ve orada asili bir kutu, aydinlattigi yeri
-        /// kapatmaktan baska bir sey yapmazdi.
+        /// Lights with no body: only the pool on the floor. The fitting
+        /// itself is not drawn - the camera is looking at a building with no
+        /// ceiling, and a box hanging up there would do nothing but cover the
+        /// place it lights.
         /// </summary>
         private void RoomLights(bool on)
         {
@@ -363,7 +374,7 @@ namespace Lokanta.Game
                 if (RoomGlow[i] != null) RoomGlow[i].SetActive(on);
         }
 
-        /// <summary>Dort duraga gore ara deger. Sabah, ogle, ikindi, aksam.</summary>
+        /// <summary>An interpolation over four stops. Morning, midday, afternoon, evening.</summary>
         private static float Curve(float t, float a, float b, float c, float d)
         {
             if (t < 0.40f) return Mathf.Lerp(a, b, t / 0.40f);
@@ -371,7 +382,7 @@ namespace Lokanta.Game
             return Mathf.Lerp(c, d, Mathf.Clamp01((t - 0.72f) / 0.28f));
         }
 
-        /// <summary>Gunduz duragini mutfagin tonuna dogru kaydirir.</summary>
+        /// <summary>Shifts the daytime stop towards the cuisine's tint.</summary>
         private Color Tint(Color c)
         {
             return Color.Lerp(c, SkyTint, SkyTintStrength);

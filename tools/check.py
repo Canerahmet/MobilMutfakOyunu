@@ -1,31 +1,32 @@
 # -*- coding: utf-8 -*-
-"""Her sey yerinde mi.
+"""Is everything where it should be.
 
-Bu betik **Python ve .NET tarafındaki** denetçileri sırayla koşuyor ve
-tek bir cevap veriyor.
+This script runs the checkers on **both the Python and the .NET side**
+in order and gives one answer.
 
-Neden gerekli: bu denetçilerin her biri gerçek bir hatayı yakalamak
-için yazıldı, ve her biri en az bir kez "koşulmadığı için" kaçırdı.
-Yazı tipi kapsaması denetçisi yazıldıktan yarım saat sonra yeni bir
-metin eklendi ve o metin yazı tipinde olmayan bir ok içeriyordu; ancak
-denetçi elle koşturulduğunda görüldü.
+Why it is needed: each of these checkers was written to catch a real
+bug, and each of them missed one at least once **because it was not
+run**. Half an hour after the font-coverage checker was written, a new
+string was added and that string contained an arrow that was not in the
+font; it was only seen when the checker was run by hand.
 
-DOCSTRING BİR ZAMANLAR "altı denetçi var ve hepsini koşuyor" diyordu.
-İkisi de yanlıştı: on üç adım vardı ve Unity tarafındaki denetçilerin
-(ArtCheck, PlacementAudit, RoomLayout, GameShot ve duman turu) **hiçbiri**
-listede yoktu. Yani docstring'in kendi gerekçesi ("her biri en az bir
-kez koşulmadığı için kaçırdı") tam olarak o denetçiler için geçerliydi.
+THE DOCSTRING ONCE SAID "there are six checkers and it runs all of
+them". Both halves were wrong: there were thirteen steps, and **none**
+of the checkers on the Unity side (ArtCheck, PlacementAudit, RoomLayout,
+GameShot and the smoke tour) were in the list. So the docstring's own
+justification ("each of them missed one at least once because it was not
+run") applied exactly to those checkers.
 
-Unity adımları ayrı, çünkü her biri bir editör oturumu açıyor ve
-dakikalar sürüyor; varsayılan koşuda atlanıyorlar ama **listede
-görünüyorlar**.
+The Unity steps are separate, because each one opens an editor session
+and takes minutes; they are skipped in the default run but they **appear
+in the list**.
 
-Kullanım:
-    python tools/check.py            Python + .NET denetimleri
-    python tools/check.py --hizli    testleri atla (saniyeler sürer)
-    python tools/check.py --unity    Unity denetçilerini de koş (yavaş)
+Usage:
+    python tools/check.py            Python + .NET checks
+    python tools/check.py --fast    skip the tests (takes seconds)
+    python tools/check.py --unity    run the Unity checkers too (slow)
 
-Çıkış kodu 0 temiz, 1 en az bir denetim kırmızı.
+Exit code 0 clean, 1 at least one check is red.
 """
 from __future__ import print_function
 
@@ -38,55 +39,55 @@ PY = sys.executable
 
 
 def run(name, args, cwd=ROOT):
-    """Tek bir denetim. Dönen değer: (ad, geçti mi, son satır).
+    """A single check. Returns (name, passed, last line).
 
-    `dotnet` çağrıları engellenirse **karma değiştirilerek** yeniden
-    deneniyor: bu makinede Smart App Control imzasız bir derlemenin
-    yüklenmesini engelleyebiliyor ve engel dosyanın karmasına bağlı.
-    Çekirdek `<Deterministic>true</Deterministic>` ile derlendiği için
-    aynı kaynak her zaman aynı karmayı üretiyor — yani engellenen bir
-    derleme yeniden derlemekle **düzelmiyor**, sonsuza kadar kalıyor.
-    `-p:Deterministic=false` her derlemede yeni bir kimlik üretiyor ve
-    engel kendiliğinden düşüyor. Ayrıntı: docs/19.
+    If a `dotnet` call is blocked it is retried **with a changed hash**:
+    on this machine Smart App Control can block an unsigned assembly
+    from loading, and the block is tied to the file's hash. Because the
+    core is built with `<Deterministic>true</Deterministic>` the same
+    source always produces the same hash — so a blocked assembly is
+    **not fixed** by rebuilding, it stays blocked forever.
+    `-p:Deterministic=false` produces a new identity on every build and
+    the block falls away by itself. Details: docs/19.
     """
     if args and args[0] == "dotnet":
         r = _once(name, args + ["-c", "Release"], cwd)
-        # ENGEL BUTUN CIKTIDA ARANIYOR, son satirda degil.
+        # THE BLOCK IS LOOKED FOR IN THE WHOLE OUTPUT, not the last line.
         #
-        # Once yalnizca `tail` bakiliyordu ve xUnit engel mesajini
-        # BASA yaziyor ("Skipping: ... An Application Control policy
-        # has blocked this file"), sonra bilgi satirlariyla bitiyor.
-        # Yani engel goruulmuyor, yeniden deneme hic tetiklenmiyordu.
-        # YENIDEN DENEME SEBEBE DEGIL KANITA BAGLI.
+        # Only the `tail` was examined at first, and xUnit writes the
+        # block message at the TOP ("Skipping: ... An Application Control
+        # policy has blocked this file") and then ends with information
+        # lines. So the block was never seen and the retry never fired.
+        # THE RETRY DEPENDS ON EVIDENCE, NOT ON A REASON.
         #
-        # Once yalnizca 0x800711C7 gorununce deneniyordu. Ama engel her
-        # zaman o kodu yazmiyor: test konagi bazen sessizce SIFIR test
-        # bulup cikis kodu 0 veriyor ("A total of 1 test files matched"
-        # ve hicbir ozet satiri yok). O halde kod aranmiyor, denetim
-        # basarisiz sayiliyor ve yeniden deneme hic tetiklenmiyordu.
+        # At first it only retried when 0x800711C7 appeared. But the
+        # block does not always write that code: the test host sometimes
+        # silently finds ZERO tests and exits 0 ("A total of 1 test files
+        # matched" and no summary line at all). So the code is not looked
+        # for, the check is counted as failed and the retry never fired.
         if r[1]:
             return r
-        # Engellendi: KARMAYI DEGISTIREREK **ve yeniden derleyerek**.
-        # -p:Deterministic=false tek basina yetmiyor - kaynak
-        # degismediyse MSBuild derlemeyi atliyor ve ayni engelli ikili
-        # tekrar kullaniliyor.
+        # Blocked: BY CHANGING THE HASH **and rebuilding**.
+        # -p:Deterministic=false alone is not enough - if the source has
+        # not changed MSBuild skips the build and the same blocked binary
+        # is used again.
         #
-        # `dotnet test` AYRI ELE ALINIYOR: --no-incremental'i kabul
-        # etmiyor (MSB1001 "Unknown switch"), yani eski yol testler icin
-        # HIC calismiyordu. Once ayri bir derleme, sonra --no-build ile
-        # kosu. Ayrica taze bir karma da engellenebiliyor, o yuzden
-        # birkac deneme.
+        # `dotnet test` IS HANDLED SEPARATELY: it does not accept
+        # --no-incremental (MSB1001 "Unknown switch"), so the old path
+        # NEVER worked for the tests. Build first, then run with
+        # --no-build. A fresh hash can be blocked too, hence several
+        # attempts.
         if len(args) > 1 and args[1] == "test":
             proj = args[2]
             for _ in range(5):
-                # DERLEMENIN SONUCU ONEMSENIYOR.
+                # THE RESULT OF THE BUILD MATTERS.
                 #
-                # Once yok sayiliyordu ve bir sey daha kiriyordu:
-                # --no-incremental once TEMIZLIYOR, yani derleme
-                # basarisiz olunca test derlemesi ORTADAN KALKIYOR ve
-                # sonraki "--no-build" kosusu "test source file ... was
-                # not found" diyordu. Yani gecici bir engel, kalici
-                # gorunen baska bir hataya donusuyordu.
+                # It used to be ignored, and that broke one more thing:
+                # --no-incremental CLEANS first, so when the build fails
+                # the test assembly DISAPPEARS and the following
+                # "--no-build" run said "test source file ... was not
+                # found". A temporary block was turning into a different
+                # error that looked permanent.
                 b = _once(name, ["dotnet", "build", proj, "-c", "Release",
                                  "-v", "q", "--nologo", "-p:Deterministic=false",
                                  "--no-incremental"], cwd)
@@ -96,8 +97,9 @@ def run(name, args, cwd=ROOT):
                 if r[1]:
                     return r
 
-            # Bes denemede de kosamadi. Son bir kez NORMAL derleyip
-            # birakiyoruz ki depo, testi olmayan bir durumda kalmasin.
+            # Five attempts and it still could not run. One last normal
+            # build so the repository is not left without a test
+            # assembly.
             _once(name, ["dotnet", "build", proj, "-c", "Release",
                          "-v", "q", "--nologo"], cwd)
             return r
@@ -111,105 +113,115 @@ def _once(name, args, cwd=ROOT):
         p = subprocess.run(args, cwd=cwd, capture_output=True, text=True,
                            encoding="utf-8", errors="replace")
     except OSError as e:
-        return name, False, "calistirilamadi: %s" % e, ""
+        return name, False, "could not be started: %s" % e, ""
 
     out = (p.stdout or "") + (p.stderr or "")
     lines = [l.strip() for l in out.splitlines() if l.strip()]
-    tail = lines[-1] if lines else "(cikti yok)"
+    tail = lines[-1] if lines else "(no output)"
 
     ok = p.returncode == 0
 
-    # TESTLERIN KOSTUGU KANITLANIYOR.
+    # PROOF THAT THE TESTS RAN.
     #
-    # `dotnet test`, test derlemesi yuklenemediginde CIKIS KODU 0
-    # veriyor ve yalnizca "Skipping: ... blocked" yaziyor. Denetim bunu
-    # gecti sayiyordu: 239 testin sifiri kosuyor, tablo yesil yaniyordu.
-    # Bu projenin en sik hata sinifinin denetcinin KENDISINDE hali.
+    # When the test assembly cannot be loaded, `dotnet test` EXITS 0 and
+    # only writes "Skipping: ... blocked". The check counted that as a
+    # pass: zero of 239 tests ran and the table lit up green. This
+    # project's most frequent class of bug, this time inside the CHECKER
+    # ITSELF.
     #
-    # Artik kanit sart: xUnit'in ozet satiri ("Passed!" / "Failed!")
-    # ciktida gecmiyorsa denetim kirmizi.
+    # Evidence is now required: if xUnit's summary line ("Passed!" /
+    # "Failed!") does not appear in the output, the check is red.
     if ok and len(args) > 1 and args[0] == "dotnet" and args[1] == "test":
         if "Passed!" not in out and "Failed!" not in out:
             ok = False
-            tail = "TEST KOSMADI (ozet satiri yok): " + tail
+            tail = "THE TESTS DID NOT RUN (no summary line): " + tail
 
     return name, ok, tail, out
 
 
 def main():
-    quick = "--hizli" in sys.argv
+    quick = "--fast" in sys.argv
     unity = "--unity" in sys.argv
 
     checks = [
-        ("icerik uretimi",
+        ("content generation",
          [PY, os.path.join("tools", "balance", "export.py")]),
-        ("yemek dengesi",
+        ("dish balance",
          [PY, os.path.join("tools", "content", "gen_dishes.py")]),
-        ("personel huylari",
+        ("staff traits",
          [PY, os.path.join("tools", "content", "gen_traits.py")]),
-        ("duzenli musteriler",
+        ("regulars",
          [PY, os.path.join("tools", "content", "gen_regulars.py")]),
-        ("personel isimleri",
+        ("staff names",
          [PY, os.path.join("tools", "content", "gen_names.py")]),
-        ("metin tablosu",
+        ("string table",
          [PY, os.path.join("tools", "content", "gen_loc.py")]),
-        ("icerik-kod sozlesmesi",
+        ("content-code contract",
          [PY, os.path.join("tools", "audit_content.py")]),
-        ("yazi tipi kapsamasi",
+        ("font coverage",
          [PY, os.path.join("tools", "art", "check_font.py")]),
-        ("magaza metinleri",
+        ("store listing texts",
          [PY, os.path.join("tools", "content", "check_store_texts.py")]),
-        ("belge baglantilari",
+        ("document links",
          [PY, os.path.join("tools", "check_docs.py")]),
-        ("urp ayarlari",
+        # RULE 1 OF CLAUDE.md, MEASURED.
+        #
+        # "Everything a reader sees is in English" is the kind of rule
+        # that decays one hurried variable name at a time. Running it
+        # here is what makes it a rule rather than a preference.
+        ("written in English",
+         [PY, os.path.join("tools", "check_english.py")]),
+        ("urp settings",
          [PY, os.path.join("tools", "check_urp.py")]),
-        # LISANS: ticari yayin kapisi. Bir varlik klasoru lisanssiz ya da
-        # atif defterinde satirsiz kalirsa yayin riski dogar ve bunu
-        # Google Play degil telif sahibi yakalar.
-        ("lisans ve atif",
+        # LICENCES: the gate for a commercial release. If an asset folder
+        # is left without a licence or without a row in the attribution
+        # ledger, a release risk is created - and it is not Google Play
+        # that catches it, it is the copyright holder.
+        ("licence and attribution",
          [PY, os.path.join("tools", "check_licenses.py")]),
     ]
 
     if not quick:
-        # NETSTANDARD KORUMASI. Cekirdek iki hedefe birden derleniyor ve
-        # testler yalnizca net10.0 olanini yukluyor - yani netstandard2.1
-        # hedefi hic derlenmeden gecebilir. O hedef, cekirdegin Unity'nin
-        # API yuzeyi disina cikmadiginin TEK kontrolu; kosmazsa koruma
-        # degil susteur.
-        checks.append(("netstandard korumasi",
+        # THE NETSTANDARD GUARD. The core builds for two targets and the
+        # tests only load the net10.0 one - so the netstandard2.1 target
+        # can pass without ever being built. That target is the ONLY
+        # check that the core stays inside Unity's API surface; if it
+        # does not run it is not a guard, it is an ornament.
+        checks.append(("netstandard guard",
                        ["dotnet", "build",
                         os.path.join("src", "Lokanta.Core", "Lokanta.Core.csproj"),
                         "-f", "netstandard2.1", "-v", "q", "--nologo"]))
-        checks.append(("icerik netstandard",
+        checks.append(("content netstandard",
                        ["dotnet", "build",
                         os.path.join("src", "Lokanta.Content", "Lokanta.Content.csproj"),
                         "-f", "netstandard2.1", "-v", "q", "--nologo"]))
-        checks.append(("cekirdek testleri",
+        checks.append(("core tests",
                        ["dotnet", "test",
                         os.path.join("tests", "Lokanta.Core.Tests",
                                      "Lokanta.Core.Tests.csproj"),
                         "-v", "q", "--nologo"]))
 
-    # UNITY TARAFI. Her biri bir editor oturumu aciyor; varsayilan
-    # kosuda atlaniyor ama LISTEDE gorunuyor - "hepsini kosuyorum"
-    # diyen bir aracin en tehlikeli hali, kosmadigini saymamasi.
+    # THE UNITY SIDE. Each one opens an editor session; they are skipped
+    # in the default run but they APPEAR IN THE LIST - the most dangerous
+    # state for a tool that says "I run all of them" is not counting what
+    # it did not run.
     unity_checks = [
-        ("sanat denetimi",
+        ("art check",
          ["powershell", "-NoProfile", "-File",
           os.path.join("tools", "unity", "run.ps1"),
           "-Method", "Lokanta.EditorTools.ArtCheck.Run"]),
-        ("yerlesim denetimi",
+        ("placement check",
          ["powershell", "-NoProfile", "-File",
           os.path.join("tools", "unity", "run.ps1"),
           "-Method", "Lokanta.EditorTools.PlacementAudit.Run"]),
-        ("oda yerlesimi",
+        ("room layout",
          ["powershell", "-NoProfile", "-File",
           os.path.join("tools", "unity", "run.ps1"),
           "-Method", "Lokanta.EditorTools.RoomLayout.Capture"]),
-        ("sahne goruntusu",
+        ("scene screenshot",
          ["powershell", "-NoProfile", "-File",
           os.path.join("tools", "unity", "shot.ps1")]),
-        ("duman turu",
+        ("smoke tour",
          ["powershell", "-NoProfile", "-File",
           os.path.join("tools", "unity", "tour.ps1")]),
     ]
@@ -217,7 +229,7 @@ def main():
     if unity:
         checks += unity_checks
     else:
-        print("(atlandi, --unity ile kosulur: "
+        print("(skipped, run with --unity: "
               + ", ".join(n for n, _ in unity_checks) + ")")
 
     print("=" * 70)
@@ -225,15 +237,15 @@ def main():
     for name, args in checks:
         name, ok, tail, _ = run(name, args)
         results.append((name, ok, tail))
-        print("%-24s %s  %s" % (name, "TAMAM" if ok else "KIRMIZI", tail[:60]))
+        print("%-24s %s  %s" % (name, "OK" if ok else "RED", tail[:60]))
 
     print("=" * 70)
     bad = [r for r in results if not r[1]]
     if not bad:
-        print("HEPSI TEMIZ (%d denetim)" % len(results))
+        print("ALL CLEAN (%d checks)" % len(results))
         return 0
 
-    print("%d DENETIM KIRMIZI:" % len(bad))
+    print("%d CHECKS RED:" % len(bad))
     for name, _ok, tail in bad:
         print("  %s: %s" % (name, tail))
     return 1

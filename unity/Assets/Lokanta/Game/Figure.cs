@@ -1,40 +1,40 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Bir insan figurunun DURUSU. Musteri oturur, asci tezgahta calisir,
-    /// garson tabak tasir.
+    /// The POSE of a human figure. A guest sits, a cook works at the
+    /// counter, a waiter carries a plate.
     ///
-    /// Neden ayri bir bilesen: figurler havuzdan geliyor ve ayni nesne
-    /// gun icinde once musteri sonra bos duruyor. Durusu nesnenin uzerinde
-    /// tutmak, "bu figur su an ne yapiyor" sorusunun tek bir yerde
-    /// cevaplanmasini sagliyor.
+    /// Why a separate component: the figures come out of a pool, and the
+    /// same object is a guest first and idle later in the same day.
+    /// Keeping the pose on the object itself means "what is this figure
+    /// doing right now" is answered in one place.
     ///
-    /// Klipler pakette hazir geliyor (Kenney Mini Characters, CC0); iskelet
-    /// butun figurlerde ayni oldugu icin tek bir denetleyici hepsini
-    /// suruyor.
+    /// The clips come ready in the asset pack (Kenney Mini Characters,
+    /// CC0); because the skeleton is the same on every figure, a single
+    /// controller drives them all.
     /// </summary>
     public sealed class Figure : MonoBehaviour
     {
         public enum Pose { Idle, Walk, Sit, Serve, Carry, Chop, Wash, Pick }
 
-        /// <summary>Denetleyicideki durum adlari. Pose sirasiyla ayni.</summary>
+        /// <summary>The state names in the controller. Same order as Pose.</summary>
         public static readonly string[] StateNames =
             { "idle", "walk", "sit", "serve", "carry", "chop", "wash", "pick" };
 
         /// <summary>
-        /// Paketteki klip adlari. Pose sirasiyla ayni.
+        /// The clip names in the pack. Same order as Pose.
         ///
-        /// MUTFAK ISLERI paketin hazir kliplerinden kuruluyor; yeni
-        /// animasyon uretilmiyor:
-        ///   chop  = attack-melee-right - yukaridan asagi inen kol.
-        ///           Satirla dograma hareketinin ta kendisi.
-        ///   wash  = interact-left      - onunde iki elle ugrasma.
-        ///   pick  = pick-up            - egilip bir sey alma; asci
-        ///           buzdolabinin onunde bunu yapiyor.
-        /// </summary>
+        /// THE KITCHEN JOBS are built out of the pack's ready-made clips; no
+        /// new animation is produced:
+        ///   chop  = attack-melee-right - an arm coming down from above.
+        ///           Which is the chopping motion itself.
+        ///   wash  = interact-left      - working at something in front of
+        ///           you with both hands.
+        ///   pick  = pick-up            - bending down and picking something
+        ///           up; the cook does this in front of the fridge.
         public static readonly string[] ClipNames =
             { "idle", "walk", "sit", "interact-right", "holding-both",
               "attack-melee-right", "interact-left", "pick-up" };
@@ -42,191 +42,197 @@ namespace Lokanta.Game
         public Animator Anim;
 
         /// <summary>
-        /// Klipler, EDITOR ONIZLEMESI icin. Oyunda denetleyici suruyor;
-        /// editor kipinde Animator islemedigi icin klip elle orneklen&#305;yor.
-        /// </summary>
+        /// The clips, for the EDITOR PREVIEW. In the game the controller
+        /// drives them; in editor mode the Animator does not run, so the clip
+        /// is sampled by hand.
         public AnimationClip[] Clips;
 
         private Pose _pose = Pose.Idle;
         private bool _started;
 
         // =====================================================================
-        // OTURUSTA DIZ BUKULUYOR.
+        // THE KNEE BENDS WHEN SITTING.
         //
-        // Paketin iskeletinde diz yoktu; bacak basina tek kemik vardi ve
-        // oturan figur ya minderin icinden geciyor ya da bacaklarini
-        // one uzatip yere oturmus gibi duruyordu. Diz kemigi artik
-        // URETIMDE ekleniyor (Editor/ArtPrefabs.AddKnees) ve hicbir klip
-        // onu oynatmiyor - yani butun eski duruşlar aynen duruyor,
-        // yalnizca burasi mudahale ediyor.
+        // There was no knee in the pack's skeleton; there was one bone per
+        // leg, and a seated figure either went through the cushion or stuck
+        // its legs out in front as if it were sitting on the floor. The knee
+        // bone is now added AT BUILD TIME (Editor/ArtPrefabs.AddKnees) and no
+        // clip animates it - so every old pose stands exactly as it was, and
+        // only this place interferes.
         //
-        // Kural tek cumle: BALDIR DIKEY. Uyluk klibin dediği yerde
-        // kaliyor (oturma klibi onu one uzatiyor), diz ise baldiri her
-        // karede dunyaya gore asagi ceviriyor. Ayaklar boylece minderin
-        // onunde, yere dogru sarkiyor.
+        // The rule is one sentence: THE SHIN IS VERTICAL. The thigh stays
+        // where the clip puts it (the sitting clip stretches it forward),
+        // while the knee turns the shin downwards in world space on every
+        // frame. The feet then hang in front of the cushion, towards the
+        // floor.
         //
-        // Neden dunyaya gore: kemigin kendi eksenlerinin nereye baktigini
-        // bilmek gerekmiyor. Diz kemigi baglanma durusunda (bacaklar
-        // asagi) kokune gore hangi aciysa, oturuşta da o aci yaziliyor.
+        // Why in world space: there is no need to know where the bone's own
+        // axes point. Whatever angle the knee bone sits at relative to its
+        // root in the bind pose (legs down), that same angle is written when
+        // sitting.
         //
-        // Neden LateUpdate: Animator pozu Update'ten SONRA yaziyor.
-        /// <summary>Uyluk kemikleri. Prefab uretiminde baglaniyor.</summary>
+        // Why LateUpdate: the Animator writes the pose AFTER Update.
+        /// <summary>The thigh bones. Bound when the prefab is built.</summary>
         public Transform[] Legs;
 
-        /// <summary>Baldir kemikleri. Prefab uretiminde baglaniyor.</summary>
+        /// <summary>The shin bones. Bound when the prefab is built.</summary>
         public Transform[] Knees;
 
         /// <summary>
-        /// Bacak kemiklerinin BAGLANMA acilari, figurun kokune gore.
+        /// The BIND angles of the leg bones, relative to the figure's root.
         ///
-        /// NEDEN CALISMA ANINDA OKUNMUYOR: ilk yazim bunlari ilk
-        /// kullanimda okuyordu ve okudugu sey baglanma acisi DEGILDI -
-        /// klip o ana kadar pozu coktan degistirmis oluyordu. Sonuc:
-        /// baldir "asagi" diye yazilan yere gidiyor ama o yer artik
-        /// uylugun yonu. Prefab uretiminde model kesinlikle baglanma
-        /// durusunda; dogru an orasi.
+        /// WHY THEY ARE NOT READ AT RUNTIME: the first version read them at
+        /// first use, and what it read was NOT the bind angle - by then the
+        /// clip had long since changed the pose. The result: the shin goes
+        /// where "down" is written, but that place is now the thigh's
+        /// direction. When the prefab is built the model is definitely in the
+        /// bind pose; that is the right moment.
         /// </summary>
         public Quaternion[] LegRest;
 
-        /// <summary>Baldirlarin baglanma acilari. Bkz. LegRest.</summary>
+        /// <summary>The shins' bind angles. See LegRest.</summary>
         public Quaternion[] KneeRest;
 
         // =====================================================================
-        // OTURUSTA DIZ BUKULUYOR.
+        // THE KNEE BENDS WHEN SITTING.
         //
-        // Paketin iskeletinde diz YOKTU; bacak basina tek kemik vardi ve
-        // oturan figur ya minderin icinden geciyor ya da bacaklarini one
-        // uzatip yere oturmus gibi duruyordu. Diz kemigi artik uretimde
-        // ekleniyor (Editor/ArtPrefabs.AddKnees) ve hicbir klip onu
-        // oynatmiyor - yani butun eski duruşlar aynen duruyor, yalnizca
-        // burasi mudahale ediyor.
+        // There was NO knee in the pack's skeleton; there was one bone per
+        // leg, and a seated figure either went through the cushion or stuck
+        // its legs out in front as if it were sitting on the floor. The knee
+        // bone is now added at build time (Editor/ArtPrefabs.AddKnees) and no
+        // clip animates it - so every old pose stands exactly as it was, and
+        // only this place interferes.
         //
-        // Kural iki cumle: UYLUK ONE, BALDIR ASAGI. Ikisi de figurun
-        // kendi uzayinda, baglanma acisindan olculerek.
+        // The rule is two sentences: THE THIGH FORWARD, THE SHIN DOWN. Both
+        // in the figure's own space, measured from the bind angle.
         //
-        // Neden LateUpdate: Animator pozu Update'ten SONRA yaziyor.
+        // Why LateUpdate: the Animator writes the pose AFTER Update.
 
         /// <summary>
-        /// Uylugun baglanma yonunden (asagi) donusu, derece.
-        /// -90 tam yatay; -78 ucu hafif asagi egik, oturmus bir insan gibi.
+        /// The thigh's rotation from its bind direction (down), in degrees.
+        /// -90 is fully horizontal; -78 tips the end slightly down, like a
+        /// person who is sitting.
         ///
-        /// STATIC ALAN, SABIT DEGIL: olcum araci bu iki aciyi supurup
-        /// tek karede yan yana koyabilsin diye. Oyun degistirmiyor.
+        /// A STATIC FIELD, NOT A CONSTANT: so that the measuring tool can
+        /// sweep these two angles and put them side by side in one frame.
+        /// The game does not change them.
         /// </summary>
         public static float ThighAngle = -78f;
 
-        /// <summary>Baldirin dikeyden one egimi, derece. Eksi = one.</summary>
+        /// <summary>The shin's forward tilt from vertical, in degrees. Negative = forwards.</summary>
         public static float ShinTilt = -6f;
 
         private void LateUpdate() { BendKnees(); }
 
         /// <summary>
-        /// Oturuşta uylugu one, baldiri asagi cevirir. Editor onizlemesi
-        /// de cagiriyor - iki yerde iki ayri hesap olmasin diye.
+        /// Turns the thigh forward and the shin down while sitting. The
+        /// editor preview calls it too - so that there are not two separate
+        /// calculations in two places.
         /// </summary>
         public void BendKnees()
         {
             if (_pose != Pose.Sit || Knees == null || Knees.Length == 0) return;
             if (LegRest == null || KneeRest == null) return;
 
-            // LEGS ICIN DE KORUMA.
+            // A GUARD FOR LEGS TOO.
             //
-            // Uc alan icin vardi, Legs icin yoktu; asagidaki dongu
-            // `Legs.Length` okuyor. Prefab ureteci Knees+KneeRest
-            // baglayip Legs'i baglamazsa (AddKnees'te ayri adimlar)
-            // salon doldugu anda kare basina ONLARCA
-            // NullReferenceException - LateUpdate her oturan figurde
-            // her karede calisiyor.
+            // There was one for three fields but not for Legs; the loop below
+            // reads `Legs.Length`. If the prefab builder binds Knees+KneeRest
+            // but not Legs (they are separate steps in AddKnees), the moment
+            // the hall fills up there are DOZENS of NullReferenceExceptions
+            // per frame - LateUpdate runs on every seated figure on every
+            // frame.
             if (Legs == null) return;
 
-            Quaternion kok = transform.rotation;
+            Quaternion root = transform.rotation;
 
-            Vector3 uylukYon = kok * (Quaternion.Euler(ThighAngle, 0f, 0f) * Vector3.down);
+            Vector3 thighDir = root * (Quaternion.Euler(ThighAngle, 0f, 0f) * Vector3.down);
             for (int i = 0; i < Legs.Length && i < LegRest.Length; i++)
-                Aim(Legs[i], LegRest[i], uylukYon);
+                Aim(Legs[i], LegRest[i], thighDir);
 
-            // BALDIR: uyluk nereye giderse gitsin dunyada asagi.
-            Vector3 baldirYon = kok * (Quaternion.Euler(ShinTilt, 0f, 0f) * Vector3.down);
+            // THE SHIN: down in world space, wherever the thigh goes.
+            Vector3 shinDir = root * (Quaternion.Euler(ShinTilt, 0f, 0f) * Vector3.down);
             for (int i = 0; i < Knees.Length && i < KneeRest.Length; i++)
-                Aim(Knees[i], KneeRest[i], baldirYon);
+                Aim(Knees[i], KneeRest[i], shinDir);
         }
 
         /// <summary>
-        /// Kemigi, BAGLANMA durusunda asagi bakan ekseni verilen dunya
-        /// yonune bakacak sekilde cevirir.
+        /// Turns the bone so that the axis which pointed down in its BIND
+        /// pose points along the given world direction.
         ///
-        /// NEDEN NISAN, NEDEN ACI DEGIL: aciyla kurmak ("kokun uzayinda
-        /// su kadar dondur") kemigin kendi eksenlerinin nereye baktigini
-        /// bilmeyi gerektiriyor ve bu pakette uyluk ile baldirinki AYNI
-        /// DEGIL - uyluk beklendigi gibi donerken baldir bambaska bir
-        /// yere gidiyordu. Nisan alma o bilgiyi hic sormuyor: kemigin
-        /// baglanma durusundaki "asagi" ekseni bulunuyor ve nereye
-        /// bakmasi isteniyorsa oraya cevriliyor.
+        /// WHY AIMING AND NOT AN ANGLE: setting it up with an angle ("turn
+        /// this much in the root's space") requires knowing where the bone's
+        /// own axes point, and in this pack the thigh's and the shin's are
+        /// NOT THE SAME - the thigh turned as expected while the shin went
+        /// somewhere else entirely. Aiming never asks for that: the bone's
+        /// "down" axis in the bind pose is found, and turned to wherever it
+        /// is wanted.
         /// </summary>
         private static void Aim(Transform bone, Quaternion rest, Vector3 worldDir)
         {
             if (bone == null || worldDir.sqrMagnitude < 0.0001f) return;
 
-            // Baglanma durusunda kemik asagi bakiyordu; o yonun kemigin
-            // KENDI uzayindaki karsiligi.
+            // In the bind pose the bone pointed down; this is what that
+            // direction is in the bone's OWN space.
             Vector3 local = Quaternion.Inverse(rest) * Vector3.down;
-            Vector3 simdi = bone.rotation * local;
-            bone.rotation = Quaternion.FromToRotation(simdi, worldDir) * bone.rotation;
+            Vector3 now = bone.rotation * local;
+            bone.rotation = Quaternion.FromToRotation(now, worldDir) * bone.rotation;
         }
 
-        /// <summary>Olcum araci icin: diz kemigi bulundu mu.</summary>
+        /// <summary>For the measuring tool: was a knee bone found?</summary>
         public int KneeCount { get { return Knees == null ? 0 : Knees.Length; } }
 
         /// <summary>
-        /// Gecisin bitmesine kalan sure. Sifirin altina inince Animator
-        /// KAPANIYOR.
+        /// How long is left of the transition. Once it drops below zero the
+        /// Animator IS SWITCHED OFF.
         ///
-        /// Oturan musteri sonsuza kadar ayni klibi oynatiyordu ve dolu
-        /// bir salonda 67 figurun 67 Animator'i vardi. Animator basina
-        /// sabit maliyet (durum makinesi degerlendirmesi + is
-        /// zamanlamasi) kucuk iskelette bile ~45 mikrosaniye, yani
-        /// karede ~3 ms - ve bunun karsiligi SIFIR, cunku oturan
-        /// musteri kipirdamiyor.
+        /// A seated guest played the same clip for ever, and a full hall had
+        /// 67 Animators for its 67 figures. The fixed cost per Animator (the
+        /// state machine evaluation + job scheduling) is ~45 microseconds
+        /// even on a small skeleton, that is ~3 ms a frame - and it buys
+        /// NOTHING, because a seated guest does not move.
         ///
-        /// Gecis bittiginde poz zaten son karede kaldigi yerde duruyor;
-        /// Animator'i kapatmak gorunumu degistirmiyor. Duruş degisince
-        /// Set() onu geri aciyor.
+        /// When the transition is over the pose is already sitting where its
+        /// last frame left it; switching the Animator off does not change
+        /// the look. When the pose changes, Set() turns it back on.
         /// </summary>
         private float _settleLeft;
 
         private const float CrossFade = 0.18f;
 
         /// <summary>
-        /// Yuruyus klibinin KENDI hizi (m/sn) - yani ayaklarin kaymadigi
-        /// yer hizi.
+        /// The walk clip's OWN speed (m/s) - that is, the ground speed at
+        /// which the feet do not slide.
         ///
-        /// Klip yerinde sayiyor (kok hareketi yok), o yuzden bu sayi
-        /// hicbir yerde yazmiyor ve OLCULDU: Editor/PlacementAudit
-        /// "YURUYUS" satiri klibi yirmi dort noktada ornekleyip iki
-        /// ayagin en uzak acilmasini (adim boyu) buluyor; bir cevrim iki
-        /// adim, yani dogal hiz = 2 x adim / klip suresi.
+        /// The clip walks on the spot (no root motion), so this number is
+        /// written down nowhere and it was MEASURED: the "WALK" line of
+        /// Editor/PlacementAudit samples the clip at twenty-four points and
+        /// finds the widest opening between the two feet (the stride); one
+        /// cycle is two strides, so the natural speed = 2 x stride / clip
+        /// length.
         ///
-        /// Neden gerekli: Anim.speed hicbir yerde ayarlanmiyordu. Figur
-        /// x4 oyun hizinda dort kat hizli gidiyor ama bacaklar ayni
-        /// tempoda oynuyordu - ayaklar yerde kayiyordu.
+        /// Why it is needed: Anim.speed was not being set anywhere. At x4
+        /// game speed the figure moves four times as fast but the legs
+        /// played at the same tempo - the feet slid along the ground.
         ///
-        /// Olculen: klip 0,67 sn, adim 0,426 m -> 2 x 0,426 / 0,67 =
-        /// 1,28 m/sn. Walker.Speed ise 1,15 - yani x1'de bile %11
-        /// uyumsuzluk vardi, x4'te 3,6 kat.
+        /// Measured: a 0.67 s clip, a 0.426 m stride -> 2 x 0.426 / 0.67 =
+        /// 1.28 m/s. Walker.Speed, though, is 1.15 - so there was an 11%
+        /// mismatch even at x1, and 3.6 times that at x4.
         ///
-        /// Bu sayi degisirse denetim "SAPMA VAR" diye yaziyor.
+        /// If this number changes, the audit's walk line says so.
         /// </summary>
         public const float WalkClipSpeed = 1.28f;
 
         /// <summary>
-        /// Klibin oynatma hizini YER HIZINA baglar.
+        /// Ties the clip's playback speed to the GROUND SPEED.
         ///
-        /// Yuruyen figur icin: bacaklar, govdenin gercekte kat ettigi
-        /// mesafeye gore donuyor. Duran figur icin 1 - oturma, dograma,
-        /// yikama kliplerinin hizi yer hiziyla ilgili degil.
+        /// For a walking figure: the legs turn according to the distance the
+        /// body really covers. For a standing figure it is 1 - the speed of
+        /// the sitting, chopping or washing clips has nothing to do with the
+        /// ground speed.
         ///
-        /// TAVANLI: cok yuksek bir carpan bacaklari titreme haline
-        /// getiriyor ve zaten Walker x4,5 ustunde isinlaniyor.
+        /// CAPPED: too high a multiplier turns the legs into a judder, and
+        /// Walker teleports above x4.5 anyway.
         /// </summary>
         public void SetGroundSpeed(float metersPerSecond)
         {
@@ -240,7 +246,7 @@ namespace Lokanta.Game
             if (!Mathf.Approximately(Anim.speed, k)) Anim.speed = k;
         }
 
-        /// <summary>Oynatma hizini normale dondurur.</summary>
+        /// <summary>Puts the playback speed back to normal.</summary>
         public void ResetPlaybackSpeed()
         {
             if (Anim == null || Anim.runtimeAnimatorController == null) return;
@@ -250,17 +256,18 @@ namespace Lokanta.Game
         public Pose Current { get { return _pose; } }
 
         /// <summary>
-        /// Su anki klibin ilerlemesi (dongu sayisi dahil). Turun
-        /// sorabilmesi icin.
+        /// The current clip's progress (the loop count included). So the
+        /// tour can ask.
         ///
-        /// Neden gerekli: "ayak kaymasi" olcusu klip HIZINI yer hiziyla
-        /// karsilastiriyordu ve DONMUS bir klibi goremiyordu - klip hic
-        /// ilerlemese bile oran dogru cikiyor. Kullanicinin gordugu sey
-        /// ("adim atmiyorlar, kayiyorlar") tam olarak buydu ve sebebi
-        /// kliplerin dongusuz ice aktarilmasiydi.
+        /// Why it is needed: the "foot sliding" measure compared the clip's
+        /// SPEED with the ground speed and could not see a FROZEN clip - the
+        /// ratio comes out right even if the clip never advances at all.
+        /// What the user saw ("they are not stepping, they are sliding") was
+        /// exactly that, and the cause was that the clips had been imported
+        /// without looping.
         ///
-        /// Bu sayi ILERLIYOR mu diye bakmak, animasyonun gercekten
-        /// oynadigini soyleyen tek olcu.
+        /// Looking at whether this number IS ADVANCING is the only measure
+        /// that says the animation is really playing.
         /// </summary>
         public float ClipProgress
         {
@@ -280,22 +287,24 @@ namespace Lokanta.Game
 
             if (Anim == null || Anim.runtimeAnimatorController == null) return;
 
-            // Gecis suresi 0,18 sn: oturma ile ayaga kalkma arasinda gozle
-            // gorulur ama beklenmeyen bir duraklama yaratmayan bir gecis.
+            // A transition time of 0.18 s: visible between sitting down and
+            // standing up, but not long enough to feel like an unexpected
+            // pause.
             if (!Anim.enabled) Anim.enabled = true;
             Anim.CrossFadeInFixedTime(StateNames[(int)p], CrossFade, 0);
 
-            // Gecis + bir kliplik pay: dongusel kliplerde ilk tur
-            // tamamlansin, yoksa yurume ortasinda donuyor.
+            // The transition + one clip's grace: so that the first cycle of a
+            // looping clip completes, otherwise it freezes in the middle of a
+            // walk.
             _settleLeft = CrossFade + 0.9f;
         }
 
         /// <summary>
-        /// Gecis bitince Animator'i kapatir.
+        /// Switches the Animator off when the transition is over.
         ///
-        /// Update yalnizca gecis SURERKEN is yapiyor; kapandiktan sonra
-        /// tek yaptigi bir float karsilastirmasi, ve o da Animator'in
-        /// kendi maliyetinin yaninda olculemeyecek kadar kucuk.
+        /// Update only does work WHILE the transition lasts; once it is off,
+        /// all it does is compare a float, and that is immeasurably small
+        /// next to the Animator's own cost.
         /// </summary>
         private void Update()
         {
@@ -308,17 +317,17 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Animator'i acik TUTAR.
+        /// KEEPS the Animator awake.
         ///
-        /// Set() gecisten 0,9 saniye sonra Animator'i kapatiyor ve bu
-        /// dogru: oturan bir musteri kipirdamiyor, degerlendirilmesi
-        /// bosuna. Ama YURUYEN bir figur icin yanlis - yuruyus dokuz
-        /// saniye surebilir ve figur yolun ortasinda donup kalirdi.
+        /// Set() switches the Animator off 0.9 seconds after the transition,
+        /// and that is right: a seated guest does not move, evaluating it is
+        /// wasted. But it is wrong for a WALKING figure - a walk can last
+        /// nine seconds and the figure would freeze in the middle of the
+        /// path.
         ///
-        /// Walker her karede bunu cagiriyor; yuruyus bitince cagirmayi
-        /// birakiyor ve normal kapanma isliyor. Yani "acik kalsin"
-        /// bilgisi bir bayrak degil, bir KALP ATISI - unutulursa
-        /// kendiliginden sonlanan turden.
+        /// Walker calls this every frame; when the walk ends it stops calling
+        /// and the normal switch-off runs. So "stay awake" is not a flag but
+        /// a HEARTBEAT - the kind that ends by itself if it is forgotten.
         /// </summary>
         public void HoldAwake()
         {
@@ -328,8 +337,8 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Havuza donen figur. Bir sonraki kullanimda Set() yeniden
-        /// poz vermeli, yoksa eski duruşta kaliyor.
+        /// A figure going back to the pool. At its next use Set() has to
+        /// pose it again, otherwise it stays in the old pose.
         /// </summary>
         public void Release()
         {
@@ -338,9 +347,9 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Durusu tek karede uygular. Editor onizlemesi icin: editor
-        /// kipinde Animator islemiyor ve butun figurler baglanma
-        /// durusunda - yani kollari yana acik - kaliyordu.
+        /// Applies the pose in a single frame. For the editor preview: in
+        /// editor mode the Animator does not run and every figure stayed in
+        /// the bind pose - that is, with its arms out to the sides.
         /// </summary>
         public void Sample(Pose p, float time)
         {

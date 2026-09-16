@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Dokuman yazicisi - Parti A
+Document writer - Batch A
 ============================================================================
-model.py'nin urettigi tablolari docs/12-economy.md ve docs/14-staff-system.md
-icine, isaretcilerin arasina yazar.
+Writes the tables model.py produces into docs/12-economy.md and
+docs/14-staff-system.md, between the markers.
 
-Isaretci bicimi:
-    <!-- URETILEN: anahtar -->
-    ... tablo ...
-    <!-- /URETILEN: anahtar -->
+Marker format:
+    <!-- GENERATED: key -->
+    ... table ...
+    <!-- /GENERATED: key -->
 
-Isaretciler arasindaki her sey her calistirmada silinip yeniden yazilir.
-Bu dosyalardaki sayilari ELLE DEGISTIRMEYIN; model.py'deki parametreyi
-degistirip bu betigi calistirin.
+Everything between the markers is deleted and rewritten on every run.
+DO NOT CHANGE the numbers in those files BY HAND; change the parameter in
+model.py and run this script.
 
-Calistirma:  python render.py
+Running it:  python render.py
 """
 import io
 import os
@@ -35,13 +35,18 @@ def fmt(n):
 
 
 # ---------------------------------------------------------------------------
-# Tablolar (Turkce basliklarla)
+# The tables. THE HEADINGS AND CELL LABELS STAY TURKISH, and deliberately so:
+# these strings are not this script's output, they are the CONTENT of
+# docs/12-economy.md, docs/14-staff-system.md and
+# docs/32-equipment-and-rebalance.md. Translating them here would drop English
+# tables into the middle of Turkish prose, in files this script is only a
+# writer for. They follow when those documents are translated.
 # ---------------------------------------------------------------------------
 
 def t_rent():
-    L = ["| Kademe | Masa | Haftalık kira | Bu kademeye geçiş bedeli |",
+    L = ["| Tier | Tables | Weekly rent | Cost of moving to this tier |",
          "|---|---|---|---|"]
-    names = ["Başlangıç", "İkinci", "Üçüncü", "Dördüncü"]
+    names = ["Starting", "Second", "Third", "Fourth"]
     for name, t in zip(names, model.TIERS):
         up = fmt(t["upgrade"]) if t["upgrade"] else "—"
         L.append("| {} | {} | {} | {} |".format(name, t["tables"], fmt(t["rent"]), up))
@@ -49,36 +54,36 @@ def t_rent():
 
 
 def t_capacity():
-    L = ["| Rol | Günlük kapasite | Günlük ücret | Müşteri başına iş | Salon yükü payı |",
+    L = ["| Role | Daily capacity | Daily wage | Work per guest | Share of hall load |",
          "|---|---|---|---|---|"]
-    rows = [("Aşçı", model.CAP_ASCI, model.WAGE["asci"], None),
-            ("Garson", model.CAP_GARSON, model.WAGE["garson"], "garson"),
-            ("Bulaşıkçı", model.CAP_BULASIKCI, model.WAGE["bulasikci"], "bulasikci"),
-            ("Kasiyer", model.CAP_KASIYER, model.WAGE["kasiyer"], "kasiyer")]
+    rows = [("Cook", model.CAP_COOK, model.WAGE["cook"], None),
+            ("Waiter", model.CAP_WAITER, model.WAGE["waiter"], "waiter"),
+            ("Dishwasher", model.CAP_DISHWASHER, model.WAGE["dishwasher"], "dishwasher"),
+            ("Cashier", model.CAP_CASHIER, model.WAGE["cashier"], "cashier")]
     for name, cap, wage, key in rows:
         if key is None:
-            share = "ayrı havuz"
+            share = "separate pool"
         else:
             share = "%{:.0f}".format(100 * model._shares[key])
-        L.append("| {} | {} müşteri | {} | {:.4f} iş-günü | {} |".format(
+        L.append("| {} | {} guests | {} | {:.4f} person-days | {} |".format(
             name, cap, wage, 1.0 / cap, share))
     return "\n".join(L)
 
 
 def t_crew():
-    L = ["| Hafta | Zirve müşteri/gün | Aşçı | Salon | Toplam kadro | Tavan | Salon iş yükü | Patron düşülünce |",
+    L = ["| Week | Peak guests/day | Cooks | Hall | Total crew | Cap | Hall workload | After the owner |",
          "|---|---|---|---|---|---|---|---|"]
     for r in ROWS:
         c = r["crew"]
         L.append("| {w} | {pk} | {a} | {s} | **{tot}** | {cap} | {lw:.2f} | {aft:.2f} |".format(
-            w=r["week"], pk=r["weekend"], a=c["asci"], s=c["salon"], tot=c["total"],
-            cap=r["cap"], lw=c["salon_work"],
-            aft=max(0.0, c["salon_work"] - model.OWNER_WORK)))
+            w=r["week"], pk=r["weekend"], a=c["cook"], s=c["hall"], tot=c["total"],
+            cap=r["cap"], lw=c["hall_work"],
+            aft=max(0.0, c["hall_work"] - model.OWNER_WORK)))
     return "\n".join(L)
 
 
 def t_growth():
-    L = ["| Hafta | Masa | Kadro | Tavan | İtibar | Müşteri/gün (içi / sonu) | Ort. fiş | Ciro | Malzeme | Maaş | Kira | Genişleme | Haftalık net | Kasa |",
+    L = ["| Week | Tables | Crew | Cap | Reputation | Guests/day (weekday / weekend) | Avg ticket | Revenue | Stock | Wages | Rent | Expansion | Weekly net | Till |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in ROWS:
         exp = "−" + fmt(r["expansion"]) if r["expansion"] else "—"
@@ -93,7 +98,7 @@ def t_growth():
 
 
 def t_margin():
-    L = ["| Hafta | Malzeme | Maaş | Kira | Genişleme | Net marj |",
+    L = ["| Week | Stock | Wages | Rent | Expansion | Net margin |",
          "|---|---|---|---|---|---|"]
     for r in ROWS:
         rev = r["revenue"]
@@ -105,25 +110,26 @@ def t_margin():
 
 
 def t_demand():
-    """docs/12 5.1 - formulun kendi ornekleri, formulden turetilmis hali."""
-    L = ["| Durum | Hesap | Hafta içi | Hafta sonu |", "|---|---|---|---|"]
+    """docs/12 5.1 - the formula's own examples, derived from the formula."""
+    L = ["| Case | Sum | Weekday | Weekend |", "|---|---|---|---|"]
     for tables, rep in ((4, 35), (7, 52), (10, 68), (14, 88)):
         wd = model.customers(tables, rep, model.WEEKDAY_BP)
         we = model.customers(tables, rep, model.WEEKEND_BP)
-        L.append("| {t} masa, itibar {r} | {t} × 4 × {f:.2f} | {wd} | {we} |".format(
+        L.append("| {t} tables, reputation {r} | {t} × 4 × {f:.2f} | {wd} | {we} |".format(
             t=tables, r=rep, f=0.5 + rep / 100.0, wd=wd, we=we))
     return "\n".join(L)
 
 
 def t_equipment():
     """
-    Ekipman merdiveni. docs/27 Karar D: basamak ya yuva ekler ya attendBp
-    dusurur, prepMs'e dokunmaz. Fiyatlar kiradan turetiliyor.
+    The equipment ladder. docs/27 Decision D: a step either adds a slot or
+    lowers attendBp, and never touches prepMs. The prices are derived from
+    the rent.
     """
-    L = ["| İstasyon | `attendBp` | Kademe | Yuva | `attendBp` | Fiyat | Gerekli olduğu masa |",
+    L = ["| Station | `attendBp` | Tier | Slots | `attendBp` | Price | Needed at tables |",
          "|---|---|---|---|---|---|---|"]
-    names = {"ocak": "Ocak", "izgara": "Izgara", "firin": "Fırın",
-             "soguk": "Soğuk", "icecek": "İçecek", "tatli": "Tatlı"}
+    names = {"ocak": "Stove", "izgara": "Grill", "firin": "Oven",
+             "soguk": "Cold", "icecek": "Drinks", "tatli": "Desserts"}
     total = 0
     for st in model.equipment():
         base = st["tiers"][0]["attend"]
@@ -134,24 +140,25 @@ def t_equipment():
                 base if i == 0 else "",
                 t["tier"], t["slots"], t["attend"],
                 fmt(t["price"]) if t["price"] else "—",
-                t["needAt"] if t["needAt"] else "isteğe bağlı"))
+                t["needAt"] if t["needAt"] else "optional"))
     L.append("")
-    L.append("Merdivenin tamamı **{} sikke**.".format(fmt(total)))
+    L.append("The whole ladder is **{} coins**.".format(fmt(total)))
     return chr(10).join(L)
 
 
 def t_storage():
     """
-    Soguk hava merdiveni ve her kademenin GERCEKTEN kurtardigi malzeme.
+    The cold-storage ladder and the ingredients each tier REALLY saves.
 
-    Elle yazilmisti ve eskidi: tablo 2.340/3.480/10.000 yazarken icerik
-    1.860/2.700/8.000 uretiyordu, ve "44 bozulabilir malzeme" derken
-    sayi 36'ya inmisti. Uretilen bir tablo eskimez.
+    It had been written by hand and went stale: the table said
+    2,340/3,480/10,000 while the content produced 1,860/2,700/8,000, and it
+    said "44 perishable ingredients" when the count had dropped to 36. A
+    generated table does not go stale.
 
-    Esik hesabi onemli ve sezgiye aykiri: omur = spoilDays x keepBp ve
-    omur 1 ile omur 0 AYNI SEY (ikisi de o gece oluyor). Yani bir
-    kademenin bir malzemeyi gercekten kurtarmasi icin omrun 2'ye
-    ulasmasi gerekiyor - esik spoilDays >= 20000/keepBp.
+    The threshold arithmetic matters and is counter-intuitive: life =
+    spoilDays x keepBp, and a life of 1 and a life of 0 are THE SAME THING
+    (both die that night). So for a tier really to save an ingredient the
+    life has to reach 2 - the threshold is spoilDays >= 20000/keepBp.
     """
     import json as _json
     import os as _os
@@ -161,7 +168,7 @@ def t_storage():
         _os.path.join(root, "content", "ingredients.json"), encoding="utf-8"))
     per = [i for i in items if i["perishable"]]
 
-    L = ["| Kademe | `keepBp` | Kurtardığı malzeme | Fiyat |",
+    L = ["| Tier | `keepBp` | Ingredients saved | Price |",
          "|---|---:|---:|---:|"]
     tiers = model.storage()
     total = 0
@@ -176,34 +183,37 @@ def t_storage():
             t["tier"], keep, saved, len(per),
             fmt(t["price"]) if t["price"] else "—"))
     L.append("")
-    L.append("Merdivenin tamamı **{} sikke**. Bozulabilir malzeme "
-             "**{}** kalem.".format(fmt(total), len(per)))
+    L.append("The whole ladder is **{} coins**. Perishable ingredients: "
+             "**{}** items.".format(fmt(total), len(per)))
     L.append("")
-    L.append("Bir kademe bir malzemeyi ancak ömrünü **2 güne** çıkarabiliyorsa "
-             "kurtarıyor: ömür 1 ile ömür 0 aynı gece çöpe gidiyor.")
+    L.append("A tier only saves an ingredient if it can raise its life to "
+             "**2 days**: a life of 1 and a life of 0 go in the bin the "
+             "same night.")
     return chr(10).join(L)
 
 
+# The keys are the marker names inside the documents; they are a contract with
+# docs/*.md, not prose.
 BLOCKS = {
-    "ekipman": t_equipment,
-    "depo": t_storage,
-    "kira": t_rent,
-    "kapasite": t_capacity,
-    "kadro": t_crew,
-    "buyume": t_growth,
-    "marj": t_margin,
-    "talep": t_demand,
+    "equipment": t_equipment,
+    "storage": t_storage,
+    "rent": t_rent,
+    "capacity": t_capacity,
+    "crew": t_crew,
+    "growth": t_growth,
+    "margin": t_margin,
+    "demand": t_demand,
 }
 
 
 # ---------------------------------------------------------------------------
-# Yazma
+# Writing
 # ---------------------------------------------------------------------------
 
 def splice(path, key, content):
     s = io.open(path, encoding="utf-8").read()
-    start = "<!-- ÜRETİLEN: {} -->".format(key)
-    end = "<!-- /ÜRETİLEN: {} -->".format(key)
+    start = "<!-- GENERATED: {} -->".format(key)
+    end = "<!-- /GENERATED: {} -->".format(key)
     if start not in s:
         return False
     pat = re.compile(re.escape(start) + r".*?" + re.escape(end), re.S)
@@ -214,9 +224,9 @@ def splice(path, key, content):
 
 def main():
     targets = {
-        "12-economy.md": ["kira", "buyume", "talep"],
-        "14-staff-system.md": ["kapasite", "kadro", "marj"],
-        "32-equipment-and-rebalance.md": ["ekipman", "depo"],
+        "12-economy.md": ["rent", "growth", "demand"],
+        "14-staff-system.md": ["capacity", "crew", "margin"],
+        "32-equipment-and-rebalance.md": ["equipment", "storage"],
     }
     n = 0
     for fname, keys in targets.items():
@@ -224,11 +234,11 @@ def main():
         for k in keys:
             if splice(path, k, BLOCKS[k]()):
                 n += 1
-                print("yazildi: {} -> {}".format(fname, k))
+                print("written: {} -> {}".format(fname, k))
             else:
-                print("ISARETCI YOK: {} -> {}".format(fname, k))
+                print("NO MARKER: {} -> {}".format(fname, k))
     print("---")
-    print("{} blok yazildi".format(n))
+    print("{} blocks written".format(n))
 
 
 if __name__ == "__main__":

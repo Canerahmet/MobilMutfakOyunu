@@ -1,229 +1,229 @@
-# Pazar Araştırması: Restoran / Dükkân Yönetim Oyunları
+# Market Research: Restaurant / Shop Management Games
 
-**Tarih:** 9 Eylül 2026
-**Amaç:** Mobil, 2.5D, restoran sahipliği temalı yönetim oyunumuz için; Steam ve mobilde yayınlanmış benzer oyunlarda oyuncuların gerçekten sevdiği ve nefret ettiği mekanikleri kanıta dayalı olarak belirlemek.
+**Date:** 9 September 2026
+**Purpose:** to establish, on the evidence, which mechanics players actually love and hate in comparable games released on Steam and on mobile — for our own mobile, 2.5D, restaurant-ownership management game.
 
-**Yöntem:** Steam mağaza sayfaları (inceleme yüzdesi ve sayısı), Steam kullanıcı incelemelerinin doğrudan metni, Steam tartışma forumları, oyun basını incelemeleri, Sensor Tower pazar verisi, mobil mağaza sayfaları ve sektör analizleri.
+**Method:** Steam store pages (review percentage and count), the text of Steam user reviews themselves, Steam discussion forums, games-press reviews, Sensor Tower market data, mobile store pages and industry analyses.
 
-**Uyarı:** Satış tahminleri (GameDiscoverCo vb.) doğrulanmamış üçüncü taraf tahminleridir. İnceleme sayıları erişim tarihindeki değerlerdir ve zamanla değişir.
+**Caveat:** sales estimates (GameDiscoverCo and others) are unverified third-party estimates. Review counts are the values on the date of access and change over time.
 
 ---
 
-## 1. Referans Oyunlar: Sayılarla
+## 1. The Reference Games, in Numbers
 
-| Oyun | Platform | Steam puanı | İnceleme sayısı | Yıl | Not |
+| Game | Platform | Steam rating | Reviews | Year | Note |
 |---|---|---|---|---|---|
-| Dave the Diver | PC/konsol | %96 | 50.941 | 2023 | Son 30 gün %93 (1.633) |
-| PlateUp! | PC/konsol | %96 | 12.343 | 2022 | Ko-op roguelite |
-| Cook, Serve, Delicious! | PC | %95 | 2.954 | 2013 | Sipariş baskısı klasiği |
-| Tavern Keeper | PC (Erken Erişim) | %94 | 2.856 | 2025 | Kasım 2025 EA |
-| Tavern Master | PC | %91 | 5.137 | 2021 | İzometrik meyhane |
-| Travellers Rest | PC | %88 | 8.331 | 2020 | Son incelemeler %79 |
-| Cat Cafe Manager | PC/Switch | %87 | 1.557 | 2022 | Son 30 gün %50 (12) |
-| Good Pizza, Great Pizza | Mobil + PC | %85 | 2.335 | 2014 | Mobil kökenli |
-| Discounty | PC | %83 | 1.518 | 2025 | Pixel art market sim |
-| Cuisineer | PC | %76 | 1.806 | 2023 | Pixel, roguelike + restoran |
+| Dave the Diver | PC/console | 96% | 50,941 | 2023 | Last 30 days 93% (1,633) |
+| PlateUp! | PC/console | 96% | 12,343 | 2022 | Co-op roguelite |
+| Cook, Serve, Delicious! | PC | 95% | 2,954 | 2013 | The order-pressure classic |
+| Tavern Keeper | PC (Early Access) | 94% | 2,856 | 2025 | EA since November 2025 |
+| Tavern Master | PC | 91% | 5,137 | 2021 | Isometric tavern |
+| Travellers Rest | PC | 88% | 8,331 | 2020 | Recent reviews 79% |
+| Cat Cafe Manager | PC/Switch | 87% | 1,557 | 2022 | Last 30 days 50% (12) |
+| Good Pizza, Great Pizza | Mobile + PC | 85% | 2,335 | 2014 | Mobile-born |
+| Discounty | PC | 83% | 1,518 | 2025 | Pixel-art shop sim |
+| Cuisineer | PC | 76% | 1,806 | 2023 | Pixel, roguelike + restaurant |
 
-**Supermarket Simulator (Nokta Games, Türkiye):** Yaklaşık 2,6 milyon satış ve 27 milyon dolar brüt gelir, 2024 (GameDiscoverCo tahmini, doğrulanmamış). Mart 2024'te 38 bin eşzamanlı oyuncu zirvesi ve 4,2 milyon saat Twitch izlenmesi (Game World Observer). Stüdyo 4 kişilik, 2017'de kurulmuş, ekip mobil hiper-kazüel geçmişinden geliyor.
+**Supermarket Simulator (Nokta Games, Turkey):** roughly 2.6 million sales and $27 million gross revenue in 2024 (GameDiscoverCo estimate, unverified). A peak of 38 thousand concurrent players in March 2024 and 4.2 million hours watched on Twitch (Game World Observer). The studio is four people, founded in 2017, and the team comes from a mobile hyper-casual background.
 
-**Bu bizim için en önemli vaka:** küçük bir Türk ekip, basit bir dükkân işletme döngüsüyle küresel bir hit yaptı.
+**This is the most important case for us:** a small Turkish team made a global hit out of a simple shop-running loop.
 
 ---
 
-## 2. Oyun Oyun Bulgular
+## 2. Findings, Game by Game
 
-### Dave the Diver (2023, %96 / 50.941)
+### Dave the Diver (2023, 96% / 50,941)
 
-**Döngü:** Gündüz dalış yapıp balık toplarsın, akşam suşi restoranını işletirsin. Akşam menüyü sen belirlersin (genelde 4-8 yemek), personel işe alır ve eğitirsin, servis sırasında müşterilere yemek taşırsın. Gelen müşteri sayısı "Cooksta" itibar puanına bağlıdır.
+**The loop:** by day you dive and collect fish, in the evening you run your sushi restaurant. In the evening you set the menu (usually 4-8 dishes), hire and train staff, and carry food to customers during service. How many customers arrive depends on your "Cooksta" reputation score.
 
-**Sevilenler:**
-- **Çift döngü.** Kaynak toplama (dalış) ve kaynağı paraya çevirme (restoran) birbirini besliyor. İki farklı ritim, tek oyunda.
-- **Sürekli yeni mekanik.** En çok oy alan incelemelerden: "Sıkılmayan, sürekli yeni mekanikler tanıtan oynanış" ve "Tam biteceğini sandığın anda yeni içerik çıkarıyor."
-- **Stressiz yönetim.** Bir inceleme oyunu doğrudan "Stressiz Restoran Simülasyonu" diye tanımlıyor.
-- Mağaza etiketleri arasında "Pixel Graphics" ve "Management" birlikte ilk sıralarda. Pixel ve yönetim kombinasyonunun ticari olarak kanıtlanmış olması bizim için önemli.
+**What is loved:**
+- **The double loop.** Gathering resources (diving) and converting them into money (the restaurant) feed each other. Two different rhythms in one game.
+- **New mechanics, constantly.** From the most-upvoted reviews: "gameplay that never gets boring, constantly introducing new mechanics" and "just when you think it is about to end, it pulls out new content."
+- **Stress-free management.** One review describes the game directly as a "Stress-free Restaurant Simulator".
+- Among the store tags, "Pixel Graphics" and "Management" are near the top together. That the pixel-plus-management combination is commercially proven matters to us.
 
-**Şikayetler (forumlardan):**
-- **Tek tek yapılan işler.** Şube restoranına yemek taşırken ürünleri teker teker basmak, çiftlikte ürünleri tek tek toplayıp tek tek ekmek sıkıcı bulunmuş.
-- **Mini oyun enflasyonu.** "Çok fazla mini oyun var." Saklanma ve ritim mini oyunları başarısız olunca tekrar oynanmak zorunda kalınması sinir bozucu bulunmuş; oyuncular atlama seçeneği istemiş.
-- Hikaye ilerledikçe restoran bölümünün arka plana düşmesi.
+**Complaints (from the forums):**
+- **Tasks done one at a time.** Pressing items one by one while carrying food to the branch restaurant, and picking and planting crops one at a time on the farm, were found tedious.
+- **Minigame inflation.** "There are too many minigames." Having to replay the hiding and rhythm minigames after failing them was found irritating; players asked for a skip option.
+- The restaurant part receding into the background as the story advances.
 
-### PlateUp! (2022, %96 / 12.343)
+### PlateUp! (2022, 96% / 12,343)
 
-**Döngü:** 15 günlük sezonlar. Yemek ve ekipman seç, mutfağı ve salonu döşe, servis ver, aralarda yeniden tasarla. Prosedürel üretilmiş mekânlar, menüler ve yükseltmeler.
+**The loop:** 15-day seasons. Pick dishes and equipment, fit out the kitchen and the dining room, serve, redesign in between. Procedurally generated venues, menus and upgrades.
 
-**Sevilenler:**
-- **Yerleşim tasarımı bir bulmaca olarak.** Konveyörler ve tutucular zincirlenerek mutfak otomatikleştirilebiliyor. Bir analiz bunu net özetliyor: Overcooked'un refleks kaosu, burada mühendisliğe yakın bir şeyle değiştirilmiş.
-- **Yavaş ve metodik zorluk eğrisi.** Oyuncular "beceri, strateji ve zorlukta yavaş ve metodik bir tırmanış" boyunca "küçük ama anlamlı ayarlamalar" yapmayı seviyor.
-- **Cezalandırmayan başarısızlık.** Bir inceleme oyunun kaybettikten sonra suçlama ve utandırma söylemine girmediğini, bunun yerine sonraki oyunlara taşınan bonuslara odaklandığını vurguluyor. Bu, bizim batma tasarımımız için doğrudan model.
-- Her koşu farklı olduğu için "bir tur daha" hissi.
+**What is loved:**
+- **Layout design as a puzzle.** Conveyors and holders can be chained to automate the kitchen. One analysis sums it up neatly: Overcooked's reflex chaos has been replaced here with something close to engineering.
+- **A slow, methodical difficulty curve.** Players enjoy making "small but meaningful adjustments" over "a slow and methodical climb in skill, strategy and difficulty".
+- **Failure that does not punish.** One review stresses that the game does not lapse into blaming and shaming after a loss, focusing instead on bonuses that carry into later runs. That is a direct model for our collapse design.
+- The "one more run" feeling, because every run is different.
 
-**Şikayetler:** Tuş atama esnekliği. Burger gibi çok malzemeli yemeklerin yoğun serviste zorluk sıçraması yaratması.
+**Complaints:** key-binding flexibility. Multi-ingredient dishes such as burgers creating a difficulty spike during a busy service.
 
 ### Supermarket Simulator (2024)
 
-**Döngü:** Stok siparişi ver, rafları diz, her ürünün fiyatını elle belirle, kasada müşteri karşıla, yerleri temizle, mağazayı genişlet.
+**The loop:** order stock, fill the shelves, set the price of every product by hand, greet customers at the till, clean the floor, expand the shop.
 
-**Sevilenler:**
-- **Elle yapılan dokunsal işler.** "Tatmin edici angarya" olarak tarif ediliyor. İşin kendisi ödül.
-- **Fiyat kararının görünür sonucu.** Oyuncular piyasa fiyatının biraz altında başlıyor, sonra üstüne çıkıyor. Bir oyuncunun stratejisi: her şeye piyasa üstü yüzde 7, günlük ayarlama, böylece şikayetler sıfıra yakın kalıyor. Fiyat ile müşteri memnuniyeti arasındaki bu görünür takas oyunun kalbi.
-- **Genişleme.** Mağazayı büyütmenin verdiği tatmin ve "bir gün daha" döngüsü en çok anılan iki şey.
-- Stok tükenmesinin cezası var: satın alamayan müşteri XP kaybettiriyor. Yani ihmalin somut bedeli var.
+**What is loved:**
+- **Tactile work done by hand.** Described as "satisfying drudgery". The work itself is the reward.
+- **The visible consequence of a price decision.** Players start slightly below the market price, then go above it. One player's strategy: seven per cent above market on everything, adjusted daily, which keeps complaints close to zero. This visible trade-off between price and customer satisfaction is the heart of the game.
+- **Expansion.** The satisfaction of growing the shop and the "one more day" loop are the two most frequently mentioned things.
+- Running out of stock has a penalty: a customer who cannot buy costs you XP. In other words, neglect has a concrete price.
 
-**Mobil dersi:** Oyun Google Play'de haftalar içinde kopyalandı; bir kopya 31 Mart 2024'e kadar 100 binden fazla indirme aldı. Mobil uyarlamalarda en çok eleştirilen şey dokunmatik kamera ve nişan kontrolü. Bir mobil pazarlama analizi, mobil versiyonun yetersiz para kazandırdığını ve meta-oyun derinliğinin zayıf olduğunu, uzun vadeli hedef eksikliği yaşadığını söylüyor.
+**The mobile lesson:** the game was cloned on Google Play within weeks; one clone had more than 100 thousand downloads by 31 March 2024. What is criticised most in the mobile adaptations is the touch camera and aiming controls. One mobile marketing analysis says the mobile version monetises poorly, that its meta-game depth is weak, and that it lacks long-term goals.
 
-Bizim için ders: PC dükkân simülasyonunun ham döngüsü mobilde tutuyor ama uzun vadeli hedef katmanı eklemek şart.
+The lesson for us: the raw loop of a PC shop sim holds up on mobile, but a long-term goal layer is essential.
 
-### Discounty (2025, %83 / 1.518)
+### Discounty (2025, 83% / 1,518)
 
-Pixel art market yönetimi. **Bu bizim görsel ve yapısal olarak en yakın çağdaş referansımız.**
+Pixel-art shop management. **This is our closest contemporary reference, visually and structurally.**
 
-- "Mağaza yönetimi şaşırtıcı derecede tatmin edici, raf yerleşiminden tedarikçi güvenine kadar her karar önemli."
-- "Minicik dükkânının hareketli bir merkeze dönüşmesini izlemek ödüllendirici."
-- Yazım ve karakterler ayrıca övülüyor: diyaloglar "gerçekten komik", kasaba halkıyla ticaret anlaşmaları seviliyor.
-- Pixel art "sıcak ve davetkâr" bulunuyor.
+- "Shop management is surprisingly satisfying; every decision matters, from shelf layout to supplier trust."
+- "Watching your tiny shop turn into a bustling hub is rewarding."
+- The writing and characters are praised separately: the dialogue is "genuinely funny", and the trade deals with the townsfolk are liked.
+- The pixel art is found "warm and inviting".
 
-**Ders:** Karar ağırlığı, görünür büyüme ve karakterli yazım üçlüsü, pixel art bir dükkân oyununu 2025'te hâlâ çok olumluya taşıyor.
+**The lesson:** the trio of decision weight, visible growth and writing with character still carries a pixel-art shop game to very positive in 2025.
 
 ### Travellers Rest, Tavern Master, Tavern Keeper
 
-- **Otomasyonun doğru yeri.** Travellers Rest oyuncuları personelin satış, oda temizliği ve muhasebeyi devralmasını seviyor. Ama net bir uyarı var: oyuncular kaynak toplamanın otomatikleşmesini istiyor, meyhane işletmenin değil. Orta ve geç oyunda madencilik, odun kesme ve çiftçilik yapmak zorunda kalmak şikayet konusu.
-- Bir forum başlığı doğrudan şunu diyor: oyun her güncellemede "meyhane işletme oyunu" olmaktan uzaklaşıyor. Tema kaymasının cezası var.
-- Tavern Master gerçek bir tycoon olarak sevilmiş ama ekonomisi bozuk: "asla harcayamayacağın kadar çok para." Boş bir son oyun şikayeti var.
-- Tavern Keeper cilası, personel karakter özellikleri ve anlatıcısıyla övülüyor; işçi yapay zekâsı ve dekorasyon şişkinliğiyle eleştiriliyor.
+- **Where automation belongs.** Travellers Rest players like staff taking over sales, room cleaning and the accounts. But there is a clear warning: players want resource gathering automated, not running the tavern. Having to mine, chop wood and farm in the mid and late game is a source of complaint.
+- One forum thread says it outright: with every update the game moves further from being "a tavern-running game". Theme drift has a price.
+- Tavern Master is liked as a genuine tycoon but its economy is broken: "more money than you could ever spend." There is an empty-endgame complaint.
+- Tavern Keeper is praised for its polish, its staff traits and its narrator; it is criticised for worker AI and decoration bloat.
 
-### Cat Cafe Manager (2022, %87 genel ama son 30 günde %50) — Uyarı Vakası
+### Cat Cafe Manager (2022, 87% overall but 50% in the last 30 days) — A Cautionary Case
 
-En çok oy alan incelemelerin çoğu **olumsuz** ve hepsi aynı yerden vuruyor. Bu, ne yapmamamız gerektiğinin listesi:
+Most of the most-upvoted reviews are **negative**, and they all strike the same place. This is the list of what we must not do:
 
-- **"Aslında dekorasyonlu bir AFK oyunu."** Kedilerin ihtiyaçlarını karşılamak "fark etmiyor, hiçbir şey olmuyor."
-- **Sonuçsuzluk.** "Mutsuz müşterilerin hiçbir yaptırımı yok." "Beceriler ve istatistikler önemsiz." "Hiçbir şey önemli değil."
-- **Kolaylaşıp ölen ekonomi.** "Çalışanları geliştirdikten sonra çok kolaylaşıyor, idle oyuna dönüşüyor."
-- **Angarya.** "Günlük malzeme ikmali sıkıcılaşıyor, otomatik alım özelliği çok geç geliyor."
-- **İlerlemeyi cezalandıran ilerleme.** Bir oyuncu sistemlerin arkadaşlıkları ilerletmemeyi teşvik ettiğini yazıyor.
-- **Vaat edilen fantezinin kısıtlanması.** 15'ten fazla kedi açılıyor ama sadece 9 tanesi tutulabiliyor: "Oyunun tüm amacı bu, ve bunu yapmama izin vermiyorlar."
-- Personel yapay zekâsı, yol bulma, çökmeler ve performans sorunları.
+- **"It is really an AFK game with decorating."** Meeting the cats' needs "makes no difference, nothing happens."
+- **No consequences.** "Unhappy customers have no penalty whatsoever." "Skills and stats are irrelevant." "Nothing matters."
+- **An economy that gets easy and dies.** "After you upgrade the staff it gets far too easy and turns into an idle game."
+- **Drudgery.** "The daily restocking gets boring, and the auto-buy feature arrives far too late."
+- **Progress that punishes progress.** One player writes that the systems discourage advancing friendships.
+- **The promised fantasy, restricted.** More than 15 cats unlock but only 9 can be kept: "That is the whole point of the game, and they will not let me do it."
+- Staff AI, pathfinding, crashes and performance problems.
 
-**Ders:** Sevimli sanat ve rahat tema, mekaniklerin anlamsız olmasını kurtarmıyor. Aksine "hiçbir şeyin önemi yok" hissi en sık ve en sert şikayet.
+**The lesson:** cute art and a cosy theme do not save mechanics from being meaningless. On the contrary, the feeling that "nothing matters" is the most frequent and the harshest complaint.
 
-### Cuisineer (2023, %76 / 1.806)
+### Cuisineer (2023, 76% / 1,806)
 
-Pixel art, zindan koşusu ve restoran. Savaş ve çekicilik övülüyor, ama:
+Pixel art, dungeon runs and a restaurant. The combat and the charm are praised, but:
 
-- "Restoran yönetimi çok yavaş başlıyor ve baştan itibaren oyuncuyu tutacak ek karmaşıklık katmanlarına ihtiyacı var."
-- "Restoran yönetimi derinlikten yoksun, birkaç düzine kez yaptıktan sonra bayatlıyor."
+- "The restaurant management starts far too slowly and needs extra layers of complexity from the outset to hold the player."
+- "The restaurant management lacks depth and goes stale after a few dozen times."
 
-**Ders:** Çift döngü tek başına yetmiyor. Dave the Diver %96 alırken Cuisineer %76'da kalıyor, çünkü yönetim yarısı sığ. Bizim oyunumuzda yönetim ana döngü, o yüzden derinliği en baştan doğru kurmalıyız.
+**The lesson:** a double loop is not enough on its own. Dave the Diver gets 96% while Cuisineer stays at 76%, because the management half is shallow. In our game management is the main loop, so we have to get the depth right from the beginning.
 
-### Good Pizza, Great Pizza (mobil, %85 Steam / 2.335)
+### Good Pizza, Great Pizza (mobile, 85% on Steam / 2,335)
 
-- **Sevilen:** müşterinin tuhaf ve kişilikli siparişini çözmek, hamurdan kutuya kadar elle pizza yapmak, malzeme maliyeti ile kâr arasında denge kurmak, yükseltme temposu.
-- **Nefret edilen:** gerçek zamanlı sayaçlar (bahçe mekaniğinde bitkiler gerçek zamanda büyüyor), para kazanma döngüsünün yavaş ve ağır olması, elmas kazanmanın reklam veya para dışında yolunun olmaması, mağaza para biriminin dolar işareti yerine banknot ikonuyla gösterilmesinin kafa karıştırıcı bulunması.
-- Vegan gibi çok malzemeli siparişlerin çok fazla tıklama gerektirdiği için korkulan siparişler olması.
+- **Loved:** working out a customer's odd, personality-driven order; making the pizza by hand from dough to box; balancing ingredient cost against profit; the upgrade pacing.
+- **Hated:** real-time timers (in the garden mechanic, plants grow in real time), the money loop being slow and heavy, there being no way to earn diamonds other than ads or money, and the store currency being shown with a banknote icon instead of a dollar sign, which was found confusing.
+- Multi-ingredient orders such as the vegan one being dreaded because they need too many taps.
 
-**Ders:** Elle üretim tatmin edicidir ama tıklama sayısı arttıkça ödül değil ceza olur.
+**The lesson:** making things by hand is satisfying, but as the tap count rises it stops being a reward and becomes a punishment.
 
-### Hikaye odaklı mobil oyunlar: Hungry Hearts Diner, My Cafe, Animal Restaurant
+### Story-driven mobile games: Hungry Hearts Diner, My Cafe, Animal Restaurant
 
-- Hungry Hearts Diner: Showa dönemi Japonya'sında yaşlı bir çiftin lokantası. "Çoğu insan yemek için gelir ama hikayeler için kalır." Düzenli müşterilerin her birinin dertli bir hikayesi var ve yemek verdikçe açılıyorlar. "Çok sıcak ve tam kalbe dokunuyor."
-- Şikayet: "Bir şey yaparken tam da yeterince sık çıkan rastgele reklamlar" daldırmayı bozuyor.
-- My Cafe: her seçimle değişen özel diyaloglar, karakter hikayelerini takip ederek ödül açma. Şikayet: yavaş ilerleme.
+- Hungry Hearts Diner: an elderly couple's diner in Showa-era Japan. "Most people come for the food but stay for the stories." Each of the regulars has a troubled story and they open up as you feed them. "So warm, and it goes straight to the heart."
+- The complaint: "random ads that appear just often enough, right while you are doing something" break the immersion.
+- My Cafe: special dialogue that changes with every choice, rewards unlocked by following characters' stories. The complaint: slow progression.
 
-**Ders:** Düzenli müşteri ve hikaye, mobilde en güçlü tutundurma araçlarından biri. Ama reklam yerleşimi yanlışsa aynı duyguyu anında öldürüyor.
+**The lesson:** regulars and story are among the strongest retention tools on mobile. But if the ad placement is wrong, it kills the same feeling instantly.
 
-### Eatventure (idle) — İkinci Uyarı Vakası
+### Eatventure (idle) — A Second Cautionary Case
 
-- **Olumlu:** ilerleme "çok somut", yaptığın her yükseltmeyi görüyorsun. Her şehirde 7 restoran, tamamlayınca sonraki şehre uçuyorsun.
-- **Olumsuz:** "Yükseltmelerin çoğu sadece sayı, bunu satmak gerçekten zor." "Bir süre sonra ilerleme görmek zorlaştı, oyunun daha fazla mekaniğe ve daha iyi geri bildirime ihtiyacı var." Bir yıl oynayan biri ilerlemek için gerçekten grind yapmak gerektiğini söylüyor.
+- **Positive:** progression is "very concrete", you see every upgrade you make. Seven restaurants in each city, and when you complete them you fly to the next.
+- **Negative:** "Most of the upgrades are just numbers, and that is genuinely hard to sell." "After a while it got hard to see progress; the game needs more mechanics and better feedback." Someone who played for a year says you really have to grind to advance.
 
-**Ders:** Saf idle sayı büyütme mobilde çalışıyor ama sığ. Bizim farkımız burada olabilir.
-
----
-
-## 3. En Çok Sevilen 10 Mekanik (Sıralı Sentez)
-
-1. **Çift döngü (kaynak ve işletme).** Dave the Diver %96. İki farklı ritim birbirini besliyor ve tek başına sıkıcı olacak yönetim, bir kaynak arayışıyla anlam kazanıyor.
-2. **Yerleşim tasarımı ve mekân genişletme.** PlateUp, Supermarket Simulator, Discounty. Mekânı yeniden düzenlemek bir bulmaca; genişlemeyi görmek en sık anılan tatmin kaynağı.
-3. **Görünür büyüme.** "Minicik dükkânın hareketli bir merkeze dönüşmesi." Soyut sayı değil, gözle görülen mekân ve kalabalık.
-4. **Anlamlı fiyat ve tedarik kararları.** Supermarket Simulator'ün kalbi. Fiyat yukarı giderse kâr yukarı ama şikayet de yukarı. Görünür, anlaşılır, her gün tekrarlanan bir takas.
-5. **Elle yapılan dokunsal iş.** Pizza yapmak, raf dizmek, suşi hazırlamak. Ama tıklama sayısı sınırlı tutulmalı.
-6. **Sürekli yeni mekanik açılması.** Dave the Diver'ın en güçlü silahı. Oyuncu tam sıkılacakken yeni bir sistem geliyor.
-7. **Sonucu olan personel sistemi.** Travellers Rest ve Tavern Keeper'da işe alma, karakter özellikleri, otomasyon. Ama otomasyon sıkıcı olanı almalı, ilginç olanı değil.
-8. **Karakterli düzenli müşteriler ve hikaye.** Hungry Hearts Diner, My Cafe, Discounty. Duygusal bağ, tutundurmanın en güçlü kaynağı.
-9. **Cezalandırmayan başarısızlık.** PlateUp'ın kaybı kalıcı bonusa çevirmesi. Başarısızlık ilerlemeyi silmiyor, besliyor.
-10. **Sipariş çözme bulmacası.** Good Pizza'da müşterinin tuhaf isteğini deşifre etmek. Zaman baskısından çok anlama baskısı.
+**The lesson:** pure idle number-growing works on mobile but is shallow. That may be where our difference lies.
 
 ---
 
-## 4. En Çok Nefret Edilen 8 Şey (Sıralı Sentez)
+## 3. The 10 Most Loved Mechanics (Ranked Synthesis)
 
-1. **"Hiçbir şeyin önemi yok."** Kararların görünür sonucu olmaması. Cat Cafe Manager'ın en sert ve en tekrarlanan eleştirisi. Mutsuz müşterinin yaptırımı yoksa oyun çöküyor.
-2. **Ekonominin sonradan önemsizleşmesi.** Tavern Master: "asla harcayamayacağın kadar para." Cat Cafe: "çok kolaylaşıyor, idle oyuna dönüşüyor."
-3. **Otomatikleşmeyen günlük angarya.** Günlük malzeme ikmali, tek tek toplama, tek tek taşıma. Dave the Diver ve Cat Cafe Manager'da aynı şikayet.
-4. **Gerçek zamanlı sayaçlar ve enerji.** Good Pizza'nın bahçe sayaçları. Mobil oyunlarda en sık nefret edilen mekanik.
-5. **Boş son oyun.** Tavern Master, Cat Cafe Manager. Büyüme bitince yapacak bir şey kalmaması.
-6. **Bozuk personel yapay zekâsı ve yol bulma.** Cat Cafe Manager, Tavern Keeper. Yönetim oyununda çalışanın aptal olması güveni yok ediyor.
-7. **Daldırmayı bozan reklam yerleşimi.** Hungry Hearts Diner. Reklamın kendisi değil, ne zaman çıktığı sorun.
-8. **Sığ yönetim katmanı.** Cuisineer %76'da kaldı çünkü restoran yarısı birkaç düzine kez sonra bayatlıyor.
-
----
-
-## 5. "Batmadan Büyüme" Gerilimi Nasıl Kurulur
-
-Araştırmanın en net iki kutbu şu:
-
-- **Sert batma eşittir hüsran.** Game Dev Tycoon forumlarında iflas başlıkları, oyuncuların kaydı yeniden yüklemek veya baştan başlamak zorunda kalmasından şikayet ediyor. Batma, oyuncuyu saatlerce geriye atarsa öfke üretiyor.
-- **Sonuçsuzluk eşittir kayıtsızlık.** Cat Cafe Manager'ın "hiçbir şey önemli değil" eleştirisi.
-
-Çalışan formül **PlateUp modeli:** başarısızlığın gerçek bir bedeli var ama bedel ilerlemeyi silmek değil, koşuyu bitirip kalıcı kazanıma çevirmek. İncelemenin ifadesiyle oyun suçlama söylemine girmiyor.
-
-Pratik çıkarım: **yumuşak ama dişli başarısızlık.** Ödeyemediğinde oyun bitmez; kademeli bir sonuç merdiveni işler. Kayıt asla silinmez, ama kaybettiğin şey somut ve görünür olur.
+1. **The double loop (resources and running the business).** Dave the Diver, 96%. Two different rhythms feed each other, and management, which would be dull on its own, gains meaning from a resource hunt.
+2. **Layout design and venue expansion.** PlateUp, Supermarket Simulator, Discounty. Rearranging the space is a puzzle; seeing the expansion is the most frequently mentioned source of satisfaction.
+3. **Visible growth.** "Your tiny shop turning into a bustling hub." Not an abstract number but a space and a crowd you can see.
+4. **Meaningful price and supply decisions.** The heart of Supermarket Simulator. If the price goes up, profit goes up but so do complaints. A visible, understandable trade-off, repeated every day.
+5. **Tactile work done by hand.** Making a pizza, filling a shelf, preparing sushi. But the tap count must be kept down.
+6. **New mechanics unlocking constantly.** Dave the Diver's strongest weapon. Just as the player is about to get bored, a new system arrives.
+7. **A staff system with consequences.** Hiring, traits and automation in Travellers Rest and Tavern Keeper. But automation must take the boring thing, not the interesting one.
+8. **Regulars with character, and story.** Hungry Hearts Diner, My Cafe, Discounty. Emotional attachment is the strongest source of retention.
+9. **Failure that does not punish.** PlateUp turning a loss into a permanent bonus. Failure does not erase progress, it feeds it.
+10. **The order-solving puzzle.** Deciphering a customer's odd request in Good Pizza. Pressure to understand rather than pressure of time.
 
 ---
 
-## 6. Sanat Tarzı Bulguları
+## 4. The 8 Most Hated Things (Ranked Synthesis)
 
-- Pixel art ve yönetim birlikteliği ticari olarak kanıtlı: Dave the Diver'ın Steam etiketlerinde "Pixel Graphics" ilk sırada ve oyun %96 ile 50 binden fazla incelemede.
-- Discounty (2025) pixel art bir dükkân simülasyonu olarak %83 aldı ve görselleri sıcak, davetkâr ve çok sevimli bulundu.
-- Cuisineer da pixel; sanatı övüldü ama yönetim derinliği yüzünden düştü. **Sanat tarzı kurtarıcı değil, çarpan.**
-- Cat Cafe Manager'ın dersi en keskin olanı: "her şey sevimli" diyen incelemeler bile oyunu tavsiye etmiyor.
-
-**Sonuç:** Hem pixel hem yumuşak low-poly ticari olarak güvenli. Seçim, üretim maliyeti ve oynanış ihtiyacına göre yapılmalı. Hangi tarzın daha çok satacağı sorusu veriyle ayrışmıyor.
+1. **"Nothing matters."** Decisions having no visible consequence. Cat Cafe Manager's harshest and most repeated criticism. If an unhappy customer carries no penalty, the game collapses.
+2. **The economy becoming irrelevant later.** Tavern Master: "more money than you could ever spend." Cat Cafe: "it gets far too easy and turns into an idle game."
+3. **Daily drudgery that is never automated.** Daily restocking, collecting one at a time, carrying one at a time. The same complaint in Dave the Diver and Cat Cafe Manager.
+4. **Real-time timers and energy.** Good Pizza's garden timers. The most hated mechanic in mobile games.
+5. **An empty endgame.** Tavern Master, Cat Cafe Manager. Nothing left to do once the growth is over.
+6. **Broken staff AI and pathfinding.** Cat Cafe Manager, Tavern Keeper. In a management game, a stupid employee destroys trust.
+7. **Ad placement that breaks immersion.** Hungry Hearts Diner. The problem is not the ad itself but when it appears.
+8. **A shallow management layer.** Cuisineer stayed at 76% because the restaurant half goes stale after a few dozen times.
 
 ---
 
-## 7. Pazar Verisi (2025-2026)
+## 5. How to Build the "Grow Without Sinking" Tension
 
-| Metrik | Değer | Kaynak |
+The research's two clearest poles are these:
+
+- **A hard collapse equals frustration.** Bankruptcy threads on the Game Dev Tycoon forums complain about players having to reload a save or start over. If collapse throws the player back hours, it produces anger.
+- **No consequences equals indifference.** Cat Cafe Manager's "nothing matters" criticism.
+
+The formula that works is the **PlateUp model:** failure has a real price, but the price is not erasing progress — it is ending the run and converting it into a permanent gain. In the review's words, the game does not lapse into blame.
+
+The practical conclusion: **soft but toothed failure.** When you cannot pay, the game does not end; a graduated ladder of consequences runs. The save is never deleted, but what you lose is concrete and visible.
+
+---
+
+## 6. Art Style Findings
+
+- The pairing of pixel art and management is commercially proven: "Pixel Graphics" is the first of Dave the Diver's Steam tags, and the game sits at 96% over more than 50 thousand reviews.
+- Discounty (2025) got 83% as a pixel-art shop sim and its visuals were found warm, inviting and very charming.
+- Cuisineer is pixel too; its art was praised but it fell on management depth. **Art style is not a saviour, it is a multiplier.**
+- Cat Cafe Manager's lesson is the sharpest: even the reviews that say "everything is cute" do not recommend the game.
+
+**Conclusion:** both pixel and soft low-poly are commercially safe. The choice should be made on production cost and what the gameplay needs. The question of which style sells more is not resolved by the data.
+
+---
+
+## 7. Market Data (2025-2026)
+
+| Metric | Value | Source |
 |---|---|---|
-| Mobil oyun geliri, 2025 | 82 milyar dolar | Sensor Tower |
-| Mobil indirme, 2025 | 50 milyar | Sensor Tower |
-| Simülasyon türünün küresel indirme payı, 2024 | %20, Puzzle ile başa baş ve en büyük tür | Sensor Tower |
-| Simülasyon büyümesi, 2024 | +%0,4 (Puzzle -%3) | Sensor Tower |
+| Mobile game revenue, 2025 | $82 billion | Sensor Tower |
+| Mobile downloads, 2025 | 50 billion | Sensor Tower |
+| Simulation's share of global downloads, 2024 | 20%, level with Puzzle and the largest genre | Sensor Tower |
+| Simulation growth, 2024 | +0.4% (Puzzle −3%) | Sensor Tower |
 
-Simülasyon, mobilde indirme hacmi en yüksek tür ve küçülmüyor. Yemek pişirme alt türü canlı: Cookingdom 2025'te indirme büyümesinde 2. sıraya, mutlak indirmede 8. sıraya çıktı.
-
----
-
-## 8. Fırsat Boşlukları
-
-1. **Mobilde gerçek karar ağırlığı olan bir restoran yönetimi yok.** Mobil taraf ya zaman baskılı servis oyunu (Cooking Fever, Diner Dash), ya idle sayı büyütme (Eatventure), ya da hikaye odaklı sakin oyun (Hungry Hearts Diner). Supermarket Simulator'ün fiyat, tedarik ve genişleme üçgeni gibi görünür sonuçlu ekonomik kararlar mobilde büyük ölçüde boş.
-2. **Supermarket Simulator mobil analizinin tespiti:** ham döngü mobilde tutuyor ama meta-oyun derinliği ve uzun vadeli hedef eksik. Bu, doğrudan bizim gireceğimiz boşluk.
-3. **Otomasyonun doğru tarafı.** Travellers Rest oyuncuları açıkça söylüyor: kaynak toplamayı otomatikleştir, işletmeyi değil. Bu ilkeyi baştan kuran bir oyun rekabet avantajı elde eder.
-4. **Sayaçsız, enerjisiz, adil bir mobil yönetim oyunu.** En çok nefret edilen mobil mekanikler listesinin tamamını dışarıda bırakmak tek başına bir pazarlama mesajı.
+Simulation is the genre with the highest download volume on mobile, and it is not shrinking. The cooking sub-genre is alive: in 2025 Cookingdom rose to 2nd in download growth and 8th in absolute downloads.
 
 ---
 
-## Kaynaklar
+## 8. Opportunity Gaps
 
-- Dave the Diver Steam sayfası ve en çok oy alan incelemeler: https://store.steampowered.com/app/1868140/DAVE_THE_DIVER/ , https://steamcommunity.com/app/1868140/reviews/?browsefilter=toprated
-- Dave the Diver forum şikayetleri: https://steamcommunity.com/app/1868140/discussions/
-- PlateUp! Steam sayfası ve incelemeler: https://store.steampowered.com/app/1599600/PlateUp/ , https://steamcommunity.com/app/1599600/reviews/?browsefilter=toprated
-- Cat Cafe Manager en çok oy alan incelemeler: https://steamcommunity.com/app/1354830/reviews/?browsefilter=toprated
+1. **There is no restaurant management game on mobile with real decision weight.** The mobile side is either a time-pressure service game (Cooking Fever, Diner Dash), or idle number-growing (Eatventure), or a calm story-driven game (Hungry Hearts Diner). Economic decisions with visible consequences, like Supermarket Simulator's triangle of price, supply and expansion, are largely absent on mobile.
+2. **The finding of the Supermarket Simulator mobile analysis:** the raw loop holds up on mobile but the meta-game depth and the long-term goal are missing. That is exactly the gap we would enter.
+3. **The right side of automation.** Travellers Rest players say it plainly: automate the gathering, not the running of the business. A game that builds that principle in from the start gains a competitive advantage.
+4. **A fair mobile management game with no timers and no energy.** Leaving out the entire list of the most hated mobile mechanics is a marketing message in itself.
+
+---
+
+## Sources
+
+- Dave the Diver Steam page and most-upvoted reviews: https://store.steampowered.com/app/1868140/DAVE_THE_DIVER/ , https://steamcommunity.com/app/1868140/reviews/?browsefilter=toprated
+- Dave the Diver forum complaints: https://steamcommunity.com/app/1868140/discussions/
+- PlateUp! Steam page and reviews: https://store.steampowered.com/app/1599600/PlateUp/ , https://steamcommunity.com/app/1599600/reviews/?browsefilter=toprated
+- Cat Cafe Manager most-upvoted reviews: https://steamcommunity.com/app/1354830/reviews/?browsefilter=toprated
 - Cuisineer: https://store.steampowered.com/app/1963570/Cuisineer/
 - Discounty: https://store.steampowered.com/app/2274620/Discounty/
 - Travellers Rest: https://store.steampowered.com/app/1139980/Travellers_Rest/
-- Supermarket Simulator fiyatlama tartışmaları: https://steamcommunity.com/app/2670630/discussions/
-- Supermarket Simulator mobil analizi: https://lancaric.substack.com/p/supermarket-simulator-mobile-why
-- Good Pizza, Great Pizza incelemeleri: https://steamcommunity.com/app/770810/reviews/
+- Supermarket Simulator pricing discussions: https://steamcommunity.com/app/2670630/discussions/
+- Supermarket Simulator mobile analysis: https://lancaric.substack.com/p/supermarket-simulator-mobile-why
+- Good Pizza, Great Pizza reviews: https://steamcommunity.com/app/770810/reviews/
 - Hungry Hearts Diner: https://play.google.com/store/apps/details?id=jp.co.gagex.orion4
-- Sensor Tower mobil pazar verisi: https://sensortower.com/report/state-of-gaming-2026 , https://gamedevreports.substack.com/p/sensor-tower-mobile-market-in-2025
+- Sensor Tower mobile market data: https://sensortower.com/report/state-of-gaming-2026 , https://gamedevreports.substack.com/p/sensor-tower-mobile-market-in-2025

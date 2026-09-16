@@ -1,4 +1,4 @@
-using Lokanta.Content;
+﻿using Lokanta.Content;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 using Lokanta.Core.Sim;
@@ -8,17 +8,17 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// TABAK DONGUSU.
+    /// THE PLATE CYCLE.
     ///
-    /// Lokantada sayili tabak var ve doniyor:
+    /// The restaurant has a counted number of plates and they go round:
     ///
-    ///   temiz -> (asci tabakliyor) -> kullanimda
-    ///   kullanimda -> (garson masayi topluyor) -> kirli
-    ///   kirli -> (lavaboda yikaniyor) -> temiz
+    ///   clean -> (the cook plates up) -> in use
+    ///   in use -> (the waiter clears the table) -> dirty
+    ///   dirty -> (washed at the sink) -> clean
     ///
-    /// docs/14 bulasikciyi bir DARBOGAZ olarak tarif ediyor: "tabak
-    /// biterse servis durur - gorunmeyen ama tikaninca fark edilen".
-    /// Bugune kadar o darbogaz salon kapasitesinin icine gomuluydu.
+    /// docs/14 describes the dishwasher as a BOTTLENECK: "if the plates run out
+    /// the service stops - invisible, but noticed the moment it blocks". Until
+    /// now that bottleneck was buried inside the hall capacity.
     /// </summary>
     public sealed class PlateTests
     {
@@ -31,16 +31,16 @@ namespace Lokanta.Core.Tests
         private static ContentSet Content() => ContentSetLoader.Load(Paths.Content, "fastfood");
 
         /// <summary>
-        /// MASA SERVISLI mutfak. Salonun gercekten mesgul oldugu yer.
+        /// A TABLE SERVICE cuisine. Where the hall really is busy.
         ///
-        /// Hizli yemek SELF SERVIS oldu (docs/51): masaya garson
-        /// gelmiyor, salon kasiyer + bulasikci ve musteri basina is
-        /// yarisindan az. O yuzden orada tabak darbogazi olusmuyor ve
-        /// "bulasikci salonu kurtariyor mu" sorusu SORULAMIYOR - iki kol
-        /// birebir ayni cikiyor (32/32, tabaksiz bekleme 0).
+        /// Fast food became SELF SERVICE (docs/51): no waiter comes to the table,
+        /// the hall is a cashier + a dishwasher and the work per customer is less
+        /// than half. So no plate bottleneck forms there and the question "does a
+        /// dishwasher rescue the hall" CANNOT BE ASKED - the two arms come out
+        /// identical (32/32, zero ticks waiting for a plate).
         ///
-        /// Soru masa servisli mutfakta anlamli: garson hem masaya kosuyor
-        /// hem lavaboya, yani ikisi gercekten YARISIYOR.
+        /// The question is meaningful in a table service cuisine: the waiter runs
+        /// both to the table and to the sink, so the two really do COMPETE.
         /// </summary>
         private static ContentSet TableServiceContent() =>
             ContentSetLoader.Load(Paths.Content, "turk");
@@ -53,10 +53,10 @@ namespace Lokanta.Core.Tests
                 : TimingConfig.Default();
         }
 
-        private static Simulation NewSim(int salon = 1, int dishwashers = 0)
+        private static Simulation NewSim(int hall = 1, int dishwashers = 0)
         {
             Simulation sim = new Simulation(Economy(), Content(), Timing(), Seed);
-            for (int i = 1; i < salon; i++)
+            for (int i = 1; i < hall; i++)
                 sim.Apply(new Command(0, CommandKind.Hire, 1));
             if (dishwashers > 0)
                 sim.Apply(new Command(0, CommandKind.SetDishwashers, dishwashers));
@@ -64,32 +64,32 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
-        /// SAGLIKLI BUYUYEN bir sabah.
+        /// A morning that GROWS SANELY.
         ///
-        /// Eski yardimci "kasa 400.000'in ustundeyse UC kademeyi birden
-        /// dene, sonra uc kisi ise al" diyordu ve dukkan bes gunde
-        /// batiyordu: 6-40. gunler arasi SIFIR grup servis ediliyordu.
-        /// Yani "buyuyen lokantanin yogun gunleri" diye adlandirilan
-        /// olcum, olu bir dukkani olcuyordu.
+        /// The old helper said "if the till is over 400,000 try THREE tiers at
+        /// once, then hire three people", and the place went under in five days:
+        /// ZERO parties were served between days 6 and 40. So the measurement
+        /// called "the busy days of a growing restaurant" was measuring a dead
+        /// restaurant.
         ///
-        /// Kural artik gercek oyuncununki: bir kademe, ve ancak bedelin
-        /// UC KATI kasada varsa; kadro da yarinin talebine gore.
+        /// The rule is now a real player's: one tier, and only if THREE TIMES the
+        /// cost is in the till; the crew follows tomorrow's demand.
         /// </summary>
         private static void GrowSanely(Simulation sim)
         {
             for (int tier = 1; tier < 8; tier++)
             {
-                long bedel = sim.UpgradeCostFor(tier);
-                if (bedel <= 0) continue;
-                if (sim.Cash < bedel * 3) break;
+                long cost = sim.UpgradeCostFor(tier);
+                if (cost <= 0) continue;
+                if (sim.Cash < cost * 3) break;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, tier));
                 break;
             }
 
             Crew need = sim.RequiredCrewTomorrow();
-            while (sim.Cooks < need.Cooks && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            while (sim.Cooks < need.Cooks && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0));
-            while (sim.SalonStaff < need.Salon && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            while (sim.HallStaff < need.Hall && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1));
         }
 
@@ -108,235 +108,237 @@ namespace Lokanta.Core.Tests
 
         // ====================================================================
         /// <summary>
-        /// TABAK KAYBOLMUYOR, COGALMIYOR.
+        /// NO PLATE IS LOST OR GAINED.
         ///
-        /// Bu degismez butun mekanigin temeli: sizan bir tabak, servisi
-        /// gun gun yavaslatan ve sebebi hicbir yerde gorunmeyen bir hata
-        /// olur. Her tick'te sinaniyor, gun sonunda degil - ara bir
-        /// durumda bozulup sonunda toparlanan bir sayac, gun sonu
-        /// kontrolunden gecerdi.
+        /// This invariant is the foundation of the whole mechanic: a leaking plate
+        /// becomes a bug that slows the service down day by day with its cause
+        /// visible nowhere. It is tested on every tick, not at the end of the day
+        /// - a counter that breaks in an intermediate state and recovers by the
+        /// end would pass an end-of-day check.
         /// </summary>
         [Fact]
-        public void Tabak_sayisi_korunuyor()
+        public void The_plate_count_is_conserved()
         {
-            Simulation sim = NewSim(salon: 2);
-            int toplam = sim.PlatesTotal;
-            Assert.True(toplam > 0, "kademe tabaksiz");
+            Simulation sim = NewSim(hall: 2);
+            int total = sim.PlatesTotal;
+            Assert.True(total > 0, "the tier has no plates");
 
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
             int limit = Timing().ServiceTicks + 4000;
-            int enAzTemiz = int.MaxValue, enCokKirli = 0;
+            int minClean = int.MaxValue, maxDirty = 0;
 
             for (int t = 0; t < limit; t++)
             {
                 sim.Tick();
 
                 int sum = sim.PlatesClean + sim.PlatesInUse + sim.PlatesDirty;
-                Assert.True(sum == toplam,
-                    $"tick {t}: temiz {sim.PlatesClean} + kullanimda {sim.PlatesInUse}"
-                    + $" + kirli {sim.PlatesDirty} = {sum}, beklenen {toplam}");
+                Assert.True(sum == total,
+                    $"tick {t}: clean {sim.PlatesClean} + in use {sim.PlatesInUse}"
+                    + $" + dirty {sim.PlatesDirty} = {sum}, expected {total}");
                 Assert.True(sim.PlatesClean >= 0 && sim.PlatesInUse >= 0
-                            && sim.PlatesDirty >= 0, $"tick {t}: eksi tabak");
+                            && sim.PlatesDirty >= 0, $"tick {t}: negative plates");
 
-                if (sim.PlatesClean < enAzTemiz) enAzTemiz = sim.PlatesClean;
-                if (sim.PlatesDirty > enCokKirli) enCokKirli = sim.PlatesDirty;
+                if (sim.PlatesClean < minClean) minClean = sim.PlatesClean;
+                if (sim.PlatesDirty > maxDirty) maxDirty = sim.PlatesDirty;
                 if (sim.ServiceComplete) break;
             }
 
-            _out.WriteLine($"toplam {toplam} tabak | en az temiz {enAzTemiz}"
-                           + $" | en cok kirli {enCokKirli}"
-                           + $" | yikanan {sim.PlatesWashedToday}"
-                           + $" | tabaksiz bekleme {sim.PlateBlockedTicks} tick");
+            _out.WriteLine($"{total} plates in total | min clean {minClean}"
+                           + $" | max dirty {maxDirty}"
+                           + $" | washed {sim.PlatesWashedToday}"
+                           + $" | waited with no plate {sim.PlateBlockedTicks} ticks");
 
-            // Dongu GERCEKTEN donuyor: bir seyler kirlendi ve yikandi.
-            Assert.True(enCokKirli > 0, "hic tabak kirlenmedi - dongu islemiyor");
-            Assert.True(sim.PlatesWashedToday > 0, "hic tabak yikanmadi");
+            // The cycle REALLY turns: something got dirty and something got washed.
+            Assert.True(maxDirty > 0, "no plate ever got dirty - the cycle is not running");
+            Assert.True(sim.PlatesWashedToday > 0, "no plate was ever washed");
         }
 
         /// <summary>
-        /// BULASIKCI ALINCA HERKES KENDI ISINI YAPAR.
+        /// WITH A DISHWASHER, EVERYONE DOES THEIR OWN JOB.
         ///
-        /// Kullanicinin cumlesi bu. Olculebilir hali: lavaboya adanmis
-        /// biri varken salon personeli isini birakip bulasiga
-        /// KOSMUYOR, yani masa toplama ve servis aksamiyor.
+        /// That is the user's sentence. Its measurable form: with someone
+        /// dedicated to the sink, the hall staff DO NOT DROP their work and run to
+        /// the washing up, so clearing tables and serving do not suffer.
         ///
-        /// ESKI HALI HICBIR SEY OLCMUYORDU. Dort masalik sakin bir
-        /// dukkanda iki kosu BIREBIR ayniydi (tabaksiz bekleme 0/0,
-        /// yikanan 15/15, servis 7/7) ve tek iddia "0 &lt;= 0" idi:
-        /// bulasikci mekanigi tamamen silinse test yine yesil kalirdi.
+        /// THE OLD VERSION MEASURED NOTHING. In a quiet four-table restaurant the
+        /// two runs were IDENTICAL (waited with no plate 0/0, washed 15/15, served
+        /// 7/7) and the only claim was "0 &lt;= 0": if the dishwasher mechanic had
+        /// been deleted outright the test would still have been green.
         ///
-        /// Simdi once BASKI kuruluyor - yirmi bes gun buyuyen bir
-        /// dukkan - ve baskinin gercekten olustugu ON KOSUL olarak
-        /// iddia ediliyor. Baski yoksa test kaliyor, "olculemedi" diye
-        /// sessizce gecmiyor.
+        /// Now the PRESSURE is built up first - a restaurant growing over
+        /// twenty-five days - and the pressure really forming is asserted as a
+        /// PRECONDITION. If there is no pressure the test fails rather than
+        /// quietly passing as "could not be measured".
         ///
-        /// Kadro ESIT: iki kosuda da ayni sayida salon calisani. Aksi
-        /// halde olculen sey bulasikci degil, fazladan bir kisi olur.
+        /// The crew is EQUAL: the same number of hall workers in both runs.
+        /// Otherwise what would be measured is not the dishwasher but one extra
+        /// person.
         /// </summary>
         [Fact]
-        public void Bulasikci_salonu_lavabodan_kurtariyor()
+        public void A_dishwasher_rescues_the_hall_from_the_sink()
         {
-            const int Gun = 25;
-            Simulation yok = new Simulation(Economy(), TableServiceContent(),
-                                             Timing(), Seed);
-            Simulation var = new Simulation(Economy(), TableServiceContent(),
-                                            Timing(), Seed);
+            const int Days = 25;
+            Simulation plain = new Simulation(Economy(), TableServiceContent(),
+                                              Timing(), Seed);
+            Simulation dedicated = new Simulation(Economy(), TableServiceContent(),
+                                                  Timing(), Seed);
 
-            int yokYikama = 0, varYikama = 0;
-            int yokBekleme = 0, varBekleme = 0;
-            int yokServis = 0, varServis = 0;
-            int yokKirliZirve = 0, varKirliZirve = 0;
+            int plainWashes = 0, dedicatedWashes = 0;
+            int plainBlocked = 0, dedicatedBlocked = 0;
+            int plainServed = 0, dedicatedServed = 0;
+            int plainDirtyPeak = 0, dedicatedDirtyPeak = 0;
 
-            for (int gun = 0; gun < Gun; gun++)
+            for (int day = 0; day < Days; day++)
             {
-                GrowSanely(yok);
-                GrowSanely(var);
+                GrowSanely(plain);
+                GrowSanely(dedicated);
 
-                // BULASIKCI HER SABAH YENIDEN: kadro degistikce tavan
-                // degisiyor ve SetDishwashers tavana kirpiyor.
-                if (var.SalonStaff >= 2)
-                    var.Apply(new Command(var.TickIndex, CommandKind.SetDishwashers, 1));
+                // THE DISHWASHER IS SET AGAIN EVERY MORNING: as the crew changes
+                // the cap changes, and SetDishwashers clamps to the cap.
+                if (dedicated.HallStaff >= 2)
+                    dedicated.Apply(new Command(dedicated.TickIndex,
+                                                CommandKind.SetDishwashers, 1));
 
-                // STOK TAZELENMEDEN dukkan buyuyemez: RunOneDay
-                // yalnizca servisi aciyor, sabah alisverisini yapmiyor.
-                yok.Apply(new Command(yok.TickIndex, CommandKind.OrderRecommended));
-                var.Apply(new Command(var.TickIndex, CommandKind.OrderRecommended));
+                // THE PLACE CANNOT GROW WITHOUT RESTOCKING: RunOneDay only opens
+                // the service, it does not do the morning shopping.
+                plain.Apply(new Command(plain.TickIndex, CommandKind.OrderRecommended));
+                dedicated.Apply(new Command(dedicated.TickIndex, CommandKind.OrderRecommended));
 
-                Assert.True(yok.SalonStaff == var.SalonStaff,
-                    $"gun {gun}: kadro ayrildi ({yok.SalonStaff} / {var.SalonStaff}) - "
-                    + "olculen sey bulasikci degil, fazladan bir kisi olur");
+                Assert.True(plain.HallStaff == dedicated.HallStaff,
+                    $"day {day}: the crews diverged ({plain.HallStaff} / {dedicated.HallStaff}) - "
+                    + "what is measured would be one extra person, not the dishwasher");
 
-                DayReport a = RunOneDay(yok);
-                DayReport b = RunOneDay(var);
+                DayReport a = RunOneDay(plain);
+                DayReport b = RunOneDay(dedicated);
 
-                yokYikama += yok.SalonRushWashes;
-                varYikama += var.SalonRushWashes;
-                yokBekleme += yok.PlateBlockedTicks;
-                varBekleme += var.PlateBlockedTicks;
-                yokServis += a.ServedParties;
-                varServis += b.ServedParties;
-                if (yok.PlatesDirty > yokKirliZirve) yokKirliZirve = yok.PlatesDirty;
-                if (var.PlatesDirty > varKirliZirve) varKirliZirve = var.PlatesDirty;
+                plainWashes += plain.HallRushWashes;
+                dedicatedWashes += dedicated.HallRushWashes;
+                plainBlocked += plain.PlateBlockedTicks;
+                dedicatedBlocked += dedicated.PlateBlockedTicks;
+                plainServed += a.ServedParties;
+                dedicatedServed += b.ServedParties;
+                if (plain.PlatesDirty > plainDirtyPeak) plainDirtyPeak = plain.PlatesDirty;
+                if (dedicated.PlatesDirty > dedicatedDirtyPeak) dedicatedDirtyPeak = dedicated.PlatesDirty;
 
-                yok.AdvanceToNextDay();
-                var.AdvanceToNextDay();
+                plain.AdvanceToNextDay();
+                dedicated.AdvanceToNextDay();
             }
 
-            _out.WriteLine($"bulasikcisiz: salon acil lavaboda {yokYikama} kez, "
-                           + $"tabaksiz bekleme {yokBekleme}, servis {yokServis} grup, "
-                           + $"{yok.TableCount} masa");
-            _out.WriteLine($"bulasikcili : salon acil lavaboda {varYikama} kez, "
-                           + $"tabaksiz bekleme {varBekleme}, servis {varServis} grup, "
-                           + $"{var.TableCount} masa");
+            _out.WriteLine($"no dishwasher: hall rushed to the sink {plainWashes} times, "
+                           + $"waited with no plate {plainBlocked}, served {plainServed} parties, "
+                           + $"{plain.TableCount} tables");
+            _out.WriteLine($"with dishwasher: hall rushed to the sink {dedicatedWashes} times, "
+                           + $"waited with no plate {dedicatedBlocked}, served {dedicatedServed} parties, "
+                           + $"{dedicated.TableCount} tables");
 
-            // ON KOSUL: baski gercekten olustu mu. Bu satir olmadan test
-            // "hicbir sey olmadi" durumunda da yesil kalirdi.
-            Assert.True(yokKirliZirve > 0,
-                "hic tabak kirlenmedi - baski kurulamadi, karsilastirma anlamsiz");
-            Assert.True(yokYikama > 0,
-                $"bulasikcisiz kosuda salon lavaboya hic kosmadi ({yokYikama} kez) - "
-                + "baski kurulamadi, bulasikcinin farki olculemez");
+            // PRECONDITION: did the pressure really form. Without this line the
+            // test would stay green in the "nothing happened" case too.
+            Assert.True(plainDirtyPeak > 0,
+                "no plate ever got dirty - no pressure was built, the comparison is meaningless");
+            Assert.True(plainWashes > 0,
+                $"in the run without a dishwasher the hall never ran to the sink ({plainWashes} times) - "
+                + "no pressure was built, the dishwasher's difference cannot be measured");
 
-            // ASIL IDDIA: bulasikci varken salon acil lavabo kosusunu
-            // BIRAKIYOR. "Sifir" degil yarisindan az, cunku ilk gunler
-            // salon kadrosu iki kisiye ulasmadan bulasikci atanamiyor -
-            // SetDishwashers en az bir kisiyi sahada tutuyor.
-            // Olculdu: 31 kosuya karsi 3.
-            Assert.True(varYikama * 2 < yokYikama,
-                $"bulasikci salonu lavabodan kurtarmadi: {varYikama} kez / "
-                + $"{yokYikama} kez");
+            // THE REAL CLAIM: with a dishwasher the hall STOPS making the
+            // emergency run to the sink. Not "zero" but less than half, because in
+            // the early days no dishwasher can be assigned until the hall crew
+            // reaches two people - SetDishwashers keeps at least one person on the
+            // floor. Measured: 3 runs against 31.
+            Assert.True(dedicatedWashes * 2 < plainWashes,
+                $"the dishwasher did not rescue the hall from the sink: {dedicatedWashes} times / "
+                + $"{plainWashes} times");
 
-            // Ve bu bedava degil: tabak yine yikaniyor, servis
-            // aksamiyor.
-            Assert.True(varBekleme <= yokBekleme,
-                $"bulasikci tabaksiz beklemeyi artirdi: {varBekleme} > {yokBekleme}");
+            // And this is not free: the plates still get washed and the service
+            // does not suffer.
+            Assert.True(dedicatedBlocked <= plainBlocked,
+                $"the dishwasher increased the plateless waiting: {dedicatedBlocked} > {plainBlocked}");
         }
 
         /// <summary>
-        /// KUCULEN DUKKAN TABAK DA KAYBEDIYOR.
+        /// A SHRINKING RESTAURANT LOSES PLATES TOO.
         ///
-        /// Expand fark kadar TEMIZ tabak ekliyordu, Downsize hicbir sey
-        /// cikarmiyordu: kucullme gununde
-        /// "temiz + kullanimda + kirli > PlatesTotal" oluyordu ve
-        /// WashNeeded'in esikleri kucullmus toplama gore hesaplandigi
-        /// icin bulasik nobeti yanlis zamanda tetikleniyordu.
+        /// Expand added as many CLEAN plates as the difference, Downsize removed
+        /// nothing at all: on the day it shrank, "clean + in use + dirty >
+        /// PlatesTotal" held, and because WashNeeded's thresholds are computed
+        /// against the shrunken total the washing-up duty fired at the wrong time.
         ///
-        /// Hata KENDINI GIZLIYORDU: gece AdvanceToNextDay tabaklari
-        /// kademeye yeniden yaziyor, yani degismez yalnizca O GUN
-        /// kirikti - ve "Tabak_sayisi_korunuyor" hic kucullme
-        /// kosmadigi icin gormuyordu.
+        /// The bug HID ITSELF: overnight AdvanceToNextDay rewrites the plates from
+        /// the tier, so the invariant was broken ONLY ON THAT DAY - and
+        /// "The_plate_count_is_conserved" never saw it because it never ran a
+        /// shrink.
         /// </summary>
         [Fact]
-        public void Kuculen_dukkan_tabak_da_kaybediyor()
+        public void A_shrinking_restaurant_loses_plates_too()
         {
             Simulation sim = new Simulation(Economy(), Content(), Timing(), Seed);
 
-            // Once BUYU: kucullecek bir kademe olmali.
+            // GROW FIRST: there has to be a tier to shrink from.
             for (int tier = 1; tier < 8; tier++)
             {
-                long bedel = sim.UpgradeCostFor(tier);
-                if (bedel <= 0 || sim.Cash < bedel) break;
+                long cost = sim.UpgradeCostFor(tier);
+                if (cost <= 0 || sim.Cash < cost) break;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, tier));
             }
-            Assert.True(sim.TableCount > 4, $"dukkan buyumedi ({sim.TableCount} masa) - "
-                                            + "kucullme sinanamaz");
+            Assert.True(sim.TableCount > 4, $"the place did not grow ({sim.TableCount} tables) - "
+                                            + "the shrink cannot be tested");
 
-            int buyukToplam = sim.PlatesTotal;
-            Assert.Equal(buyukToplam,
+            int bigTotal = sim.PlatesTotal;
+            Assert.Equal(bigTotal,
                          sim.PlatesClean + sim.PlatesInUse + sim.PlatesDirty);
 
-            // KUCULT: kasayi eksiye dusurup batma merdivenini cagiriyoruz.
-            // Merdiven once ekipman satiyor, sonra kuculuyor.
+            // SHRINK: we drive the till negative and call up the bankruptcy ladder.
+            // The ladder sells equipment first, then shrinks.
             int guard = 0;
-            int oncekiMasa = sim.TableCount;
-            while (sim.TableCount == oncekiMasa && guard++ < 60)
+            int tablesBefore = sim.TableCount;
+            while (sim.TableCount == tablesBefore && guard++ < 60)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
                 sim.AdvanceToNextDay();
             }
-            Assert.True(sim.TableCount < oncekiMasa,
-                $"dukkan {guard} gunde kuculmedi ({sim.TableCount} masa)");
+            Assert.True(sim.TableCount < tablesBefore,
+                $"the place did not shrink in {guard} days ({sim.TableCount} tables)");
 
-            // ASIL IDDIA: degismez kucullmeden HEMEN SONRA da tutuyor.
+            // THE REAL CLAIM: the invariant holds IMMEDIATELY AFTER the shrink too.
             int sum = sim.PlatesClean + sim.PlatesInUse + sim.PlatesDirty;
-            _out.WriteLine($"{oncekiMasa} -> {sim.TableCount} masa | toplam {sim.PlatesTotal}"
-                           + $" | temiz {sim.PlatesClean} kullanimda {sim.PlatesInUse}"
-                           + $" kirli {sim.PlatesDirty}");
+            _out.WriteLine($"{tablesBefore} -> {sim.TableCount} tables | total {sim.PlatesTotal}"
+                           + $" | clean {sim.PlatesClean} in use {sim.PlatesInUse}"
+                           + $" dirty {sim.PlatesDirty}");
             Assert.True(sum <= sim.PlatesTotal,
-                $"kucullmeden sonra tabak fazla: {sum} > {sim.PlatesTotal}");
+                $"too many plates after the shrink: {sum} > {sim.PlatesTotal}");
         }
 
         /// <summary>
-        /// DARBOGAZ ZIRVEDE GERCEKTEN ISIRIYOR MU - TANI.
+        /// DOES THE BOTTLENECK REALLY BITE AT THE PEAK - A DIAGNOSTIC.
         ///
-        /// Birinci gun hicbir sey olmuyor (yedi grup, yirmi dort tabak).
-        /// Bir mekanigin "var" olmasi yetmez, bir yerde HISSEDILMESI
-        /// gerekir; bu test buyumus bir lokantanin yogun gunlerini kosup
-        /// tabak basincini basiyor.
+        /// Nothing happens on day one (seven parties, twenty-four plates). It is
+        /// not enough for a mechanic to "exist", it has to be FELT somewhere; this
+        /// test runs the busy days of a grown restaurant and prints the plate
+        /// pressure.
         ///
-        /// Iddia etmiyor, OLCUYOR: sayilar tabak sayisini ayarlamak icin.
+        /// It does not claim, it MEASURES: the numbers are there to tune the plate
+        /// count.
         /// </summary>
         [Fact]
-        public void Tabak_basinci_zirvede_olculuyor()
+        public void The_plate_pressure_is_measured_at_the_peak()
         {
             Simulation sim = new Simulation(Economy(), Content(), Timing(), Seed);
 
-            int enCokBekleme = 0, enCokKirli = 0, enAzTemiz = int.MaxValue;
-            int toplamBekleme = 0;
-            int enCokDoluMasa = 0;
-            int sonOnGun = 0;
+            int worstBlocked = 0, maxDirty = 0, minClean = int.MaxValue;
+            int totalBlocked = 0;
+            int maxOccupied = 0;
+            int lastTenDays = 0;
 
-            for (int gun = 0; gun < 40; gun++)
+            for (int day = 0; day < 40; day++)
             {
-                // BUYUYEN BIR LOKANTA: darbogaz ancak DOLULUK zirvesinde
-                // anlam kazaniyor ve dort masalik sakin bir dukkanda oyle
-                // bir zirve yok. Her sabah gucu yettigince buyuyup ise
-                // aliyoruz - "planci" botunun kaba hali.
-                // Rahat para varken buyu. Ilk yazim her sabah butun
-                // kademeleri deniyordu ve dukkan onuncu gunde iflas etti -
-                // olculen sey zirve degil, colun kendisiydi.
+                // A GROWING RESTAURANT: the bottleneck only means anything at an
+                // OCCUPANCY peak, and a quiet four-table place has no such peak.
+                // Every morning we grow and hire as far as we can afford - a crude
+                // version of the "planci" bot.
+                // Grow while the money is comfortable. My first version tried every
+                // tier every morning and the place went bankrupt on the tenth day -
+                // what was measured was not the peak but the desert itself.
                 GrowSanely(sim);
 
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
@@ -345,42 +347,43 @@ namespace Lokanta.Core.Tests
                 for (int t = 0; t < limit; t++)
                 {
                     sim.Tick();
-                    if (sim.PlatesDirty > enCokKirli) enCokKirli = sim.PlatesDirty;
-                    if (sim.PlatesClean < enAzTemiz) enAzTemiz = sim.PlatesClean;
-                    if (sim.OccupiedTables > enCokDoluMasa) enCokDoluMasa = sim.OccupiedTables;
+                    if (sim.PlatesDirty > maxDirty) maxDirty = sim.PlatesDirty;
+                    if (sim.PlatesClean < minClean) minClean = sim.PlatesClean;
+                    if (sim.OccupiedTables > maxOccupied) maxOccupied = sim.OccupiedTables;
                     if (sim.ServiceComplete) break;
                 }
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
                 DayReport r = sim.BuildDayReport();
-                if (gun >= 30) sonOnGun += r.ServedParties;
-                if (sim.PlateBlockedTicks > enCokBekleme) enCokBekleme = sim.PlateBlockedTicks;
-                toplamBekleme += sim.PlateBlockedTicks;
-                if (gun % 5 == 4 || sim.PlateBlockedTicks > 0)
-                    _out.WriteLine($"gun {sim.Day}: {r.ServedParties} grup, {sim.TableCount} masa, "
-                                   + $"temiz-az {sim.PlatesClean}, kirli {sim.PlatesDirty}, "
-                                   + $"tabaksiz bekleme {sim.PlateBlockedTicks} tick");
+                if (day >= 30) lastTenDays += r.ServedParties;
+                if (sim.PlateBlockedTicks > worstBlocked) worstBlocked = sim.PlateBlockedTicks;
+                totalBlocked += sim.PlateBlockedTicks;
+                if (day % 5 == 4 || sim.PlateBlockedTicks > 0)
+                    _out.WriteLine($"day {sim.Day}: {r.ServedParties} parties, {sim.TableCount} tables, "
+                                   + $"clean-low {sim.PlatesClean}, dirty {sim.PlatesDirty}, "
+                                   + $"waited with no plate {sim.PlateBlockedTicks} ticks");
                 sim.AdvanceToNextDay();
             }
 
-            _out.WriteLine($"TANI toplam {sim.PlatesTotal} tabak | en az temiz {enAzTemiz}"
-                           + $" | en cok kirli {enCokKirli}"
-                           + $" | en cok dolu masa {enCokDoluMasa}/{sim.TableCount}"
-                           + $" | en kotu gun {enCokBekleme} tick"
-                           + $" | 40 gun toplami {toplamBekleme} tick");
+            _out.WriteLine($"DIAGNOSTIC {sim.PlatesTotal} plates in total | min clean {minClean}"
+                           + $" | max dirty {maxDirty}"
+                           + $" | most tables occupied {maxOccupied}/{sim.TableCount}"
+                           + $" | worst day {worstBlocked} ticks"
+                           + $" | 40-day total {totalBlocked} ticks");
 
-            // CANLILIK ON KOSULU.
+            // THE LIVENESS PRECONDITION.
             //
-            // "enCokKirli > 0" iddiasini 1-5. gunler tek basina
-            // dolduruyordu; dukkan 6. gunden sonra olse de test yesil
-            // kaliyordu. Bu satir olcumun OLCTUGU SEYI sinaniyor: son on
-            // gun hala musteri agirlaniyor mu.
-            Assert.True(sonOnGun > 0,
-                $"son on gunde hic grup agirlanmadi - olculen sey zirve degil, "
-                + $"olu bir dukkan (buyume mantigi ya da batma merdiveni bozuk)");
-            Assert.True(enCokDoluMasa > 4,
-                $"dukkan hic buyumedi (en cok dolu masa {enCokDoluMasa}) - "
-                + "zirve olcumu icin dort masa yetmez");
-            Assert.True(enCokKirli > 0, "hic tabak kirlenmedi");
+            // Days 1-5 satisfied the "maxDirty > 0" claim on their own; the test
+            // stayed green even if the place died after day 6. This line tests
+            // WHAT THE MEASUREMENT IS MEASURING: are customers still being served
+            // in the last ten days.
+            Assert.True(lastTenDays > 0,
+                $"not a single party was served in the last ten days - what is being "
+                + $"measured is not the peak but a dead restaurant (the growth logic "
+                + $"or the bankruptcy ladder is broken)");
+            Assert.True(maxOccupied > 4,
+                $"the place never grew (most tables occupied {maxOccupied}) - "
+                + "four tables are not enough for a peak measurement");
+            Assert.True(maxDirty > 0, "no plate ever got dirty");
         }
     }
 }

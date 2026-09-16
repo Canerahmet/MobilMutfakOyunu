@@ -1,35 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-Lisans denetimi - ticari yayin kapisi
+Licence check - the gate for a commercial release
 ============================================================================
-Bu proje TICARI olarak yayinlanacak. Kullanilan her varlik paketinin
-ticari kullanima izin veren bir lisansi olmali, lisans metni oyunla
-birlikte dagitilmali ve atif defterinde bir satiri bulunmali.
+This project will be released COMMERCIALLY. Every asset pack used must
+have a licence that permits commercial use, the licence text must ship
+with the game, and it must have a row in the attribution ledger.
 
-NEDEN MAKINE DENETLIYOR:
+WHY A MACHINE CHECKS THIS:
 
-Projenin kendi kutugu "en buyuk risk: yapay zeka araclarinin ucretsiz
-katmaniyla uretilmis bir varligin gozden kacmasi - o katmanlar ticari
-kullanima kapali" diyor. Ama o yolda SIFIR SURTUNME vardi: bir .ogg'yi
-Resources/audio/ klasorune atmak kod degisikligi istemiyor, lisans metni
-istemiyor ve hicbir denetciyi tetiklemiyordu. Sfx.Init klasordeki HER
-klibi sorgusuz caliyor.
+The project's own log says "the biggest risk: an asset produced with the
+free tier of an AI tool slipping through - those tiers are closed to
+commercial use". But there was ZERO FRICTION on that path: dropping an
+.ogg into the Resources/audio/ folder needs no code change, needs no
+licence text and triggered no checker. Sfx.Init plays EVERY clip in the
+folder without asking.
 
-Google Play bunu yakalamaz; telif sahibi yakalar.
+Google Play will not catch this; the copyright holder will.
 
-Ayrica iki ayri ATIF defteri vardi (vendor/ATTRIBUTION.md ve Art/ATTRIBUTION.md) ve
-ikisi ayrismisti - biri motor bilesenleri tablosunu tasiyor, oteki
-tasimiyordu. Ayni kural iki yere yazildiginda bu projede bes kez
-sessizce ayristi.
+There were also two separate ATTRIBUTION ledgers (vendor/ATTRIBUTION.md
+and Art/ATTRIBUTION.md) and they had drifted - one carried the table of
+engine components, the other did not. Writing the same rule in two
+places has drifted silently five times in this project.
 
-Denetlenenler:
-  1. Art/ altindaki her varlik klasorunde License.txt var mi.
-  2. O lisans TICARI kullanima aciksa bilinen bir lisans mi (CC0, OFL,
-     MIT, Apache, CC-BY).
-  3. Resources/audio/ altinda ses dosyasi varsa lisansi da var mi.
-  4. Art/ATTRIBUTION.md her klasoru aniyor mu.
+What is checked:
+  1. Does every asset folder under Art/ have a License.txt.
+  2. If it does, is it a known licence that is open to COMMERCIAL use
+     (CC0, OFL, MIT, Apache, CC-BY).
+  3. If there are audio files under Resources/audio/, is there a licence
+     for them too.
+  4. Does Art/ATTRIBUTION.md mention every folder.
 
-Cikis kodu 0 temiz, 1 en az bir eksik.
+Exit code 0 clean, 1 at least one thing is missing.
 """
 from __future__ import print_function
 
@@ -40,26 +41,26 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 ART = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Art")
-SES = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Resources", "audio")
-LISANS = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Resources", "licenses")
-ATIF = os.path.join(ART, "ATTRIBUTION.md")
+AUDIO = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Resources", "audio")
+LICENSES = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Resources", "licenses")
+ATTRIBUTION = os.path.join(ART, "ATTRIBUTION.md")
 
-# Varlik TASIMAYAN klasorler: uretilmis ya da projenin kendi ciktilari.
-URETILEN = {"Materials", "Prefab", "Animator", "Mesh"}
+# Folders that carry NO assets: generated, or the project's own output.
+GENERATED = {"Materials", "Prefab", "Animator", "Mesh"}
 
-# Ticari kullanima acik oldugunu bildigimiz lisanslar. Metinde bu
-# damgalardan biri geciyorsa tamam; gecmiyorsa INSAN bakmali.
-TANINAN = [
-    ("CC0", "CC0 1.0 - kamu malina birakilmis, ticari kullanim serbest"),
+# Licences we know to be open to commercial use. If one of these marks
+# appears in the text it is fine; if none does, a HUMAN must look.
+RECOGNISED = [
+    ("CC0", "CC0 1.0 - public domain, commercial use free"),
     ("Creative Commons Zero", "CC0 1.0"),
-    ("SIL OPEN FONT LICENSE", "OFL 1.1 - ticari kullanim serbest, yazi tipi satilamaz"),
+    ("SIL OPEN FONT LICENSE", "OFL 1.1 - commercial use free, the font may not be sold"),
     ("MIT License", "MIT"),
     ("Apache License", "Apache 2.0"),
-    ("CC-BY", "CC-BY - ATIF ZORUNLU"),
-    ("Attribution 4.0", "CC-BY 4.0 - ATIF ZORUNLU"),
+    ("CC-BY", "CC-BY - ATTRIBUTION REQUIRED"),
+    ("Attribution 4.0", "CC-BY 4.0 - ATTRIBUTION REQUIRED"),
 ]
 
-SES_UZANTI = (".ogg", ".wav", ".mp3", ".aiff", ".aif")
+AUDIO_SUFFIXES = (".ogg", ".wav", ".mp3", ".aiff", ".aif")
 
 
 def read(path):
@@ -70,87 +71,95 @@ def read(path):
 
 
 def main():
-    sorun = []
-    satir = []
+    problems = []
+    rows = []
 
     if not os.path.isdir(ART):
-        print("HATA: Art klasoru yok: " + ART)
+        print("ERROR: no Art folder: " + ART)
         return 1
 
-    atif = read(ATIF)
-    if not atif:
-        sorun.append("Art/ATTRIBUTION.md yok - atif defteri yayin oncesi zorunlu")
+    attribution = read(ATTRIBUTION)
+    if not attribution:
+        problems.append("Art/ATTRIBUTION.md is missing - the attribution "
+                        "ledger is required before release")
 
-    # --- 1-2. varlik klasorleri ------------------------------------------
-    for ad in sorted(os.listdir(ART)):
-        yol = os.path.join(ART, ad)
-        if not os.path.isdir(yol) or ad in URETILEN:
+    # --- 1-2. asset folders ----------------------------------------------
+    for name in sorted(os.listdir(ART)):
+        path = os.path.join(ART, name)
+        if not os.path.isdir(path) or name in GENERATED:
             continue
 
-        # PROJENIN KENDI URETTIGI klasorde ucuncu taraf lisansi
-        # aranmaz; ATIF tablosunda oyle isaretli olmasi yeter.
-        kendi = ("| " + ad + " |") in atif and "kendi uretimi" in atif.replace(
-            "ü", "u").replace("ı", "i").lower()
+        # No third-party licence is looked for in a folder the project
+        # MADE ITSELF; being marked that way in the ATTRIBUTION table is
+        # enough. The ledger is English now (CLAUDE.md rule 1): the mark
+        # looked for is "own work", not the old Turkish one. The Turkish
+        # letter normalisation stays - it is harmless, and it works
+        # again if the ledger ever carries those letters.
+        own_work = ("| " + name + " |") in attribution and "own work" in \
+            attribution.replace("ü", "u").replace("ı", "i").lower()
 
-        lisans = os.path.join(yol, "License.txt")
-        if not os.path.isfile(lisans):
-            if kendi:
-                satir.append("  %-10s projenin kendi uretimi" % ad)
+        licence = os.path.join(path, "License.txt")
+        if not os.path.isfile(licence):
+            if own_work:
+                rows.append("  %-10s the project's own work" % name)
                 continue
-            sorun.append("Art/%s: License.txt YOK" % ad)
+            problems.append("Art/%s: NO License.txt" % name)
             continue
 
-        metin = read(lisans)
-        tanindi = None
-        for damga, aciklama in TANINAN:
-            if damga.lower() in metin.lower():
-                tanindi = aciklama
+        text = read(licence)
+        recognised = None
+        for mark, description in RECOGNISED:
+            if mark.lower() in text.lower():
+                recognised = description
                 break
 
-        if tanindi is None:
-            sorun.append("Art/%s: lisans TANINMADI - insan bakmali" % ad)
+        if recognised is None:
+            problems.append("Art/%s: licence NOT RECOGNISED - a human must look"
+                            % name)
         else:
-            satir.append("  %-10s %s" % (ad, tanindi))
+            rows.append("  %-10s %s" % (name, recognised))
 
-        if ("| " + ad + " |") not in atif:
-            sorun.append("Art/%s: ATTRIBUTION.md klasor eslemesinde satiri yok" % ad)
+        if ("| " + name + " |") not in attribution:
+            problems.append("Art/%s: no row in the folder table of "
+                            "ATTRIBUTION.md" % name)
 
-    # --- 3. sesler --------------------------------------------------------
-    sesler = []
-    if os.path.isdir(SES):
-        for kok, _, dosyalar in os.walk(SES):
-            for d in dosyalar:
-                if d.lower().endswith(SES_UZANTI):
-                    sesler.append(os.path.join(kok, d))
+    # --- 3. audio ---------------------------------------------------------
+    clips = []
+    if os.path.isdir(AUDIO):
+        for base, _, files in os.walk(AUDIO):
+            for f in files:
+                if f.lower().endswith(AUDIO_SUFFIXES):
+                    clips.append(os.path.join(base, f))
 
-    if sesler:
-        lisans_metni = ""
-        if os.path.isdir(LISANS):
-            for d in os.listdir(LISANS):
-                if d.endswith(".txt"):
-                    lisans_metni += read(os.path.join(LISANS, d))
+    if clips:
+        licence_text = ""
+        if os.path.isdir(LICENSES):
+            for f in os.listdir(LICENSES):
+                if f.endswith(".txt"):
+                    licence_text += read(os.path.join(LICENSES, f))
 
-        if "audio" not in atif.lower():
-            sorun.append("Resources/audio/ dolu (%d dosya) ama ATTRIBUTION.md'de ses "
-                         "bolumu yok" % len(sesler))
-        if not lisans_metni:
-            sorun.append("Resources/audio/ dolu ama Resources/licenses/ bos")
-        satir.append("  %-10s %d dosya" % ("audio", len(sesler)))
+        if "audio" not in attribution.lower():
+            problems.append("Resources/audio/ is not empty (%d files) but "
+                            "ATTRIBUTION.md has no audio section" % len(clips))
+        if not licence_text:
+            problems.append("Resources/audio/ is not empty but "
+                            "Resources/licenses/ is")
+        rows.append("  %-10s %d files" % ("audio", len(clips)))
     else:
-        satir.append("  %-10s yok (risk sifir)" % "audio")
+        rows.append("  %-10s none (zero risk)" % "audio")
 
-    # --- rapor -------------------------------------------------------------
-    for s in satir:
-        print(s)
+    # --- report ------------------------------------------------------------
+    for r in rows:
+        print(r)
 
-    if sorun:
+    if problems:
         print("")
-        for s in sorun:
-            print("  EKSIK: " + s)
-        print("sonuc    : %d eksik" % len(sorun))
+        for p in problems:
+            print("  MISSING: " + p)
+        print("result   : %d missing" % len(problems))
         return 1
 
-    print("sonuc    : butun varliklar lisansli ve atif defterinde")
+    print("result   : every asset is licensed and in the attribution ledger")
     return 0
 
 

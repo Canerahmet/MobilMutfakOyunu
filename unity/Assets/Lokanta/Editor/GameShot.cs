@@ -12,92 +12,93 @@ using UnityEngine.Rendering;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Salonun goruntusunu alir - GERCEK gorunum kodunu kostararak.
+    /// Photographs the hall - by running the REAL view code.
     ///
-    /// Amac gozle bakabilmek: bir kat plani sayilarla dogru olabilir ve
-    /// yine de yanlis okunabilir. Bu projede uc yerlesim tam olarak boyle
-    /// elendi (RoomLayout.cs) ve kameranin cerceveleme hatasi da boyle
-    /// bulundu (docs/34 22).
+    /// The point is to be able to look at it: a floor plan can be right in the
+    /// numbers and still read wrongly. Three layouts were thrown out on this
+    /// project in exactly that way (RoomLayout.cs), and the camera's framing
+    /// bug was found the same way (docs/34 22).
     ///
-    /// Play mode kullanilmiyor: toplu kipte guvenilir calismiyor ve
-    /// takiliyor. Onun yerine gercek bir Simulation kuruluyor ve
-    /// RestaurantView.Preview'e veriliyor; cizilen sey oyundaki kodun
-    /// ta kendisi.
+    /// Play mode is not used: it does not run reliably in batch mode and it
+    /// hangs. Instead a real Simulation is built and handed to
+    /// RestaurantView.Preview; what is drawn is the very code from the game.
     ///
     ///   Unity.exe -batchmode -quit -projectPath ...
     ///     -executeMethod Lokanta.EditorTools.GameShot.Capture
     /// </summary>
     public static class GameShot
     {
-        [MenuItem("Lokanta/Salon goruntusu al")]
+        [MenuItem("Lokanta/Take a hall screenshot")]
         public static void Capture()
         {
             EditorSceneManager.OpenScene("Assets/Lokanta/Game.unity");
 
             foreach (string cuisine in new[] { "turk", "fastfood" })
-            foreach (var kademe in new[]
-                     { new { Ad = "acilis", Masa = 4 },
-                       new { Ad = "genel",  Masa = 99 } })
+            foreach (var tier in new[]
+                     { new { Name = "opening", Tables = 4 },
+                       new { Name = "overview", Tables = 99 } })
             {
-                Simulation sim = Build(cuisine, kademe.Masa, out ContentSet content);
+                Simulation sim = Build(cuisine, tier.Tables, out ContentSet content);
                 if (sim == null) continue;
 
                 RestaurantView view = Object.FindFirstObjectByType<RestaurantView>();
-                if (view == null) { Debug.LogError("RestaurantView yok"); return; }
+                if (view == null) { Debug.LogError("No RestaurantView"); return; }
 
                 view.Preview = sim;
                 view.PreviewPoses = true;
-                // KIMLIK GORUNTUYE DE GECIYOR: susleme mutfaga gore
-                // renk aliyor ve arac oyunun gostereceginin aynisini
-                // gostermeli.
+                // THE IDENTITY CARRIES INTO THE SCREENSHOT TOO: the decoration
+                // takes its colour from the cuisine and the tool has to show
+                // exactly what the game will show.
                 view.PreviewCuisine = cuisine;
-                // Self servis bayragi palette degil ICERIKTE; arac
-                // onu vermezse kare oyunun gosterdiginden farkli olur.
+                // The self-service flag is not in the palette but IN THE
+                // CONTENT; if the tool does not pass it, the frame differs from
+                // what the game shows.
                 view.PreviewContent = content;
                 Invoke(view, "Awake");
                 view.Rebuild();
 
-                // GUN ISIGI ONCE UYGULANIYOR.
+                // THE DAYLIGHT IS APPLIED FIRST.
                 //
-                // Yoksa butun goruntuler gun isigi hic kosmamis halde
-                // cikiyor: arka plan siyah, golgeler varsayilan acida.
-                // Arac, oyunun gosterecegi seyi gostermeli - servisin
-                // ortasi (0,35) varsayilan bakis.
+                // Otherwise every screenshot comes out as though the daylight
+                // had never run: a black background and shadows at the default
+                // angle. The tool has to show what the game will show - the
+                // middle of service (0.35) is the default view.
                 {
-                    DayLight g0 = Object.FindFirstObjectByType<DayLight>();
-                    if (g0 != null)
-                        g0.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.35f);
+                    DayLight d0 = Object.FindFirstObjectByType<DayLight>();
+                    if (d0 != null)
+                        d0.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.35f);
                 }
                 Invoke(view, "Update");
 
                 Audit(view);
-                UnityEngine.Debug.Log("  TANI masa: yiyen " + view.EatingTables);
+                UnityEngine.Debug.Log("  DIAGNOSIS tables: eating " + view.EatingTables);
 
-                // SAHNE BUTCESI TAM GENISLEMIS HALDE (docs/19 B5).
+                // THE SCENE BUDGET AT FULL EXPANSION (docs/19 B5).
                 //
-                // Tur de ayni iki sayiyi olcuyor ama DORT MASADA: tur
-                // altmis gunu oynuyor, genislemiyor. Tavani gormek icin
-                // olcumun burada da olmasi gerekiyor - bu arac sahneyi
-                // 99 masa isteyerek, yani her oda acik kuruyor.
+                // The tour measures the same two numbers but AT FOUR TABLES:
+                // the tour plays sixty days and never expands. To see the
+                // ceiling the measurement has to exist here as well - this tool
+                // builds the scene asking for 99 tables, that is, with every
+                // room open.
                 {
-                    int cizici = 0, blokla = 0;
-                    long ucgen = 0;
+                    int renderers = 0, blocked = 0;
+                    long triangles = 0;
                     foreach (Renderer rr in Object.FindObjectsByType<Renderer>(
                                  FindObjectsSortMode.None))
                     {
                         if (!rr.enabled || !rr.gameObject.activeInHierarchy) continue;
-                        cizici++;
+                        renderers++;
 
-                        // TOPLU CIZIMIN DISINDA KALANLAR.
+                        // THE ONES THAT FALL OUTSIDE BATCHING.
                         //
-                        // MaterialPropertyBlock yazilan bir cizici SRP
-                        // toplu cizimine giremiyor - projenin kendisi
-                        // bunu defalarca yazip zemini ve oda isigini
-                        // buna gore tasarlamisti. Ama uc yeni sistem
-                        // (rozet, kiyafet, ocak ustu) ayni bedeli
-                        // odemeye devam ediyor ve HIC OLCULMUYORDU.
-                        // Olculmedigi icin de kimse fark etmiyordu.
-                        if (rr.HasPropertyBlock()) blokla++;
+                        // A renderer with a MaterialPropertyBlock written to it
+                        // cannot enter SRP batching - the project itself wrote
+                        // this down repeatedly and designed the floor and the
+                        // room light around it. But three newer systems
+                        // (badges, clothing, the stove top) go on paying the
+                        // same price and WERE NEVER MEASURED AT ALL. And
+                        // because they were not measured, nobody noticed.
+                        if (rr.HasPropertyBlock()) blocked++;
 
                         Mesh mm = null;
                         MeshFilter mf2 = rr.GetComponent<MeshFilter>();
@@ -106,164 +107,172 @@ namespace Lokanta.EditorTools
                         if (sm != null) mm = sm.sharedMesh;
                         if (mm == null) continue;
                         for (int i = 0; i < mm.subMeshCount; i++)
-                            ucgen += (long)(mm.GetIndexCount(i) / 3);
+                            triangles += (long)(mm.GetIndexCount(i) / 3);
                     }
-                    UnityEngine.Debug.Log("  OLCUM sahne butcesi (" + cuisine + ", "
-                                          + kademe.Ad + ", " + sim.TableCount
-                                          + " masa): " + cizici + " cizici, "
-                                          + ucgen + " ucgen, "
-                                          + blokla + " toplu cizim disi");
+                    UnityEngine.Debug.Log("  MEASURED scene budget (" + cuisine + ", "
+                                          + tier.Name + ", " + sim.TableCount
+                                          + " tables): " + renderers + " renderers, "
+                                          + triangles + " triangles, "
+                                          + blocked + " outside batching");
 
-                    // ESIK BURADA - TURDA DEGIL.
+                    // THE THRESHOLD IS HERE - NOT IN THE TOUR.
                     //
-                    // Turdaki esik (400 / 80.000) DORT MASALIK taban
-                    // sahnede olculuyor ve tur hic genislemiyor: on dort
-                    // masalik sahne butceyi assa hicbir sey uyarmazdi.
-                    // Burasi sahneyi 99 masa isteyerek kuruyor, yani
-                    // TAVANI olcuyor - eshiklerin yeri burasi.
+                    // The tour's threshold (400 / 80,000) is measured on the
+                    // FOUR-TABLE base scene and the tour never expands: if a
+                    // fourteen-table scene went over budget nothing would warn.
+                    // This place builds the scene asking for 99 tables, that
+                    // is, it measures THE CEILING - and the thresholds belong
+                    // where the ceiling is.
                     //
-                    // Sayilar docs/19 B5'ten degil OLCUMDEN: bugunku
-                    // tavan ~270 cizici / ~45.000 ucgen. Esikler
-                    // uzerine pay birakiyor ki kucuk eklemeler kirmasin,
-                    // ama sessiz bir siserme yakalansin.
-                    if (cizici > 360)
-                        UnityEngine.Debug.LogError("SORUNLAR: cizici tavani asildi ("
-                                                   + cizici + " > 360, " + cuisine + " "
-                                                   + kademe.Ad + ")");
-                    if (ucgen > 70000)
-                        UnityEngine.Debug.LogError("SORUNLAR: ucgen tavani asildi ("
-                                                   + ucgen + " > 70000, " + cuisine + " "
-                                                   + kademe.Ad + ")");
-                    if (blokla > 220)
-                        UnityEngine.Debug.LogError("SORUNLAR: toplu cizim disi cizici "
-                                                   + "cok fazla (" + blokla + " > 220, "
-                                                   + cuisine + " " + kademe.Ad + ")");
+                    // The numbers do not come from docs/19 B5 but FROM
+                    // MEASUREMENT: today's ceiling is ~270 renderers / ~45,000
+                    // triangles. The thresholds leave room above that so small
+                    // additions do not break them, while a silent bloat is
+                    // still caught.
+                    if (renderers > 360)
+                        UnityEngine.Debug.LogError("PROBLEMS: the renderer ceiling was passed ("
+                                                   + renderers + " > 360, " + cuisine + " "
+                                                   + tier.Name + ")");
+                    if (triangles > 70000)
+                        UnityEngine.Debug.LogError("PROBLEMS: the triangle ceiling was passed ("
+                                                   + triangles + " > 70000, " + cuisine + " "
+                                                   + tier.Name + ")");
+                    if (blocked > 220)
+                        UnityEngine.Debug.LogError("PROBLEMS: too many renderers outside "
+                                                   + "batching (" + blocked + " > 220, "
+                                                   + cuisine + " " + tier.Name + ")");
                 }
 
-                // Cerceve OYUNDAKIYLE AYNI kaynaktan: acik odalar.
-                // PlotBounds kullaniyordu ve o yuzden goruntu, oyuncunun
-                // gordugunden daha genisti - ekranin sagdaki ucte biri
-                // bos arsaydi ve goruntude oyle gorunmuyordu.
-                Shoot("salon_" + cuisine + "_" + kademe.Ad + ".png",
+                // The frame comes from THE SAME source as the game's: the open
+                // rooms. It used to use PlotBounds and the screenshot was
+                // therefore wider than what the player sees - the right-hand
+                // third of the screen was empty plot and the screenshot did not
+                // show it that way.
+                Shoot("hall_" + cuisine + "_" + tier.Name + ".png",
                       CameraFit.OpenBounds(sim.TableCount), 1280, 576);
 
-                // Bir de ODAYA yaklasmis hali: dokunma hedefi bu olcekte
-                // masa takimi olacak (docs/31), yani bu cerceve de
-                // gorulmeli. Oda cercevesi masa sayisindan bagimsiz,
-                // yalnizca bir kez.
-                if (kademe.Masa > 4)
+                // And the view zoomed in ON A ROOM: at this scale the touch
+                // target is a table set (docs/31), so this frame has to be seen
+                // too. The room frame does not depend on the table count, so
+                // once is enough.
+                if (tier.Tables > 4)
                 {
-                    int salon = FindRoom("Salon1");
-                    Shoot("salon_" + cuisine + "_oda.png",
-                          CameraFit.RoomBounds(salon), 1280, 576);
+                    // THE ROOM NAMES ARE THE ONES RoomPlan.cs PRODUCES. They
+                    // are looked up by exact string, so they stay as that file
+                    // spells them.
+                    int hall = FindRoom("Hall1");
+                    Shoot("hall_" + cuisine + "_room.png",
+                          CameraFit.RoomBounds(hall), 1280, 576);
 
-                    // MUTFAK YAKIN PLAN: kiyafet (asci kepi, onluk) ve
-                    // servis bankosu ancak bu olcekte gorulebiliyor.
-                    int mutfak = FindRoom("Mutfak");
-                    Shoot("mutfak_" + cuisine + ".png",
-                          CameraFit.RoomBounds(mutfak), 1100, 700);
+                    // THE KITCHEN CLOSE-UP: the clothing (the cook's hat, the
+                    // apron) and the service counter can only be seen at this
+                    // scale.
+                    int kitchen = FindRoom("Kitchen");
+                    Shoot("kitchen_" + cuisine + ".png",
+                          CameraFit.RoomBounds(kitchen), 1100, 700);
 
-                    // TEK MASA, YAKINDAN.
+                    // ONE TABLE, CLOSE UP.
                     //
-                    // "Modeller ust uste binmis gibi" sorusunu ancak bu
-                    // olcekte cevaplamak mumkun: genel gorunumde 34
-                    // derecelik bakis zaten her seyi ust uste
-                    // gosteriyor, yani hem gercek cakismayi hem masum
-                    // derinligi ayni sekilde cizyor.
-                    Transform masa = FindTable(view);
-                    if (masa != null)
+                    // The question "do the models look like they overlap" can
+                    // only be answered at this scale: in the overview the
+                    // 34-degree view already shows everything on top of
+                    // everything else, that is, it draws real intersection and
+                    // innocent depth in the same way.
+                    Transform table = FindTable(view);
+                    if (table != null)
                     {
-                        Shoot("salon_" + cuisine + "_masa.png",
-                              new Bounds(masa.position + new Vector3(0f, 0.6f, 0f),
+                        Shoot("hall_" + cuisine + "_table.png",
+                              new Bounds(table.position + new Vector3(0f, 0.6f, 0f),
                                          new Vector3(2.6f, 1.6f, 2.6f)),
                               1280, 720);
 
-                        // EN YAKIN: oyuncunun iki parmakla gelebilecegi
-                        // sinir (CameraRig 0,45). Buradan sonrasi
-                        // gorulmuyor, yani modellerin dogru gorunmesi
-                        // gereken en zor olcek bu.
-                        Shoot("salon_" + cuisine + "_yakin.png",
-                              new Bounds(masa.position + new Vector3(0f, 0.45f, 0f),
+                        // THE CLOSEST: the limit the player can reach with two
+                        // fingers (CameraRig 0.45). Nothing closer than this is
+                        // ever seen, so this is the hardest scale at which the
+                        // models still have to look right.
+                        Shoot("hall_" + cuisine + "_close.png",
+                              new Bounds(table.position + new Vector3(0f, 0.45f, 0f),
                                          new Vector3(1.25f, 0.9f, 1.25f)),
                               1280, 720);
                     }
                 }
 
-                // AKSAM GORUNTUSU.
+                // THE EVENING SCREENSHOT.
                 //
-                // Gun isigi GameApp'ten suruluyor ve editor kipinde o
-                // islemiyor; gun icinde neyin degistigi ancak burada
-                // gorulebilir. Sabah ve aksam AYNI cerceveden cekiliyor
-                // ki fark yalnizca isiktan gelsin.
-                DayLight gun = Object.FindFirstObjectByType<DayLight>();
-                if (gun != null && kademe.Ad == "genel")
+                // The daylight is driven from GameApp and that does not run in
+                // editor mode; what changes across the day can only be seen
+                // here. Morning and evening are taken from THE SAME frame so
+                // that the only difference comes from the light.
+                DayLight day = Object.FindFirstObjectByType<DayLight>();
+                if (day != null && tier.Name == "overview")
                 {
-                    Bounds cerceve = CameraFit.OpenBounds(kademe.Masa);
+                    Bounds frame = CameraFit.OpenBounds(tier.Tables);
 
-                    gun.Apply(Lokanta.Core.Sim.DayPhase.Morning, 0f);
-                    Shoot("salon_" + cuisine + "_sabah.png", cerceve, 1280, 560);
+                    day.Apply(Lokanta.Core.Sim.DayPhase.Morning, 0f);
+                    Shoot("hall_" + cuisine + "_morning.png", frame, 1280, 560);
 
-                    gun.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.5f);
-                    Shoot("salon_" + cuisine + "_ogle.png", cerceve, 1280, 560);
+                    day.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.5f);
+                    Shoot("hall_" + cuisine + "_noon.png", frame, 1280, 560);
 
-                    gun.Apply(Lokanta.Core.Sim.DayPhase.Evening, 1f);
-                    Shoot("salon_" + cuisine + "_aksam.png", cerceve, 1280, 560);
+                    day.Apply(Lokanta.Core.Sim.DayPhase.Evening, 1f);
+                    Shoot("hall_" + cuisine + "_evening.png", frame, 1280, 560);
 
-                    // SOKAK LAMBASI YAKIN PLAN, GECE VE GUNDUZ.
+                    // THE STREET LAMP CLOSE UP, BY NIGHT AND BY DAY.
                     //
-                    // Lamba genel cercevede 40 piksel: modelin dogru
-                    // gorunup gorunmedigi o olcekte anlasilmaz. Iki kez
-                    // cekiliyor cunku iki ayri soru var - gunduz MODEL
-                    // (fener okunuyor mu, kol nereye bakiyor), gece ISIK
-                    // (huzme, hale, havuz birlikte ne yapiyor).
-                    Vector3 direk = new Vector3(
-                        CameraFit.OpenBounds(kademe.Masa).center.x,
+                    // In the overview frame the lamp is 40 pixels: whether the
+                    // model looks right cannot be told at that scale. It is
+                    // taken twice because there are two separate questions - by
+                    // day the MODEL (does the lantern read, where does the arm
+                    // point), by night the LIGHT (what the beam, the halo and
+                    // the pool do together).
+                    Vector3 post = new Vector3(
+                        CameraFit.OpenBounds(tier.Tables).center.x,
                         1.05f, RestaurantView.LampPostZ + 0.35f);
-                    Bounds yakin = new Bounds(direk, new Vector3(3.2f, 2.4f, 3.2f));
+                    Bounds close = new Bounds(post, new Vector3(3.2f, 2.4f, 3.2f));
 
-                    // KAMERA ACISI DENEMESI.
+                    // THE CAMERA ANGLE TRIAL.
                     //
-                    // Kullanici "referanstaki gibi bir aci" istedi ve
-                    // secim goz karariyla yapilamaz: donme (yaw) hem
-                    // kareyi doldurmayi hem de DOKUNMA HEDEFINI
-                    // degistiriyor (docs/31: -12 derece donme tabani
-                    // 71 dp'den 48 dp'ye dusurmustu). Once BAKILIYOR.
+                    // The user asked for "an angle like the reference", and
+                    // that choice cannot be made by eye: the yaw changes both
+                    // how the frame is filled and THE TOUCH TARGET (docs/31:
+                    // a -12 degree yaw had dropped the floor from 71 dp to
+                    // 48 dp). First we LOOK.
                     if (cuisine == "turk")
                     {
-                        Bounds cer2 = CameraFit.OpenBounds(kademe.Masa);
-                        float[,] acilar = { {34f, 0f}, {34f, 20f}, {34f, 30f},
+                        Bounds frame2 = CameraFit.OpenBounds(tier.Tables);
+                        float[,] angles = { {34f, 0f}, {34f, 20f}, {34f, 30f},
                                             {40f, 30f}, {30f, 45f}, {45f, 45f} };
-                        for (int a = 0; a < acilar.GetLength(0); a++)
-                            Shoot("aci_" + (int)acilar[a, 0] + "_"
-                                  + (int)acilar[a, 1] + ".png", cer2, 873, 393,
-                                  acilar[a, 0], acilar[a, 1]);
+                        for (int a = 0; a < angles.GetLength(0); a++)
+                            Shoot("angle_" + (int)angles[a, 0] + "_"
+                                  + (int)angles[a, 1] + ".png", frame2, 873, 393,
+                                  angles[a, 0], angles[a, 1]);
                     }
 
-                    gun.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.35f);
-                    Shoot("lamba_" + cuisine + "_gunduz.png", yakin, 900, 700);
+                    day.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.35f);
+                    Shoot("lamp_" + cuisine + "_day.png", close, 900, 700);
 
-                    gun.Apply(Lokanta.Core.Sim.DayPhase.Evening, 1f);
-                    Shoot("lamba_" + cuisine + "_gece.png", yakin, 900, 700);
+                    day.Apply(Lokanta.Core.Sim.DayPhase.Evening, 1f);
+                    Shoot("lamp_" + cuisine + "_night.png", close, 900, 700);
 
-                    gun.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.35f);
+                    day.Apply(Lokanta.Core.Sim.DayPhase.Service, 0.35f);
                 }
 
-                // BULASIKHANE YAKIN PLAN.
+                // THE WASHING-UP AREA, CLOSE UP.
                 //
-                // Lavaboyu yalnizca biri yikarken gormek gerekiyor ve
-                // editor kipinde kimse yikamiyor: sahne kuruldugunda
-                // personel bosta. Burada ELLE kuruluyor - bir figur
-                // lavaboya konup yikama duruşuna sokuluyor, musluk ve
-                // sunger aciliyor.
+                // The sink is only worth seeing while somebody is washing, and
+                // in editor mode nobody washes: when the scene is built the
+                // staff are idle. It is staged BY HAND here - a figure is put
+                // at the sink and posed into the washing stance, and the tap
+                // and the sponge are turned on.
                 //
-                // Neden gerekli: "su akiyor mu, sunger var mi" sorusunun
-                // cevabi bir sayida degil, goruntude. Olcum burada
-                // BAKMAK.
-                if (kademe.Ad == "genel")
+                // Why it is needed: the answer to "is the water running, is
+                // there a sponge" is not in a number but in the picture. Here,
+                // measuring means LOOKING.
+                if (tier.Name == "overview")
                 {
                     view.PreviewWash();
                     Vector3 ls = view.WashSpot;
-                    Shoot("bulasik_" + cuisine + ".png",
+                    Shoot("dishwashing_" + cuisine + ".png",
                           new Bounds(ls + new Vector3(0f, 0.7f, 0.55f),
                                      new Vector3(2.6f, 1.6f, 2.6f)),
                           1280, 720);
@@ -274,16 +283,17 @@ namespace Lokanta.EditorTools
                 view.Clear();
             }
 
-            Debug.Log("Goruntuler alindi: render/");
+            Debug.Log("Screenshots taken: render/");
         }
 
         /// <summary>
-        /// Kurulmus sahnedeki GERCEK olculeri yazar.
+        /// Writes down the REAL sizes in the scene as it was built.
         ///
-        /// Prefabin olcusu dogru olabilir ve sahnedeki nesne yine de yanlis
-        /// boyda cikabilir: aradaki her ebeveynin olcegi carpiliyor ve
-        /// animasyon ornekleme kok donusumune dokunabiliyor. Bu, iki
-        /// olcumu yan yana koyup farki gorunur kiliyor.
+        /// The prefab's size may be right and the object in the scene may still
+        /// come out the wrong height: the scale of every parent in between is
+        /// multiplied in, and sampling the animation can touch the root
+        /// transform. This puts the two measurements side by side and makes the
+        /// difference visible.
         /// </summary>
         private static void Audit(RestaurantView view)
         {
@@ -293,16 +303,16 @@ namespace Lokanta.EditorTools
                 if (n++ > 3) break;
                 Transform t = f.transform;
                 Debug.Log(string.Format(
-                    "  figur  durus={0,-5} ebeveyn {1,-22} olcek {2:0.000}"
+                    "  figure pose={0,-5} parent {1,-22} scale {2:0.000}"
                     + "  y={3:0.00}  {4}  {5}",
                     f.Current, t.parent == null ? "-" : t.parent.name,
                     t.lossyScale.y, t.position.y, Box(t), BindBox(t)));
             }
 
-            // KALABALIK OLCUSU. Kullanicinin cumlesi: "karakterler biraz
-            // buyuk gibi, ortayi cok sikisik gosteriyor." Sayiya
-            // cevrilebilir tek hali: bir masa takiminin ayak izine
-            // oturanlarin ne kadari giriyor.
+            // THE CROWDING MEASUREMENT. The user's sentence: "the characters
+            // look a bit big, they make the middle look very cramped." The only
+            // way to turn that into a number: how much of a table set's
+            // footprint the people sitting at it take up.
             foreach (Figure f0 in view.GetComponentsInChildren<Figure>(true))
             {
                 Bounds? bb = null;
@@ -318,13 +328,13 @@ namespace Lokanta.EditorTools
                 }
                 if (bb == null) break;
 
-                float en = bb.Value.size.x;
+                float width = bb.Value.size.x;
                 Debug.Log(string.Format(
-                    "  KALABALIK figur eni {0:0.00} m | masa araligi {1:0.00} m"
-                    + " | iki figur {2:0.00} m = araligin %{3:0}"
-                    + " | sandalye yuksekligi 0,92 m, figur boyu {4:0.00} m,"
-                    + " oran {5:0.00} (gercek insan 1,85)",
-                    en, RoomPlan.CellX, en * 2f, en * 2f / RoomPlan.CellX * 100f,
+                    "  CROWDING figure width {0:0.00} m | table pitch {1:0.00} m"
+                    + " | two figures {2:0.00} m = {3:0}% of the pitch"
+                    + " | chair height 0.92 m, figure height {4:0.00} m,"
+                    + " ratio {5:0.00} (a real person is 1.85)",
+                    width, RoomPlan.CellX, width * 2f, width * 2f / RoomPlan.CellX * 100f,
                     bb.Value.size.y, bb.Value.size.y / 0.92f));
                 break;
             }
@@ -333,7 +343,7 @@ namespace Lokanta.EditorTools
             {
                 if (!t.name.StartsWith("chairCushion")) continue;
                 Debug.Log(string.Format(
-                    "  sandalye ebeveyn {0,-22} olcek {1:0.000}  y={2:0.00}  {3}",
+                    "  chair parent {0,-22} scale {1:0.000}  y={2:0.00}  {3}",
                     t.parent == null ? "-" : t.parent.name,
                     t.lossyScale.y, t.position.y, Box(t)));
                 break;
@@ -351,21 +361,21 @@ namespace Lokanta.EditorTools
         private static string Box(Transform t)
         {
             Renderer[] rs = t.GetComponentsInChildren<Renderer>(true);
-            if (rs.Length == 0) return "cizici yok";
+            if (rs.Length == 0) return "no renderer";
             Bounds b = rs[0].bounds;
             for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
-            return string.Format("kutu {0:0.00} x {1:0.00} x {2:0.00} taban={3:0.00}",
+            return string.Format("box {0:0.00} x {1:0.00} x {2:0.00} base={3:0.00}",
                                  b.size.x, b.size.y, b.size.z, b.min.y);
         }
 
         /// <summary>
-        /// BAGLAMA DURUSUNDAKI gercek olcu.
+        /// The real size IN THE BIND POSE.
         ///
-        /// Renderer.bounds derili bir mesh'te YALAN SOYLUYOR: Unity onu
-        /// kok kemikten turetiyor ve poz degistikce guncellemiyor. Ilk
-        /// olcumde oturan bir figur 1,68 m boyunda ve 1,66 m eninde
-        /// gorundu - ikisi de imkansiz. sharedMesh.bounds ise modelin
-        /// kendi kutusu; dunya olcegiyle carpinca gercek boy cikiyor.
+        /// On a skinned mesh Renderer.bounds LIES: Unity derives it from the
+        /// root bone and does not update it as the pose changes. In the first
+        /// measurement a seated figure came out 1.68 m tall and 1.66 m wide -
+        /// both impossible. sharedMesh.bounds, on the other hand, is the model's
+        /// own box; multiplied by the world scale it gives the real height.
         /// </summary>
         private static string BindBox(Transform t)
         {
@@ -380,18 +390,18 @@ namespace Lokanta.EditorTools
                     Vector3.Scale(mb.center, sc), Vector3.Scale(mb.size, sc));
                 if (acc == null) acc = w; else { Bounds a = acc.Value; a.Encapsulate(w); acc = a; }
             }
-            if (acc == null) return "derili mesh yok";
+            if (acc == null) return "no skinned mesh";
             Vector3 z = acc.Value.size;
-            return string.Format("BAGLAMA en {0:0.00} boy {1:0.00} derinlik {2:0.00} m",
+            return string.Format("BIND width {0:0.00} height {1:0.00} depth {2:0.00} m",
                                  z.x, z.y, z.z);
         }
 
         // =====================================================================
         /// <param name="maxTables">
-        /// Bu sayidan sonra genisleme denenmiyor. Iki goruntu icin var:
-        /// ACILIS (dort masa) ve BUYUMUS restoran. Kamera cercevesi acik
-        /// odalara gore kuruldugu icin ikisi ayni cerceveyi vermiyor ve
-        /// ikisi de gorulmeli.
+        /// Past this number no further expansion is attempted. It exists for
+        /// two screenshots: the OPENING (four tables) and the GROWN
+        /// restaurant. Because the camera frame is built from the open rooms
+        /// the two do not give the same frame, and both have to be seen.
         /// </param>
         private static Simulation Build(string cuisine, int maxTables,
                                         out ContentSet content)
@@ -412,8 +422,8 @@ namespace Lokanta.EditorTools
 
                 Simulation sim = new Simulation(economy, content, timing, 20260911UL);
 
-                // Birkac gun oyna ve salonu genislet: bos bir dort masalik
-                // dukkanin goruntusu oyunu anlatmiyor.
+                // Play a few days and expand the hall: a picture of an empty
+                // four-table shop does not describe the game.
                 for (int day = 0; day < 12; day++)
                 {
                     for (int i = 0; i < sim.IngredientCount; i++)
@@ -423,13 +433,13 @@ namespace Lokanta.EditorTools
                             sim.Apply(new Command(sim.TickIndex,
                                 CommandKind.OrderIngredient, i, need));
                     }
-                    // Buyume DENENIYOR, gune sabitlenmis DEGIL: ilk
-                    // yazimda 3. gunde genislemesi soylenmisti, o gun kasa
-                    // yetmedi ve komut sessizce dustu - goruntu on ikinci
-                    // gunde hala dort masaydi.
+                    // Growth is ATTEMPTED, NOT pinned to a day: in the first
+                    // version it was told to expand on day 3, the cash did not
+                    // stretch that day and the command dropped silently - the
+                    // screenshot was still four tables on day twelve.
                     if (sim.Cooks < 2)
                         sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, 0));
-                    if (sim.SalonStaff < 3)
+                    if (sim.HallStaff < 3)
                         sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, 0));
 
                     int tier = 0;
@@ -441,14 +451,14 @@ namespace Lokanta.EditorTools
                         sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, tier));
                     sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
 
-                    // Servisin ORTASINDA duruyoruz: salon dolu olsun.
+                    // We stop IN THE MIDDLE of service, so the hall is busy.
                     int stop = timing.ServiceTicks / 2;
                     for (int t = 0; t < stop; t++)
                     {
                         sim.Tick();
                         if (sim.ServiceComplete) break;
                     }
-                    if (day == 11) break;             // son gunde servis acik kalsin
+                    if (day == 11) break;             // on the last day leave service open
 
                     for (int t = 0; t < timing.ServiceTicks; t++)
                     {
@@ -460,41 +470,46 @@ namespace Lokanta.EditorTools
                 }
 
                 Debug.Log(string.Format(
-                    "{0}: {1}. gun, {2} masa, {3} dolu, {4} kadro, itibar {5:0.0}",
+                    "{0}: day {1}, {2} tables, {3} occupied, {4} staff, reputation {5:0.0}",
                     cuisine, sim.Day, sim.TableCount, sim.OccupiedTables,
-                    sim.Cooks + sim.SalonStaff, sim.ReputationCenti / 100f));
+                    sim.Cooks + sim.HallStaff, sim.ReputationCenti / 100f));
                 return sim;
             }
             catch (System.Exception e)
             {
-                Debug.LogError("Onizleme kurulamadi (" + cuisine + "): " + e.Message);
+                Debug.LogError("The preview could not be built (" + cuisine + "): " + e.Message);
                 return null;
             }
         }
 
-        /// <summary>Yerlesim denetiminin ayni onizlemeyi kurmasi icin.</summary>
+        /// <summary>So that the placement audit can build the same preview.</summary>
         internal static Simulation BuildFor(string cuisine)
         {
             return Build(cuisine, 99, out _);
         }
 
-        /// <summary>Ayni sebeple: ozel Awake/Update'i disaridan tetiklemek.</summary>
+        /// <summary>For the same reason: firing the private Awake/Update from outside.</summary>
         internal static void Kick(object target, string method)
         {
             Invoke(target, method);
         }
 
-        /// <summary>Misafiri olan ilk masa; yoksa ilk masa.</summary>
+        /// <summary>
+        /// The first table with a guest at it; failing that, the first table.
+        ///
+        /// The "Table_" prefix is the name RestaurantView gives the table
+        /// holders it creates, so it stays exactly as that file spells it.
+        /// </summary>
         private static Transform FindTable(RestaurantView view)
         {
-            Transform ilk = null;
+            Transform first = null;
             foreach (Transform t in view.transform)
             {
-                if (!t.name.StartsWith("Masa_")) continue;
-                if (ilk == null) ilk = t;
+                if (!t.name.StartsWith("Table_")) continue;
+                if (first == null) first = t;
                 if (t.GetComponentInChildren<Figure>(true) != null) return t;
             }
-            return ilk;
+            return first;
         }
 
         private static int FindRoom(string name)
@@ -505,9 +520,9 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// MonoBehaviour'un ozel metodunu cagirir. Editor kipinde Awake ve
-        /// Update calismiyor; onizlemenin gercek kodu kosturmasi icin
-        /// elle tetikleniyor.
+        /// Calls a MonoBehaviour's private method. In editor mode Awake and
+        /// Update do not run; they are fired by hand so that the preview runs
+        /// the real code.
         /// </summary>
         private static void Invoke(object target, string method)
         {
@@ -528,17 +543,17 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// SRP toplu cizimini gecici olarak kapatir, onceki halini dondurur.
+        /// Turns SRP batching off temporarily and returns its previous state.
         ///
-        /// Neden: toplu kipte elle cagrilan Camera.Render(), toplu cizicinin
-        /// malzeme basina sabit tamponunu DOLDURMUYOR. Butun modeller tek
-        /// bir renge cikiyordu - bir kosuda pembe, digerinde siyah; yani
-        /// okunan sey artik veriydi. Zeminlerin dogru cikmasi da bunu
-        /// dogruluyor: onlarin rengi MaterialPropertyBlock'tan geliyor ve
-        /// o yol toplu cizimi zaten devre disi birakiyor.
+        /// Why: in batch mode a hand-called Camera.Render() DOES NOT FILL the
+        /// batcher's per-material constant buffer. Every model was coming out
+        /// one single colour - pink on one run, black on the next; that is,
+        /// what was being read was leftover data. That the floors came out
+        /// right confirms it: their colour comes from a MaterialPropertyBlock,
+        /// and that route already disables batching.
         ///
-        /// Oyunun kendisi bundan etkilenmiyor (gercek kosuda tampon
-        /// doluyor); kapatilan yalnizca GORUNTU ALMA yolu.
+        /// The game itself is not affected (on a real run the buffer is
+        /// filled); what is turned off is only the SCREENSHOT path.
         /// </summary>
         private static bool SrpBatcher(bool on)
         {
@@ -561,47 +576,48 @@ namespace Lokanta.EditorTools
         private static void Draw(string name, Bounds target, int width, int height,
                                  float pitch = float.NaN, float yaw = float.NaN)
         {
-            GameObject camGo = new GameObject("GoruntuKamerasi");
+            GameObject camGo = new GameObject("ShotCamera");
             Camera cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
 
-            // ARKA PLAN SAHNENIN KAMERASINDAN.
+            // THE BACKGROUND COMES FROM THE SCENE'S CAMERA.
             //
-            // Burada sabit bir renk yaziliydi ve gun isigi eklendiginde
-            // arac SESSIZCE yanlis seyi gosterdi: oyunda gokyuzu sabah
-            // mavi, aksam siyah oluyor ama goruntude her saat ayni koyu
-            // gri kaliyordu. Arac, oyunun gosterecegi seyi gostermeli.
-            Camera sahne = Object.FindFirstObjectByType<Lokanta.Game.CameraRig>()
+            // A fixed colour was written here, and once the daylight was added
+            // the tool SILENTLY showed the wrong thing: in the game the sky is
+            // blue in the morning and black in the evening, but in the
+            // screenshot it stayed the same dark grey at every hour. The tool
+            // has to show what the game will show.
+            Camera sceneCam = Object.FindFirstObjectByType<Lokanta.Game.CameraRig>()
                            != null
                 ? Object.FindFirstObjectByType<Lokanta.Game.CameraRig>()
                         .GetComponent<Camera>()
                 : null;
-            cam.backgroundColor = sahne != null
-                ? sahne.backgroundColor
+            cam.backgroundColor = sceneCam != null
+                ? sceneCam.backgroundColor
                 : new Color(0.055f, 0.062f, 0.075f);
 
-            // CameraRig ile AYNI hesap: gordugumuz sey oyuncunun gordugu
-            // sey olmali. Ilk yazimda ayri sayilar vardi ve render
-            // restorani karenin %38'inde gosterdi.
+            // THE SAME arithmetic as CameraRig: what we see has to be what the
+            // player sees. In the first version there were separate numbers and
+            // the render showed the restaurant across 38% of the frame.
             cam.fieldOfView = CameraFit.FieldOfView;
             cam.aspect = width / (float)height;
 
-            // Aci verilmediyse OYUNUN acisi. Verildiginde yalnizca
-            // inceleme goruntuleri icin: "oturuyor mu" sorusu tepeden
-            // bakarak cevaplanamiyor, yandan bakmak gerekiyor.
-            bool ozel = !float.IsNaN(pitch) || !float.IsNaN(yaw);
-            Quaternion rot = ozel
+            // If no angle is given, THE GAME's angle. When one is given it is
+            // only for inspection shots: the question "is it sitting down"
+            // cannot be answered from above, you have to look from the side.
+            bool custom = !float.IsNaN(pitch) || !float.IsNaN(yaw);
+            Quaternion rot = custom
                 ? Quaternion.Euler(float.IsNaN(pitch) ? CameraFit.Pitch : pitch,
                                    float.IsNaN(yaw) ? CameraFit.Yaw : yaw, 0f)
                 : CameraFit.Rotation;
             camGo.transform.rotation = rot;
 
-            if (ozel)
+            if (custom)
             {
                 float tanV = Mathf.Tan(CameraFit.FieldOfView * Mathf.Deg2Rad * 0.5f);
-                float yayilim = Mathf.Max(target.extents.y,
-                                          target.extents.x / cam.aspect);
-                float d = yayilim / tanV + target.extents.z + 0.4f;
+                float spread = Mathf.Max(target.extents.y,
+                                         target.extents.x / cam.aspect);
+                float d = spread / tanV + target.extents.z + 0.4f;
                 camGo.transform.position = target.center - rot * Vector3.forward * d;
             }
             else
@@ -609,23 +625,24 @@ namespace Lokanta.EditorTools
                 camGo.transform.position = CameraFit.Position(target, cam.aspect);
             }
 
-            // Sahnede zaten isik varsa YENISI EKLENMIYOR.
+            // IF THE SCENE ALREADY HAS A LIGHT, NO NEW ONE IS ADDED.
             //
-            // Once kosulsuz ekleniyordu ve sonuc iki kat aydinlik bir
-            // kareydi. Yani onizlemede dogru gorunen aydinlatma, oyunda
-            // yarisi kadardi ve ilk masaustu yapisinda salon karanlik cikti.
-            // Onizlemenin isi oyunu GOSTERMEK, guzellestirmek degil.
+            // One used to be added unconditionally and the result was a frame
+            // twice as bright. That is, lighting that looked right in the
+            // preview was half as strong in the game, and in the first desktop
+            // build the hall came out dark. The preview's job is to SHOW the
+            // game, not to flatter it.
             GameObject sun = null, fillGo = null;
             if (!HasDirectionalLight())
             {
-                sun = new GameObject("Gunes");
+                sun = new GameObject("Sun");
                 Light key = sun.AddComponent<Light>();
                 key.type = LightType.Directional;
                 key.intensity = 1.45f;
                 key.color = new Color(1f, 0.96f, 0.90f);
                 sun.transform.rotation = Quaternion.Euler(52f, 208f, 0f);
 
-                fillGo = new GameObject("Dolgu");
+                fillGo = new GameObject("Fill");
                 Light fill = fillGo.AddComponent<Light>();
                 fill.type = LightType.Directional;
                 fill.intensity = 0.55f;

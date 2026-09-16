@@ -1,29 +1,29 @@
-# 33 — İkinci mutfak: Türk lokantası ilk kez koşturuldu
+# 33 — The second cuisine: the Turkish restaurant was run for the first time
 
-10 Eylül 2026. Faz 0'ın bütün denge çözümü, bütün testleri ve bütün ölçümleri **tek mutfakla** yapılmıştı: fast food. İkinci mutfak hiç çalıştırılmamıştı.
+10 September 2026. The whole of Phase 0's balance solution, all of its tests and all of its measurements had been done with **one cuisine**: fast food. The second cuisine had never been run.
 
-İlk koşuş sonucu:
+The result of the first run:
 
-| strateji | son kasa | servis | kapıda |
+| strategy | final till | served | at the door |
 |---|---:|---:|---:|
-| pasif | -7.271 | **0** | %100 |
-| sadece_hal | -7.893 | **0** | %100 |
-| makul | -7.434 | **0** | %100 |
-| genişlemeyen | -7.434 | **0** | %100 |
-| atılgan | -41.187 | **0** | %100 |
-| plancı | -23.981 | **0** | %100 |
-| yüksek_fiyat | -7.434 | **0** | %100 |
-| fazla_kadro | -20.123 | **0** | %100 |
+| `pasif` | -7,271 | **0** | 100% |
+| `sadece_hal` | -7,893 | **0** | 100% |
+| `makul` | -7,434 | **0** | 100% |
+| `genislemeyen` | -7,434 | **0** | 100% |
+| `atilgan` | -41,187 | **0** | 100% |
+| `planci` | -23,981 | **0** | 100% |
+| `yuksek_fiyat` | -7,434 | **0** | 100% |
+| `fazla_kadro` | -20,123 | **0** | 100% |
 
-**Sekiz stratejinin hepsi sıfır müşteriyle battı.** Tek bir grup bile ağırlanmadı, tek bir kuruş ciro olmadı.
+**All eight strategies went under with zero customers.** Not a single party was served, not a single coin of revenue was made.
 
 ---
 
-## 1. Sebep
+## 1. The cause
 
-Yemek grupları **mutfağa özel**. [13-data-schemas.md](13-data-schemas.md) bunu kasıtlı tasarlamış: örnek yemek `kuru_fasulye` ve grubu `sulu`, örnek arketipin tercihi `{ "sulu": 0.6, "pilav": 0.25, "corba": 0.15 }`.
+Dish groups are **cuisine-specific**. [13-data-schemas.md](13-data-schemas.md) designed it that way deliberately: the example dish is `kuru_fasulye` and its group is `sulu`, and the example archetype's preference is `{ "sulu": 0.6, "pilav": 0.25, "corba": 0.15 }`.
 
-Simülasyon ise fast food'un sözlüğünü **sabit kodlamıştı**:
+The simulation, on the other hand, had **hard-coded** fast food's dictionary:
 
 ```csharp
 private const string GroupMain = "ana";
@@ -31,118 +31,118 @@ private const string GroupSide = "yan";
 private const string GroupDrink = "icecek";
 ```
 
-Türk lokantasında hiç `ana` grubu yok. Gruplar: `sulu` (11), `corba` (4), `pilav` (5), `izgara` (5), `meze` (3), `tatli` (3), `icecek` (1).
+The Turkish restaurant has no `ana` group at all. Its groups are: `sulu` (11), `corba` (4), `pilav` (5), `izgara` (5), `meze` (3), `tatli` (3), `icecek` (1).
 
-Yani her müşteri kapıya geliyor, menüde bir ana yemek arıyor, bulamıyor ve dönüyor. Sonsuza kadar.
+So every customer came to the door, looked for a main dish on the menu, could not find one, and turned away. Forever.
 
-**Bu hata koddan bakarak görünmüyor.** İki dosya da kendi içinde doğru: yemek içeriği şemaya uyuyor, simülasyon derleniyor ve fast food'da kusursuz çalışıyor. Aradaki sözleşme yazılı değildi.
+**This bug is not visible by looking at the code.** Both files are correct in themselves: the dish content matches the schema, the simulation compiles and works flawlessly on fast food. The contract between them was never written down.
 
 ---
 
-## 2. Düzeltme
+## 2. The fix
 
-`content/cuisines/<id>.json` artık **menü rollerini** taşıyor: hangi grup ana yemek, hangisi yan, hangisi içecek, hangisi tatlı yerine geçiyor.
+`content/cuisines/<id>.json` now carries the **menu roles**: which group is the main dish, which is the side, which is the drink, which stands in for dessert.
 
-| Mutfak | ana | yan | içecek | tatlı |
+| Cuisine | main | side | drink | dessert |
 |---|---|---|---|---|
 | fast food | `ana` | `yan` | `icecek` | `tatli` |
-| Türk | `sulu`, `izgara` | `corba`, `pilav`, `meze` | `icecek` | `tatli` |
+| Turkish | `sulu`, `izgara` | `corba`, `pilav`, `meze` | `icecek` | `tatli` |
 
-Çekirdek artık grup adı bilmiyor, **rol** biliyor. `ContentSet.MainGroups` içerikten geliyor.
+The core no longer knows group names, it knows **roles**. `ContentSet.MainGroups` comes from the content.
 
-### Doğrulama sert, ve iki yerde
+### The validation is hard, and it is in two places
 
-Aynı hatanın sessizce dönmemesi için:
+So that the same bug cannot come back silently:
 
-**Üretim aşamasında** (`tools/balance/export.py`) — yemek dosyasındaki her grup tam olarak bir role düşmeli, hiçbir grup iki role birden düşmemeli, olmayan bir gruba rol verilmemeli, ve ilk gün açık en az bir ana yemek olmalı.
+**At generation time** (`tools/balance/export.py`) — every group in the dish file must fall into exactly one role, no group may fall into two roles at once, no role may be given to a group that does not exist, and there must be at least one main dish open on the first day.
 
-**Yükleme aşamasında** (`ContentSetLoader`) — aynı dört kontrol, çünkü [23-core-contract.md](23-core-contract.md) §9.1 içerik geçersizse oyunun **açılmamasını** şart koşuyor. Sessiz varsayılan yok.
+**At load time** (`ContentSetLoader`) — the same four checks, because [23-core-contract.md](23-core-contract.md) §9.1 requires that the game **not open** if the content is invalid. No silent defaults.
 
-**Test aşamasında** (`tests/CuisineTests.cs`) — beş test, iki mutfak için ayrı ayrı koşuyor: her grup tam bir role düşüyor mu, ilk gün sipariş verilebiliyor mu, bir servis günü gerçekten müşteri ağırlıyor mu, **dört rolün de siparişi veriliyor mu**, dilim süreleri tick'e tam bölünüyor mu. **Yeni mutfak eklenince listeye eklenmeli.**
+**At test time** (`tests/CuisineTests.cs`) — five tests, run separately for the two cuisines: does every group fall into exactly one role, can an order be placed on the first day, does a service day actually serve customers, **is an order placed from all four roles**, do the slot durations divide exactly into ticks. **When a new cuisine is added it has to be added to the list.**
 
 ---
 
-## 3. Düzeltmeden sonra
+## 3. After the fix
 
-Aynı parametreler, aynı kiralar, aynı ekipman merdiveni — hiçbir şey mutfağa göre ayarlanmadı:
+The same parameters, the same rents, the same equipment ladder — nothing was tuned per cuisine:
 
-| strateji | son kasa | itibar | masa | servis | kayıp | ilk borç |
+| strategy | final till | reputation | tables | served | lost | first debt |
 |---|---:|---:|---:|---:|---:|---:|
-| pasif | -6.297 | 0,0 | 4 | 13 | 0 | **35** |
-| sadece_hal | 5.094 | 74,3 | 4 | 1.008 | 59 | — |
-| **makul** | **30.745** | 99,6 | **8,8** | 2.209 | 45 | — |
-| genişlemeyen | 13.661 | 95,2 | 4 | 1.184 | 46 | — |
-| atılgan | -66.054 | 0,0 | 14 | 247 | 14 | **7** |
-| plancı | 19.331 | 100,0 | 14 | 3.104 | 32 | — |
-| yüksek_fiyat | 12.468 | 0,8 | 4 | 545 | 4 | — |
-| fazla_kadro | 4.466 | 93,8 | 4 | 1.190 | 48 | — |
+| `pasif` | -6,297 | 0.0 | 4 | 13 | 0 | **35** |
+| `sadece_hal` | 5,094 | 74.3 | 4 | 1,008 | 59 | — |
+| **`makul`** | **30,745** | 99.6 | **8.8** | 2,209 | 45 | — |
+| `genislemeyen` | 13,661 | 95.2 | 4 | 1,184 | 46 | — |
+| `atilgan` | -66,054 | 0.0 | 14 | 247 | 14 | **7** |
+| `planci` | 19,331 | 100.0 | 14 | 3,104 | 32 | — |
+| `yuksek_fiyat` | 12,468 | 0.8 | 4 | 545 | 4 | — |
+| `fazla_kadro` | 4,466 | 93.8 | 4 | 1,190 | 48 | — |
 
-**Bütün tasarım hedefleri Türk mutfağında da tutuyor:** pasif oyuncu 35. günde batıyor, pervasız genişleyen 7. günde, büyümek 2,25 kat ödüllendiriyor (13.661 → 30.745), plancı takvimi tutturuyor, yüksek fiyat ve fazla kadro cezalandırılıyor.
+**All the design targets hold in Turkish cuisine too:** the passive player goes under on day 35, the reckless expander on day 7, growing pays 2.25× (13,661 → 30,745), the planner hits the schedule, and high prices and an oversized crew are punished.
 
-Bu önemli bir sonuç: **ekonomi tek mutfağa aşırı uydurulmamış.** Kiralar, kapasiteler ve ekipman fiyatları fast food ile çözülmüştü ve ikinci mutfakta ayar gerektirmeden çalışıyor.
+This is an important result: **the economy is not over-fitted to a single cuisine.** The rents, capacities and equipment prices were solved with fast food and they work on the second cuisine with no tuning.
 
-### İki mutfak arasındaki farklar
+### The differences between the two cuisines
 
-| | fast food | Türk |
+| | fast food | Turkish |
 |---|---|---|
-| Dilim tick | 960 / 1440 / 960 / 1440 | 576 / **2304** / 1200 / 720 |
-| makul oyuncunun ulaştığı masa | 7,0 | **8,8** |
-| makul oyuncunun son kasası | 33.251 | 30.745 |
-| büyüme çarpanı | 2,41× | 2,25× |
-| fazla kadro | **56. günde batıyor** | batmıyor, 4.466 ile bitiriyor |
+| Slot ticks | 960 / 1440 / 960 / 1440 | 576 / **2304** / 1200 / 720 |
+| Tables the `makul` player reaches | 7.0 | **8.8** |
+| The `makul` player's final till | 33,251 | 30,745 |
+| Growth multiplier | 2.41× | 2.25× |
+| Oversized crew | **goes under on day 56** | does not go under, finishes with 4,466 |
 
-Farkların hepsi zirvenin keskinliğinden çıkıyor. Türk lokantasının öğle dilimi günün %48'i; o pencerede fazla kadro **işe yarıyor**, fast food'un daha düz gününde ise sadece maaş oluyor. Bu, [10-cuisine-identity.md](10-cuisine-identity.md)'nin istediği "mutfaklar farklı oynansın" hedefinin ölçülmüş ilk kanıtı.
+All the differences come out of the sharpness of the peak. The Turkish restaurant's lunch slot is 48% of the day; in that window an oversized crew **pays off**, while on fast food's flatter day it is just wages. This is the first measured evidence of the "the cuisines should play differently" goal [10-cuisine-identity.md](10-cuisine-identity.md) asks for.
 
 ---
 
-## 4. Aynı taramada çıkan ikinci ölü içerik: tatlı
+## 4. The second piece of dead content the same sweep turned up: dessert
 
-Menü rolleri yazılınca `tatli` rolü de tanımlandı ve o anda görüldü ki **tatlı hiç sipariş edilmiyordu.**
+Once the menu roles were written, the `tatli` role was defined too, and at that moment it became visible that **dessert was never being ordered.**
 
-`PickOrder` üç kalem seçiyordu: ana yemek kesin, %30 yan, %40 içecek. Tatlıya hiç bakmıyordu. Yani:
+`PickOrder` was picking three items: the main dish for certain, 30% a side, 40% a drink. It never looked at dessert. So:
 
-- fast food'da **6**, Türk lokantasında **3** tatlı yemeği hiç satılamıyordu
-- [27-time-model.md](27-time-model.md) §3.3 zirve tablosu tatlıya 0,08 eş zamanlı tabak veriyor — o satır boşa çalışıyordu
-- [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md)'de yazdığım **tatlı istasyonunun ekipman yükseltmesi** satın alınabiliyor ama hiçbir işe yaramıyordu
+- **6** dessert dishes in fast food and **3** in the Turkish restaurant could never be sold
+- [27-time-model.md](27-time-model.md) §3.3's peak table gives dessert 0.08 concurrent plates — that row was running for nothing
+- the **dessert station's equipment upgrade** that I wrote in [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md) could be bought but did nothing at all
 
-Dördüncü kalem eklendi: `dessertChanceBp = 1800`, içecekten düşük çünkü tatlı sonda gelir ve herkes almaz. Grup başına en fazla iş sayısı 3'ten **4**'e çıktı — dört kalem dört ayrı istasyona gidebiliyor.
+A fourth item was added: `dessertChanceBp = 1800`, lower than the drink because dessert comes at the end and not everyone takes one. The maximum number of jobs per party rose from 3 to **4** — four items can go to four different stations.
 
-Ölçülen etkisi (beş gün, iki mutfak):
+The measured effect (five days, two cuisines):
 
-| | ana | yan | içecek | tatlı |
+| | main | side | drink | dessert |
 |---|---:|---:|---:|---:|
 | fast food | 70 | 12 | 45 | **6** |
-| Türk | 62 | 15 | 21 | **6** |
+| Turkish | 62 | 15 | 21 | **6** |
 
-Ciroya etkisi de görünür: `plancı` 16.880'den **20.720**'ye çıktı. `CuisineTests.Her_rolden_siparis_veriliyor` artık dört rolün de sipariş edildiğini her mutfak için ayrı doğruluyor.
+The effect on revenue is visible too: `planci` rose from 16,880 to **20,720**. `CuisineTests.An_order_is_placed_from_every_role` now verifies for each cuisine separately that all four roles are ordered from.
 
-Türk lokantasının içecek sayısının fast food'un yarısı olması tesadüf değil: **tek içecek var** (çay) ve stok onu sınırlıyor. Aşağıdaki açık madde tam olarak bunu çözecek.
+That the Turkish restaurant's drink count is half of fast food's is no coincidence: there is **only one drink** (tea) and stock limits it. The open item below is exactly what will solve this.
 
 ---
 
-## 5. Açık kalan: `orderPreference` hâlâ yazılmadı
+## 5. Left open: `orderPreference` still has not been written
 
-[13-data-schemas.md](13-data-schemas.md) arketip başına bir sipariş tercihi tasarlamış:
+[13-data-schemas.md](13-data-schemas.md) designed an order preference per archetype:
 
 ```json
 "orderPreference": { "sulu": 0.6, "pilav": 0.25, "corba": 0.15 }
 ```
 
-Simülasyon bunu okumuyor. Onun yerine sabit bir model kullanıyor: **ana yemek kesin, %30 yan, %40 içecek** ([12-economy.md](12-economy.md) `order` bloğu). Menü rolleri o modeli ikinci mutfakta çalışır hâle getirdi ama tasarlanan modeli uygulamadı.
+The simulation does not read it. Instead it uses a fixed model: **the main dish for certain, 30% a side, 40% a drink** (the `order` block in [12-economy.md](12-economy.md)). The menu roles made that model work on the second cuisine, but they did not implement the designed model.
 
-Bunun bugün görünen bedeli: Türk lokantasında **tek bir içecek** var (çay) ve müşterilerin %40'ı onu alıyor. Arketip tercihi olsaydı esnaf komşu ayranı, öğrenci kolayı seçebilirdi.
+The cost of that, visible today: the Turkish restaurant has **a single drink** (tea) and 40% of the customers take it. With an archetype preference, the tradesman neighbour could pick ayran and the student a cola.
 
-İkinci bir bedel: `sulu` ile `izgara` aynı role düştüğü için eşit olasılıkla seçiliyorlar. Gerçek bir lokantada sulu yemek ağır basar; docs/13'ün örneği de %60 diyor.
+A second cost: because `sulu` and `izgara` fall into the same role, they are picked with equal probability. In a real restaurant the stews dominate; docs/13's own example says 60%.
 
-**Bu bir sonraki dilimin işi.** Roller onu engellemiyor, tam tersine üstüne kurulacak zemin.
+**This is the next slice's job.** The roles do not block it; on the contrary, they are the ground it will be built on.
 
 ---
 
-## Nasıl koşturulur
+## How to run it
 
 ```powershell
-dotnet run --project src/Lokanta.Harness -- --mutfak turk
-dotnet run --project src/Lokanta.Harness -- --mutfak fastfood
+dotnet run --project src/Lokanta.Harness -- --cuisine turk
+dotnet run --project src/Lokanta.Harness -- --cuisine fastfood
 ```
 
-**Denge değişikliği yapan her koşuda ikisi de çalıştırılmalı.** Bu belge, tek mutfakla ölçmenin neye mal olduğunun kaydı.
+**Every run that changes the balance has to run both.** This document is the record of what measuring with a single cuisine cost.

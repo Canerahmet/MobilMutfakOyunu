@@ -5,38 +5,39 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Unity'nin GELISMIS METIN URETICISINI (ATG) acar.
+    /// Turns on Unity's ADVANCED TEXT GENERATOR (ATG).
     ///
-    /// NEDEN GEREKLI: Arapca harfleri BIRLESIR. "مرحبا" yazan bir metin,
-    /// olcunlu ureticide harflerin ayri ayri ve soldan saga dizilmis
-    /// halini gosterir - okunmaz. Birlestirme (init/medi/fina), iki yonlu
-    /// siralama ve satir sonu yalnizca ATG'de var. Oyunda bes dil var ve
-    /// biri Arapca; bu ayar olmadan o dil ekranda cop.
+    /// WHY IT IS NEEDED: Arabic letters JOIN UP. Text that reads "مرحبا" comes
+    /// out of the standard generator with the letters separate and laid out
+    /// left to right - unreadable. Joining (init/medi/fina), bidirectional
+    /// ordering and line breaking only exist in ATG. The game has five
+    /// languages and one of them is Arabic; without this setting that
+    /// language is rubbish on screen.
     ///
-    /// NEDEN BURADA: ayar bir ONAY KUTUSU (Edit > Project Settings >
-    /// UI Toolkit > Enable Advanced Text Generator) ve
-    /// ProjectSettings/UIToolkitProjectSettings.asset dosyasinda duruyor.
-    /// Elle acilan bir kutu, depoyu yeni klonlayan bir makinede kapali
-    /// olur ve Arapca SESSIZCE bozulur - yapinin kendisi aciyor.
+    /// WHY HERE: the setting is a CHECKBOX (Edit > Project Settings >
+    /// UI Toolkit > Enable Advanced Text Generator) and it lives in
+    /// ProjectSettings/UIToolkitProjectSettings.asset. A box ticked by hand
+    /// is unticked on a machine that has just cloned the repository, and
+    /// Arabic breaks SILENTLY - so the build turns it on itself.
     ///
-    /// NEDEN YANSIMA: UIToolkitProjectSettings sinifi Unity'nin ic
-    /// (internal) sinifi, genel bir API'si yok. Yansima kirilgan, o
-    /// yuzden BULAMAZSA SESSIZ KALMIYOR - uyari basiyor ve yapi kutugune
-    /// dusuyor.
+    /// WHY REFLECTION: the UIToolkitProjectSettings class is internal to
+    /// Unity, it has no public API. Reflection is brittle, so IF IT CANNOT
+    /// FIND IT, IT DOES NOT STAY QUIET - it prints a warning and lands in the
+    /// build log.
     /// </summary>
     public static class AdvancedText
     {
         private const string TypeName =
             "UnityEditor.UIElements.UIToolkitProjectSettings, UnityEditor.UIElementsModule";
 
-        [MenuItem("Lokanta/Gelismis metin ureticisini ac")]
+        [MenuItem("Lokanta/Turn on the advanced text generator")]
         public static void Enable()
         {
-            if (Set(true)) Debug.Log("Gelismis metin ureticisi ACIK.");
+            if (Set(true)) Debug.Log("The advanced text generator is ON.");
         }
 
         /// <summary>
-        /// Ayari kurar. Basarisizsa uyari basar ve false doner.
+        /// Applies the setting. On failure it prints a warning and returns false.
         /// </summary>
         public static bool Set(bool value)
         {
@@ -44,8 +45,8 @@ namespace Lokanta.EditorTools
             if (t == null)
             {
                 Debug.LogWarning(
-                    "UIToolkitProjectSettings bulunamadi - gelismis metin " +
-                    "ureticisi ayarlanamadi. Arapca yanlis cizilebilir.");
+                    "UIToolkitProjectSettings not found - the advanced text " +
+                    "generator could not be set. Arabic may be drawn wrongly.");
                 return false;
             }
 
@@ -55,21 +56,21 @@ namespace Lokanta.EditorTools
             if (p == null || !p.CanWrite)
             {
                 Debug.LogWarning(
-                    "UIToolkitProjectSettings.enableAdvancedText yazilamadi - " +
-                    "Arapca yanlis cizilebilir.");
+                    "UIToolkitProjectSettings.enableAdvancedText could not be written - " +
+                    "Arabic may be drawn wrongly.");
                 return false;
             }
 
             p.SetValue(null, value);
 
-            // OKUYARAK DOGRULA. Yansimayla yazmak sessizce hicbir sey
-            // yapmis olabilir; yazdigini geri okumayan bir ayar, hic
-            // ayarlanmamis olanla ekranda ayni gorunur.
+            // CHECK IT BY READING IT BACK. Writing through reflection may
+            // have silently done nothing; a setting that does not read back
+            // what it wrote looks exactly like one that was never set at all.
             object back = p.GetValue(null);
             if (!(back is bool) || (bool)back != value)
             {
                 Debug.LogWarning(
-                    "Gelismis metin ureticisi ayari geri okundugunda tutmadi.");
+                    "The advanced text generator setting did not hold when read back.");
                 return false;
             }
             return true;

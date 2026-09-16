@@ -1,137 +1,141 @@
-﻿using Lokanta.Core.Sim;
+using Lokanta.Core.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// Oyunun ana ekrani: ust serit + asamaya gore alt serit.
+    /// The game's main screen: a top strip plus a bottom strip that
+    /// follows the phase.
     ///
-    /// Ortasi BOS birakiliyor, bilerek: orada 3B salon var ve oyuncunun
-    /// bakmasi gereken sey o. docs/16 gunluk dokunus butcesi 40-60; ekrani
-    /// panellerle doldurmak, oyuncunun salona hic bakmamasi demek.
+    /// The middle is left EMPTY on purpose: the 3D hall is there and that
+    /// is what the player should be looking at. docs/16 puts the daily tap
+    /// budget at 40-60; filling the screen with panels means the player
+    /// never looks at the hall at all.
     ///
-    /// Ust serit her karede guncelleniyor (Tick), alt serit yalnizca asama
-    /// degisince yeniden kuruluyor. Her karede butun agaci yeniden kurmak,
-    /// dokunulan dugmeyi elin altindan cekmek olurdu.
+    /// The top strip updates every frame (Tick); the bottom strip is only
+    /// rebuilt when the phase changes. Rebuilding the whole tree every
+    /// frame would be pulling the button out from under the finger that is
+    /// pressing it.
     /// </summary>
     public sealed class GameScreen : UiScreen
     {
-        // _tables / _staff / _flow SILINDI.
+        // _tables / _staff / _flow WERE DELETED.
         //
-        // Ust serit yeniden tasarlaninca agactan CIKARILDILAR ama
-        // alanlar kaldi: her Tick'te metinleri uretiliyor (biri
-        // string.Format + uc int kutulamasi), sonra kosulsuz
-        // display=None yaziliyordu. Yanindaki yorum "baska ekranlar
-        // okuyor" diyordu - hicbir ekran okumuyordu.
+        // When the top strip was redesigned they were TAKEN OUT of the
+        // tree, but the fields stayed: every Tick produced their text (one
+        // of them a string.Format plus three int boxings) and then wrote
+        // display=None unconditionally. The comment beside them said "other
+        // screens read this" - no screen read it.
         //
-        // Bu projenin kendi kurali: "cagri yerleri yalan soyleyen bir
-        // alan silinir, baglanmaz".
+        // This project's own rule: "a field its call sites lie about gets
+        // deleted, not wired up".
         private Label _day, _cash, _rep, _rent;
 
-        /// <summary>Sol ust kart (sabah kontrol listesi / servis akisi).</summary>
+        /// <summary>The top-left card (morning checklist / service flow).</summary>
         private VisualElement _cards;
 
-        /// <summary>Sag ust durum kartlari (ciro, memnuniyet).</summary>
+        /// <summary>The top-right stat cards (takings, satisfaction).</summary>
         private VisualElement _stats;
 
-        /// <summary>Gun ilerleme cubugunun dolan parcasi.</summary>
+        /// <summary>The filled part of the day progress bar.</summary>
         private VisualElement _meterFill;
 
         private Label _phaseLabel, _revenue, _satisfaction;
 
-        /// <summary>"12 / 60. gun" - kampanyanin nerede oldugu.</summary>
+        /// <summary>"day 12 / 60" - where the campaign has got to.</summary>
         private Label _season;
         private int _shownRevenueDay = -1;
         private DayPhase _builtCards = (DayPhase)(-1);
         private VisualElement _bottom;
 
         /// <summary>
-        /// Seritlerin kapladigi dikey alan, dp. Tur bunu OLCUYOR.
+        /// The vertical space the strips take up, in dp. The tour MEASURES
+        /// this.
         ///
-        /// Kodun kendi yorumu "seritlerin toplami 129 dp'yi gecmemeli"
-        /// diyor ve o sayi goz karariyla korunuyordu - yani hic
-        /// korunmuyordu. Bir dugme eklemek, bir etiketi uzatmak ya da
-        /// bir yaziyi sardirmak serit yuksekligini sessizce buyutuyor
-        /// ve salon ekranin ucte birine dusuyor.
+        /// The code's own comment says "the strips together must not go
+        /// over 129 dp" and that number was being protected by eye - that
+        /// is, not protected at all. Adding a button, lengthening a label
+        /// or letting a piece of text wrap quietly grows the strip height
+        /// and the hall drops to a third of the screen.
         /// </summary>
         /// <summary>
-        /// Alt seritte YAZISI KIRPILAN dugme sayisi.
+        /// How many buttons in the bottom strip have their TEXT CLIPPED.
         ///
-        /// Ilk yazimda "satirin istedigi genislik" olculuyordu ve YANLIS
-        /// SEYI olcuyordu: esnek dugmeler kendilerine ayrilan genisligi
-        /// bildirdigi icin toplam her zaman ekran genisligine esit
-        /// cikiyordu. Yani olcum, tam da yakalamasi gereken durumda
-        /// (tasan serit) sessiz kaliyordu.
+        /// My first version measured "the width the row wants" and it was
+        /// measuring THE WRONG THING: because flexible buttons report the
+        /// width they have been given, the total always came out equal to
+        /// the screen width. So the measurement stayed silent in exactly
+        /// the case it was there to catch (an overflowing strip).
         ///
-        /// Dogru soru "satir ne kadar genis" degil, "hangi dugmenin
-        /// yazisi sigmadi": kirpilma tasmanin GORUNEN belirtisi ve
-        /// dogrudan olculebiliyor.
+        /// The right question is not "how wide is the row" but "whose
+        /// label did not fit": clipping is the VISIBLE symptom of overflow
+        /// and can be measured directly.
         ///
-        /// Servis seridi bir sure 1103 dp istiyordu (ekran 873) ve
-        /// alti dugmenin yazisi kirpiliyordu.
+        /// For a while the service strip was asking for 1103 dp (the
+        /// screen is 873) and six buttons had their text clipped.
         /// </summary>
         public int ClippedButtons
         {
             get
             {
-                // UST SERIT VE KARTLAR DA OLCULUYOR.
+                // THE TOP STRIP AND THE CARDS ARE MEASURED TOO.
                 //
-                // Olcum yalnizca `_bottom` icinde geziyordu ve
-                // `_bottom == null` ise SIFIR donuyordu - yani
-                // "olculemedi" ile "temiz" ayni sonucu veriyordu.
-                // Ust seritteki kapsuller iki dilli kirpilmanin en
-                // riskli yeri ("Rent in {0} days" / "Kiraya {0} gun")
-                // ve sol kart SABIT 190 dp genisliginde; ikisi de
-                // olcumun disindaydi.
+                // The measurement only walked inside `_bottom` and returned
+                // ZERO when `_bottom == null` - so "could not measure" and
+                // "clean" gave the same answer. The pills in the top strip
+                // are where two-language clipping is most likely ("Rent in
+                // {0} days") and the left card is a FIXED 190 dp wide;
+                // neither was being measured.
                 if (_bottom == null && _top == null) return -1;
 
-                _kirpikAyrinti = null;
+                _clipDetail = null;
                 int n = 0;
-                n += KirpilanSayisi(_bottom);
-                n += KirpilanSayisi(_top);
-                n += KirpilanSayisi(_cards);
-                n += KirpilanSayisi(_stats);
+                n += ClippedCount(_bottom);
+                n += ClippedCount(_top);
+                n += ClippedCount(_cards);
+                n += ClippedCount(_stats);
                 return n;
             }
         }
 
         /// <summary>
-        /// Alt seritte EKRANIN DISINA TASAN oge sayisi.
+        /// How many elements in the bottom strip spill OFF THE SCREEN.
         ///
-        /// UCUNCU BIR BASARISIZLIK BICIMI. Serit yuksekligi olculuyor,
-        /// kirpilan yazi olculuyor - ama ikisi de YATAY TASMAYI
-        /// gormuyor. UI Toolkit'te `flex-shrink` varsayilani CSS'in
-        /// aksine SIFIR: satir sigmayinca hicbir sey daralmiyor, son
-        /// oge disari tasiyor ve bir oncekinin USTUNE biniyor.
+        /// A THIRD FORM OF FAILURE. The strip height is measured, clipped
+        /// text is measured - and neither of them sees HORIZONTAL
+        /// OVERFLOW. Unlike CSS, UI Toolkit's default for `flex-shrink` is
+        /// ZERO: when the row does not fit nothing shrinks, the last
+        /// element spills out and lands ON TOP of the one before it.
         ///
-        /// Turk mutfaginda tam bu oldu - veresiye dugmesi "Ilgi"
-        /// dugmesinin uzerine bindi - ve iki olcum de yesil kaldi:
-        /// yukseklik dogruydu, hicbir YAZI kirpilmamisti. Hatayi
-        /// yalnizca magaza cozunurlugunde alinan bir render gosterdi.
+        /// That is exactly what happened in Turkish cuisine - the tab
+        /// button landed on top of the "Attention" button - and both
+        /// measurements stayed green: the height was right and no TEXT was
+        /// clipped. Only a render taken at store resolution showed the
+        /// fault.
         /// </summary>
-        /// <summary>Son olcumdeki en belirgin cakisma; tani icin.</summary>
-        public string OverflowDetail { get { return _tasmaAyrinti; } }
+        /// <summary>The clearest overlap in the last measurement; for diagnosis.</summary>
+        public string OverflowDetail { get { return _overlapDetail; } }
 
-        private string _tasmaAyrinti;
+        private string _overlapDetail;
 
         /// <summary>
-        /// Iki DUGME birbirinin ustune biniyor mu.
+        /// Are two BUTTONS sitting on top of each other.
         ///
-        /// Neden yalnizca dugmeler: bu olcum iki kez yanlis seyi olctu.
-        /// Once `_bottom`'in DOGRUDAN cocuklarina bakiyordu - orada tek
-        /// bir satir kapsayicisi var, karsilastiracak kardes yok, sonuc
-        /// her zaman sifir. Sonra butun ogeleri karsilastirdi ve bu kez
-        /// KASITLI cakismalari saydi: `Kit.Cta`'nin cift oku iki ucgeni
-        /// bilerek 6 dp bindiriyor, simgeler de icinde sekil ustune
-        /// sekil koyuyor.
+        /// Why buttons only: this measurement measured the wrong thing
+        /// twice. First it looked at `_bottom`'s DIRECT children - there is
+        /// a single row container there, no sibling to compare against, so
+        /// the answer was always zero. Then it compared every element, and
+        /// this time it counted DELIBERATE overlaps: `Kit.Cta`'s double
+        /// arrow overlaps its two triangles by 6 dp on purpose, and the
+        /// icons put shape on shape inside themselves.
         ///
-        /// Aranan sey bunlarin hicbiri degil: BIR OYUNCUNUN
-        /// DOKUNAMADIGI DUGME. Iki dugmenin ust uste binmesi her zaman
-        /// hatadir - hangisine bastigin belirsizdir. Ust uste binen iki
-        /// ucgen ise bir simgedir.
+        /// What is wanted is none of those: A BUTTON THE PLAYER CANNOT
+        /// TOUCH. Two buttons overlapping is always a fault - there is no
+        /// telling which one you pressed. Two triangles overlapping is an
+        /// icon.
         ///
-        /// Olcumun adi artik olctugu seyi soyluyor.
+        /// The measurement's name now says what it measures.
         /// </summary>
         public int OverlappingButtons
         {
@@ -140,14 +144,15 @@ namespace Lokanta.Game.Ui
                 if (_bottom == null) return -1;
                 if (float.IsNaN(_bottom.worldBound.width)) return -1;
 
-                _tasmaAyrinti = null;
+                _overlapDetail = null;
                 var d = new System.Collections.Generic.List<Button>();
                 foreach (Button b in _bottom.Query<Button>().ToList())
                 {
                     if (b.resolvedStyle.display == DisplayStyle.None) continue;
                     Rect r = b.worldBound;
                     if (float.IsNaN(r.width) || r.width <= 0f) continue;
-                    // Ic ice dugme yok, ama olursa kardes sayilmasin.
+                    // There are no nested buttons, but if there were, one
+                    // should not count as its own sibling.
                     if (b.GetFirstAncestorOfType<Button>() != null) continue;
                     d.Add(b);
                 }
@@ -157,109 +162,112 @@ namespace Lokanta.Game.Ui
                     for (int j = i + 1; j < d.Count; j++)
                     {
                         Rect a = d[i].worldBound, b2 = d[j].worldBound;
-                        float yatay = Mathf.Min(a.xMax, b2.xMax) - Mathf.Max(a.xMin, b2.xMin);
-                        float dikey = Mathf.Min(a.yMax, b2.yMax) - Mathf.Max(a.yMin, b2.yMin);
-                        if (yatay <= 0.5f || dikey <= 0.5f) continue;
+                        float overlapX = Mathf.Min(a.xMax, b2.xMax) - Mathf.Max(a.xMin, b2.xMin);
+                        float overlapY = Mathf.Min(a.yMax, b2.yMax) - Mathf.Max(a.yMin, b2.yMin);
+                        if (overlapX <= 0.5f || overlapY <= 0.5f) continue;
 
                         n++;
-                        if (_tasmaAyrinti == null)
-                            _tasmaAyrinti = Ad(d[i]) + " x " + Ad(d[j])
-                                            + " (" + yatay.ToString("0") + " dp)";
+                        if (_overlapDetail == null)
+                            _overlapDetail = NameOf(d[i]) + " x " + NameOf(d[j])
+                                             + " (" + overlapX.ToString("0") + " dp)";
                     }
                 return n;
             }
         }
 
-        /// <summary>Tanida okunabilir bir ad: once isim, sonra yazi.</summary>
-        private static string Ad(VisualElement v)
+        /// <summary>A name that reads in a diagnostic: the name first, then the text.</summary>
+        private static string NameOf(VisualElement v)
         {
             if (!string.IsNullOrEmpty(v.name)) return v.name;
             Button b = v as Button;
             if (b != null && !string.IsNullOrEmpty(b.text)) return b.text;
             Label l = v as Label;
             if (l != null && !string.IsNullOrEmpty(l.text)) return l.text;
-            foreach (Label ic in v.Query<Label>().ToList())
-                if (!string.IsNullOrEmpty(ic.text)) return ic.text;
+            foreach (Label inner in v.Query<Label>().ToList())
+                if (!string.IsNullOrEmpty(inner.text)) return inner.text;
             return v.GetType().Name;
         }
 
-        /// <summary>Son olcumde kirpilan ilk ogenin yazisi; tani icin.</summary>
-        public string ClipDetail { get { return _kirpikAyrinti; } }
+        /// <summary>The text of the first element clipped in the last measurement; for diagnosis.</summary>
+        public string ClipDetail { get { return _clipDetail; } }
 
-        private static string _kirpikAyrinti;
+        private static string _clipDetail;
 
-        /// <summary>Bir kokun altinda yazisi kirpilan oge sayisi.</summary>
-        private static int KirpilanSayisi(VisualElement kok)
+        /// <summary>How many elements under a root have their text clipped.</summary>
+        private static int ClippedCount(VisualElement root)
         {
-            if (kok == null) return 0;
+            if (root == null) return 0;
             int n = 0;
 
-            // ONCE DUGMELER: bir dugmenin ic etiketi iki kez sayilmasin
-            // diye etiket taramasinda dugme altindakiler atlaniyor.
-            foreach (Button b in kok.Query<Button>().ToList())
+            // BUTTONS FIRST: so that a button's inner label is not counted
+            // twice, the label sweep skips anything under a button.
+            foreach (Button b in root.Query<Button>().ToList())
             {
                     if (!string.IsNullOrEmpty(b.text))
                     {
-                        if (Clipped(b, b.text)) { n++; Kaydet(b.text); }
+                        if (Clipped(b, b.text)) { n++; RecordClipped(b.text); }
                         continue;
                     }
 
-                    // YAZI ARTIK DUGMENIN ICINDEKI ETIKETTE.
+                    // THE TEXT NOW LIVES IN A LABEL INSIDE THE BUTTON.
                     //
-                    // Yeni arayuzde simgeli dugmelerin text alani bos ve
-                    // yazi bir alt etikette duruyor. Eski olcum onlari
-                    // "yazisi yok" diye ATLIYORDU - yani tam da
-                    // kirpilmaya en yakin dugmeler (dar, iki dilli,
-                    // simgenin altinda tek satir) olcumun disinda
-                    // kaliyordu.
+                    // In the new interface an icon button's text field is
+                    // empty and the writing sits in a child label. The old
+                    // measurement SKIPPED those as "has no text" - so the
+                    // buttons closest to being clipped (narrow, in two
+                    // languages, one line under an icon) were exactly the
+                    // ones left out of the measurement.
                     foreach (Label l in b.Query<Label>().ToList())
                         if (!string.IsNullOrEmpty(l.text) && Clipped(l, l.text))
                         {
                             n++;
-                            Kaydet(l.text);
+                            RecordClipped(l.text);
                             break;
                         }
             }
 
-            // SONRA SERBEST ETIKETLER: kapsuller, kart basliklari,
-            // durum satirlari. Dugme altindakiler yukarida sayildi.
-            foreach (Label l in kok.Query<Label>().ToList())
+            // THEN THE FREE LABELS: pills, card headings, status rows.
+            // Anything under a button was counted above.
+            foreach (Label l in root.Query<Label>().ToList())
             {
                 if (string.IsNullOrEmpty(l.text)) continue;
                 if (l.GetFirstAncestorOfType<Button>() != null) continue;
-                if (Clipped(l, l.text)) { n++; Kaydet(l.text); }
+                if (Clipped(l, l.text)) { n++; RecordClipped(l.text); }
             }
             return n;
         }
 
         /// <summary>
-        /// Kirpilan yaziyi tanıya kaydeder.
+        /// Records the clipped text into the diagnostic.
         ///
-        /// Sayi tek basina "uc dugme kirpildi" diyor ve hangisi
-        /// oldugunu soylemiyor - yani duzeltmeyi TAHMINE birakiyor.
-        /// Bu oturumda ust uste binen dugmeler de once isimsiz
-        /// sayilmisti ve ancak adlari basilinca duzeltilebildi.
+        /// On its own the count says "three buttons were clipped" and does
+        /// not say which - that is, it leaves the fix to GUESSWORK. In this
+        /// session the overlapping buttons were counted anonymously at
+        /// first too, and could only be fixed once their names were
+        /// printed.
         /// </summary>
-        private static void Kaydet(string metin)
+        private static void RecordClipped(string text)
         {
-            if (_kirpikAyrinti == null) _kirpikAyrinti = metin;
-            else if (!_kirpikAyrinti.Contains(metin))
-                _kirpikAyrinti += " | " + metin;
+            if (_clipDetail == null) _clipDetail = text;
+            else if (!_clipDetail.Contains(text))
+                _clipDetail += " | " + text;
         }
 
-        /// <summary>Bir ogenin yazisi kendi genisligine sigiyor mu.</summary>
+        /// <summary>Does an element's text fit inside its own width.</summary>
         /// <summary>
-        /// Ogenin kendisi ya da bir atasi tasani kirpiyor mu.
+        /// Does the element itself, or one of its ancestors, clip the
+        /// overflow.
         ///
-        /// Kirpmiyorsa yazi tasar ama OKUNUR; o zaman sorun kesilme
-        /// degil, komsusuyla cakisma - ve onu ayri bir olcum ariyor.
+        /// If nothing clips, the text spills but is READABLE; the problem
+        /// is then not truncation but a collision with its neighbour - and
+        /// a separate measurement looks for that.
         /// </summary>
-        private static bool KirpanKutudaMi(VisualElement v)
+        private static bool InsideClippingBox(VisualElement v)
         {
-            // SATIR ICI STILDEN okunuyor: `resolvedStyle` bu Unity
-            // surumunde `overflow` tasimiyor (IResolvedStyle'da yok).
-            // Bu projede stiller zaten C#'ta satir ici veriliyor, yani
-            // kaynak dogru yer.
+            // Read from THE INLINE STYLE: `resolvedStyle` does not carry
+            // `overflow` in this version of Unity (it is not on
+            // IResolvedStyle). In this project the styles are given inline
+            // in C# anyway, so that is the right source.
             for (VisualElement e = v; e != null; e = e.parent)
             {
                 StyleEnum<Overflow> o = e.style.overflow;
@@ -271,25 +279,27 @@ namespace Lokanta.Game.Ui
 
         private static bool Clipped(TextElement v, string text)
         {
-            // KESILME ANCAK KIRPAN BIR KUTUDA OLUR.
+            // TRUNCATION ONLY HAPPENS INSIDE A CLIPPING BOX.
             //
-            // UI Toolkit'te `overflow` varsayilani GORUNUR: yazi
-            // kutusunu assa bile cizilmeye devam eder, kesilmez. Bu
-            // olcum ise "asti = kesildi" varsayiyordu ve bu arayuzde
-            // Overflow.Hidden yalnizca IKI yerde var - bir simge kutusu
-            // ve bir ilerleme cubugu; hicbir yazi etiketinde yok.
+            // UI Toolkit's default for `overflow` is VISIBLE: text carries
+            // on being drawn past its box rather than being cut. This
+            // measurement assumed "went past = was cut", and in this
+            // interface Overflow.Hidden exists in exactly TWO places - an
+            // icon box and a progress bar; on no text label at all.
             //
-            // Yani olcum, bu arayuzde VAR OLMAYAN bir hata bicimini
-            // ariyordu ve yalnizca yanlis alarm uretebiliyordu. Hizli
-            // yemek turu ilk kez kosturuldugunda uc etiket birden
-            // kirmizi yakti; ucu de ekranda eksiksiz okunuyordu.
+            // So the measurement was looking for a form of failure that
+            // DOES NOT EXIST in this interface, and could only produce
+            // false alarms. The first time the fast food tour was run it
+            // lit three labels red at once; all three read in full on
+            // screen.
             //
-            // Asil koruma zaten iki komsu olcumde: ust uste binen dugme
-            // (Turk mutfagindaki gercek hatayi O yakaladi) ve ekranin
-            // disina tasan oge. Burasi artik yalnizca GERCEKTEN kirpan
-            // bir kutunun icini olcuyor - bugun sessiz, ama biri yazi
-            // kabina Overflow.Hidden koydugu gun konusur.
-            if (!KirpanKutudaMi(v)) return false;
+            // The real protection is in the two neighbouring measurements:
+            // overlapping buttons (THAT one caught the real fault in
+            // Turkish cuisine) and elements off the edge of the screen.
+            // This one now only measures inside a box that REALLY clips -
+            // silent today, but it will speak on the day someone puts
+            // Overflow.Hidden on a text container.
+            if (!InsideClippingBox(v)) return false;
 
             float have = v.resolvedStyle.width
                          - v.resolvedStyle.paddingLeft
@@ -300,35 +310,37 @@ namespace Lokanta.Game.Ui
                 text, 0f, VisualElement.MeasureMode.Undefined,
                 0f, VisualElement.MeasureMode.Undefined).x;
 
-            // Yarim piksel pay: olcum ile yerlesim arasindaki yuvarlama
-            // farki kirpilma sayilmamali.
+            // Half a pixel of slack: a rounding difference between the
+            // measurement and the layout should not count as clipping.
             if (want <= have + 0.5f) return false;
 
-            // GENISLIK ASILDI - AMA SARAN BIR ETIKETTE BU KIRPILMA DEGIL.
+            // THE WIDTH WAS EXCEEDED - BUT ON A WRAPPING LABEL THAT IS NOT
+            // CLIPPING.
             //
-            // UI Toolkit'te sarma varsayilan olarak ACIK ve bu olcum
-            // yaziyi HER ZAMAN tek satir varsayiyordu. Hizli yemek turu
-            // ilk kez kosturuldugunda yakalandi: "Kombo kapali" iki
-            // satira sariyor, ekranda EKSIKSIZ okunuyor, ve kontrol
-            // "kirpilan yazi: 2" deyip turu dusuruyordu. Turkce
-            // etiketler tesadufen tek satira sigdigi icin yanlis alarm
-            // bugune kadar hic patlamadi.
+            // Wrapping is ON by default in UI Toolkit and this measurement
+            // ALWAYS assumed one line. It was caught the first time the
+            // fast food tour was run: "Combo off" wraps to two lines, reads
+            // IN FULL on screen, and the check said "clipped text: 2" and
+            // failed the tour. Because the Turkish labels happened to fit on
+            // one line, the false alarm had never gone off before.
             //
-            // Olcut: oge IKI SATIR yuksekliginde mi. Sardiysa yazi
-            // asagi akmis ve okunuyor demektir; sarmadiysa gercekten
-            // kesiliyor.
+            // The test: is the element TWO LINES tall. If it wrapped, the
+            // text flowed downwards and is readable; if it did not, it
+            // really is being cut.
             //
-            // Once bunu "saran etiketi yukseklikle olc" diye yazdim ve
-            // DAHA KOTU oldu - varsayilan sarma acik oldugu icin butun
-            // etiketler o dala dustu ve yedi yanlis alarm cikti ("x4",
-            // "8.000" gibi apacik sigan yazilar). Dar cozum dogru cozum.
-            float satirY = v.MeasureTextSize(
+            // I first wrote this as "measure a wrapping label by its
+            // height" and it was WORSE - because wrapping is on by default
+            // every label fell down that branch and seven false alarms came
+            // out ("x4", "8,000" and other obviously fitting text). The
+            // narrow fix is the right fix.
+            float lineHeight = v.MeasureTextSize(
                 "X", 0f, VisualElement.MeasureMode.Undefined,
                 0f, VisualElement.MeasureMode.Undefined).y;
-            float ogeY = v.resolvedStyle.height
-                         - v.resolvedStyle.paddingTop
-                         - v.resolvedStyle.paddingBottom;
-            if (satirY > 0f && !float.IsNaN(ogeY) && ogeY >= satirY * 1.8f)
+            float elementHeight = v.resolvedStyle.height
+                                  - v.resolvedStyle.paddingTop
+                                  - v.resolvedStyle.paddingBottom;
+            if (lineHeight > 0f && !float.IsNaN(elementHeight)
+                && elementHeight >= lineHeight * 1.8f)
                 return false;
 
             return true;
@@ -351,21 +363,22 @@ namespace Lokanta.Game.Ui
 
         public override VisualElement Build()
         {
-            // ONBELLEK SIFIRLANIYOR.
+            // THE CACHE IS RESET.
             //
-            // Build() etiketleri YENIDEN YARATIYOR - metinleri bos. Ama
-            // "son yazilan deger" alanlari eski degerlerini koruyordu,
-            // yani Tick() "degismemis" deyip hicbirini yazmiyordu.
+            // Build() RECREATES the labels - with empty text. But the "last
+            // written value" fields kept their old values, so Tick() said
+            // "unchanged" and wrote none of them.
             //
-            // Sonuc: her Refresh()'ten sonra ust serit BOSALIYOR. Gun,
-            // Kasa, Itibar ve kira geri sayimi ekrandan siliniyor; kasa
-            // bir musteri odeyince geri geliyor, itibar gun sonuna, gun
-            // ve kira ertesi gune kadar bos kaliyor. Kira geri sayimi
-            // docs/16'nin "her an gorunur olmali" dedigi tek sey.
+            // The result: after every Refresh() the top strip EMPTIES. Day,
+            // Till, Reputation and the rent countdown are wiped off the
+            // screen; the till comes back when a guest pays, reputation at
+            // the end of the day, and the day and the rent not until
+            // tomorrow. The rent countdown is the one thing docs/16 says
+            // "must be visible at all times".
             //
-            // Masaya dokunup mudahale hedefi secmek Refresh() cagiriyor,
-            // yani oyuncu yeni mekanigi ilk denedigi anda ust serit
-            // siliniyordu.
+            // Touching a table to pick an intervention target calls
+            // Refresh(), so the top strip was being wiped at the very
+            // moment the player first tried the new mechanic.
             _shownDay = _shownRep = -1;
             _shownRepCap = -1;
             _shownRentDays = -1;
@@ -376,15 +389,17 @@ namespace Lokanta.Game.Ui
             VisualElement root = new VisualElement();
             root.style.flexGrow = 1;
 
-            // Kokun KENDISI dokunusu yutmuyor. Cubuklari ve dugmeleri
-            // yutuyor, aradaki bosluk degil: salona dokunulabilmeli.
+            // The root ITSELF does not swallow touches. It swallows them on
+            // the bars and the buttons, not in the space between: the hall
+            // has to be touchable.
             root.pickingMode = PickingMode.Ignore;
 
             _top = TopBar();
             root.Add(_top);
 
-            // Orta: 3B sahne. Arayuz burada hicbir sey cizmiyor ama
-            // dokunuslari da ENGELLEMEMELI - kamera odaya yaklasabilsin.
+            // The middle: the 3D scene. The interface draws nothing here,
+            // but it MUST NOT BLOCK touches either - the camera has to be
+            // able to come in close on a room.
             VisualElement middle = new VisualElement();
             middle.style.flexGrow = 1;
             middle.style.flexDirection = Theme.RowFlow;
@@ -393,17 +408,17 @@ namespace Lokanta.Game.Ui
             middle.style.paddingRight = Theme.Pad;
             middle.pickingMode = PickingMode.Ignore;
 
-            // KARTLAR SALONUN USTUNDE YUZUYOR.
+            // THE CARDS FLOAT OVER THE HALL.
             //
-            // Serit degil KART: bir serit ekranin butun genisligini ve
-            // yuksekligini yiyor, kart yalnizca durdugu koseyi. Ust
-            // koseler zaten BOS - bina ekranin ortasinda duruyor ve
-            // ustunde gokyuzu rengi var (docs/19 gokyuzu kubbesi
-            // tasimiyor). Referansin duzeni de tam olarak bu.
+            // A CARD, not a strip: a strip eats the screen's whole width
+            // and height, a card only the corner it sits in. The top
+            // corners are EMPTY anyway - the building stands in the middle
+            // of the screen with sky colour above it (docs/19, no sky dome).
+            // The reference's layout is exactly this too.
             //
-            // Kartlarin kendisi dokunusu yutuyor (uzerlerine basilinca
-            // arkadaki odaya dokunulmamali) ama ARALARINDAKI bosluk
-            // yutmuyor: middle'in kendisi Ignore.
+            // The cards themselves swallow touches (pressing on one must
+            // not touch the room behind) but the space BETWEEN them does
+            // not: middle itself is Ignore.
             _cards = new VisualElement();
             _cards.style.width = 190;
             _cards.style.marginTop = Theme.Gap;
@@ -420,15 +435,15 @@ namespace Lokanta.Game.Ui
             root.Add(_bottom);
             BuildBottom();
 
-            // Bildirim seridi alt cubuktan SONRA ekleniyor, yani onun
-            // USTUNDE ciziliyor; ve yuksekligi sabit bir sayi degil,
-            // cubugun OLCULEN yuksekligi.
+            // The notice strip is added AFTER the bottom bar, so it is
+            // drawn ON TOP of it; and its height is not a fixed number but
+            // the bar's MEASURED height.
             //
-            // Once cubuktan once ekleniyor ve "bottom: 96" yaziyordu;
-            // cubuk 134 dp yuksekti, yani yazilan her bildirimin %85'i
-            // cubugun arkasinda kaliyordu. Oyunun tek gorsel geri
-            // bildirimi hic gorunmuyordu: oyuncu dugmeye basiyor, hicbir
-            // sey olmadigini saniyor, tekrar basip hakkini yakiyordu.
+            // It used to be added before the bar with "bottom: 96" written
+            // out; the bar was 134 dp tall, so 85% of every notice written
+            // ended up behind it. The game's only visual feedback was
+            // invisible: the player pressed a button, assumed nothing had
+            // happened, pressed again and burned their allowance.
             _toast = new VisualElement();
             _toast.style.position = Position.Absolute;
             _toast.style.left = 0;
@@ -437,24 +452,25 @@ namespace Lokanta.Game.Ui
             _toast.pickingMode = PickingMode.Ignore;
             root.Add(_toast);
 
-            // Kamera cubuklarin ARASINA cerceveliyor. Yukseklikler icerige
-            // gore degisiyor (mudahale satiri, kalan hak), o yuzden sabit
-            // sayi yazilmiyor - olculup bildiriliyor.
-            // Hem kok hem ALT CUBUK izleniyor.
+            // The camera frames BETWEEN the bars. The heights change with
+            // the content (the intervention row, the allowance left), so no
+            // fixed number is written down - it is measured and reported.
+            // BOTH the root AND THE BOTTOM BAR are watched.
             //
-            // Yalnizca kok izlendiginde bildirim seridi yanlis yerde
-            // kaliyordu: asama degisince alt cubuk bir satirdan iki satira
-            // cikiyor ama kokun olculeri degismiyor, yani olay hic
-            // tetiklenmiyordu ve serit cubugun altinda kaliyordu.
+            // Watching only the root left the notice strip in the wrong
+            // place: when the phase changes the bottom bar goes from one row
+            // to two, but the root's measurements do not change, so the
+            // event never fired and the strip stayed behind the bar.
             root.RegisterCallback<GeometryChangedEvent>(_ => ReportSafeArea(root));
             _bottom.RegisterCallback<GeometryChangedEvent>(_ => ReportSafeArea(root));
 
-            // Bildirim alani artik VAR: ipucu seridi burada kuruluyor.
-            // BuildBottom yukarida cagrildi ve o sirada _toast yoktu.
+            // The notice area NOW EXISTS: the hint strip is built here.
+            // BuildBottom was called above and _toast did not exist then.
             RebuildNotices();
 
-            // Kartlar EN SONDA: Build() sirasinda _cards ve _stats yeni
-            // yaratildi, icleri bos. Tick ilk karede degerleri yaziyor.
+            // The cards LAST: during Build() _cards and _stats were newly
+            // created and are empty. Tick writes the values on the first
+            // frame.
             _shownProgress = -1f;
             _shownMeterPhase = (DayPhase)(-1);
             BuildCards();
@@ -470,7 +486,7 @@ namespace Lokanta.Game.Ui
             float top = _top != null ? _top.resolvedStyle.height : 0f;
             float bottom = _bottom != null ? _bottom.resolvedStyle.height : 0f;
 
-            // Bildirim seridi cubugun hemen ustunde dursun.
+            // Let the notice strip sit just above the bar.
             if (_toast != null) _toast.style.bottom = bottom + Theme.Gap;
 
             if (App != null && App.Rig != null) App.Rig.SetSafeArea(top / h, bottom / h);
@@ -478,22 +494,24 @@ namespace Lokanta.Game.Ui
 
         // =====================================================================
         /// <summary>
-        /// UST SERIT: ROZET, CUBUK, KAPSULLER.
+        /// THE TOP STRIP: BADGE, BAR, PILLS.
         ///
-        /// Once tam genislikte koyu bir seritti ve icinde yedi ayri yazi
-        /// yan yana diziliyordu ("Gun 1  Kasa 11.963  Itibar 24,0 / 55
-        /// Kiraya 6 gun - 2.546  Aksam  Masa 4  Kadro 2"). Hepsi ayni
-        /// boyda, ayni renkte ve ayni onemde gorunuyordu - yani hicbiri
-        /// one cikmiyordu.
+        /// It used to be a full-width dark strip with seven separate pieces
+        /// of text lined up inside it ("Day 1  Till 11,963  Reputation 24.0
+        /// / 55  Rent in 6 days - 2,546  Evening  Tables 4  Crew 2"). They
+        /// were all the same size, the same colour and looked equally
+        /// important - so none of them stood out.
         ///
-        /// Yeni duzen uc gruba ayiriyor ve gruplarin KENDISI bilgi:
+        /// The new layout splits into three groups and THE GROUPS
+        /// THEMSELVES are information:
         ///
-        ///   SOL    - gun rozeti ve gunun ilerlemesi. "Neredeyim?"
-        ///   SAG    - kasa ve itibar: oyunun iki kaynagi, kapsullerde.
-        ///   EN SAG - menu.
+        ///   LEFT      - the day badge and the day's progress. "Where am I?"
+        ///   RIGHT     - till and reputation: the game's two resources, in
+        ///               pills.
+        ///   FAR RIGHT - the menu.
         ///
-        /// Serit zemini KALKTI: kapsuller dogrudan salonun uzerinde
-        /// yuzuyor. Kazanilan yer salona gidiyor.
+        /// The strip's background IS GONE: the pills float directly over
+        /// the hall. The space that wins goes to the hall.
         /// </summary>
         private VisualElement TopBar()
         {
@@ -508,52 +526,51 @@ namespace Lokanta.Game.Ui
             row.style.alignItems = Align.Center;
             row.pickingMode = PickingMode.Ignore;
 
-            // --- SOL: gun rozeti + gunun ilerlemesi ---------------------
+            // --- LEFT: the day badge and the day's progress -------------
             _day = Theme.Text("", Theme.FontBody, Theme.Ink);
             row.Add(Kit.Badge(_day));
 
-            VisualElement gun = new VisualElement();
-            gun.style.marginLeft = 8;
-            gun.pickingMode = PickingMode.Ignore;
+            VisualElement dayGroup = new VisualElement();
+            dayGroup.style.marginLeft = 8;
+            dayGroup.pickingMode = PickingMode.Ignore;
 
-            // ASAMA ARTIK BIR ETIKET, KAYBOLAN BIR YAZI DEGIL.
+            // THE PHASE IS NOW A LABEL, NOT A PIECE OF TEXT THAT GETS LOST.
             //
-            // Gunun evresi oyunun en cok sey belirleyen durumu: hangi
-            // dugmelerin calistigini, musterinin gelip gelmedigini,
-            // isigin rengini o belirliyor. Ust seritte sagda kucuk gri
-            // bir yaziydi.
+            // The day's phase is the state that determines more than any
+            // other: which buttons work, whether guests arrive, the colour
+            // of the light. It was a small grey piece of text on the right
+            // of the top strip.
             _phaseLabel = Theme.Text("", Theme.FontSmall, Theme.Ink);
             _phaseLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
 
-            // KAMPANYANIN HEDEFI ARTIK EKRANDA.
+            // THE CAMPAIGN'S GOAL IS NOW ON THE SCREEN.
             //
-            // Altmis gunun sonunda yedi eksende puanlaniyorsunuz ve
-            // bu, 61. gune kadar HICBIR YERDE yazmiyordu: oyuncu
-            // bitis tarihi olmayan bir dukkan isletip sonunda hic
-            // duymadigi bir karneyle karsilasiyordu. Hedef degil,
-            // surprizdi.
+            // At the end of sixty days you are scored on seven axes, and
+            // that was written NOWHERE until day 61: the player ran a shop
+            // with no closing date and was met at the end with a report card
+            // they had never heard of. It was not a goal, it was a surprise.
             //
-            // Asamanin YANINDA duruyor, ayri bir satirda degil: ust
-            // serit her an bakilan yer ve bir satir daha eklemek
-            // salondan yer calardi.
-            VisualElement asamaSatiri = Theme.Row(6);
-            asamaSatiri.style.alignItems = Align.FlexEnd;
-            asamaSatiri.style.marginBottom = 3;
-            asamaSatiri.pickingMode = PickingMode.Ignore;
-            asamaSatiri.Add(_phaseLabel);
+            // It sits BESIDE the phase, not on a line of its own: the top
+            // strip is looked at constantly and one more line would steal
+            // space from the hall.
+            VisualElement phaseRow = Theme.Row(6);
+            phaseRow.style.alignItems = Align.FlexEnd;
+            phaseRow.style.marginBottom = 3;
+            phaseRow.pickingMode = PickingMode.Ignore;
+            phaseRow.Add(_phaseLabel);
 
             _season = Theme.Text("", Theme.FontSmall, Theme.InkFaint);
-            asamaSatiri.Add(_season);
-            gun.Add(asamaSatiri);
+            phaseRow.Add(_season);
+            dayGroup.Add(phaseRow);
 
             VisualElement track = Kit.Meter(out _meterFill, 138f, 9f);
-            gun.Add(track);
-            row.Add(gun);
+            dayGroup.Add(track);
+            row.Add(dayGroup);
 
-            // KIRA GERI SAYIMI. docs/02 haftalik kirayi "baskinin
-            // metronomu" diye tanimliyor ve o metronom ekranda yoktu:
-            // para yedinci gun kasadan cikiyor, oyuncu ancak sayi
-            // dustukten sonra fark ediyordu.
+            // THE RENT COUNTDOWN. docs/02 calls the weekly rent "the
+            // metronome of the pressure", and that metronome was not on the
+            // screen: the money leaves the till on the seventh day and the
+            // player only noticed after the figure had dropped.
             _rent = Theme.Text("", Theme.FontSmall, Theme.InkDim);
             _rent.style.marginLeft = Theme.Pad;
             row.Add(_rent);
@@ -563,39 +580,40 @@ namespace Lokanta.Game.Ui
             spacer.pickingMode = PickingMode.Ignore;
             row.Add(spacer);
 
-            // --- SAG: iki kaynak, iki kapsul ----------------------------
+            // --- RIGHT: two resources, two pills ------------------------
             //
-            // Masa ve kadro sayilari BURADAN KALKTI. Ikisi de sabahin
-            // kararlari ve kendi ekranlarinda zaten yaziyor; ust serit
-            // her an bakilan yer ve orada yalnizca SIK DEGISEN seyler
-            // durmali. Alanlar duruyor (Tick onlari yaziyor), yalnizca
-            // ekranda yer kaplamiyorlar.
+            // The table and crew counts HAVE GONE FROM HERE. Both are
+            // morning decisions and both are already written on their own
+            // screens; the top strip is looked at constantly and only things
+            // that CHANGE OFTEN belong there. The fields remain (Tick writes
+            // them), they just take up no room on the screen.
             _cash = Theme.Text("", Theme.FontBody);
-            VisualElement kasa = Kit.Pill(Icons.Coin(22f), _cash);
+            VisualElement till = Kit.Pill(Icons.Coin(22f), _cash);
             if (App.Sim.HasLoan || App.Sim.Cash < App.Sim.WeeklyFixedCost() * 2)
-                kasa.Add(Kit.PillAction(() => Ui.Push(new LoanScreen()),
+                till.Add(Kit.PillAction(() => Ui.Push(new LoanScreen()),
                                         Loc.T("ui.morning.loan")));
-            row.Add(kasa);
+            row.Add(till);
 
             _rep = Theme.Text("", Theme.FontBody);
             row.Add(Kit.Pill(Icons.Gem(22f), _rep));
 
             Button menu = new Button(() => { Sfx.Click(); Ui.Push(new PauseScreen()); });
             menu.text = string.Empty;
-            // Metinsiz dugmenin bir ADI ve bir aciklamasi olmali: ekran
-            // okuyucu ve kendi kendine gezen tur ikisi de metne bakiyor.
+            // A button with no text needs a NAME and a description: both the
+            // screen reader and the self-driving tour look at text.
             menu.name = "menu";
             menu.tooltip = Loc.T("ui.hud.menu");
             menu.Add(Icons.Gear(Theme.Ink, 22f));
             menu.style.alignItems = Align.Center;
             menu.style.justifyContent = Justify.Center;
-            // TAM dokunma hedefi ve kenardan uzak.
+            // A FULL touch target, and away from the edge.
             //
-            // Once 44 dp yuksekliginde ve sag kenara 16 dp mesafedeydi:
-            // ekrandaki en kucuk hedef, en uzak kosede ve centigin
-            // dustugu yerde. Oyundan cikmanin tek kapisi bu dugme.
-            // MENU DUGMESI KAPSULDEN BUYUK: oyundan cikmanin tek
-            // kapisi ve dokunma hedefi 48 dp'nin altina inmemeli.
+            // It used to be 44 dp tall and 16 dp from the right edge: the
+            // smallest target on the screen, in the furthest corner, in the
+            // place the notch falls. This button is the only way out of the
+            // game.
+            // THE MENU BUTTON IS BIGGER THAN A PILL: it is the only way out
+            // of the game and its touch target must not go under 48 dp.
             menu.style.minHeight = Theme.Touch - 4;
             menu.style.height = Theme.Touch - 4;
             menu.style.width = Theme.Touch;
@@ -624,17 +642,19 @@ namespace Lokanta.Game.Ui
 
         // =====================================================================
         /// <summary>
-        /// YAN KARTLAR: solda gunun listesi, sagda iki durum karti.
+        /// THE SIDE CARDS: the day's list on the left, two stat cards on
+        /// the right.
         ///
-        /// Referansin "Gunluk Hedefler" paneli ile "Saatlik Gelir /
-        /// Musteri Memnuniyeti" kartlarinin karsiligi. Ikisi de UYDURMA
-        /// DEGIL - oyunda zaten vardi ama gorulmuyordu:
+        /// The equivalent of the reference's "Daily Goals" panel and its
+        /// "Hourly Revenue / Customer Satisfaction" cards. Neither is MADE
+        /// UP - both were already in the game but could not be seen:
         ///
-        ///   - Sabahin hazirlik ozeti (menu, stok, asci) alt seritte tek
-        ///     satirlik 14 dp'lik gri bir yaziydi; oysa servisi acmadan
-        ///     once okunmasi gereken TEK sey oydu.
-        ///   - Ciro ve memnuniyet YALNIZCA aksam raporunda goruunuyordu;
-        ///     oyuncu gun boyunca nasil gittigini goremiyordu.
+        ///   - The morning's readiness summary (menu, stock, cook) was a
+        ///     single line of 14 dp grey text in the bottom strip; and yet
+        ///     it was THE one thing to read before opening service.
+        ///   - Takings and satisfaction appeared ONLY in the evening
+        ///     report; the player could not see how the day was going while
+        ///     it went.
         /// </summary>
         private void BuildCards()
         {
@@ -648,76 +668,77 @@ namespace Lokanta.Game.Ui
             if (_builtCards == DayPhase.Morning)
             {
                 VisualElement body;
-                VisualElement kart = Kit.Card(Loc.T("ui.morning.checklist"), out body);
-                int yemek, kapsamaBp, asci;
-                Readiness(out yemek, out kapsamaBp, out asci);
-                body.Add(Kit.CheckRow(yemek > 0,
-                    Loc.T("ui.morning.ready_menu", yemek)));
-                // EKSIK VARSA SAYI, TAMSA SADE CUMLE.
+                VisualElement card = Kit.Card(Loc.T("ui.morning.checklist"), out body);
+                int dishes, coverageBp, cooks;
+                Readiness(out dishes, out coverageBp, out cooks);
+                body.Add(Kit.CheckRow(dishes > 0,
+                    Loc.T("ui.morning.ready_menu", dishes)));
+                // A NUMBER IF SOMETHING IS SHORT, A PLAIN SENTENCE IF NOT.
                 //
-                // Ilk hali her iki durumda da kisi sayisi yaziyordu
-                // ("Stok bugune yetiyor (~13 kisi)") ve tur onu
-                // KIRPILMIS olarak yakaladi - iki dilde birden.
-                // Yesil tikin yaninda sayi zaten bilgi tasimiyor;
-                // tasidigi yer EKSIK olan durum, ve orada yuzde
-                // yerine KISI yaziyor: "8 / 13" dogrudan ne kadar
-                // malzeme eksik oldugunu soyluyor.
-                bool stokTam = kapsamaBp >= Lokanta.Core.Fx.One;
-                int bekleniyor = App.Sim.ExpectedPeopleToday();
-                body.Add(Kit.CheckRow(stokTam,
-                    stokTam
+                // The first version wrote a head count in both cases
+                // ("Stock is enough for today (~13 people)") and the tour
+                // caught it as CLIPPED - in two languages at once. Next to
+                // a green tick the number carries no information anyway;
+                // where it does carry some is the SHORT case, and there it
+                // writes PEOPLE rather than a percentage: "8 / 13" says
+                // directly how much stock is missing.
+                bool stockFull = coverageBp >= Lokanta.Core.Fx.One;
+                int expected = App.Sim.ExpectedPeopleToday();
+                body.Add(Kit.CheckRow(stockFull,
+                    stockFull
                         ? Loc.T("ui.morning.ready_stock_ok")
                         : Loc.T("ui.morning.ready_stock_part",
-                                (int)Lokanta.Core.Fx.Bp(bekleniyor, kapsamaBp),
-                                bekleniyor)));
-                body.Add(Kit.CheckRow(asci > 0,
-                    Loc.T("ui.morning.ready_cooks", asci)));
-                _cards.Add(kart);
+                                (int)Lokanta.Core.Fx.Bp(expected, coverageBp),
+                                expected)));
+                body.Add(Kit.CheckRow(cooks > 0,
+                    Loc.T("ui.morning.ready_cooks", cooks)));
+                _cards.Add(card);
             }
             else if (_builtCards == DayPhase.Service)
             {
                 VisualElement body;
-                VisualElement kart = Kit.Card(Loc.T("ui.hud.today"), out body);
+                VisualElement card = Kit.Card(Loc.T("ui.hud.today"), out body);
 
                 _shownServed = _shownAngry = _shownOccupied = -1;
-                // RENK ARTIK Kit.CountRow'DAN GELIYOR.
+                // THE COLOUR NOW COMES FROM Kit.CountRow.
                 //
-                // Burasi `Theme.Ink` veriyordu ve kartin zemini
-                // `Theme.Plate`: kontrast 1,08:1 - uc sayi da krem
-                // uzerinde beyazdi. Renk secimini cagirana birakan
-                // imza, hatanin kendisiydi.
+                // This passed `Theme.Ink` and the card's background is
+                // `Theme.Plate`: a contrast of 1.08:1 - all three numbers
+                // were white on cream. The signature that left the colour
+                // choice to the caller was the fault itself.
                 _servedValue = Theme.Text("", Theme.FontSmall, Theme.PlateInk);
                 _angryValue = Theme.Text("", Theme.FontSmall, Theme.PlateInk);
                 _occupiedValue = Theme.Text("", Theme.FontSmall, Theme.PlateInk);
                 body.Add(Kit.CountRow(Theme.Dot(Kit.GoDeep, 8f),
                                       Loc.T("ui.hud.served"), _servedValue));
-                // SAYI TOPLAM, o yuzden adi da toplamin adi.
+                // THE NUMBER IS THE TOTAL, so its name is the total's name.
                 body.Add(Kit.CountRow(Theme.Dot(Kit.BadDeep, 8f),
                                       Loc.T("ui.evening.lost"), _angryValue));
 
-                // KAPIDAN DONEN ARTIK SERVIS SIRASINDA DA GORUNUYOR.
+                // THOSE TURNED AWAY AT THE DOOR ARE NOW VISIBLE DURING
+                // SERVICE TOO.
                 //
-                // Ilk haftanin en sik olum bicimi bu: stok ya da menu
-                // yetmiyor, musteri iceri bile girmiyor. Sayi yalnizca
-                // gun raporunda vardi, yani oyuncu onu ancak gun
-                // bitince - duzeltmesi imkansizken - goruyordu.
+                // This is the commonest way to die in the first week: stock
+                // or menu falls short and the guest does not even come in.
+                // The number was only in the day's report, so the player saw
+                // it once the day had ended - when it was impossible to fix.
                 _turnedValue = Theme.Text("", Theme.FontSmall, Theme.PlateInk);
                 body.Add(Kit.CountRow(Theme.Dot(Theme.Warn, 8f),
                                       Loc.T("ui.evening.turned_away"), _turnedValue));
                 body.Add(Kit.CountRow(Theme.Dot(Theme.Accent, 8f),
                                       Loc.T("ui.hud.tables"), _occupiedValue));
-                _cards.Add(kart);
+                _cards.Add(card);
             }
 
-            // Durum kartlari SABAH YOK: ciro sifir, memnuniyet sifir.
-            // Sifir gosteren bir kart bilgi degil gurultu.
+            // NO STAT CARDS IN THE MORNING: takings zero, satisfaction
+            // zero. A card showing zero is noise, not information.
             if (_builtCards != DayPhase.Morning)
             {
                 _revenue = Theme.Text("", 21, Theme.Ink);
-                VisualElement ciro = Kit.Stat(Icons.Coin(20f),
-                                              Loc.T("ui.evening.revenue"), _revenue);
-                ciro.style.marginBottom = Theme.Gap;
-                _stats.Add(ciro);
+                VisualElement revenueCard = Kit.Stat(Icons.Coin(20f),
+                                                     Loc.T("ui.evening.revenue"), _revenue);
+                revenueCard.style.marginBottom = Theme.Gap;
+                _stats.Add(revenueCard);
 
                 _satisfaction = Theme.Text("", 21, Theme.Ink);
                 _stats.Add(Kit.Stat(Icons.People(Theme.InkDim, 20f),
@@ -730,21 +751,22 @@ namespace Lokanta.Game.Ui
 
         // =====================================================================
         /// <summary>
-        /// ALT SERIT: SOLDA SIMGELI DUGMELER, SAGDA TEK YESIL EYLEM.
+        /// THE BOTTOM STRIP: ICON BUTTONS ON THE LEFT, ONE GREEN ACTION ON
+        /// THE RIGHT.
         ///
-        /// Eski serit tam genislikte koyu bir kutuydu ve icinde yedi
-        /// esdeger gri dugme yan yana duruyordu: "Hal, Menu, Kadro,
-        /// Ekipman, Kredi, Servisi Ac". Hepsi ayni renk, ayni boy,
-        /// ayni agirlik - yani oyuncuya "once neyi yapmaliyim"
-        /// sorusunun cevabini veren hicbir sey yoktu.
+        /// The old strip was a full-width dark box with seven equivalent
+        /// grey buttons lined up inside it: "Market, Menu, Crew, Equipment,
+        /// Loan, Open Service". All the same colour, the same size, the same
+        /// weight - so nothing answered the player's question of "what
+        /// should I do first".
         ///
-        /// Referansin duzeni bu soruyu duzenin KENDISIYLE cevapliyor:
-        /// sol taraf GIRILEN YERLER (dort ekran, simge + etiket), sag
-        /// taraf ise gunun TEK ILERLETME eylemi - buyuk, yesil ve
-        /// yalniz.
+        /// The reference's layout answers that question with THE LAYOUT
+        /// ITSELF: the left side is PLACES YOU GO INTO (four screens, icon
+        /// plus label), the right side is the day's ONE MOVE-ON action -
+        /// large, green and alone.
         ///
-        /// Serit zemini kalkti; dugmeler dogrudan salonun uzerinde
-        /// duruyor ve aralarindaki bosluktan salon goruunuyor.
+        /// The strip's background is gone; the buttons sit directly over the
+        /// hall and the hall shows through the gaps between them.
         /// </summary>
         private void BuildBottom()
         {
@@ -760,16 +782,16 @@ namespace Lokanta.Game.Ui
             bar.style.paddingBottom = Theme.Gap;
             bar.pickingMode = PickingMode.Ignore;
 
-            // KRIZ SERIDI: yalnizca kriz VARKEN.
+            // THE CRISIS STRIP: only WHEN THERE IS a crisis.
             //
-            // Oyunun tek vaadi "servis sirasinda yalnizca krizlere
-            // mudahale edersin" ve kriz icin tek sinyal masa ustundeki
-            // ~50x8 dp'lik rozetin kirmiziya donmesiydi. Serit kriz
-            // yokken HIC KURULMUYOR: ortaya cikmasinin kendisi sinyal.
+            // The game's one promise is "during service you only step in on
+            // a crisis", and the only signal for a crisis was a ~50x8 dp
+            // badge above a table turning red. The strip is NOT BUILT AT ALL
+            // when there is no crisis: its appearing is itself the signal.
             if (_builtPhase == DayPhase.Service)
             {
-                VisualElement kriz = CrisisBar();
-                if (kriz != null) bar.Add(kriz);
+                VisualElement crisis = CrisisBar();
+                if (crisis != null) bar.Add(crisis);
             }
 
             VisualElement row = Theme.Row(Theme.Gap);
@@ -787,7 +809,7 @@ namespace Lokanta.Game.Ui
             _bottom.Add(bar);
         }
 
-        /// <summary>Sol grubu sagdaki eylemden ayiran esnek bosluk.</summary>
+        /// <summary>The flexible gap separating the left group from the action on the right.</summary>
         private static void Spacer(VisualElement row)
         {
             VisualElement v = new VisualElement();
@@ -797,51 +819,52 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// SABAH: dort ekran solda, servisi acmak sagda.
+        /// MORNING: four screens on the left, opening service on the right.
         ///
-        /// Dort ekran (Hal, Menu, Kadro, Ekipman) sabahin butun
-        /// kararlari; her biri bir SIMGE ve bir etiket tasiyor. Yalniz
-        /// simge olmaz - bir sepet simgesi "Hal" mi "Magaza" mi demek,
-        /// oyuncu bilemez; yalniz yazi da olmaz, cunku dort gri
-        /// dikdortgen birbirinden ancak okunarak ayrilir.
+        /// The four screens (Market, Menu, Crew, Equipment) are all of the
+        /// morning's decisions; each carries an ICON and a label. The icon
+        /// alone will not do - the player cannot tell whether a trolley icon
+        /// means "Market" or "Shop"; text alone will not do either, because
+        /// four grey rectangles can only be told apart by reading them.
         ///
-        /// KREDI ARTIK BURADA DEGIL: kasa kapsulunun yanindaki yesil
-        /// "+" dugmesi onu aciyor - para gereken yerde para dugmesi.
-        /// Serit bir dugme daha hafifledi.
+        /// THE LOAN IS NO LONGER HERE: the green "+" beside the till pill
+        /// opens it - the money button where the money is needed. The strip
+        /// is one button lighter.
         /// </summary>
         private void MorningBar(VisualElement row)
         {
             row.Add(Kit.IconButton(Icons.Cart(Color.white), Loc.T("ui.morning.market"),
-                                   () => Ui.Push(new MarketScreen()), mavi: true));
+                                   () => Ui.Push(new MarketScreen()), blue: true));
             row.Add(Kit.IconButton(Icons.List(Color.white), Loc.T("ui.morning.menu"),
-                                   () => Ui.Push(new MenuBoardScreen()), mavi: true));
+                                   () => Ui.Push(new MenuBoardScreen()), blue: true));
             row.Add(Kit.IconButton(Icons.Hat(Color.white), Loc.T("ui.morning.staff"),
-                                   () => Ui.Push(new StaffScreen()), mavi: true));
+                                   () => Ui.Push(new StaffScreen()), blue: true));
             row.Add(Kit.IconButton(Icons.ArrowUp(Color.white), Loc.T("ui.morning.equipment"),
-                                   () => Ui.Push(new EquipmentScreen()), mavi: true));
+                                   () => Ui.Push(new EquipmentScreen()), blue: true));
             Spacer(row);
 
-            // Servisi acmak GERI DONUSU OLMAYAN tek karar.
+            // Opening service is the only decision with NO WAY BACK.
             //
-            // Alt satir ne olacagini soyluyor; eksik varsa o eksigi
-            // soyluyor. Once bu uyari yalnizca BASILDIKTAN sonra bir
-            // balon olarak cikiyordu - yani oyuncu once basiyor, sonra
-            // ogreniyordu.
-            string eksik;
-            bool hazir = ReadyToOpen(out eksik);
+            // The second line says what will happen; if something is short,
+            // it says what. This warning used to appear only as a bubble
+            // AFTER the button had been pressed - so the player pressed
+            // first and learned afterwards.
+            string missing;
+            bool ready = ReadyToOpen(out missing);
             row.Add(Kit.Cta(Loc.T("ui.morning.open"),
-                            hazir ? Loc.T("ui.morning.open_sub", App.Sim.Day) : eksik,
+                            ready ? Loc.T("ui.morning.open_sub", App.Sim.Day) : missing,
                             () =>
             {
-                // EKSIK VARSA ONCE SORUYOR.
+                // IF SOMETHING IS SHORT IT ASKS FIRST.
                 //
-                // Onay yalnizca eksik varken: her sabah "emin misin"
-                // sormak, onayi okunmayan bir refleks haline getirirdi.
-                string e2;
-                if (!ReadyToOpen(out e2) && !_openConfirmed)
+                // The confirmation only appears when something is short:
+                // asking "are you sure" every single morning would turn the
+                // confirmation into a reflex nobody reads.
+                string second;
+                if (!ReadyToOpen(out second) && !_openConfirmed)
                 {
                     _openConfirmed = true;
-                    Toast(e2, rejected: true);
+                    Toast(second, rejected: true);
                     Sfx.Cancel();
                     BuildBottom();
                     return;
@@ -850,76 +873,79 @@ namespace Lokanta.Game.Ui
                 App.OpenService();
                 BuildBottom();
                 BuildCards();
-            }, hazir));
+            }, ready));
         }
 
         /// <summary>
-        /// SABAHIN UC SAYISI: menude kac yemek, stok kac gun, kac asci.
+        /// THE MORNING'S THREE NUMBERS: how many dishes on the menu, how
+        /// many days of stock, how many cooks.
         ///
-        /// Once bunlari ReadinessRow hesapliyor ve HEMEN yaziya
-        /// ceviriyordu; kontrol listesi kartina tasininca ayni sayilar
-        /// iki yerde gerekti. Hesap bir yerde, gorunum iki yerde.
+        /// ReadinessRow used to compute these and turn them straight into
+        /// text; once they moved to the checklist card the same numbers were
+        /// needed in two places. The calculation in one place, the
+        /// presentation in two.
         ///
-        /// ACIK OLANLAR SAYILIYOR. IsOnMenu kilitli yemekler icin de
-        /// true donebiliyor (menu anahtari ile acilma gunu ayri seyler)
-        /// ve ilk gun "Menude 32 yemek" yaziyordu - oysa yalnizca
-        /// altisi yapilabilir durumda.
+        /// THE UNLOCKED ONES ARE COUNTED. IsOnMenu can return true for
+        /// locked dishes too (the menu toggle and the unlock day are
+        /// separate things) and on day one it said "32 dishes on the menu" -
+        /// when only six of them can actually be made.
         /// </summary>
-        private void Readiness(out int menude, out int kapsamaBp, out int asci)
+        private void Readiness(out int onMenu, out int coverageBp, out int cooks)
         {
             Simulation sim = App.Sim;
-            menude = 0;
+            onMenu = 0;
             for (int i = 0; i < sim.DishCount; i++)
-                if (sim.IsOnMenu(i) && sim.IsUnlocked(i)) menude++;
+                if (sim.IsOnMenu(i) && sim.IsUnlocked(i)) onMenu++;
 
-            // STOK SATIRI ARTIK GUNU OLCUYOR, YEMEK SAYISINI DEGIL.
+            // THE STOCK ROW NOW MEASURES THE DAY, NOT THE DISH COUNT.
             //
-            // Once "kac yemek yapilabiliyor" sayiliyordu ve tik
-            // >= 1 ile yesile donuyordu: alti yemegin her birinden
-            // BIRER porsiyonu olan oyuncu "hazir" gorunup servisi
-            // aciyor, ilk on dakikada mal bitiyordu. Tik, olcmesi
-            // gereken seyi olcmuyordu.
-            kapsamaBp = sim.StockCoverageBp();
-            asci = sim.Cooks;
+            // It used to count "how many dishes can be made" and the tick
+            // went green at >= 1: a player with ONE portion each of six
+            // dishes looked "ready", opened service and ran out in the first
+            // ten minutes. The tick was not measuring what it was for.
+            coverageBp = sim.StockCoverageBp();
+            cooks = sim.Cooks;
         }
 
-        /// <summary>Servisi acmaya hazir miyiz. Degilse dugme soruyor.</summary>
-        private bool ReadyToOpen(out string eksik)
+        /// <summary>Are we ready to open service. If not, the button asks.</summary>
+        private bool ReadyToOpen(out string missing)
         {
             Simulation sim = App.Sim;
-            eksik = null;
+            missing = null;
 
-            int menude = 0;
+            int onMenu = 0;
             for (int i = 0; i < sim.DishCount; i++)
-                if (sim.IsOnMenu(i) && sim.IsUnlocked(i)) menude++;
+                if (sim.IsOnMenu(i) && sim.IsUnlocked(i)) onMenu++;
 
-            if (menude == 0) eksik = Loc.T("ui.morning.ready_warn_menu");
-            else if (sim.Cooks <= 0) eksik = Loc.T("ui.morning.ready_warn_cook");
-            else if (sim.MakeableDishCount() < 1) eksik = Loc.T("ui.morning.ready_warn_stock");
+            if (onMenu == 0) missing = Loc.T("ui.morning.ready_warn_menu");
+            else if (sim.Cooks <= 0) missing = Loc.T("ui.morning.ready_warn_cook");
+            else if (sim.MakeableDishCount() < 1) missing = Loc.T("ui.morning.ready_warn_stock");
 
-            return eksik == null;
+            return missing == null;
         }
 
         // =====================================================================
         /// <summary>
-        /// Mudahalenin gidecegi masa: SECILI olan, yoksa sabri en az kalan.
+        /// Where an intervention goes: the SELECTED table, or failing that
+        /// the one with the least patience left.
         ///
-        /// Once secim diye bir sey yoktu ve hedefi her zaman oyun
-        /// seciyordu. Yani servis sirasinda oyuncunun tek karari "simdi
-        /// mi, sonra mi" idi - KIME sorusunu oyun cevapliyordu ve patron
-        /// olmanin butun mekanigi bir zamanlama dugmesine inmisti.
+        /// There used to be no selection at all and the game always chose
+        /// the target. So during service the player's only decision was "now
+        /// or later" - the game answered the WHO, and the whole mechanic of
+        /// being the owner had come down to a timing button.
         ///
-        /// Secim ZORUNLU degil: yakinlasmayan oyuncu icin eski davranis
-        /// aynen duruyor, yani oyun secim yapmayani cezalandirmiyor.
-        /// Secim yapan, sabri en az olani DEGIL en cok kazandiracak
-        /// olani secebiliyor - ornegin sabri biraz daha fazla ama
-        /// kalabalik olan masayi.
+        /// Choosing is NOT compulsory: for a player who does not zoom in,
+        /// the old behaviour is unchanged, so the game does not punish
+        /// someone who makes no choice. Someone who does choose can pick NOT
+        /// the least patient but the one that will earn the most - the table
+        /// with a little more patience left but more people on it, for
+        /// instance.
         /// </summary>
         private int Target()
         {
-            // MASA -> GRUP cevirisi SART. Intervene grup bekliyor;
-            // ValidSelection masa donuyor. Ceviri olmadan ikram
-            // bambaska bir masaya gidiyordu.
+            // The TABLE -> PARTY conversion IS ESSENTIAL. Intervene expects
+            // a party; ValidSelection returns a table. Without the
+            // conversion the tea went to an entirely different table.
             int sel = App.ValidSelection();
             if (sel < 0) return App.Sim.MostImpatientParty();
 
@@ -928,15 +954,16 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Mudahalenin gerceklesip gerceklesmedigini HAK SAYISINDAN
-        /// anlar ve olmadiysa soyler.
+        /// Works out FROM THE ALLOWANCE COUNT whether the intervention
+        /// actually happened, and says so if it did not.
         ///
-        /// Once uc dugme de komutu gonderip KOSULSUZ "oldu" diyordu.
-        /// Cekirdek ise dort ayri yerde sessizce reddediyor: hak bitti,
-        /// grup artik yok, cay parasi kasada yok, istasyonda is yok.
-        /// Oyuncu "cay ikram edildi" yazisini okuyor, sagdaki "Hak 4"
-        /// hic degismiyor ve neyin yanlis gittigini hicbir yerden
-        /// ogrenemiyordu.
+        /// All three buttons used to send the command and then say "done"
+        /// UNCONDITIONALLY. The core meanwhile rejects it silently in four
+        /// separate places: the allowance is gone, the party has left, there
+        /// is no money in the till for the tea, there is no work at the
+        /// station. The player read "tea was offered", the "Allowance 4" on
+        /// the right never moved, and there was nowhere to learn what had
+        /// gone wrong.
         /// </summary>
         private bool DidIntervene(int before)
         {
@@ -947,35 +974,38 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Dugme yazisi, secim varken masayi soyluyor. Oyuncu neye
-        /// bastigini dugmenin USTUNDE gormeli - yaptiktan sonra
-        /// bildirimde degil.
+        /// The button's text says which table when there is a selection. The
+        /// player should see what they are pressing ON the button - not in a
+        /// notice afterwards.
         /// </summary>
         /// <summary>
-        /// Mudahalelerin SU ANKI HEDEFI - dugme yazisinda degil, kendi
-        /// rozetinde.
+        /// The interventions' CURRENT TARGET - on a badge of its own rather
+        /// than in the button text.
         ///
-        /// Hedef bir sure her iki dugmenin yazisina ekleniyordu
-        /// ("Cay > sabirsiz", "Ilgi > sabirsiz"). Iki bedeli vardi:
+        /// For a while the target was appended to both buttons' text ("Tea >
+        /// most impatient", "Attention > most impatient"). That cost two
+        /// things:
         ///
-        ///   1. AYNI BILGI IKI KEZ. Iki dugme de ayni hedefe gidiyor.
-        ///   2. Dize uzunlugu DILE bagliydi: Ingilizce "most impatient"
-        ///      Turkce "sabirsiz"dan uzun. Serit onceden de bir kez
-        ///      tasmisti ve ek "en sabirsiz"dan tek kelimeye
-        ///      indirilmisti - yani bu duvara ikinci kez carpiliyordu.
+        ///   1. THE SAME INFORMATION TWICE. Both buttons go to the same
+        ///      target.
+        ///   2. The string length depended on THE LANGUAGE: English "most
+        ///      impatient" is longer than the Turkish. The strip had already
+        ///      overflowed once and the suffix had been cut from "most
+        ///      impatient" down to a single word - so this was the second
+        ///      time we hit the same wall.
         ///
-        /// Olculdu: ek kalkinca uc dugmenin kirpilmasi bitti. Hedef
-        /// artik tek bir rozette ve dugmeler yalnizca FIILI soyluyor -
-        /// bir dugmenin isi zaten odur.
+        /// Measured: with the suffix gone, three buttons stopped being
+        /// clipped. The target is now on one badge and the buttons say only
+        /// the VERB - which is a button's job anyway.
         /// </summary>
         private VisualElement TargetBadge()
         {
             int sel = App.ValidSelection();
-            string metin = sel >= 0
+            string text = sel >= 0
                 ? "› " + (sel + 1)
                 : "› " + Loc.T("ui.service.target_auto");
 
-            Label l = Theme.Text(metin, Theme.FontSmall, Theme.InkDim);
+            Label l = Theme.Text(text, Theme.FontSmall, Theme.InkDim);
             l.style.flexShrink = 0;
             l.style.marginLeft = 2;
             l.style.unityTextAlign = TextAnchor.MiddleCenter;
@@ -983,134 +1013,138 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Bildirim MASA numarasini yaziyor, grup indisini degil.
+        /// The notice writes the TABLE number, not the party index.
         ///
-        /// Once grup indisi "masa numarasi" diye basiliyordu ve dort
-        /// masali bir dukkanda "17. masaya cay ikram edildi" cikabiliyordu.
+        /// The party index used to be printed as "the table number" and a
+        /// four-table shop could produce "tea was offered at table 17".
         /// </summary>
-        private string TargetToast(string ne)
+        private string TargetToast(string what)
         {
-            // ". masaya " BIR TURKCE SIRA EKIYDI.
+            // THE TABLE NUMBER WAS GLUED IN WITH A TURKISH ORDINAL SUFFIX.
             //
-            // Once bildirim kodda birlestiriliyordu:
-            // (sel+1) + ". masaya " + "çay ikram edildi". Ingilizce
-            // oynayan biri tam olarak bunu okuyordu, ve kalip
-            // cevrilse bile calismazdi - masa numarasi Ingilizce'de
-            // cumlenin SONUNA gidiyor. Tam cumle artik tabloda ve
-            // numara bir yer tutucu.
+            // The notice used to be assembled in code: (sel+1) plus a
+            // Turkish "at table N" fragment plus "tea was offered". Someone
+            // playing in English read exactly that, and even translating the
+            // fragment would not work - in English the table number goes at
+            // the END of the sentence. The whole sentence is now in the
+            // table and the number is a placeholder.
             int sel = App.ValidSelection();
             return sel >= 0
-                ? Loc.T("ui.service.done_" + ne, sel + 1)
-                : Loc.T("ui.service.done_" + ne + "_any");
+                ? Loc.T("ui.service.done_" + what, sel + 1)
+                : Loc.T("ui.service.done_" + what + "_any");
         }
 
         /// <summary>
-        /// Sabri kritige inen masalarin cipleri. Kriz yoksa null.
+        /// Chips for the tables whose patience has fallen to critical. Null
+        /// if there is no crisis.
         ///
-        /// Cipe dokunmak o masayi SECIYOR - yani hedef secme yolu da
-        /// burada cozuluyor. Onceden hedef secmek icin once salona
-        /// yakinlasip sonra masaya dokunmak gerekiyordu; bu, ogretilmesi
-        /// gereken iki adimli bir jestti ve kriz anindaki bir oyuncu onu
-        /// yapmiyordu.
+        /// Touching a chip SELECTS that table - so this is also how a target
+        /// gets picked. Previously picking a target meant zooming into the
+        /// hall first and then touching a table; that was a two-step gesture
+        /// that had to be taught, and a player in the middle of a crisis was
+        /// not doing it.
         /// </summary>
         private VisualElement CrisisBar()
         {
             Simulation sim = App.Sim;
-            int esik = sim.PatienceWarnBp;
+            int threshold = sim.PatienceWarnBp;
 
-            // En sabirsizdan basla: ciplerin sirasi da bilgi.
-            var kritik = new System.Collections.Generic.List<int>();
+            // Start from the least patient: the chips' order is information
+            // too.
+            var critical = new System.Collections.Generic.List<int>();
             for (int t = 0; t < sim.TableCount; t++)
             {
                 CustomerStage st = sim.TableStage(t);
                 if (st == CustomerStage.None || st == CustomerStage.Done
                     || st == CustomerStage.LeftAngry) continue;
                 int bp = sim.TablePatienceBp(t);
-                if (bp > esik || bp <= 0) continue;
-                kritik.Add(t);
+                if (bp > threshold || bp <= 0) continue;
+                critical.Add(t);
             }
-            if (kritik.Count == 0) { _crisisShown = 0; return null; }
+            if (critical.Count == 0) { _crisisShown = 0; return null; }
 
-            kritik.Sort((a, b) => sim.TablePatienceBp(a).CompareTo(sim.TablePatienceBp(b)));
+            critical.Sort((a, b) => sim.TablePatienceBp(a).CompareTo(sim.TablePatienceBp(b)));
 
-            // SES YALNIZCA YENI KRIZDE. Her karede calan bir uyari,
-            // uyari olmaktan cikip gurultu olur.
-            if (kritik.Count > _crisisShown) Sfx.Upset();
-            _crisisShown = kritik.Count;
+            // SOUND ONLY ON A NEW CRISIS. A warning that plays every frame
+            // stops being a warning and becomes noise.
+            if (critical.Count > _crisisShown) Sfx.Upset();
+            _crisisShown = critical.Count;
 
-            // SERIT GERCEKTEN KURULDU.
+            // THE STRIP WAS REALLY BUILT.
             //
-            // Tur bugune kadar "kriz gorundu mu" sorusunu SIMULASYONA
-            // soruyordu (CrisisTables) - yani ekranda hicbir sey
-            // olmasa da yesil kaliyordu. Sayac tam seridin kuruldugu
-            // yerde duruyor: oyuncunun gordugu sey budur.
+            // Until now the tour asked THE SIMULATION whether a crisis had
+            // appeared (CrisisTables) - so it stayed green even with nothing
+            // on the screen. The counter sits at exactly the point the strip
+            // is built: this is the thing the player sees.
             CrisisBuilds++;
 
             VisualElement row = Theme.Row(6);
             row.style.alignItems = Align.Center;
             row.style.marginBottom = 4;
 
-            Label uyari = Theme.Text(Loc.T("ui.service.crisis"), Theme.FontSmall, Theme.Bad);
-            uyari.style.unityFontStyleAndWeight = FontStyle.Bold;
-            row.Add(uyari);
+            Label warning = Theme.Text(Loc.T("ui.service.crisis"), Theme.FontSmall, Theme.Bad);
+            warning.style.unityFontStyleAndWeight = FontStyle.Bold;
+            row.Add(warning);
 
-            int n = kritik.Count < 5 ? kritik.Count : 5;
+            int n = critical.Count < 5 ? critical.Count : 5;
             for (int k = 0; k < n; k++)
             {
-                int masa = kritik[k];
-                bool secili = App.SelectedTable == masa;
+                int table = critical[k];
+                bool selected = App.SelectedTable == table;
 
-                Button cip = Theme.Btn(
-                    (secili ? "› " : "")
-                    + Loc.T("ui.service.table_n", masa + 1) + " "
-                    + Loc.Percent(sim.TablePatienceBp(masa)),
+                Button chip = Theme.Btn(
+                    (selected ? "› " : "")
+                    + Loc.T("ui.service.table_n", table + 1) + " "
+                    + Loc.Percent(sim.TablePatienceBp(table)),
                     () =>
                     {
-                        App.SelectedTable = masa;
+                        App.SelectedTable = table;
                         Sfx.Click();
                         Ui.Refresh();
                     });
 
-                // SECIM YALNIZCA RENKLE OLMAZ.
+                // A SELECTION CANNOT BE CARRIED BY COLOUR ALONE.
                 //
-                // Once tek ayirt edici yazi rengiydi (kirmizi <-> krem);
-                // kizil-yesil korlugunde ikisi de benzer parlaklikta
-                // okunuyor ve mudahale BU secime gidiyor. Ikinci kanal:
-                // isaret (›) ve cerceve.
-                cip.style.color = secili ? Theme.Ink : Theme.Bad;
-                cip.style.borderTopWidth = secili ? 2 : 0;
-                cip.style.borderBottomWidth = secili ? 2 : 0;
-                cip.style.borderLeftWidth = secili ? 2 : 0;
-                cip.style.borderRightWidth = secili ? 2 : 0;
-                if (secili)
+                // The only thing that told them apart was the text colour
+                // (red <-> cream); under red-green colour blindness the two
+                // read at a similar brightness, and the intervention goes to
+                // THIS selection. A second channel: the mark (›) and a
+                // border.
+                chip.style.color = selected ? Theme.Ink : Theme.Bad;
+                chip.style.borderTopWidth = selected ? 2 : 0;
+                chip.style.borderBottomWidth = selected ? 2 : 0;
+                chip.style.borderLeftWidth = selected ? 2 : 0;
+                chip.style.borderRightWidth = selected ? 2 : 0;
+                if (selected)
                 {
-                    cip.style.borderTopColor = Theme.Accent;
-                    cip.style.borderBottomColor = Theme.Accent;
-                    cip.style.borderLeftColor = Theme.Accent;
-                    cip.style.borderRightColor = Theme.Accent;
+                    chip.style.borderTopColor = Theme.Accent;
+                    chip.style.borderBottomColor = Theme.Accent;
+                    chip.style.borderLeftColor = Theme.Accent;
+                    chip.style.borderRightColor = Theme.Accent;
                 }
-                row.Add(cip);
+                row.Add(chip);
             }
             return row;
         }
 
         private int _crisisShown;
 
-        /// <summary>Kriz seridinin kac kez KURULDUGU. Turun sorabilmesi icin.</summary>
+        /// <summary>How many times the crisis strip HAS BEEN BUILT. So the tour can ask.</summary>
         public static int CrisisBuilds { get; private set; }
 
-        /// <summary>Alt cubugun en son kuruldugu kritik masa sayisi.</summary>
+        /// <summary>The critical-table count the bottom bar was last built at.</summary>
         private int _builtCrisis = -1;
 
-        /// <summary>Eksik varken ilk dokunus soruyor, ikincisi aciyor.</summary>
+        /// <summary>With something short, the first tap asks and the second opens.</summary>
         private bool _openConfirmed;
 
         /// <summary>
-        /// Su an kriz seridinde kac masa var. Turun sorabilmesi icin.
+        /// How many tables are on the crisis strip right now. So the tour
+        /// can ask.
         ///
-        /// "Kriz gorunuyor mu" ancak KRIZ VARKEN sorulabilir; sayiyi
-        /// disari vermeden denetim, seridin hic kurulmadigi bir serviste
-        /// de yesil kalirdi.
+        /// "Is the crisis visible" can only be asked WHEN THERE IS a
+        /// crisis; without exposing the number, the check would stay green
+        /// through a service in which the strip was never built at all.
         /// </summary>
         public int CrisisTables
         {
@@ -1118,14 +1152,14 @@ namespace Lokanta.Game.Ui
             {
                 Simulation sim = App != null ? App.Sim : null;
                 if (sim == null) return 0;
-                int esik = sim.PatienceWarnBp, n = 0;
+                int threshold = sim.PatienceWarnBp, n = 0;
                 for (int t = 0; t < sim.TableCount; t++)
                 {
                     CustomerStage st = sim.TableStage(t);
                     if (st == CustomerStage.None || st == CustomerStage.Done
                         || st == CustomerStage.LeftAngry) continue;
                     int bp = sim.TablePatienceBp(t);
-                    if (bp > esik || bp <= 0) continue;
+                    if (bp > threshold || bp <= 0) continue;
                     n++;
                 }
                 return n;
@@ -1133,28 +1167,28 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// SERVIS: kip dugmeleri, mudahaleler, gunu kapat.
+        /// SERVICE: the mode buttons, the interventions, close the day.
         ///
-        /// Duzen uc gruba ayriliyor ve gruplar oyunun kendi ayrimini
-        /// tasiyor:
+        /// The layout splits into three groups and the groups carry the
+        /// game's own distinction:
         ///
-        ///   KIP        - duraklat ve hiz. Oyunun saatini ayarliyorlar,
-        ///                salonda hicbir sey degistirmiyorlar.
-        ///   MUDAHALE   - oyunun butun fiil kumesi, ortak bir kutuda ve
-        ///                kalan hak o kutuya yapisik: uc dugmeyi de ayni
-        ///                kese besliyor.
-        ///   ILERLET    - gunu kapat, sagda ve yalniz.
+        ///   MODE         - pause and speed. They set the game's clock and
+        ///                  change nothing in the hall.
+        ///   INTERVENTION - the game's whole set of verbs, in a shared box
+        ///                  with the remaining allowance stuck to it: all
+        ///                  three buttons feed from the same purse.
+        ///   MOVE ON      - close the day, on the right and alone.
         /// </summary>
         private void ServiceBar(VisualElement row)
         {
-            // DURAKLAT SIMGEYE DONDU.
+            // PAUSE BECAME AN ICON.
             //
-            // Kip dugmeleri metinle yazildiginda mudahalelerden ayirt
-            // edilemiyordu; ikisi de gri dikdortgendi. Simge onlari
-            // siluetiyle ayiriyor ve yer de kazandiriyor.
+            // Written out in text, the mode buttons could not be told apart
+            // from the interventions; both were grey rectangles. The icon
+            // separates them by silhouette and saves space as well.
             //
-            // Dugmenin bir ADI var: metinsiz bir dugmeyi ne ekran
-            // okuyucu ne de kendi kendine gezen tur metinden bulabilir.
+            // The button has a NAME: neither a screen reader nor the
+            // self-driving tour can find a text-less button by its text.
             Button pause = Kit.IconButton(
                 App.Paused ? Icons.Play(Theme.Ink, 20f) : Icons.Pause(Theme.Ink, 20f),
                 App.Paused ? Loc.T("ui.hud.resume") : Loc.T("ui.hud.pause"),
@@ -1162,14 +1196,14 @@ namespace Lokanta.Game.Ui
             pause.name = "pause";
             row.Add(pause);
 
-            // HIZ TEK DUGME, DONGUSEL.
+            // SPEED IS ONE BUTTON, AND IT CYCLES.
             //
-            // Once uc ogeydi: eksi, arti ve aralarinda bir etiket - 148 dp
-            // ve dokuz ogeli bir seritte uc yer. Hiz gun icinde bir kez
-            // ayarlanan bir sey. Dongu x0,5'e dondugu icin geri gitmek de
-            // mumkun.
+            // It used to be three elements: minus, plus and a label between
+            // them - 148 dp and three places in a nine-element strip. Speed
+            // is something set once during a day. Because the cycle comes
+            // back round to x0.5, going backwards is possible too.
             float mult = App.TimeScale / GameApp.BaseTimeScale;
-            Button hiz = Kit.IconButton(null,
+            Button speed = Kit.IconButton(null,
                 "×" + mult.ToString("0.#", Loc.Culture),
                 () =>
                 {
@@ -1179,48 +1213,50 @@ namespace Lokanta.Game.Ui
                     App.TimeScale = next;
                     BuildBottom();
                 });
-            hiz.name = "hiz";
-            row.Add(hiz);
+            speed.name = "speed";
+            row.Add(speed);
 
-            // --- mudahaleler TEK KUTUDA --------------------------------
+            // --- the interventions IN ONE BOX --------------------------
             int left = App.Sim.InterventionsLeft;
             bool done = App.Sim.ServiceComplete;
 
-            VisualElement kutu = Theme.Row(6);
-            kutu.style.flexGrow = 1;
-            // Mudahale kutusu YERINI VERIYOR: yanindaki imza dugmesi ve
-            // "Gunu kapat" sabit genislikte, kutu ise uc dugme tasiyor
-            // ve daralabilir. Daralmazsa tasip ust uste biniyor.
-            kutu.style.flexShrink = 1;
-            // minWidth SIFIRA CEKILMIYOR.
+            VisualElement box = Theme.Row(6);
+            box.style.flexGrow = 1;
+            // The intervention box GIVES UP ITS SPACE: the signature button
+            // next to it and "Close the day" are fixed width, while the box
+            // carries three buttons and can shrink. If it does not shrink it
+            // overflows and lands on top of them.
+            box.style.flexShrink = 1;
+            // minWidth IS NOT PULLED TO ZERO.
             //
-            // Bir kez oyle yazildi ve daralma dugmeleri YAZILARININ
-            // ALTINA sikistirdi: olculdu, "Cay" ve "Tea" bile kirpildi.
-            // Kutu yerini verebilir ama icindeki dokunma hedefleri
-            // (Theme.Touch) korunmali - daralan bir serit, basilamayan
-            // bir dugmeden iyidir ama okunamayan bir dugmeden degil.
-            kutu.style.backgroundColor = Kit.CardBg;
-            kutu.style.borderTopWidth = 1;
-            kutu.style.borderBottomWidth = 1;
-            kutu.style.borderLeftWidth = 1;
-            kutu.style.borderRightWidth = 1;
-            kutu.style.borderTopColor = Kit.CardLine;
-            kutu.style.borderBottomColor = Kit.CardLine;
-            kutu.style.borderLeftColor = Kit.CardLine;
-            kutu.style.borderRightColor = Kit.CardLine;
-            kutu.style.paddingLeft = 7;
-            kutu.style.paddingRight = 7;
-            kutu.style.paddingTop = 6;
-            kutu.style.paddingBottom = 6;
-            kutu.style.alignItems = Align.Center;
-            Theme.Round(kutu, Kit.CardRadius);
+            // It was written that way once and the shrinking squeezed the
+            // buttons UNDER THEIR OWN LABELS: measured, even "Tea" was
+            // clipped. The box may give up space, but the touch targets
+            // inside it (Theme.Touch) have to be kept - a shrinking strip is
+            // better than a button that cannot be pressed, but not better
+            // than one that cannot be read.
+            box.style.backgroundColor = Kit.CardBg;
+            box.style.borderTopWidth = 1;
+            box.style.borderBottomWidth = 1;
+            box.style.borderLeftWidth = 1;
+            box.style.borderRightWidth = 1;
+            box.style.borderTopColor = Kit.CardLine;
+            box.style.borderBottomColor = Kit.CardLine;
+            box.style.borderLeftColor = Kit.CardLine;
+            box.style.borderRightColor = Kit.CardLine;
+            box.style.paddingLeft = 7;
+            box.style.paddingRight = 7;
+            box.style.paddingTop = 6;
+            box.style.paddingBottom = 6;
+            box.style.alignItems = Align.Center;
+            Theme.Round(box, Kit.CardRadius);
 
-            // ISTASYON ADI DUGMEDE DEGIL.
+            // THE STATION NAME IS NOT ON THE BUTTON.
             //
-            // Bir sure "Mutfagi hizlandir > Milkshake Makinesi" yaziyordu
-            // ve OLCULDU: Rubik'in gercek harf genislikleriyle o tek
-            // dugme 319 dp, serit toplami 1103 dp - 873 dp'lik ekranda
-            // 230 dp tasma.
+            // For a while it read "Chase the kitchen > Milkshake Machine"
+            // and it WAS MEASURED: at Rubik's real letter widths that single
+            // button was 319 dp and the strip came to 1103 dp - a 230 dp
+            // overflow on an 873 dp screen.
             Button rush = Theme.Btn(Loc.T("ui.service.rush"), () =>
             {
                 int st = App.Sim.BusiestStation();
@@ -1233,15 +1269,15 @@ namespace Lokanta.Game.Ui
                 BuildBottom();
             }, wide: true);
             rush.SetEnabled(left > 0 && !done);
-            kutu.Add(rush);
+            box.Add(rush);
 
-            // CAY HEDEF SECMIYOR: SALONA GIDIYOR.
+            // TEA PICKS NO TARGET: IT GOES TO THE WHOLE HALL.
             //
-            // Eskiden secili masaya gidiyordu ve o hali cayi olu bir
-            // dugme yapiyordu - ilgi her eksende ustundu. Artik cay
-            // BEKLEYEN HERKESE gidiyor, yani "bir masa krizde" degil
-            // "salonun tamami sabirsiz" sorusunun cevabi. Hedef
-            // secilmemis olmasi da hata degil.
+            // It used to go to the selected table, and in that form tea was
+            // a dead button - attention beat it on every axis. Now tea goes
+            // to EVERYONE WAITING, that is, it answers "the whole hall is
+            // impatient" rather than "one table is in crisis". Having no
+            // target selected is not a fault either.
             Button tea = Theme.Btn(Loc.T("ui.service.tea"), () =>
             {
                 int before = App.Sim.InterventionsLeft;
@@ -1250,10 +1286,10 @@ namespace Lokanta.Game.Ui
                 else { Toast(Loc.T("ui.service.none_waiting"), rejected: true); Sfx.Cancel(); }
                 BuildBottom();
             }, wide: true);
-            // Bekleyen yoksa cay da yok: gonderilecek kimse olmadan
-            // hak yakmanin anlami olmazdi.
+            // No one waiting, no tea: burning an allowance with nobody to
+            // send it to would make no sense.
             tea.SetEnabled(left > 0 && !done && App.Sim.WaitingParties > 0);
-            kutu.Add(tea);
+            box.Add(tea);
 
             Button care = Theme.Btn(Loc.T("ui.service.attention"), () =>
             {
@@ -1265,28 +1301,30 @@ namespace Lokanta.Game.Ui
                 BuildBottom();
             }, wide: true);
             care.SetEnabled(left > 0 && !done);
-            kutu.Add(care);
+            box.Add(care);
 
-            // KALAN HAK: SAYI DEGIL NOKTA.
+            // THE ALLOWANCE LEFT: DOTS, NOT A NUMBER.
             //
-            // "Hak 4" yazisi 14 dp InkDim idi - ekrandaki en az goze
-            // carpan oge, ve uc fiilin hepsini kapatan kit kaynak oydu.
-            // UC MUDAHALE DUGMESI DAR DOLGULU.
+            // The words "Allowance 4" were 14 dp InkDim - the least
+            // noticeable element on the screen, and it was the scarce
+            // resource gating all three verbs.
+            // THE THREE INTERVENTION BUTTONS HAVE NARROW PADDING.
             //
-            // Varsayilan yatay dolgu (Theme.Pad) uc dugmede altmis dp
-            // tutuyor ve serit tam o kadar tasiyordu: Turk mutfaginda
-            // on dort masayla, yani veresiye dugmesinin de bulundugu
-            // halde, ucu birden kirpiliyordu. Dokunma hedefi dolgudan
-            // degil `minWidth`'ten geliyor, yani daraltmak basilabilirligi
-            // bozmuyor.
+            // The default horizontal padding (Theme.Pad) comes to sixty dp
+            // across three buttons, and that was exactly the strip's
+            // overflow: in Turkish cuisine with fourteen tables - that is,
+            // with the tab button present too - all three were being
+            // clipped. The touch target comes from `minWidth` rather than
+            // from the padding, so narrowing it does not hurt pressability.
             foreach (Button d in new[] { rush, tea, care })
             {
                 d.style.paddingLeft = 8;
                 d.style.paddingRight = 8;
             }
 
-            // HEDEF ROZETI: iki dugmenin yazisindan cikti, buraya geldi.
-            kutu.Add(TargetBadge());
+            // THE TARGET BADGE: it came off two buttons' labels and landed
+            // here.
+            box.Add(TargetBadge());
 
             VisualElement pips = Theme.Row(0);
             pips.style.alignItems = Align.Center;
@@ -1294,10 +1332,10 @@ namespace Lokanta.Game.Ui
             pips.style.marginRight = 2;
             for (int i = 0; i < App.Sim.InterventionsPerDay; i++)
                 pips.Add(Theme.Dot(i < left ? Theme.Accent : Theme.Line, 9f));
-            kutu.Add(pips);
-            row.Add(kutu);
+            box.Add(pips);
+            row.Add(box);
 
-            // --- imza mekanigi: mutfaga gore biri ya da otekisi --------
+            // --- the signature mechanic: one or the other, by cuisine ---
             if (App.Sim.HasCombo)
             {
                 Button combo = Kit.IconButton(
@@ -1333,9 +1371,9 @@ namespace Lokanta.Game.Ui
 
             Spacer(row);
 
-            // Servis bittiginde "Gunu Kapat" TEK ANLAMLI EYLEM: yesile
-            // geciyor ve mudahale dugmeleri kapaniyor. Bitmis bir
-            // servise cay ikram etmek diye bir sey yok.
+            // Once service is over, "Close the day" is THE ONLY MEANINGFUL
+            // ACTION: it turns green and the intervention buttons close.
+            // There is no such thing as offering tea to a finished service.
             row.Add(Kit.Cta(Loc.T("ui.service.close"),
                             done ? Loc.T("ui.service.close_sub")
                                  : Loc.T("ui.service.running_sub"),
@@ -1348,34 +1386,34 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// AKSAM: gunun ozeti solda, ertesi gun sagda.
+        /// EVENING: the day's summary on the left, the next day on the
+        /// right.
         ///
-        /// GUN RAPORU BIRINCIL DEGIL AMA KAYBOLMUS DA DEGIL: ozet
-        /// satirinin kendisi artik bir KART ve rapora giden dugme onun
-        /// yaninda duruyor. Once "Gun raporu" turuncu ve tam
-        /// genislikteydi, "Ertesi gun" ise griydi - yani oyunun
-        /// ilerleme dugmesi, bir okuma ekranindan daha sonuk
-        /// gorunuyordu.
+        /// THE DAY REPORT IS NOT PRIMARY, BUT IT IS NOT LOST EITHER: the
+        /// summary line is itself a CARD now, and the button that leads to
+        /// the report sits beside it. "Day report" used to be orange and
+        /// full width while "Next day" was grey - so the game's move-on
+        /// button looked duller than a reading screen.
         /// </summary>
         private void EveningBar(VisualElement row)
         {
-            // OZET DE BIR KART.
+            // THE SUMMARY IS A CARD TOO.
             //
-            // Once dogrudan sahnenin uzerinde duran serbest yaziydi:
-            // koyu bir salonun uzerinde koyu bir zemin, okunmasi
-            // isiktan isiga degisiyordu. Ekrandaki her bilgi bir
-            // yuzeyin uzerinde durmali.
-            VisualElement kutu = Kit.Box();
-            kutu.style.paddingLeft = 14;
-            kutu.style.paddingRight = 14;
-            kutu.style.paddingTop = 8;
-            kutu.style.paddingBottom = 8;
-            kutu.style.flexShrink = 1;
-            kutu.Add(EveningSummary());
-            row.Add(kutu);
+            // It used to be free text sitting straight on the scene: a dark
+            // background over a dark hall, its readability changing with the
+            // light. Every piece of information on the screen should sit on
+            // a surface.
+            VisualElement box = Kit.Box();
+            box.style.paddingLeft = 14;
+            box.style.paddingRight = 14;
+            box.style.paddingTop = 8;
+            box.style.paddingBottom = 8;
+            box.style.flexShrink = 1;
+            box.Add(EveningSummary());
+            row.Add(box);
 
             row.Add(Kit.IconButton(Icons.List(Color.white), Loc.T("ui.evening.title"),
-                                   () => Ui.Push(new EveningScreen()), mavi: true));
+                                   () => Ui.Push(new EveningScreen()), blue: true));
             Spacer(row);
             row.Add(Kit.Cta(Loc.T("ui.evening.next"),
                             Loc.T("ui.evening.next_sub", App.Sim.Day + 1),
@@ -1387,104 +1425,107 @@ namespace Lokanta.Game.Ui
             }));
         }
 
-        /// <summary>Gunun ozet karti: aksam seridinin sol yarisi.</summary>
+        /// <summary>The day's summary card: the left half of the evening strip.</summary>
         private VisualElement EveningSummary()
         {
             VisualElement col = Theme.Column(Theme.Gap);
             DayReport r = App.Sim.BuildDayReport();
 
-            // IKI MANSET BUYUK, GERISI AYNI SATIRDA KUCUK.
+            // TWO HEADLINES LARGE, THE REST SMALL AND ON THE SAME ROW.
             //
-            // Alti sayinin ALTISI da 26 dp kalin yaziliyordu ve aralarinda
-            // yalnizca renk farki vardi. Iki sonucu birden dogurdu:
+            // ALL SIX of the six numbers were set in 26 dp bold with nothing
+            // but colour between them. That produced two results at once:
             //
-            // 1. Manset kayboldu. Paletin en parlak rengi Warn (0,499
-            //    parlaklik, Good 0,367'nin uzerinde), yani "Bozulan 245"
-            //    goze aciklamasi gereken kardan daha cok carpiyordu.
-            // 2. Serit sisti. Olculdu: aksam seridi 156 dp, ust seritle
-            //    birlikte 228 dp - projenin kendi 220 dp butcesinin
-            //    UZERINDE ve geriye kalan 165 dp, yine projenin kendi
-            //    173 dp tabaninin ALTINDA.
+            // 1. The headline disappeared. The brightest colour in the
+            //    palette is Warn (0.499 luminance, above Good's 0.367), so
+            //    "Spoiled 245" hit the eye harder than the profit it was
+            //    supposed to explain.
+            // 2. The strip swelled. Measured: the evening strip was 156 dp
+            //    and, with the top strip, 228 dp - OVER the project's own
+            //    220 dp budget, and the 165 dp left over was UNDER the
+            //    project's own 173 dp floor.
             //
-            // ILK DENEME DAHA KOTU YAPTI: ikincil sayilari ayri bir
-            // satira alinca serit 269 dp'ye cikti. Denetim yeni
-            // eklenmisti ve hatayi ayni turda yakaladi - bu satirlarin
-            // sebebi o.
+            // THE FIRST ATTEMPT MADE IT WORSE: moving the secondary numbers
+            // to a row of their own took the strip to 269 dp. The check had
+            // just been added and caught the fault on the same run - these
+            // lines exist because of it.
             //
-            // Simdi hepsi TEK satirda: iki manset 26 dp, dort ikincil
-            // sayi 14 dp ve etiketiyle yan yana. Hicbir sey silinmedi.
+            // Now they are all on ONE row: two headlines at 26 dp, four
+            // secondary numbers at 14 dp beside their labels. Nothing was
+            // deleted.
             VisualElement stats = Theme.Row(Theme.Pad);
             stats.style.justifyContent = Justify.SpaceAround;
             stats.style.alignItems = Align.Center;
             stats.style.flexWrap = Wrap.Wrap;
 
-            // MANSET NET KAR, ciro degil.
+            // THE HEADLINE IS NET PROFIT, not takings.
             //
-            // Ciro her zaman artiyor, kar artmiyor. Bir lokanta yonetim
-            // oyununda en buyuk sayinin ciro olmasi yanlis mansetti.
+            // Takings always go up; profit does not. In a restaurant
+            // management game, making takings the biggest number was the
+            // wrong headline.
             stats.Add(Stat(Loc.T("ui.evening.profit"), Loc.Money(r.NetProfit),
                            r.NetProfit >= 0 ? Theme.Good : Theme.Bad));
             if (App.HasYesterday)
-                stats.Add(Delta(r.NetProfit - App.Yesterday.NetProfit, para: true));
+                stats.Add(Delta(r.NetProfit - App.Yesterday.NetProfit, money: true));
 
             stats.Add(Stat(Loc.T("ui.hud.served"), r.ServedPeople.ToString(), Theme.Ink));
             if (App.HasYesterday)
-                stats.Add(Delta(r.ServedPeople - App.Yesterday.ServedPeople, para: false));
+                stats.Add(Delta(r.ServedPeople - App.Yesterday.ServedPeople, money: false));
 
             stats.Add(Small(Loc.T("ui.evening.revenue"),
                             Loc.Money(r.Revenue), Theme.InkDim));
-            // SERIT TOPLAMI GOSTERIYOR, o yuzden adi da toplamin adi.
+            // THE STRIP SHOWS THE TOTAL, so its name is the total's name.
             stats.Add(Small(Loc.T("ui.evening.lost"), r.AngryParties.ToString(),
                             r.AngryParties > 0 ? Theme.Bad : Theme.InkDim));
             stats.Add(Small(Loc.T("ui.evening.satisfaction"),
                             Loc.Reputation(r.AverageSatisfactionCenti),
                             Theme.ReputationColor(r.AverageSatisfactionCenti)));
 
-            // COPE GIDEN, AKSAM OZETINDE DE.
+            // WHAT GOES IN THE BIN, IN THE EVENING SUMMARY TOO.
             //
-            // Yalnizca "Gun Raporu" dugmesine basan oyuncu goruyordu ve
-            // o ikincil bir ekran. Oysa bu, oyunun en buyuk gorunmez
-            // gideri: iyi oynayan bir oyuncu altmis gunde aldigi
-            // malzemenin onemli bir kismini cope atiyor ve kasanin neden
-            // dolmadigini hicbir yerde bulamiyordu.
+            // Only a player who pressed the "Day Report" button saw it, and
+            // that is a secondary screen. And yet this is the game's biggest
+            // invisible cost: a player playing well throws away a
+            // substantial part of the ingredients they buy over sixty days
+            // and had nowhere to find out why the till was not filling.
             if (r.SpoiledValue > 0)
                 stats.Add(Small(Loc.T("ui.evening.spoiled"),
                                 Loc.Money(r.SpoiledValue), Theme.Warn));
 
             col.Add(stats);
 
-            // GUN RAPORU BIRINCIL, "ERTESI GUN" IKINCIL.
+            // THE DAY REPORT IS PRIMARY, "NEXT DAY" SECONDARY.
             //
-            // Once tam tersiydi: rapor gri ve ikincil, "Ertesi gun"
-            // turuncu ve birincildi. Altmis gunluk bir kampanyada
-            // oyuncu altmis kez turuncuya basar ve copu, moralsiz
-            // personeli, mudavim sahnelerini hic gormez - yani oyunun
-            // ogretici tarafi hic acilmaz.
+            // It used to be the other way round: the report grey and
+            // secondary, "Next day" orange and primary. In a sixty-day
+            // campaign the player presses orange sixty times and never sees
+            // the waste, the demoralised staff or the regulars' beats - so
+            // the teaching side of the game never opens at all.
             return col;
         }
 
         /// <summary>
-        /// DUNE GORE FARK.
+        /// THE DIFFERENCE AGAINST YESTERDAY.
         ///
-        /// Bir sayinin tek basina anlami yok: "568" iyi mi kotu mu
-        /// bilinmiyor. "568 (+127)" bir KARARIN sonucu. Ogrenme
-        /// dongusunu kapatan sey bu.
+        /// A number on its own means nothing: there is no telling whether
+        /// "568" is good or bad. "568 (+127)" is the result of A DECISION.
+        /// That is what closes the learning loop.
         /// </summary>
-        private static VisualElement Delta(long fark, bool para)
+        private static VisualElement Delta(long delta, bool money)
         {
-            string yazi;
-            Color renk;
-            if (fark > 0) { yazi = "+" + (para ? Loc.Money(fark) : fark.ToString()); renk = Theme.Good; }
-            else if (fark < 0) { yazi = (para ? Loc.Money(fark) : fark.ToString()); renk = Theme.Bad; }
-            else { yazi = Loc.T("ui.evening.same"); renk = Theme.InkFaint; }
+            string text;
+            Color color;
+            if (delta > 0) { text = "+" + (money ? Loc.Money(delta) : delta.ToString()); color = Theme.Good; }
+            else if (delta < 0) { text = (money ? Loc.Money(delta) : delta.ToString()); color = Theme.Bad; }
+            else { text = Loc.T("ui.evening.same"); color = Theme.InkFaint; }
 
-            Label l = Theme.Text(yazi, Theme.FontSmall, renk);
+            Label l = Theme.Text(text, Theme.FontSmall, color);
             l.style.marginLeft = -6;
             l.style.marginRight = 6;
             return l;
         }
 
-        /// <summary>Ikincil sayi: etiket ve deger AYNI satirda, kucuk.</summary>
+        /// <summary>A secondary number: label and value on THE SAME row, small.</summary>
         private static VisualElement Small(string label, string value, Color color)
         {
             VisualElement v = Theme.Row(6);
@@ -1497,12 +1538,13 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Manset sayi: etiket kucuk, deger buyuk, AYNI SATIRDA.
+        /// A headline number: small label, large value, ON THE SAME ROW.
         ///
-        /// Once iki satirdi (deger 26 dp, altinda etiket 14 dp) ve serit
-        /// 156 dp tutuyordu - ust seritle birlikte 228, butce 220.
-        /// Tek satira alinca ayni iki bilgi duruyor, serit 20 dp
-        /// kuculuyor ve buyuk-kucuk kontrasti sayiyi zaten one cikariyor.
+        /// It used to be two lines (the value at 26 dp with the label at 14
+        /// dp beneath it) and the strip came to 156 dp - 228 with the top
+        /// strip, against a budget of 220. On one line the same two pieces
+        /// of information are still there, the strip loses 20 dp, and the
+        /// large-against-small contrast already brings the number forward.
         /// </summary>
         private static VisualElement Stat(string label, string value, Color color)
         {
@@ -1516,8 +1558,8 @@ namespace Lokanta.Game.Ui
         }
 
         // =====================================================================
-        // Kopya kaldirildi: ayni dongu cekirdekte var ve "uygun mu"
-        // tanimi tek yerde durmali.
+        // A copy was removed: the same loop is in the core and the
+        // definition of "eligible" should live in one place.
         private int FirstCreditAsker() { return App.Sim.FirstCreditAsker(); }
 
         private string RegularName(int party)
@@ -1528,8 +1570,8 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Oyuncunun kendi eyleminin karsiligi. Simulasyon olaylari ayri
-        /// bir yoldan geliyor (RebuildNotices).
+        /// The answer to the player's own action. Simulation events arrive
+        /// by a separate route (RebuildNotices).
         /// </summary>
         private void Toast(string text, bool rejected = false)
         {
@@ -1544,29 +1586,30 @@ namespace Lokanta.Game.Ui
         private float _ownLeft;
 
         /// <summary>
-        /// Bildirim seridini yeniden kurar: en ustte oyuncunun kendi
-        /// eylemi, altinda simulasyondan gelen en son uc haber.
+        /// Rebuilds the notice strip: the player's own action at the top,
+        /// the three most recent items from the simulation beneath it.
         ///
-        /// Yeniden kurma YALNIZCA degisince: bir serit her karede
-        /// yeniden kurulursa, ayrilan ogeler kare basina coplenir ve
-        /// mobilde toplayiciyi tetikler.
+        /// Rebuilt ONLY on a change: a strip rebuilt every frame leaves the
+        /// detached elements as garbage every frame and triggers the
+        /// collector on mobile.
         /// </summary>
         private void RebuildNotices()
         {
-            // ILK KURULUMDA _toast HENUZ YOK.
+            // ON THE FIRST BUILD _toast DOES NOT EXIST YET.
             //
-            // Build() once alt seridi kuruyor (BuildBottom) ve bildirim
-            // alanini SONRA yaratiyor; BuildBottom buradan RebuildNotices
-            // cagirinca _toast null oluyordu ve butun ekran agaci yarim
-            // kaliyordu. Tur bunu bir NullReferenceException ile yakaladi
-            // ve dokuz dakika takildi - cunku kirilan sey ekranin
-            // KENDISIYDI, tek bir kontrol degil.
+            // Build() builds the bottom strip first (BuildBottom) and
+            // creates the notice area AFTERWARDS; when BuildBottom called
+            // RebuildNotices from in there, _toast was null and the whole
+            // screen tree was left half-built. The tour caught it with a
+            // NullReferenceException and got stuck for nine minutes -
+            // because what broke was THE SCREEN ITSELF, not a single check.
             if (_toast == null) return;
 
             _toast.Clear();
 
-            // IPUCU EN USTTE ve balonlardan farkli: kendiliginden
-            // kaybolmuyor, kapatilinca bir daha gelmiyor.
+            // THE HINT GOES AT THE TOP and differs from the bubbles: it does
+            // not disappear by itself, and once dismissed it never comes
+            // back.
             Hints.Hint hint = Hints.Current(App.Sim);
             if (hint != null)
             {
@@ -1574,14 +1617,15 @@ namespace Lokanta.Game.Ui
                 if (strip != null) _toast.Add(strip);
             }
 
-            // KABUL VE RED AYNI RENKTE OLAMAZ.
+            // ACCEPTED AND REJECTED CANNOT BE THE SAME COLOUR.
             //
-            // Kendi eyleminin karsiligi kosulsuz Accent ile
-            // yaziliyordu, yani "cay ikram edildi" ile "istek
-            // reddedildi" ayni renkte, ayni yerde, ayni suredeydi.
-            // Oyuncu kit bir mudahale hakkini harciyor ve gittigini mi
-            // gitmedigini mi RENKTEN anlayamiyordu - tam da DidIntervene
-            // yorumunun metinde cozdugu sorun, gorsel kanalda duruyordu.
+            // The answer to the player's own action was written in Accent
+            // unconditionally, so "tea was offered" and "the request was
+            // rejected" were the same colour, in the same place, for the
+            // same length of time. The player spent a scarce intervention
+            // allowance and could not tell FROM THE COLOUR whether it had
+            // gone through - exactly the problem DidIntervene's comment
+            // solved in the text, still standing in the visual channel.
             if (!string.IsNullOrEmpty(_ownText))
                 _toast.Add(Bubble(_ownText, _ownRejected ? Theme.Bad : Theme.Accent));
 
@@ -1613,14 +1657,15 @@ namespace Lokanta.Game.Ui
         }
 
         // =====================================================================
-        // Son yazilan degerler. Ust serit YALNIZCA degisince yeniden
-        // yaziliyor.
+        // The last values written. The top strip is rewritten ONLY when
+        // something changes.
         //
-        // Once her kare yazilyordu: alti alan, her biri birlestirme ve
-        // sayi bicimleme, yani saniyede yaklasik dokuz yuz kucuk ayirma.
-        // Degerler ayni kalsa bile metin URETILIYOR, cunku karsilastirma
-        // ancak uretildikten sonra yapilabiliyor. Mobilde bu, birkac
-        // saniyede bir cop toplama ve gorunur kare atlamasi demek.
+        // It used to be written every frame: six fields, each with
+        // concatenation and number formatting, so roughly nine hundred small
+        // allocations a second. Even when the values were unchanged the text
+        // was still PRODUCED, because the comparison can only be made after
+        // producing it. On mobile that means a garbage collection every few
+        // seconds and a visible dropped frame.
         private int _shownDay = -1, _shownRep = -1;
         private float _shownProgress = -1f;
         private DayPhase _shownMeterPhase = (DayPhase)(-1);
@@ -1628,35 +1673,35 @@ namespace Lokanta.Game.Ui
         private int _shownRepCap = -1;
         private long _shownCash = long.MinValue;
 
-        // Akis satirinin BILESENLERI ayri tutuluyor: birlestirilmis
-        // dizeyi karsilastirmak, once onu URETMEYI gerektiriyordu.
+        // The flow row's COMPONENTS are held separately: comparing the
+        // joined-up string required PRODUCING it first.
         private int _shownServed = -1, _shownAngry = -1, _shownOccupied = -1;
         private DayPhase _shownPhase = (DayPhase)(-1);
 
-        /// <summary>Serit ServiceComplete durumunda mi kuruldu.</summary>
+        /// <summary>Was the strip built in the ServiceComplete state.</summary>
         private bool _builtServiceDone;
 
         private IVisualElementScheduledItem _cashRun;
 
         /// <summary>
-        /// Kasa sayaci DEGERE ATLAMIYOR, sayarak gidiyor.
+        /// The till counter DOES NOT JUMP to the value, it counts up to it.
         ///
-        /// Once deger aninda degisiyordu ve 1.630 ¤'luk bir kira
-        /// tahsilati ile 12 ¤'luk bir satis ekranda AYNI seydi: sadece
-        /// artik baska bir sayi. Bir yonetim oyununda kasa, geri
-        /// bildirimin kendisi - sayarak gitmesi "bir sayi degisti"yi
-        /// "bir sey kazandin"a ceviriyor.
+        /// The value used to change instantly, and a 1,630 ¤ rent collection
+        /// and a 12 ¤ sale were THE SAME thing on screen: just a different
+        /// number now. In a management game the till is the feedback itself
+        /// - counting turns "a number changed" into "you earned something".
         ///
-        /// Kurallar:
-        ///   - Kucuk fark (10 ¤ altinda) ya da ilk yazim SAYILMIYOR;
-        ///     her kucuk satista titreyen bir sayac gurultudur.
-        ///   - Sure 360 ms, yaklasik 11 kare. Daha kisasi 30 fps'te
-        ///     birkac kareye dusuyor ve sayma gorunmuyor.
-        ///   - Yalnizca METIN degisiyor; genislik zaten sabit degil ama
-        ///     ust serit tek satir ve komsulari esnek, yani yerlesim
-        ///     yeniden hesaplansa bile tek bir satirla sinirli.
-        ///   - Yeni bir degisim gelirse eskisi IPTAL ediliyor, yoksa iki
-        ///     sayac ayni etikete yaziyor.
+        /// The rules:
+        ///   - A small difference (under 10 ¤) or the first write DOES NOT
+        ///     COUNT; a counter that flickers on every small sale is noise.
+        ///   - The duration is 360 ms, about 11 frames. Anything shorter
+        ///     comes down to a few frames at 30 fps and the counting cannot
+        ///     be seen.
+        ///   - Only the TEXT changes; the width is not fixed as such, but
+        ///     the top strip is one row and its neighbours are flexible, so
+        ///     even a relayout is confined to that one row.
+        ///   - If a new change arrives the old one is CANCELLED, or two
+        ///     counters write to the same label.
         /// </summary>
         private void CashTo(long from, long to)
         {
@@ -1669,12 +1714,12 @@ namespace Lokanta.Game.Ui
                 return;
             }
 
-            const float Sure = 0.36f;
-            float basladi = Time.unscaledTime;
+            const float Duration = 0.36f;
+            float started = Time.unscaledTime;
             _cashRun = _cash.schedule.Execute(() =>
             {
-                float t = Mathf.Clamp01((Time.unscaledTime - basladi) / Sure);
-                // Yavaslayarak: sayi once hizli akiyor, sonra oturuyor.
+                float t = Mathf.Clamp01((Time.unscaledTime - started) / Duration);
+                // Decelerating: the number runs fast at first, then settles.
                 float k = 1f - (1f - t) * (1f - t) * (1f - t);
                 long v = from + (long)((to - from) * k);
                 _cash.text = Loc.Money(t >= 1f ? to : v);
@@ -1687,9 +1732,9 @@ namespace Lokanta.Game.Ui
             Simulation sim = App.Sim;
             if (sim == null) return;
 
-            // SERVIS BITISI ASAMA DEGISTIRMIYOR: _phase hala Service.
-            // Serit yalnizca asamayi izliyordu, yani bitis ekrana hic
-            // yansimiyordu.
+            // THE END OF SERVICE DOES NOT CHANGE THE PHASE: _phase is still
+            // Service. The strip only watched the phase, so the ending was
+            // never reflected on the screen at all.
             bool done = sim.Phase == DayPhase.Service && sim.ServiceComplete;
             if (done != _builtServiceDone)
             {
@@ -1700,8 +1745,9 @@ namespace Lokanta.Game.Ui
             if (sim.Day != _shownDay)
             {
                 _shownDay = sim.Day;
-                // ROZETTE YALNIZCA SAYI: "Gun" kelimesi 46 dp'lik bir
-                // rozete sigmaz ve zaten asama etiketi hemen yaninda.
+                // JUST THE NUMBER ON THE BADGE: the word "Day" will not fit
+                // a 46 dp badge and the phase label is right beside it
+                // anyway.
                 _day.text = sim.Day.ToString(Loc.Culture);
                 if (_season != null)
                     _season.text = sim.SeasonOver
@@ -1710,44 +1756,45 @@ namespace Lokanta.Game.Ui
             }
             if (sim.Cash != _shownCash)
             {
-                long onceki = _shownCash;
+                long previous = _shownCash;
                 _shownCash = sim.Cash;
-                CashTo(onceki, sim.Cash);
-                // Plakanin uzerinde KOYU metin. Borctayken kirmizi
-                // kalmali ama plakanin uzerinde okunan bir kirmizi.
+                CashTo(previous, sim.Cash);
+                // DARK text on the plate. In debt it must stay red, but a
+                // red that reads on the plate.
                 _cash.style.color = sim.Cash < 0
                     ? new Color(0.69f, 0.12f, 0.14f) : Theme.PlateInk;
             }
-            // TAVAN DA YAZILIYOR.
+            // THE CEILING IS WRITTEN OUT TOO.
             //
-            // Simulation.ReputationCapCenti'nin yorumu "arayuz bunu
-            // gostermeli" diyordu ve hicbir ekran okumuyordu. Tavana
-            // dayanan oyuncu, iyi servis yapmaya devam ederken sayinin
-            // durdugunu goruyor ve sebebini hicbir yerden ogrenemiyordu.
+            // Simulation.ReputationCapCenti's comment said "the interface
+            // should show this" and no screen read it. A player pressed up
+            // against the ceiling sees the number stop while they carry on
+            // running a good service, with nowhere to learn why.
             if (sim.ReputationCenti != _shownRep
                 || sim.ReputationCapCenti != _shownRepCap)
             {
                 _shownRep = sim.ReputationCenti;
                 _shownRepCap = sim.ReputationCapCenti;
 
-                // Sayinin ADI da yaziyor. Once yalnizca "30,0" gorunuyordu
-                // ve iyi mi kotu mu bilgisini TEK BASINA renk tasiyordu -
-                // renk koru bir oyuncu icin hicbir sey ifade etmiyordu.
+                // The number's NAME is written too. Only "30.0" used to
+                // appear and colour ALONE carried whether that was good or
+                // bad - which meant nothing to a colour-blind player.
                 //
-                // Ve TAVAN da yaziyor: "Itibar 75,0 / 75". Tavana
-                // dayanmis bir oyuncu, servisi ne kadar iyi yaparsa
-                // yapsin sayinin kipirdamadigini goruyordu ve sebebini
-                // hicbir yerden ogrenemiyordu. Olculdu: iyi oynayan bir
-                // oyuncu yedi masada 75'e dayanip 32 gun orada kaliyor.
-                bool tavanda = sim.ReputationCenti >= sim.ReputationCapCenti;
-                // KAPSULDE ETIKET YOK: simge zaten "itibar" diyor.
-                // Tavan duruyor - tavana dayanmis oyuncu sayinin neden
-                // kipirdamadigini ancak boyle goruyor.
+                // And THE CEILING is written: "Reputation 75.0 / 75". A
+                // player pressed against the ceiling watched the number
+                // refuse to move however well they ran the service, with
+                // nowhere to learn why. Measured: a player playing well hits
+                // 75 on seven tables and sits there for 32 days.
+                bool atCap = sim.ReputationCenti >= sim.ReputationCapCenti;
+                // NO LABEL IN THE PILL: the icon already says "reputation".
+                // The ceiling stays - it is the only way a player at the
+                // ceiling sees why the number is not moving.
                 _rep.text = Loc.Reputation(sim.ReputationCenti)
                             + " / " + (sim.ReputationCapCenti / 100);
-                // Tavandayken renk bir DURUM degil bir YON bildiriyor:
-                // burasi kotu bir yer degil, buyumeden gecilemeyen bir yer.
-                _rep.style.color = tavanda
+                // At the ceiling the colour reports a DIRECTION rather than
+                // a STATE: this is not a bad place, it is a place you cannot
+                // get past without growing.
+                _rep.style.color = atCap
                     ? Theme.Warn : Theme.ReputationColor(sim.ReputationCenti);
             }
             int toRent = sim.DaysToRent;
@@ -1758,49 +1805,52 @@ namespace Lokanta.Game.Ui
                     ? Loc.T("ui.hud.rent_today", Loc.Money(sim.WeeklyBill))
                     : Loc.T("ui.hud.rent_in", toRent, Loc.Money(sim.WeeklyBill));
 
-                // Son iki gunde turuncu, kasa yetmiyorsa kirmizi: uyari
-                // ZAMANINDA gelmeli, fatura geldikten sonra degil.
+                // Amber for the last two days, red if the till is short: the
+                // warning has to come IN TIME, not after the bill has
+                // arrived.
                 _rent.style.color = sim.Cash < sim.WeeklyBill && toRent <= 2
                     ? Theme.Bad
                     : toRent <= 2 ? Theme.Warn : Theme.InkDim;
             }
 
-            // AKIS SATIRI: dize ancak SAYILAR DEGISINCE uretiliyor.
+            // THE FLOW ROW: the string is only produced WHEN THE NUMBERS
+            // CHANGE.
             //
-            // Ust seritteki diger alti alan zaten korumaliydi, bu biri
-            // degildi: her karede Loc.T(key, a, b, c) cagriliyor ve o
-            // string.Format demek - object[] dizisi, uc int kutulamasi
-            // ve bicimlenmis bir dize, degerler hic degismese bile.
-            // Kare basina ~150-200 bayt, sekiz dakikalik bir serviste
-            // ~3 MB cop, yani birkac dakikada bir gorunur bir cop
-            // toplama duraklamasi.
+            // The other six fields in the top strip were already guarded,
+            // this one was not: Loc.T(key, a, b, c) was being called every
+            // frame, and that is a string.Format - an object[] array, three
+            // int boxings and a formatted string, even when the values had
+            // not changed at all. Around 150-200 bytes a frame, so about 3
+            // MB of garbage in an eight-minute service, which is a visible
+            // collection pause every few minutes.
             //
-            // Ustelik OccupiedTables bir ozellik degil bir DONGU: her
-            // karede on dort masa taraniyordu.
+            // And OccupiedTables is not a property but a LOOP: fourteen
+            // tables were being scanned every frame.
             bool service = sim.Phase == DayPhase.Service;
 
-            // KRIZ SERIDI KENDILIGINDEN BELIRIYOR.
+            // THE CRISIS STRIP NOW APPEARS OF ITS OWN ACCORD.
             //
-            // Alt cubuk yalnizca DEGISIMLERDE kuruluyor (asama degisti,
-            // bir dugmeye basildi, servis bitti) ve kriz seridi o
-            // cubugun icinde. Yani hicbir seye dokunmayan bir oyuncuya
-            // "SABRI TUKENIYOR" uyarisi HIC gorunmuyordu - ve uyari
-            // sesi (Sfx.Upset) de calmiyordu, cunku o da serit kurulunca
-            // caliyor. Oyunun tek acil uyari kanali, oyuncunun zaten
-            // ekrana dokundugu anlara bagliydi.
+            // The bottom bar is only built ON CHANGES (the phase changed, a
+            // button was pressed, service ended) and the crisis strip lives
+            // inside that bar. So a player who touched nothing NEVER saw the
+            // "PATIENCE RUNNING OUT" warning - and the warning sound
+            // (Sfx.Upset) did not play either, because that too plays when
+            // the strip is built. The game's only urgent warning channel
+            // depended on the moments the player was already touching the
+            // screen.
             //
-            // Tur bunu goremezdi: kontrol seridin KURULUP kurulmadigini
-            // degil, simulasyonun kritik masasi olup olmadigini
-            // soruyordu.
+            // The tour could not see this: the check asked whether the
+            // simulation had a critical table, not whether the strip HAD
+            // BEEN BUILT.
             //
-            // Kosul SAYININ DEGISMESI: her karede degil, kritige bir
-            // masa girip ciktikca kuruluyor.
+            // The condition is THE COUNT CHANGING: not every frame, but as
+            // tables move into and out of critical.
             if (service)
             {
-                int kritik = CrisisTables;
-                if (kritik != _builtCrisis)
+                int critical = CrisisTables;
+                if (critical != _builtCrisis)
                 {
-                    _builtCrisis = kritik;
+                    _builtCrisis = critical;
                     BuildBottom();
                 }
             }
@@ -1819,15 +1869,16 @@ namespace Lokanta.Game.Ui
                     _shownAngry = angry;
                     _shownOccupied = occupied;
                     _shownPhase = DayPhase.Service;
-                    // "Bugun" KARTI: ust seritte sikismis tek satirin
-                    // yerini aldi. Ayni uc sayi, artik okunabilir.
+                    // The "Today" CARD: it took the place of the single
+                    // cramped row in the top strip. The same three numbers,
+                    // now readable.
                     if (_servedValue != null)
                         _servedValue.text = served.ToString(Loc.Culture);
                     if (_angryValue != null)
                     {
                         _angryValue.text = angry.ToString(Loc.Culture);
-                        // ACIK ZEMINDE KOYU KIRMIZI: Theme.Bad burada
-                        // 2,22:1 veriyordu, BadDeep 5,4:1.
+                        // DARK RED ON A LIGHT BACKGROUND: Theme.Bad gave
+                        // 2.22:1 here, BadDeep gives 5.4:1.
                         _angryValue.style.color = angry > 0
                             ? Kit.BadDeep : Theme.PlateInk;
                     }
@@ -1836,40 +1887,40 @@ namespace Lokanta.Game.Ui
                                               + " / " + sim.TableCount;
                     if (_turnedValue != null)
                     {
-                        int donen = sim.TurnedAwayParties;
-                        _turnedValue.text = donen.ToString(Loc.Culture);
-                        _turnedValue.style.color = donen > 0
+                        int turnedAway = sim.TurnedAwayParties;
+                        _turnedValue.text = turnedAway.ToString(Loc.Culture);
+                        _turnedValue.style.color = turnedAway > 0
                             ? Kit.BadDeep : Theme.PlateInk;
                     }
                 }
             }
-            // Servis disi asamalarda yalnizca DAMGA tazeleniyor: ustteki
-            // blok "_shownPhase == Service" karsilastirmasiyla calisiyor,
-            // yani asama degisimi burada kaydedilmezse servise donuldugunde
-            // "Bugun" karti bir kare geride kalir.
+            // Outside service only the STAMP is refreshed: the block above
+            // works off the "_shownPhase == Service" comparison, so if the
+            // phase change is not recorded here the "Today" card lags a
+            // frame behind when service comes round again.
             else if (sim.Phase != _shownPhase) _shownPhase = sim.Phase;
 
-            // ASAMA ETIKETI VE GUN CUBUGU.
+            // THE PHASE LABEL AND THE DAY BAR.
             //
-            // Cubuk servis gununun ne kadarinin gectigini gosteriyor -
-            // oyunda bu sayi vardi (ServiceProgressBp; isik, golge ve
-            // sokak lambalari ondan okunuyor) ama oyuncuya HIC
-            // gosterilmiyordu. "Ne kadar kaldi" sorusunun cevabi
-            // yalnizca gokyuzunun renginde duruyordu.
+            // The bar shows how much of the service day has gone - the game
+            // had this number (ServiceProgressBp; the light, the shadows and
+            // the street lamps all read from it) but it was NEVER shown to
+            // the player. The answer to "how long is left" existed only in
+            // the colour of the sky.
             if (_phaseLabel != null && _meterFill != null)
             {
-                float oran = sim.Phase == DayPhase.Service
+                float ratio = sim.Phase == DayPhase.Service
                     ? sim.ServiceProgressBp / 10000f
                     : (sim.Phase == DayPhase.Evening ? 1f : 0f);
-                if (Mathf.Abs(oran - _shownProgress) > 0.004f
+                if (Mathf.Abs(ratio - _shownProgress) > 0.004f
                     || sim.Phase != _shownMeterPhase)
                 {
-                    _shownProgress = oran;
+                    _shownProgress = ratio;
                     _shownMeterPhase = sim.Phase;
-                    _meterFill.style.width = Length.Percent(oran * 100f);
-                    // Aksamda cubuk DOLU ve sonuk: gun bitti demek.
-                    // Theme.Line ile doldurulunca "bos cubuk" gibi
-                    // okunuyordu - dolu ile bos ayirt edilemiyordu.
+                    _meterFill.style.width = Length.Percent(ratio * 100f);
+                    // In the evening the bar is FULL and muted: the day is
+                    // over. Filled with Theme.Line it read as "an empty bar"
+                    // - full and empty could not be told apart.
                     _meterFill.style.backgroundColor =
                         sim.Phase == DayPhase.Service ? Theme.Accent
                         : (sim.Phase == DayPhase.Evening ? Theme.AccentDim
@@ -1878,17 +1929,17 @@ namespace Lokanta.Game.Ui
                 }
             }
 
-            // DURUM KARTLARI: ciro ve memnuniyet.
+            // THE STAT CARDS: takings and satisfaction.
             //
-            // Ikisi de gun raporunda vardi, yani gun BITTIKTEN sonra.
-            // Oyuncunun servis sirasinda "iyi mi gidiyor" sorusuna
-            // bakacagi hicbir sey yoktu.
+            // Both were in the day report, that is, AFTER the day had ended.
+            // There was nothing for the player to look at during service to
+            // answer "is this going well".
             if (_revenue != null)
             {
-                int imza = (int)(sim.Revenue % 1000000L) * 100 + sim.AverageSatisfactionCenti;
-                if (imza != _shownRevenueDay)
+                int signature = (int)(sim.Revenue % 1000000L) * 100 + sim.AverageSatisfactionCenti;
+                if (signature != _shownRevenueDay)
                 {
-                    _shownRevenueDay = imza;
+                    _shownRevenueDay = signature;
                     _revenue.text = Loc.Money(sim.Revenue);
                     if (_satisfaction != null)
                     {
@@ -1903,17 +1954,17 @@ namespace Lokanta.Game.Ui
             if (sim.Phase != _builtPhase) BuildBottom();
             if (sim.Phase != _builtCards) BuildCards();
 
-            // Bekleyen hikaye sahnesi varsa aksamda aciliyor.
+            // A pending story beat opens in the evening.
             //
-            // ASAMA DEGISIMINE bagli DEGIL: "Gunu Kapat" dugmesi
-            // BuildBottom'i kendi icinde cagiriyor, yani _builtPhase
-            // Tick calismadan once guncelleniyor ve gecis hic
-            // gorunmuyordu. Kosul durumun KENDISI olmali, degisimi degil.
+            // NOT tied to THE PHASE CHANGING: the "Close the day" button
+            // calls BuildBottom itself, so _builtPhase is updated before
+            // Tick runs and the transition was never seen. The condition has
+            // to be THE STATE ITSELF, not a change in it.
             if (sim.Phase == DayPhase.Evening && App.HasStory && Ui.Top == this)
                 Ui.Push(new StoryScreen());
 
-            // Bildirimler: kendi eylemimin balonu sure dolunca gidiyor,
-            // simulasyondan gelenleri GameApp yasllandiriyor.
+            // Notices: the bubble for my own action goes when its time is
+            // up; the ones from the simulation are aged by GameApp.
             bool dirty = App.NoticesChanged;
             if (_ownLeft > 0f)
             {
@@ -1937,8 +1988,9 @@ namespace Lokanta.Game.Ui
             }
         }
 
-        // Oyun ekraninda geri tusu duraklatma menusunu aciyor, oyundan
-        // atmiyor. Kazayla kampanyadan cikmak kabul edilemez.
+        // On the game screen the back key opens the pause menu rather than
+        // throwing you out of the game. Leaving a campaign by accident is
+        // not acceptable.
         public override bool OnBack()
         {
             Ui.Push(new PauseScreen());

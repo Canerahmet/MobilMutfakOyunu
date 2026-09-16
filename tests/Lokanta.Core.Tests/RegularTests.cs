@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Lokanta.Content;
 using Lokanta.Core.Content;
@@ -11,13 +11,14 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Isimli duzenli musteriler. docs/11: "isimli musteri tek bir kisidir,
-    /// elle yazilmistir, hikayesi vardir ve hep ayni kisidir. Arketip ise
-    /// binlerce musteri uretir."
+    /// Named regular customers. docs/11: "a named customer is one single person,
+    /// written by hand, with a story, and always the same person. An archetype, by
+    /// contrast, produces thousands of customers."
     ///
-    /// En onemli degismez en altta: duzenli musteri talebi SISIRMIYOR.
-    /// Isimli musteri, gunun planindan yer ALIYOR; aksi halde her yeni isim
-    /// ekonomiyi buyutur ve kalibrasyon her icerik eklemesinde kayardi.
+    /// The most important invariant is at the bottom: a regular DOES NOT INFLATE
+    /// the demand. A named customer TAKES a place in the day's plan; otherwise
+    /// every new name would grow the economy and the calibration would drift with
+    /// every content addition.
     /// </summary>
     public class RegularTests
     {
@@ -68,89 +69,90 @@ namespace Lokanta.Core.Tests
         }
 
         // ====================================================================
-        // Icerik
+        // Content
         // ====================================================================
         [Theory]
         [InlineData("fastfood")]
         [InlineData("turk")]
-        public void Mutfak_basina_on_duzenli_musteri(string cuisine)
+        public void Ten_regulars_per_cuisine(string cuisine)
         {
             ContentSet c = Content(cuisine);
-            Assert.Equal(10, c.Regulars.Length);      // docs/09 envanteri
+            Assert.Equal(10, c.Regulars.Length);      // the docs/09 inventory
 
             foreach (RegularDef r in c.Regulars)
             {
                 Assert.True(r.ArchetypeIndex >= 0 && r.ArchetypeIndex < c.Archetypes.Length);
                 Assert.True(r.FavouriteDish >= 0 && r.FavouriteDish < c.Dishes.Length);
                 Assert.True(r.ArrivesFromDay >= 1);
-                Assert.Equal(3, r.Story.Length);       // docs/09: uc ile dort sahne
+                Assert.Equal(3, r.Story.Length);       // docs/09: three to four beats
             }
         }
 
         [Fact]
-        public void Sevdigi_yemek_geldigi_gun_ACIK_olmali()
+        public void Their_favourite_dish_must_be_OPEN_on_the_day_they_arrive()
         {
-            // Yoksa mekanik ilk gunden haksiz calisir: oyuncunun elinde
-            // olmayan bir eksikle karsilanir.
+            // Otherwise the mechanic runs unfairly from day one: they are met with
+            // a failing that is out of the player's hands.
             foreach (string cuisine in new[] { "fastfood", "turk" })
             {
                 ContentSet c = Content(cuisine);
                 foreach (RegularDef r in c.Regulars)
                     Assert.True(c.Dishes[r.FavouriteDish].UnlockDay <= r.ArrivesFromDay,
-                                cuisine + "/" + r.Id + " sevdigi yemek kapali geliyor");
+                                cuisine + "/" + r.Id + " arrives while their favourite dish is closed");
             }
         }
 
         [Fact]
-        public void Veresiye_adayi_yalnizca_Turk_mutfaginda()
+        public void Tab_candidates_exist_only_in_the_Turkish_cuisine()
         {
-            // docs/07: veresiye Turk mutfaginin imza mekanigi. Fast food'da
-            // uygun bir duzenli musteri yazmak, hic calismayacak alan yazmak.
-            int turk = 0;
+            // docs/07: the tab is the Turkish cuisine's signature mechanic. Writing
+            // an eligible regular in fast food means writing a field that will
+            // never run.
+            int turkish = 0;
             foreach (RegularDef r in Content("turk").Regulars)
-                if (r.VeresiyeEligible) turk++;
-            Assert.True(turk >= 4, "Turk mutfaginda veresiye adayi az");
+                if (r.TabEligible) turkish++;
+            Assert.True(turkish >= 4, "too few tab candidates in the Turkish cuisine");
 
             foreach (RegularDef r in Content("fastfood").Regulars)
-                Assert.False(r.VeresiyeEligible);
+                Assert.False(r.TabEligible);
         }
 
         [Fact]
-        public void Baska_mutfagin_veresiye_adayi_reddediliyor()
+        public void A_tab_candidate_from_another_cuisine_is_rejected()
         {
             List<RegularDto> regs = Load<List<RegularDto>>("regulars", "fastfood.json");
-            regs[0].VeresiyeEligible = true;
+            regs[0].TabEligible = true;
 
             ContentException ex = Assert.Throws<ContentException>(
                 () => BuildFastfood(regs));
             _out.WriteLine(ex.Message);
-            Assert.Contains("veresiye", ex.Message);
+            Assert.Contains("eligible for a tab", ex.Message);
         }
 
         [Fact]
-        public void Olmayan_arketip_reddediliyor()
+        public void A_non_existent_archetype_is_rejected()
         {
             List<RegularDto> regs = Load<List<RegularDto>>("regulars", "fastfood.json");
-            regs[2].ArchetypeBase = "olmayan_arketip";
+            regs[2].ArchetypeBase = "olmayan_arketip";   // "a nonexistent archetype"
             Assert.Throws<ContentException>(() => BuildFastfood(regs));
         }
 
         [Fact]
-        public void Kapali_yemegi_seven_musteri_reddediliyor()
+        public void A_customer_whose_favourite_dish_is_locked_is_rejected()
         {
             List<RegularDto> regs = Load<List<RegularDto>>("regulars", "fastfood.json");
-            regs[0].FavouriteDish = "buzlu_cay";        // 50. gunde aciliyor
+            regs[0].FavouriteDish = "buzlu_cay";        // unlocks on day 50
             ContentException ex = Assert.Throws<ContentException>(
                 () => BuildFastfood(regs));
             _out.WriteLine(ex.Message);
-            Assert.Contains("gunde aciliyor", ex.Message);
+            Assert.Contains("unlocks on day", ex.Message);
         }
 
         [Fact]
-        public void Bozuk_hikaye_sirasi_reddediliyor()
+        public void A_broken_story_order_is_rejected()
         {
             List<RegularDto> regs = Load<List<RegularDto>>("regulars", "fastfood.json");
-            regs[0].Story[2].RequiresVisits = 1;        // azalan esik
+            regs[0].Story[2].RequiresVisits = 1;        // a decreasing threshold
             Assert.Throws<ContentException>(() => BuildFastfood(regs));
         }
 
@@ -174,14 +176,15 @@ namespace Lokanta.Core.Tests
         }
 
         // ====================================================================
-        // Davranis
+        // Behaviour
         // ====================================================================
         [Fact]
-        public void Talebi_SISIRMIYOR()
+        public void They_DO_NOT_INFLATE_the_demand()
         {
-            // Bu dosyanin varlik sebebi. Isimli musteri gunun planindan yer
-            // ALIYOR, planina EKLENMIYOR. Ayni tohumla, duzenli musterisi
-            // olan ve olmayan iki icerik ayni sayida musteri planlamali.
+            // This file's reason to exist. A named customer TAKES a place in the
+            // day's plan, they are not ADDED to it. With the same seed, content
+            // with regulars and content without must plan the same number of
+            // customers.
             ContentSet withReg = Content("turk");
             ContentSet without = ContentSetLoader.Build(
                 "turk",
@@ -195,19 +198,19 @@ namespace Lokanta.Core.Tests
             Assert.NotEmpty(withReg.Regulars);
             Assert.Empty(without.Regulars);
 
-            // Ilk duzenli musteri UCUNCU gun geliyor. Yani 1. ve 2. gun iki
-            // kosuda birebir ayni, dolayisiyla 3. gunun itibari da ayni -
-            // ve 3. gunun PLANI ayni cikmali. Bu, mekanigin yapisal
-            // degismezini yalitiyor.
+            // The first regular arrives on the THIRD day. So days 1 and 2 are
+            // identical in both runs, which means day 3's reputation is identical
+            // too - and day 3's PLAN must come out identical. This isolates the
+            // mechanic's structural invariant.
             //
-            // Sonraki gunlerde sayilar AYRISIYOR ve ayrilmalari dogru:
-            // sevdigi yemegi bulan musteri daha memnun ayriliyor, itibar
-            // farkli isliyor, talep farkli oluyor. O fark mekanigin ta
-            // kendisi; sisirme degil.
+            // On the days after that the numbers DIVERGE, and it is right that
+            // they should: a customer who finds their favourite dish leaves happier,
+            // the reputation moves differently, the demand differs. That difference
+            // is the mechanic itself; it is not inflation.
             int[] a = PlannedDays(withReg, 3);
             int[] b = PlannedDays(without, 3);
-            _out.WriteLine($"duzenli musterili {string.Join(", ", a)}");
-            _out.WriteLine($"musterisiz      {string.Join(", ", b)}");
+            _out.WriteLine($"with regulars    {string.Join(", ", a)}");
+            _out.WriteLine($"without regulars {string.Join(", ", b)}");
             Assert.Equal(b, a);
         }
 
@@ -235,12 +238,13 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Gununden_once_gelmiyor()
+        public void They_do_not_arrive_before_their_day()
         {
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
 
-            // En gec gelen musteri 44. gunde; 20. gune kadar o hic gorunmemeli.
+            // The latest customer arrives on day 44; they must not show up at all
+            // before day 20.
             int late = c.Regulars.Length - 1;
             Assert.True(c.Regulars[late].ArrivesFromDay > 20);
 
@@ -249,7 +253,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Erken_gelen_musteri_ugruyor()
+        public void An_early_customer_does_call_in()
         {
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
@@ -259,16 +263,16 @@ namespace Lokanta.Core.Tests
             for (int i = 0; i < c.Regulars.Length; i++)
             {
                 if (sim.RegularVisits(i) > 0)
-                    _out.WriteLine($"{c.Regulars[i].Id,-16} {sim.RegularVisits(i),3} ziyaret, " +
-                                   $"ort. memnuniyet {sim.RegularSatisfactionCenti(i) / 100.0:0.0}, " +
-                                   $"sahne {sim.RegularBeat(i)}");
+                    _out.WriteLine($"{c.Regulars[i].Id,-16} {sim.RegularVisits(i),3} visits, " +
+                                   $"avg satisfaction {sim.RegularSatisfactionCenti(i) / 100.0:0.0}, " +
+                                   $"beat {sim.RegularBeat(i)}");
                 visits += sim.RegularVisits(i);
             }
-            Assert.True(visits > 0, "otuz gunde hicbir duzenli musteri gelmedi");
+            Assert.True(visits > 0, "not one regular came in thirty days");
         }
 
         [Fact]
-        public void Hikaye_sahnesi_ziyaretle_aciliyor()
+        public void A_story_beat_opens_with_visits()
         {
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
@@ -280,10 +284,10 @@ namespace Lokanta.Core.Tests
                 opened += sim.RegularBeat(i);
                 if (sim.RegularBeat(i) > top) top = sim.RegularBeat(i);
             }
-            _out.WriteLine($"altmis gunde {opened} sahne acildi, en ileri musteri {top}. sahnede");
+            _out.WriteLine($"{opened} beats opened in sixty days, the furthest customer is on beat {top}");
 
-            Assert.True(opened > 0, "altmis gunde hicbir hikaye sahnesi acilmadi");
-            // Sahne, ESIGI karsilamadan acilmamali.
+            Assert.True(opened > 0, "not one story beat opened in sixty days");
+            // A beat must not open before its THRESHOLD is met.
             for (int i = 0; i < c.Regulars.Length; i++)
             {
                 int beat = sim.RegularBeat(i);
@@ -293,7 +297,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Kayit_duzenli_musteri_gecmisini_tasiyor()
+        public void The_save_carries_the_regulars_history()
         {
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
@@ -315,12 +319,12 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Veresiye_artik_ISIMLI_musteriye_aciliyor()
+        public void A_tab_is_now_opened_for_a_NAMED_customer()
         {
-            // docs/13 veresiyeEligible alanini duzenli musteri dosyasina
-            // koymus, ve dogrusu bu: veresiye adini bildigin birine acilir.
-            // Once kural "sik gelen arketip"ten turetiliyordu - calisan ama
-            // kimliksiz bir yaklasimdi.
+            // docs/13 put the tab eligibility field in the regulars file, and that
+            // is the right place for it: a tab is opened for someone whose name you
+            // know. The rule used to be derived from "a frequently arriving
+            // archetype" - an approach that worked but had no identity to it.
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
             while (sim.Day < sim.SignatureFromDay) RunOneDay(sim, c);
@@ -338,8 +342,8 @@ namespace Lokanta.Core.Tests
                     {
                         if (!sim.CreditEligible(p)) continue;
                         int reg = sim.PartyRegular(p);
-                        Assert.True(reg >= 0, "isimsiz musteriye veresiye aciliyor");
-                        Assert.True(c.Regulars[reg].VeresiyeEligible);
+                        Assert.True(reg >= 0, "a tab is being opened for a nameless customer");
+                        Assert.True(c.Regulars[reg].TabEligible);
                         checkedParties++;
                     }
                     if (sim.ServiceComplete) break;
@@ -347,8 +351,8 @@ namespace Lokanta.Core.Tests
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
                 sim.AdvanceToNextDay();
             }
-            _out.WriteLine($"{checkedParties} kez veresiye uygunlugu goruldu");
-            Assert.True(checkedParties > 0, "yirmi gunde hic veresiye istenmedi");
+            _out.WriteLine($"tab eligibility was seen {checkedParties} times");
+            Assert.True(checkedParties > 0, "no tab was ever asked for in twenty days");
         }
     }
 }

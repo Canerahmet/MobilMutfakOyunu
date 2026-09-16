@@ -1,27 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-Icerik-kod sozlesme denetleyicisi
+The content-code contract checker
 ============================================================================
-Tek soruyu soruyor: **icerikteki her alanin simulasyonda karsiligi var mi?**
+It asks one question: **does every field in the content have something
+that answers to it in the simulation?**
 
-10 Eylul 2026'da bir gunde dort ayri hata bulundu ve dordu de ayni siniftan:
-icerik bir sey vaat ediyor, simulasyon onu hic okumuyor.
+On 10 September 2026 four separate bugs were found in one day, and all
+four were of the same class: the content promises something and the
+simulation never reads it.
 
-  spoilDays        44 malzemenin raf omru yazilmisti, kod hepsini gece siliyordu
-  tatli grubu      9 tatli yemegi vardi, PickOrder tatliya hic bakmiyordu
-  yemek gruplari   mutfaga ozel tasarlanmisti, kod fast food sozlugunu sabitlemisti
-  attendBp         docs/27 Karar D aylardir kagittaydi, mutfak uygulamamisti
+  spoilDays      the shelf life of 44 ingredients was written down; the
+                 code deleted all of them overnight
+  dessert group  there were 9 dessert dishes; PickOrder never looked at
+                 desserts
+  dish groups    they were designed per cuisine; the code had hard-coded
+                 the fast food dictionary
+  attendBp       docs/27 Decision D had been on paper for months; the
+                 kitchen had not implemented it
 
-Hicbiri derlemeyi bozmuyor, hicbiri testi kirmiyor, hepsi SESSIZCE olu.
-Bu betik o sinifi mekanik olarak tariyor:
+None of these break the build, none of them break a test, all of them
+are SILENTLY dead. This script scans for that class mechanically:
 
-  1. content/*.json icindeki butun anahtarlar
-  2. DTO'larin bagladigi anahtarlar  ([JsonProperty])
-  3. Cekirdek tiplerinin actigi ozellikler
-  4. O ozelliklerin cekirdekte GERCEKTEN okunup okunmadigi
+  1. every key in content/*.json
+  2. the keys the DTOs bind  ([JsonProperty])
+  3. the properties the core types expose
+  4. whether those properties are REALLY read in the core
 
-Calistirma:  python tools/audit_content.py
-Cikis kodu:  bulgu varsa 1
+Run with:  python tools/audit_content.py
+Exit code: 1 if there is a finding
 """
 from __future__ import print_function
 
@@ -37,83 +43,85 @@ ASSETS = os.path.join(ROOT, "unity", "Assets", "Lokanta")
 CORE = os.path.join(ASSETS, "Core")
 DTO_DIR = os.path.join(ASSETS, "Content")
 
-# Bu anahtarlar bilincli olarak kodda okunmuyor; sebebi yaninda.
+# These keys are deliberately not read in the code; the reason is next to each.
 IGNORED_KEYS = {
-    "_comment": "uretilen dosya notu",
-    "schemaVersion": "surum damgasi, henuz gocurme yok",
-    "id": "kimlik, Def kurucusunda tasiniyor",
-    "nameKey": "gorunum metni, cekirdek metin bilmiyor",
-    "source": "altin veri kaynagi notu",
-    "wardrobe": "sanat hatti, cekirdek disi (docs/24)",
-    "cuisines": "yukleme suzgeci",
-    "cuisine": "yukleme suzgeci",
-    "tier": "TierIndex olarak baglaniyor",
-    "tiers": "yapisal",
-    "roles": "yapisal",
-    "stations": "yapisal",
-    "storage": "yapisal",
-    "order": "yapisal",
-    "staffing": "yapisal",
-    "menuRoles": "yapisal",
-    "main": "menuRoles yapisal",
-    "side": "menuRoles yapisal",
-    "drink": "menuRoles yapisal",
-    "dessert": "menuRoles yapisal",
-    "weeks": "altin veri, testte okunuyor",
-    "toleranceCenti": "altin veri, testte okunuyor",
+    "_comment": "the generated-file note",
+    "schemaVersion": "a version stamp, no migration yet",
+    "id": "the identity, carried in the Def constructor",
+    "nameKey": "display text; the core knows no text",
+    "source": "a note on the golden data source",
+    "wardrobe": "the art pipeline, outside the core (docs/24)",
+    "cuisines": "a load filter",
+    "cuisine": "a load filter",
+    "tier": "bound as TierIndex",
+    "tiers": "structural",
+    "roles": "structural",
+    "stations": "structural",
+    "storage": "structural",
+    "order": "structural",
+    "staffing": "structural",
+    "menuRoles": "structural",
+    "main": "menuRoles, structural",
+    "side": "menuRoles, structural",
+    "drink": "menuRoles, structural",
+    "dessert": "menuRoles, structural",
+    "weeks": "golden data, read in the test",
+    "toleranceCenti": "golden data, read in the test",
 
-    # --- gorunum ve sanat: cekirdek bunlari bilmiyor, bilmemeli ---
-    "plating": "tabak sunumu, sanat hatti (docs/24)",
-    "toppings": "tabak sunumu, sanat hatti",
-    "base": "tabak sunumu, sanat hatti",
-    "unit": "malzeme birimi (kg), gorunum metni",
+    # --- presentation and art: the core does not know these, and must not ---
+    "plating": "plate presentation, the art pipeline (docs/24)",
+    "toppings": "plate presentation, the art pipeline",
+    "base": "plate presentation, the art pipeline",
+    "unit": "the ingredient unit (kg), display text",
 
-    # --- Dictionary olarak baglanan ic anahtarlar ---
-    "dusuk": "qualityPriceMultiplierBp icindeki kalite anahtari",
-    "standart": "qualityPriceMultiplierBp icindeki kalite anahtari",
-    "yuksek": "qualityPriceMultiplierBp icindeki kalite anahtari",
-    "ilkbahar": "seasonModifierBp icindeki mevsim anahtari",
-    "yaz": "seasonModifierBp icindeki mevsim anahtari",
-    "sonbahar": "seasonModifierBp icindeki mevsim anahtari",
-    "kis": "seasonModifierBp icindeki mevsim anahtari",
-    "fastfood": "cuisineStations icindeki mutfak anahtari",
-    "turk": "cuisineStations icindeki mutfak anahtari",
-    "cuisineStations": "yapisal",
-    # Huy etkileri Dictionary<string,int> olarak baglaniyor; DTO'da alan
-    # olarak gorunmuyorlar. Karsiligi TraitDef ozellikleri.
-    "speedBp": "TraitDef.SpeedBp (effects sozlugu)",
-    "satisfactionCenti": "TraitDef.SatisfactionCenti (effects sozlugu)",
-    "wageBp": "TraitDef.WageBp (effects sozlugu)",
-    "xpBp": "TraitDef.XpBp (effects sozlugu)",
-    "peakPenaltyBp": "TraitDef.PeakPenaltyBp (effects sozlugu)",
-    "fatiguePenaltyBp": "TraitDef.FatiguePenaltyBp (effects sozlugu)",
-    "moraleAura": "TraitDef.MoraleAura (effects sozlugu)",
-    "peakImmune": "TraitDef.PeakImmune (effects sozlugu)",
-    "fatigueImmune": "TraitDef.FatigueImmune (effects sozlugu)",
-    "qualityBp": "TraitDef.QualityBp (effects sozlugu)",
-    "cleanlinessBp": "TraitDef.CleanlinessBp (effects sozlugu)",
-    "ownerPool": "DEGISMEZ: ContentLoader 'salon' disini reddediyor (docs/14)",
-    "unlockSeason": "DEGISMEZ: unlockDay'den turetiliyor, yuklemede dogrulaniyor",
-    "weeklyWageMultiplierBp": "DEGISMEZ: weeklyXpWageGrowthBp'nin bilesikleri",
+    # --- inner keys bound as a Dictionary ---
+    "dusuk": "a quality key inside qualityPriceMultiplierBp (low)",
+    "standart": "a quality key inside qualityPriceMultiplierBp (standard)",
+    "yuksek": "a quality key inside qualityPriceMultiplierBp (high)",
+    "ilkbahar": "a season key inside seasonModifierBp (spring)",
+    "yaz": "a season key inside seasonModifierBp (summer)",
+    "sonbahar": "a season key inside seasonModifierBp (autumn)",
+    "kis": "a season key inside seasonModifierBp (winter)",
+    "fastfood": "a cuisine key inside cuisineStations",
+    "turk": "a cuisine key inside cuisineStations",
+    "cuisineStations": "structural",
+    # Trait effects are bound as a Dictionary<string,int>; they do not
+    # appear as fields on the DTO. What answers to them are the TraitDef
+    # properties.
+    "speedBp": "TraitDef.SpeedBp (the effects dictionary)",
+    "satisfactionCenti": "TraitDef.SatisfactionCenti (the effects dictionary)",
+    "wageBp": "TraitDef.WageBp (the effects dictionary)",
+    "xpBp": "TraitDef.XpBp (the effects dictionary)",
+    "peakPenaltyBp": "TraitDef.PeakPenaltyBp (the effects dictionary)",
+    "fatiguePenaltyBp": "TraitDef.FatiguePenaltyBp (the effects dictionary)",
+    "moraleAura": "TraitDef.MoraleAura (the effects dictionary)",
+    "peakImmune": "TraitDef.PeakImmune (the effects dictionary)",
+    "fatigueImmune": "TraitDef.FatigueImmune (the effects dictionary)",
+    "qualityBp": "TraitDef.QualityBp (the effects dictionary)",
+    "cleanlinessBp": "TraitDef.CleanlinessBp (the effects dictionary)",
+    "ownerPool": "FIXED: ContentLoader rejects anything but 'hall' (docs/14)",
+    "unlockSeason": "FIXED: derived from unlockDay, verified on load",
+    "weeklyWageMultiplierBp": "FIXED: the components of weeklyXpWageGrowthBp",
 }
 
-# TASARLANDI AMA YAZILMADI. Bunlar hata degil, KUYRUK. Denetleyici ayri
-# bir baslikta gosteriyor ki "yok sayilanlar" ile karismasinlar; bir sistem
-# yazildiginda buradan silinmeli.
+# DESIGNED BUT NOT BUILT. These are not errors, they are the QUEUE. The
+# checker shows them under a separate heading so they do not get mixed up
+# with the ignored ones; when a system is built it must be deleted from
+# here.
 PLANNED = {
-    "unlockSeason": "mevsime bagli yemek kilidi (docs/09)",
-    "kitchenMsPerPerson": "docs/27 turetimi; prepMs icerikten geliyor",
+    "unlockSeason": "the season-based dish lock (docs/09)",
+    "kitchenMsPerPerson": "the docs/27 derivation; prepMs comes from the content",
 }
 
-# --- 4. kontrolun sozlukleri --------------------------------------------
+# --- the dictionaries for check 4 ---------------------------------------
 #
-# docs/13 semasi Faz 0'DAN ONCE yazildi ve docs/23 2.2 sonradan butun
-# birimleri tamsayiya cevirdi (saniye -> ms, ondalik -> baz puan). Yani
-# semadaki bircok ad, UYGULANMIS bir alanin eski adi. Denetleyici bunlari
-# "eksik" diye sayarsa gercek eksikler 63 satirin icinde kayboluyor -
-# nitekim kayboluyordu.
+# The schema in docs/13 was written BEFORE Phase 0, and docs/23 2.2 later
+# turned every unit into an integer (seconds -> ms, decimals -> basis
+# points). So many of the names in the schema are the old names of a
+# field that IS implemented. If the checker counted these as "missing",
+# the real gaps would disappear among 63 lines - and they did.
 SCHEMA_RENAMED = {
-    # economy.json - docs/23 2.2 tamsayi birimleri
+    # economy.json - the integer units of docs/23 2.2
     "serviceSeconds": "serviceMs",
     "startingReputation": "startingReputationCenti",
     "weekendMultiplier": "weekendMultiplierBp",
@@ -150,66 +158,67 @@ SCHEMA_RENAMED = {
     # cuisines.json
     "signatureMechanic": "signature.kind",
     "teaService": "signature.credit.teaCostCenti",
-    "hourSplit": "slotDurationsBp (docs/28 Karar G: pay degil SURE)",
+    "hourSplit": "slotDurationsBp (docs/28 Decision G: a DURATION, not a share)",
     "acilis": "slotDurationsBp[0]",
     "ogle": "slotDurationsBp[1]",
     "ogleden_sonra": "slotDurationsBp[2]",
     "aksam": "slotDurationsBp[3]",
 }
 
-# Semada YAZILI ama icerige yazilmayan, cunku ZATEN YUKLU alanlardan
-# TURETILIYOR. docs/34 11: elle yazilan tablo, ayni karakteri ikinci kez
-# yazmaktir ve iki yerde yazilan sey sessizce ayrisir.
+# WRITTEN in the schema but not written into the content, because it is
+# DERIVED from fields that are ALREADY LOADED. docs/34 11: a hand-written
+# table is writing the same character a second time, and what is written
+# in two places drifts apart silently.
 SCHEMA_DERIVED = {
-    "orderPreference": "priceSensitivityBp + tipChanceBp'den turetiliyor",
+    "orderPreference": "derived from priceSensitivityBp + tipChanceBp",
     "spendTendency": "priceSensitivityBp",
-    "regularChance": "arketip weight + tierIndex",
-    "perishableRatio": "malzemelerin perishable alanindan sayiliyor",
-    "marketPrice": "basePrice x mevsim x gunluk hal oynamasi",
-    "sulu": "orderPreference ornegindeki grup adi",
-    "corba": "orderPreference ornegindeki grup adi",
-    "pilav": "orderPreference ornegindeki grup adi",
+    "regularChance": "the archetype weight + tierIndex",
+    "perishableRatio": "counted from the ingredients' perishable field",
+    "marketPrice": "basePrice x season x the daily market swing",
+    "sulu": "a group name in the orderPreference example (stew)",
+    "corba": "a group name in the orderPreference example (soup)",
+    "pilav": "a group name in the orderPreference example (pilaf)",
 }
 
-# GERCEKTEN YAZILMAMIS. Kuyruk bu; her satir bir sistem.
+# GENUINELY NOT BUILT. This is the queue; every line is a system.
 SCHEMA_PLANNED = {
-    # regulars/*.json - dosya hic yok
-    "archetypeBase": "isimli duzenli musteri (docs/11)",
-    "arrivesFromDay": "isimli duzenli musteri (docs/11)",
-    "favouriteDish": "isimli duzenli musteri (docs/11)",
-    "jobKey": "isimli duzenli musteri (docs/11)",
-    "veresiyeEligible": "isimli duzenli musteri; su an SIK arketipten turetiliyor",
-    "story": "duzenli musteri hikaye sahneleri (docs/11)",
-    "beat": "duzenli musteri hikaye sahneleri",
-    "requiresVisits": "duzenli musteri hikaye sahneleri",
-    "requiresSatisfaction": "duzenli musteri hikaye sahneleri",
-    "textKey": "duzenli musteri hikaye sahneleri",
-    # staff-traits.json - dosya hic yok
-    "effects": "personel huyu ve is yukseltmesi (docs/14)",
-    "conflictsWith": "personel huyu (docs/14): birlikte olamayan huylar",
-    "speed": "personel huyunun hiz etkisi (docs/14)",
-    "cleanliness": "personel huyunun temizlik etkisi (docs/14)",
-    # upgrades.json - dosya hic yok
-    "capacityBonus": "is yukseltmesi (docs/13 upgrades.json)",
-    "customerBaseBonus": "is yukseltmesi (docs/13 upgrades.json)",
-    # digerleri
-    "dailySpecial": "gunun yemegi; SetDailySpecial komutu var, isleyicisi yok",
-    "scoreAxis": "yil sonu puanlama ekseni (docs/08)",
-    "free": "mutfagin ucretsiz olup olmadigi; para kazanma katmani (docs/07)",
-    "batchSize": "Japon corba suyu imza mekanigi; o mutfak yazilmadi",
-    "tags": "yemek etiketleri; arama ve filtre, arayuz isi",
-    "palette": "sanat hatti (docs/10 mutfak kimligi)",
-    "wardrobeSet": "sanat hatti (docs/10)",
-    "wardrobeTags": "sanat hatti (docs/10)",
+    # regulars/*.json - the file does not exist at all
+    "archetypeBase": "the named regular (docs/11)",
+    "arrivesFromDay": "the named regular (docs/11)",
+    "favouriteDish": "the named regular (docs/11)",
+    "jobKey": "the named regular (docs/11)",
+    "veresiyeEligible": "the named regular; for now derived from the common tier",
+    "story": "the regular's story beats (docs/11)",
+    "beat": "the regular's story beats",
+    "requiresVisits": "the regular's story beats",
+    "requiresSatisfaction": "the regular's story beats",
+    "textKey": "the regular's story beats",
+    # staff-traits.json - the file does not exist at all
+    "effects": "staff traits and business upgrades (docs/14)",
+    "conflictsWith": "staff traits (docs/14): traits that cannot coexist",
+    "speed": "the speed effect of a staff trait (docs/14)",
+    "cleanliness": "the cleanliness effect of a staff trait (docs/14)",
+    # upgrades.json - the file does not exist at all
+    "capacityBonus": "a business upgrade (docs/13 upgrades.json)",
+    "customerBaseBonus": "a business upgrade (docs/13 upgrades.json)",
+    # the rest
+    "dailySpecial": "the dish of the day; the SetDailySpecial command exists, its handler does not",
+    "scoreAxis": "a year-end scoring axis (docs/08)",
+    "free": "whether the cuisine is free; the monetisation layer (docs/07)",
+    "batchSize": "the Japanese broth signature mechanic; that cuisine was not built",
+    "tags": "dish tags; search and filter, interface work",
+    "palette": "the art pipeline (docs/10, cuisine identity)",
+    "wardrobeSet": "the art pipeline (docs/10)",
+    "wardrobeTags": "the art pipeline (docs/10)",
 }
 
-# Cekirdekte okunmadigi HALDE sorun olmayan ozellikler.
+# Properties that are not read in the core and yet are not a problem.
 IGNORED_PROPS = {
-    "Id": "kimlik",
-    "NameKey": "gorunum metni",
-    "Cuisine": "kimlik",
-    "MaxTier": "tureviyor",
-    "TierCount": "tureviyor",
+    "Id": "an identity",
+    "NameKey": "display text",
+    "Cuisine": "an identity",
+    "MaxTier": "derived",
+    "TierCount": "derived",
 }
 
 
@@ -228,7 +237,7 @@ def walk(root, ext):
 
 # ---------------------------------------------------------------------------
 def json_keys():
-    """content/ altindaki butun JSON anahtarlari -> hangi dosyalarda."""
+    """Every JSON key under content/ -> which files it appears in."""
     found = {}
 
     def visit(node, path):
@@ -243,22 +252,23 @@ def json_keys():
     for p in walk(CONTENT, ".json"):
         rel = os.path.relpath(p, ROOT).replace("\\", "/")
 
-        # YERELLESTIRME TABLOSU ICERIK DEGIL, duz bir anahtar->metin
-        # esleme. Denetci onu da tarayinca dort yuz iki "baglanmamis
-        # anahtar" uydurdu ve gercek bulgular o gurultunun altinda kaldi.
-        # Tablonun butunlugunu zaten gen_loc.py dogruluyor.
+        # THE LOCALISATION TABLE IS NOT CONTENT, it is a flat key->text
+        # mapping. When the checker scanned it too, it invented four
+        # hundred and two "unbound keys" and the real findings were
+        # buried under that noise. gen_loc.py already verifies the
+        # table's integrity.
         if rel.startswith("content/loc/"):
             continue
 
         try:
             visit(json.loads(read(p)), rel)
         except ValueError as e:
-            print("  ! JSON okunamadi: %s (%s)" % (rel, e))
+            print("  ! JSON could not be read: %s (%s)" % (rel, e))
     return found
 
 
 def dto_bound():
-    """DTO'larin [JsonProperty(...)] ile bagladigi anahtarlar."""
+    """The keys the DTOs bind with [JsonProperty(...)]."""
     bound = set()
     for p in walk(DTO_DIR, ".cs"):
         for m in re.finditer(r'JsonProperty\("([^"]+)"\)', read(p)):
@@ -273,7 +283,7 @@ DTO_FIELD = re.compile(
 
 
 def dto_fields():
-    """DTO alanlari: JSON anahtari -> C# ozellik adi."""
+    """The DTO fields: JSON key -> C# property name."""
     out = {}
     for p in walk(DTO_DIR, ".cs"):
         for m in DTO_FIELD.finditer(read(p)):
@@ -282,7 +292,7 @@ def dto_fields():
 
 
 def loader_text():
-    """Yalnizca icerik yukleyici. DTO alaninin KULLANILDIGI yer burasi."""
+    """The content loader alone. This is where a DTO field is USED."""
     return chr(10).join(
         read(p) for p in walk(DTO_DIR, ".cs")
         if "Dto" not in os.path.basename(p))
@@ -292,7 +302,7 @@ PROP = re.compile(r"public\s+(?:readonly\s+)?[\w\[\]<>?]+\s+(\w+)\s*(?:\{\s*get|
 
 
 def core_props():
-    """Cekirdek Content ve Economy tiplerinin actigi ozellikler."""
+    """The properties the core Content and Economy types expose."""
     props = {}
     for sub in ("Content", "Economy"):
         for p in walk(os.path.join(CORE, sub), ".cs"):
@@ -304,12 +314,14 @@ def core_props():
 
 def solution_text():
     """
-    Butun C# kaynagi: cekirdek, icerik yukleyici, denge araci, testler.
+    All of the C# source: the core, the content loader, the balance tool,
+    the tests.
 
-    Ayrim onemli. Bir alanin CEKIRDEKTE okunmamasi tek basina hata degil:
-    dilim sureleri cekirdek disinda TimingConfig'e veriliyor, kapasite
-    yukleyicide dogrulaniyor. Asil bulgu HICBIR YERDE okunmayan alan;
-    o, icerigin bos bir vaadi demek.
+    The distinction matters. A field not being read IN THE CORE is not by
+    itself an error: the slot durations are handed to TimingConfig
+    outside the core, and capacity is verified in the loader. The real
+    finding is a field read NOWHERE AT ALL; that one means the content is
+    making an empty promise.
     """
     parts = []
     for root in (ASSETS, os.path.join(ROOT, "src"), os.path.join(ROOT, "tests")):
@@ -319,14 +331,14 @@ def solution_text():
 
 
 def core_text():
-    """Yalnizca cekirdek."""
+    """The core alone."""
     return "\n".join(read(p) for p in walk(CORE, ".cs"))
 
 
 # ---------------------------------------------------------------------------
 def main():
     print("=" * 74)
-    print("ICERIK-KOD SOZLESME DENETIMI")
+    print("CONTENT-CODE CONTRACT CHECK")
     print("=" * 74)
 
     keys = json_keys()
@@ -339,7 +351,7 @@ def main():
 
     # --- 1. Icerikte var, DTO baglamiyor -------------------------------
     print()
-    print("1. Icerikte VAR, hicbir DTO baglamiyor")
+    print("1. IN the content, no DTO binds it")
     print("-" * 74)
     unbound = []
     for k in sorted(keys):
@@ -348,28 +360,30 @@ def main():
         unbound.append(k)
         files = sorted(keys[k])
         print("   %-24s %s" % (k, files[0] + ("" if len(files) == 1 else
-                                              " (+%d dosya)" % (len(files) - 1))))
+                                              " (+%d files)" % (len(files) - 1))))
     if not unbound:
-        print("   yok")
+        print("   none")
     else:
-        problems.append(("baglanmayan anahtar", len(unbound)))
+        problems.append(("unbound key", len(unbound)))
 
-    # --- 2. DTO bagliyor, cekirdek okumuyor ----------------------------
+    # --- 2. the DTO binds it, the core does not read it -----------------
     #
-    # Asil tehlikeli sinif bu: alan JSON'dan okunuyor, bellege giriyor,
-    # ve orada duruyor. spoilDays tam olarak boyleydi.
+    # This is the genuinely dangerous class: the field is read from JSON,
+    # it reaches memory, and it just sits there. spoilDays was exactly
+    # this.
     print()
-    print("2. Cekirdek tipinde VAR, HICBIR YERDE okunmuyor")
+    print("2. IN a core type, read NOWHERE AT ALL")
     print("-" * 74)
 
     def reads(name, text):
         uses = len(re.findall(r"\b" + re.escape(name) + r"\b", text))
         decls = len(re.findall(r"public\s+(?:readonly\s+)?[\w\[\]<>?]+\s+"
                                + re.escape(name) + r"\b", text))
-        # \b SART: bu satir once sinirsizdi ve "SpeedBp" sayacini
-        # "_cookXpSpeedBp =" gibi UZUN adlarin atamalari sisiriyordu.
-        # Sonuc: gercekten okunan bir alan "hicbir yerde okunmuyor"
-        # diye rapor ediliyor, ve gercek bulgular arasinda kayboluyordu.
+        # THE \b IS REQUIRED: this line had no boundary at first, and
+        # assignments to LONGER names such as "_cookXpSpeedBp =" inflated
+        # the count for "SpeedBp". The result: a field that really was
+        # read got reported as "read nowhere", and was lost among the
+        # real findings.
         assigns = len(re.findall(r"\b" + re.escape(name) + r"\s*=[^=]", text))
         return uses - decls - assigns
 
@@ -383,23 +397,23 @@ def main():
         elif reads(name, body) <= 0:
             only_outside.append(name)
     if not dead:
-        print("   yok")
+        print("   none")
     else:
-        problems.append(("hicbir yerde okunmayan ozellik", len(dead)))
+        problems.append(("property read nowhere", len(dead)))
 
     print()
-    print("   yalnizca cekirdek DISINDA okunanlar (sorun degil):")
-    print("   " + (", ".join(only_outside) if only_outside else "yok"))
+    print("   read only OUTSIDE the core (not a problem):")
+    print("   " + (", ".join(only_outside) if only_outside else "none"))
 
     print()
-    # --- 3. DTO bagliyor ama yukleyici hic kullanmiyor -----------------
+    # --- 3. the DTO binds it but the loader never uses it ---------------
     #
-    # En sinsi sinif. Alan JSON'dan okunuyor, bellege giriyor ve ORADA
-    # KALIYOR: cekirdek tipine hic aktarilmiyor. Iki kontrolun arasindan
-    # kaciyor, cunku hem "baglanmis" hem "cekirdekte yok". seasonDays ve
-    # unlockSeason tam boyleydi.
+    # The sneakiest class. The field is read from JSON, reaches memory
+    # and STAYS THERE: it is never carried over to the core type. It
+    # escapes between the two checks, because it is both "bound" and "not
+    # in the core". seasonDays and unlockSeason were exactly this.
     print()
-    print("3. DTO bagliyor ama YUKLEYICI hic kullanmiyor")
+    print("3. The DTO binds it but THE LOADER never uses it")
     print("-" * 74)
     fields = dto_fields()
     loader = loader_text()
@@ -413,20 +427,20 @@ def main():
             planned_seen.append(key)
             continue
         stranded.append(key)
-        print("   %-24s (DTO ozelligi: %s)" % (key, prop))
+        print("   %-24s (DTO property: %s)" % (key, prop))
     if not stranded:
-        print("   yok")
+        print("   none")
     else:
-        problems.append(("yukleyiciye ulasmayan alan", len(stranded)))
+        problems.append(("field that never reaches the loader", len(stranded)))
 
     print()
-    print("   TASARLANDI AMA YAZILMADI (hata degil, kuyruk):")
+    print("   DESIGNED BUT NOT BUILT (not an error, the queue):")
     for k in sorted(set(planned_seen) | (set(PLANNED) & set(keys) - set(bound))):
         print("      %-26s %s" % (k, PLANNED[k]))
 
-    # --- 4. Sema belgesinde VAR, icerikte YOK --------------------------
+    # --- 4. in the schema document, NOT in the content ------------------
     print()
-    print("4. docs/13 semasinda VAR, uretilen icerikte YOK")
+    print("4. IN the docs/13 schema, NOT in the generated content")
     print("-" * 74)
     schema = os.path.join(ROOT, "docs", "13-data-schemas.md")
     doc_keys = set()
@@ -449,36 +463,37 @@ def main():
     for k in missing:
         print("   %s" % k)
     if not missing:
-        print("   yok")
+        print("   none")
     else:
-        problems.append(("semada olup icerikte olmayan", len(missing)))
+        problems.append(("in the schema but not in the content", len(missing)))
 
     if renamed:
         print()
-        print("   ADI DEGISTI (docs/23 2.2 tamsayi birimleri) - uygulanmis:")
+        print("   RENAMED (the integer units of docs/23 2.2) - implemented:")
         for k in renamed:
             print("      %-26s -> %s" % (k, SCHEMA_RENAMED[k]))
     if derived:
         print()
-        print("   TURETILIYOR (docs/34 11) - icerige yazilmiyor:")
+        print("   DERIVED (docs/34 11) - not written into the content:")
         for k in derived:
             print("      %-26s %s" % (k, SCHEMA_DERIVED[k]))
     if planned:
         print()
-        print("   YAZILMAMIS (kuyruk):")
+        print("   NOT BUILT (the queue):")
         for k in planned:
             print("      %-26s %s" % (k, SCHEMA_PLANNED[k]))
 
-    # --- ozet ----------------------------------------------------------
+    # --- summary ---------------------------------------------------------
     print()
     print("=" * 74)
     if not problems:
-        print("TEMIZ: icerikteki her alanin karsiligi var.")
+        print("CLEAN: every field in the content has something answering to it.")
         return 0
     for name, n in problems:
         print("%-32s %d" % (name, n))
     print()
-    print("Her biri ya UYGULANMALI ya da IGNORED listesine sebebiyle yazilmali.")
+    print("Each one must either BE IMPLEMENTED or go on the IGNORED list with\n"
+          "its reason.")
     return 1
 
 

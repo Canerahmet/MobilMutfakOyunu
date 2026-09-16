@@ -5,16 +5,18 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Oyundaki butun metin. Anahtar -> Turkce.
+    /// Every piece of text in the game. Key -> the text of the chosen
+    /// language.
     ///
-    /// Tablo icerikle birlikte uretiliyor (tools/content/gen_loc.py) ve o
-    /// arac ICERIGI TARIYOR: hangi anahtarlarin gerektigini elle liste
-    /// tutmak yerine yemek, malzeme, arketip ve duzenli musteri
-    /// dosyalarindan cikariyor. Eksik ya da fazla anahtar varsa uretec
-    /// hata veriyor - yani "dish.hamburger" yazan bir dugme mumkun degil.
+    /// The table is generated along with the content
+    /// (tools/content/gen_loc.py) and that tool SCANS THE CONTENT: instead
+    /// of keeping a list of which keys are needed by hand, it takes them
+    /// out of the dish, ingredient, archetype and regular files. If a key
+    /// is missing or spare the generator fails - so a button that reads
+    /// "dish.hamburger" is not possible.
     ///
-    /// Eksik anahtar burada da SESSIZ DEGIL: anahtarin kendisi kose
-    /// parantez icinde donuyor ve bir kez uyari basiliyor.
+    /// A missing key IS NOT SILENT here either: the key itself comes back
+    /// in square brackets and a warning is printed once.
     /// </summary>
     public static class Loc
     {
@@ -25,62 +27,66 @@ namespace Lokanta.Game
         public static int Count { get { return _table == null ? 0 : _table.Count; } }
 
         /// <summary>
-        /// Bicimleme kulturu. Oyunun DILINE bagli, cihazin diline degil.
+        /// The formatting culture. It follows the GAME'S language, not the
+        /// device's.
         ///
-        /// Once belirtilmiyordu ve cihazin kulturu kullaniliyordu: arayuz
-        /// Turkce oldugu halde telefonu Ingilizce olan bir oyuncu
-        /// "8,000" ve "30.0", Turkce olan "8.000" ve "30,0" goruyordu.
-        /// Ayni oyun, ayni dil, iki farkli sayi yazimi.
+        /// It was not set before and the device's culture was used: a player
+        /// whose interface was Turkish but whose phone was English saw
+        /// "8,000" and "30.0", and one with a Turkish phone "8.000" and
+        /// "30,0". The same game, the same language, two different ways of
+        /// writing a number.
         ///
-        /// Dahasi: Fransizca bir cihazda binlik ayraci U+202F (dar
-        /// bolunmez bosluk) oluyor ve o karakter yazi tipinde YOK -
-        /// oyuncunun kasasinda "8[]000" yazardi.
+        /// And worse: on a French device the thousands separator is U+202F (a
+        /// narrow no-break space) and that character IS NOT in the font - the
+        /// player's till would have read "8[]000".
         /// </summary>
         public static System.Globalization.CultureInfo Culture { get; private set; }
             = new System.Globalization.CultureInfo("tr-TR");
 
         /// <summary>
-        /// Desteklenen diller. Dizin SIRASI kaydediliyor, kodu degil:
-        /// sirayi degistiren, eski cihazlardaki secimi de degistirir -
-        /// o yuzden sona eklenir, araya degil.
+        /// The supported languages. The INDEX in this array is what is saved,
+        /// not the code: changing the order changes the choice on devices that
+        /// already have one - so a language is added at the end, never in the
+        /// middle.
         /// </summary>
         public static readonly string[] Languages = { "tr", "en", "es", "zh", "ar" };
 
-        /// <summary>Dilin kendi adi. Bir dili KENDI dilinde yazmak sarttir:
-        /// "Turkish" yazan bir satiri arayan kisi zaten Ingilizce biliyordur.</summary>
+        /// <summary>The language's own name for itself. Writing a language in ITS OWN
+        /// language is essential: anyone looking for a line that says "Turkish" already knows English.</summary>
         public static readonly string[] LanguageNames =
             { "Türkçe", "English", "Español", "中文", "العربية" };
 
-        /// <summary>Her dilin bicimleme kulturu.</summary>
+        /// <summary>Each language's formatting culture.</summary>
         private static readonly string[] Cultures =
             { "tr-TR", "en-GB", "es-ES", "zh-CN", "ar-EG" };
 
         /// <summary>
-        /// Dilin yazi yonu SAGDAN SOLA mi.
+        /// Is the language written RIGHT TO LEFT?
         ///
-        /// Yalnizca Arapca. Yon bir DIL ozelligi, bir ekran ayari degil -
-        /// o yuzden burada, dilin yaninda duruyor.
+        /// Arabic only. Direction is a property of the LANGUAGE, not a screen
+        /// setting - which is why it sits here, next to the language.
         /// </summary>
         private static readonly bool[] Rtl = { false, false, false, false, true };
 
-        /// <summary>Su anki dil sagdan sola mi yaziliyor.</summary>
+        /// <summary>Is the current language written right to left?</summary>
         public static bool IsRightToLeft { get { return Rtl[Language]; } }
 
-        /// <summary>Su anki dilin dizini.</summary>
+        /// <summary>The index of the current language.</summary>
         public static int Language { get; private set; }
 
-        /// <summary>Su anki dilin kodu (tr, en, es, zh, ar).</summary>
+        /// <summary>The code of the current language (tr, en, es, zh, ar).</summary>
         public static string LanguageCode { get { return Languages[Language]; } }
 
         private const string PrefKey = "lokanta.dil";
         private static IContentSource _src;
 
         /// <summary>
-        /// Kaydedilmis dil; yoksa CIHAZIN dili.
+        /// The saved language; the DEVICE's language if there is none.
         ///
-        /// Ilk acilista sormak yerine tahmin etmek dogru: yanlis tahmin
-        /// Ayarlar'dan tek dokunusla duzeliyor, ama acilista dil soran
-        /// bir ekran herkesin her kurulumda gectigi bir engel.
+        /// Guessing rather than asking at the first launch is the right call:
+        /// a wrong guess is put right from Settings with one touch, but a
+        /// screen that asks for a language at startup is an obstacle
+        /// everybody has to get past at every install.
         /// </summary>
         private static int Preferred()
         {
@@ -89,30 +95,33 @@ namespace Lokanta.Game
                 int i = PlayerPrefs.GetInt(PrefKey);
                 if (i >= 0 && i < Languages.Length) return i;
             }
-            // VARSAYILAN INGILIZCE - CIHAZA BAKILMIYOR.
+            // THE DEFAULT IS ENGLISH - THE DEVICE IS NOT CONSULTED.
             //
-            // Once cihazin dili tahmin ediliyordu ve Turkce bir telefon
-            // oyunu Turkce aciyordu. Kullanicinin karari: "default olarak
-            // oyun ingilizce baslasin".
+            // The device's language used to be guessed, and a Turkish phone
+            // opened the game in Turkish. The user's decision: "by default the
+            // game should start in English".
             //
-            // Bedeli tek ve kucuk: Turkce oynayacak kisi Ayarlar'dan bir
-            // kez seciyor ve secim kaydediliyor. Karsiligi, oyunu ilk
-            // acan HERKESIN okuyabildigi bir ilk ekran - bes dilin
-            // ortak paydasi Ingilizce.
+            // The price is single and small: someone who is going to play in
+            // Turkish chooses it once in Settings and the choice is saved. What
+            // it buys is a first screen EVERYONE who opens the game can read -
+            // English is the common denominator of the five languages.
             return 1;
         }
 
         /// <summary>
-        /// Kultur nesnesini kurar; kuramazsa DEGISMEZ kulture duser.
+        /// Builds the culture object; falls back to the INVARIANT culture if
+        /// it cannot.
         ///
-        /// NEDEN KORUMA: CultureInfo cihazda ICU verisine bagli ve o veri
-        /// budanabiliyor. Kurulamayan bir kultur CultureNotFoundException
-        /// atar - Apply() icinden, yani OYUN ACILIRKEN. Bes dilden birinin
-        /// verisi bir cihazda yoksa, o cihazda oyun hic acilmaz.
+        /// WHY THE GUARD: CultureInfo depends on the ICU data on the device
+        /// and that data can be stripped. A culture that cannot be built
+        /// throws CultureNotFoundException - from inside Apply(), that is, AS
+        /// THE GAME OPENS. If one of the five languages' data is missing on a
+        /// device, the game never opens at all on that device.
         ///
-        /// Dusus SESSIZ DEGIL: bir uyari basiliyor. Sessiz bir dusus,
-        /// "sayilar neden Ingilizce bicimde" sorusunu cevapsiz birakirdi.
-        /// Degismez kultur yanlis bicim demek, acilmayan oyun demek degil.
+        /// The fall back IS NOT SILENT: a warning is printed. A silent fall
+        /// back would leave "why are the numbers in the English format"
+        /// unanswered. The invariant culture means the wrong format; it does
+        /// not mean a game that will not open.
         /// </summary>
         private static System.Globalization.CultureInfo MakeCulture(string name)
         {
@@ -122,8 +131,8 @@ namespace Lokanta.Game
             }
             catch (System.Exception e)
             {
-                Debug.LogWarning("Kultur kurulamadi (" + name + "): " + e.Message
-                                 + " - degismez bicime dusuldu.");
+                Debug.LogWarning("could not build the culture (" + name + "): " + e.Message
+                                 + " - fell back to the invariant format.");
                 return System.Globalization.CultureInfo.InvariantCulture;
             }
         }
@@ -135,10 +144,10 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Dili degistirir ve TABLOYU YENIDEN YUKLER.
+        /// Changes the language and RELOADS THE TABLE.
         ///
-        /// Ekranlar metni her kurulusta Loc'tan okuyor, yani yeniden
-        /// yuklemek yetiyor - cagiran taraf ekrani tazeliyor.
+        /// The screens read their text from Loc every time they are built, so
+        /// reloading is enough - the caller refreshes the screen.
         /// </summary>
         public static void SetLanguage(int index)
         {
@@ -150,12 +159,13 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Dili GECICI olarak degistirir - secim KAYDEDILMEZ.
+        /// Changes the language TEMPORARILY - the choice IS NOT SAVED.
         ///
-        /// Tur, her dilde serit olcup goruntu aliyor. Bunu SetLanguage
-        /// ile yapmak, turun oyuncunun dil secimini degistirmesi
-        /// demekti: tur bes dili gezip sonuncusunu diske yaziyordu.
-        /// Denemek ile SECMEK ayri seyler; ayri kapilari var.
+        /// The tour measures the strip and takes a screenshot in every
+        /// language. Doing that with SetLanguage meant the tour changing the
+        /// player's own choice of language: the tour walked through five
+        /// languages and wrote the last one to disk. Trying something and
+        /// CHOOSING it are different things; they have separate doors.
         /// </summary>
         public static void UseLanguage(int index)
         {
@@ -164,12 +174,13 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Tercih mantigini yeniden kosar: kayitli secim varsa o, yoksa
-        /// varsayilan.
+        /// Runs the preference logic again: the saved choice if there is one,
+        /// otherwise the default.
         ///
-        /// Turun "kayitsiz bir cihaz hangi dille aciliyor" sorusunu
-        /// GERCEKTEN sorabilmesi icin var. Sabiti okuyup "1 mi" diye
-        /// bakmak, sabitin kendisini olcmek olurdu - acilis yolunu degil.
+        /// It exists so the tour can REALLY ask "which language does a device
+        /// with nothing saved open in". Reading the constant and checking
+        /// whether it is 1 would be measuring the constant itself - not the
+        /// path taken at startup.
         /// </summary>
         public static void ApplyPreferred()
         {
@@ -187,26 +198,25 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Bir KISI ADINI ekranda gosterilecek hale getirir.
+        /// Makes a PERSON'S NAME fit to be shown on screen.
         /// </summary>
         /// <remarks>
-        /// Dil Cince'yken butun arayuz Noto Sans SC ile ciziliyor ve o
-        /// yazi tipinde Latin Extended-A YOK: g-breve, noktali I,
-        /// noktasiz i ve S-cedilla bulunmuyor. Kaynak yazi tipinde de
-        /// yok, yani alt kumeye eklenerek cozulemez.
+        /// When the language is Chinese the whole interface is drawn with
+        /// Noto Sans SC, and that font HAS NO Latin Extended-A: no g-breve, no
+        /// dotted I, no dotless i and no S-cedilla. They are not in the source
+        /// font either, so it cannot be solved by adding them to the subset.
         ///
-        /// Personel isim havuzundaki doksan alti isimden ON ALTISI bu
-        /// harfleri tasiyor (Ayse, Ibrahim, Yagmur, Sila...). Cince
-        /// oynayan bir oyuncu her alti personelden birini "Ay[]e" diye
-        /// goruyordu - ve hicbir kontrol bunu yakalamiyordu, cunku
-        /// isimler yerellestirme tablosunda degil.
+        /// SIXTEEN of the ninety-six names in the staff name pool carry these
+        /// letters (Ayse, Ibrahim, Yagmur, Sila...). A player playing in
+        /// Chinese saw one in every six staff as "Ay[]e" - and no check caught
+        /// it, because the names are not in the localisation table.
         ///
-        /// Cozum Cince ICERIK TABLOSUNUN zaten uyguladigi kuralin ta
-        /// kendisi: Latin ozel adlardan Turkce isaretler dusuyor.
-        /// Burada da ayni sey, ayni sebeple.
+        /// The answer is the very rule the Chinese CONTENT TABLE already
+        /// applies: Turkish marks are dropped from Latin proper nouns. The
+        /// same thing here, for the same reason.
         ///
-        /// Diger dort dilde metin OLDUGU GIBI donuyor - Rubik bu
-        /// harflerin hepsini tasiyor.
+        /// In the other four languages the text comes back AS IT IS - Rubik
+        /// carries every one of these letters.
         /// </remarks>
         public static string PersonName(string name)
         {
@@ -221,8 +231,8 @@ namespace Lokanta.Game
                 {
                     case 'ğ': d = 'g'; break;   // g breve
                     case 'Ğ': d = 'G'; break;
-                    case 'ı': d = 'i'; break;   // noktasiz i
-                    case 'İ': d = 'I'; break;   // noktali I
+                    case 'ı': d = 'i'; break;   // dotless i
+                    case 'İ': d = 'I'; break;   // dotted I
                     case 'ş': d = 's'; break;   // s cedilla
                     case 'Ş': d = 'S'; break;
                 }
@@ -232,28 +242,28 @@ namespace Lokanta.Game
             return sb == null ? name : sb.ToString();
         }
 
-        /// <summary>Anahtarin metni. Yoksa [anahtar].</summary>
+        /// <summary>The key's text. [key] if there is none.</summary>
         public static string T(string key)
         {
             if (_table == null) return key;
             if (_table.TryGetValue(key, out string v)) return v;
 
-            if (Warned.Add(key)) Debug.LogWarning("Metin yok: " + key);
+            if (Warned.Add(key)) Debug.LogWarning("no text for: " + key);
             return "[" + key + "]";
         }
 
-        /// <summary>{0}, {1}... yerine deger koyar.</summary>
+        /// <summary>Puts values in place of {0}, {1}...</summary>
         public static string T(string key, params object[] args)
         {
             return string.Format(Culture, T(key), args);
         }
 
         /// <summary>
-        /// Para. Santi-sikke -> gorunur metin.
+        /// Money. Centi-coins -> visible text.
         ///
-        /// Cekirdek parayi SANTI tutuyor (docs/23 2.2) cunku tamsayi
-        /// aritmetigi belirlenimci. Oyuncu kurus gormuyor: bolme yalnizca
-        /// burada, gosterim aninda yapiliyor.
+        /// The core holds money in CENTI (docs/23 2.2) because integer
+        /// arithmetic is deterministic. The player never sees the fractions:
+        /// the division happens only here, at the moment of display.
         /// </summary>
         public static string Money(long centi)
         {
@@ -261,42 +271,43 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Yuzde. ISARETIN YERI DILDEN GELIYOR.
+        /// A percentage. THE POSITION OF THE SIGN COMES FROM THE LANGUAGE.
         ///
-        /// Kod bir sure `"%" + (bp / 100)` yaziyordu ve bu TURKCE
-        /// konumu koda gomuyordu: Ingilizce'de "Margin %62" cikiyordu,
-        /// dogrusu "62%". Loc kultur secimini (tr-TR / en-GB) titizlikle
-        /// cozuyor ve yorumunda "ayni oyun, iki farkli sayi yazimi" diye
-        /// uyariyor - yuzde bicimi o sistemin disinda kalmisti.
+        /// For a while the code wrote `"%" + (bp / 100)`, and that buried the
+        /// TURKISH position in the code: in English it came out as "Margin
+        /// %62" where the right form is "62%". Loc resolves the choice of
+        /// culture (tr-TR / en-GB) carefully and warns in its own comment
+        /// about "the same game, two different ways of writing a number" -
+        /// the percentage format had been left outside that system.
         ///
-        /// .NET'in "P" bicimi kullanilmiyor: o bir kesri (0,62) bekliyor
-        /// ve biz bin-puan (6200) tutuyoruz; ayrica ondalik gostermek
-        /// isteyen yok. Yalnizca ISARETIN YERI kulturden aliniyor.
+        /// .NET's "P" format is not used: it expects a fraction (0.62) and we
+        /// hold basis points (6200); and nobody wants the decimals shown.
+        /// Only THE POSITION OF THE SIGN is taken from the culture.
         /// </summary>
-        /// <param name="bp">Bin-puan (6200 = %62).</param>
-        /// <param name="isaretli">Basina + konsun mu (fark gosterirken).</param>
-        public static string Percent(int bp, bool isaretli = false)
+        /// <param name="bp">Basis points (6200 = 62%).</param>
+        /// <param name="signed">Whether to put a + in front (when showing a difference).</param>
+        public static string Percent(int bp, bool signed = false)
         {
-            int yuzde = bp / 100;
-            string sayi = (isaretli && yuzde > 0 ? "+" : "")
-                          + yuzde.ToString(Culture);
+            int percent = bp / 100;
+            string text = (signed && percent > 0 ? "+" : "")
+                          + percent.ToString(Culture);
 
             // PercentPositivePattern: 0 -> "n %", 1 -> "n%", 2 -> "%n",
-            // 3 -> "% n". Turkce 2 ("%62"), Ingilizce 1 ("62%").
+            // 3 -> "% n". Turkish is 2 ("%62"), English 1 ("62%").
             switch (Culture.NumberFormat.PercentPositivePattern)
             {
-                case 0: return sayi + " %";
-                case 2: return "%" + sayi;
-                case 3: return "% " + sayi;
-                default: return sayi + "%";
+                case 0: return text + " %";
+                case 2: return "%" + text;
+                case 3: return "% " + text;
+                default: return text + "%";
             }
         }
 
-        /// <summary>Itibar. Santi-puan -> 0-100 arasi tek ondalik.</summary>
+        /// <summary>Reputation. Centi-points -> 0-100 with one decimal.</summary>
         public static string Reputation(int centi)
         {
-            // Ondalik TAMSAYI aritmetigiyle: kayan nokta gorunum
-            // katmaninda bile gereksiz, ve ayraci kulturden geliyor.
+            // The decimal with INTEGER arithmetic: floating point is needless
+            // even in the view layer, and the separator comes from the culture.
             return (centi / 100) + Culture.NumberFormat.NumberDecimalSeparator
                    + ((centi / 10) % 10);
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 
 namespace Lokanta.Content
 {
-    /// <summary>Icerik gecersizse oyun acilmaz. Sessiz varsayilan yok.</summary>
+    /// <summary>If the content is invalid the game does not open. No silent defaults.</summary>
     public sealed class ContentException : Exception
     {
         public ContentException(string message) : base(message) { }
@@ -19,14 +19,19 @@ namespace Lokanta.Content
     public static class ContentLoader
     {
         public const string KitchenPool = "kitchen";
-        public const string SalonPool = "salon";
+        // The VALUE is a content token: it has to match `"pool"` in
+        // content/staff-roles.json, which tools/balance/export.py writes.
+        // Both sides moved from "salon" to "hall" in the same change - a
+        // loader that reads a pool name nothing writes finds no hall roles
+        // at all, and says nothing about it.
+        public const string HallPool = "hall";
 
         internal static readonly Regex IdPattern =
             new Regex("^[a-z0-9_]+$", RegexOptions.CultureInvariant);
 
         private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
-            // docs/23 4.2: her ayristirma ve bicimleme degismez kulturde.
+            // docs/23 4.2: every parse and every format uses the invariant culture.
             Culture = CultureInfo.InvariantCulture,
             FloatParseHandling = FloatParseHandling.Decimal,
             MissingMemberHandling = MissingMemberHandling.Ignore,
@@ -41,9 +46,9 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// Icerigi bir KAYNAKTAN yukler. Klasor, APK ici, ne olursa.
-        /// Dogrulamalar her iki yolda da ayni: platform, iceriğin gecerli
-        /// olup olmadigini degistirmemeli.
+        /// Loads content from a SOURCE. A folder, the inside of an APK,
+        /// whatever it is. The validations are the same on both routes: the
+        /// platform must not change whether content is valid.
         /// </summary>
         public static EconomyConfig LoadEconomy(IContentSource src)
         {
@@ -52,8 +57,9 @@ namespace Lokanta.Content
             EconomyDto economy = ReadJson<EconomyDto>(src, "economy.json");
             List<StaffRoleDto> roles = ReadJson<List<StaffRoleDto>>(src, "staff-roles.json");
 
-            // Personel huylari. Dosya istege bagli: huysuz bir kadro da
-            // kosuyor (birim testleri boyle), ama varsa TAMAMEN dogrulaniyor.
+            // Staff traits. The file is optional: a traitless staff runs
+            // too (that is how the unit tests do it), but if it is there it
+            // is validated IN FULL.
             List<TraitDto> traits = null;
             if (src.Exists("staff-traits.json"))
                 traits = ReadJson<List<TraitDto>>(src, "staff-traits.json");
@@ -64,16 +70,16 @@ namespace Lokanta.Content
         public static EconomyConfig Build(EconomyDto economy, List<StaffRoleDto> roles,
                                           List<TraitDto> traitDtos = null)
         {
-            if (economy == null) throw new ContentException("economy.json okunamadi");
-            if (roles == null || roles.Count == 0) throw new ContentException("staff-roles.json bos");
-            if (economy.Staffing == null) throw new ContentException("economy.json: staffing blogu yok");
+            if (economy == null) throw new ContentException("economy.json could not be read");
+            if (roles == null || roles.Count == 0) throw new ContentException("staff-roles.json is empty");
+            if (economy.Staffing == null) throw new ContentException("economy.json: no staffing block");
 
             ValidateRoles(roles);
 
             StaffRoleDto cook = null;
-            StaffRoleDto salonLead = null;
-            int salonWorkMicro = 0;
-            long salonWageNumerator = 0;
+            StaffRoleDto hallLead = null;
+            int hallWorkMicro = 0;
+            long hallWageNumerator = 0;
 
             for (int i = 0; i < roles.Count; i++)
             {
@@ -81,37 +87,38 @@ namespace Lokanta.Content
                 if (string.Equals(r.Pool, KitchenPool, StringComparison.Ordinal))
                 {
                     if (cook != null)
-                        throw new ContentException("Birden fazla mutfak rolu var; model tek asci havuzu varsayiyor");
+                        throw new ContentException("More than one kitchen role; the model assumes a single cook pool");
                     cook = r;
                 }
-                else if (string.Equals(r.Pool, SalonPool, StringComparison.Ordinal))
+                else if (string.Equals(r.Pool, HallPool, StringComparison.Ordinal))
                 {
-                    salonWorkMicro += r.WorkPerCustomerMicro;
-                    salonWageNumerator += (long)r.WorkPerCustomerMicro * r.DailyWage;
+                    hallWorkMicro += r.WorkPerCustomerMicro;
+                    hallWageNumerator += (long)r.WorkPerCustomerMicro * r.DailyWage;
 
-                    // Salon havuzu tek bir "kisi" gibi modelleniyor (isler
-                    // toplanip bolunuyor), o yuzden deneyim merdiveni de tek
-                    // olmali. Roller ayrisirsa hangisinin gecerli oldugu
-                    // belirsiz kalir; sessiz secmek yerine reddediyoruz.
-                    if (salonLead == null) salonLead = r;
-                    else if (!SameLadder(salonLead.XpSpeedBp, r.XpSpeedBp))
+                    // The hall pool is modelled as a single "person" (the
+                    // work is summed and then divided), so there has to be a
+                    // single experience ladder as well. If the roles drift
+                    // apart it is unclear which one applies; rather than pick
+                    // one silently, we refuse.
+                    if (hallLead == null) hallLead = r;
+                    else if (!SameLadder(hallLead.XpSpeedBp, r.XpSpeedBp))
                         throw new ContentException(
-                            "Salon rollerinin xpSpeedBp merdivenleri farkli (" +
-                            salonLead.Id + " vs " + r.Id +
-                            "); salon havuzu tek merdiven varsayiyor");
+                            "The hall roles have different xpSpeedBp ladders (" +
+                            hallLead.Id + " vs " + r.Id +
+                            "); the hall pool assumes a single ladder");
                 }
                 else
                 {
-                    throw new ContentException("Bilinmeyen havuz: " + r.Pool + " (rol " + r.Id + ")");
+                    throw new ContentException("Unknown pool: " + r.Pool + " (role " + r.Id + ")");
                 }
             }
 
-            if (cook == null) throw new ContentException("Mutfak havuzunda rol yok");
-            if (salonWorkMicro <= 0) throw new ContentException("Salon havuzunda rol yok");
+            if (cook == null) throw new ContentException("No role in the kitchen pool");
+            if (hallWorkMicro <= 0) throw new ContentException("No role in the hall pool");
 
             List<TierDto> tierDtos = economy.Staffing.Tiers;
             if (tierDtos == null || tierDtos.Count == 0)
-                throw new ContentException("economy.json: staffing.tiers bos");
+                throw new ContentException("economy.json: staffing.tiers is empty");
 
             TierConfig[] tiers = new TierConfig[tierDtos.Count];
             for (int i = 0; i < tierDtos.Count; i++)
@@ -120,13 +127,14 @@ namespace Lokanta.Content
                 if (i > 0)
                 {
                     if (t.Tables <= tierDtos[i - 1].Tables)
-                        throw new ContentException("staffing.tiers: masa sayisi artan olmali");
+                        throw new ContentException("staffing.tiers: the table count must increase");
                     if (t.StaffCap < tierDtos[i - 1].StaffCap)
-                        throw new ContentException("staffing.tiers: kadro tavani azalamaz");
+                        throw new ContentException("staffing.tiers: the staff cap cannot fall");
                 }
-                // Itibar tavani: yazilmamissa sinirsiz. Eski bir icerik
-                // dosyasi bu alani tasimiyor olabilir ve yokluğu oyunu
-                // durdurmamali - o durumda davranis eskisiyle ayni kaliyor.
+                // Reputation cap: unlimited if it is not written down. An
+                // older content file may not carry this field and its absence
+                // must not stop the game - in that case the behaviour stays
+                // exactly as it was.
                 int repCap = t.ReputationCapCenti > 0 ? t.ReputationCapCenti : 10000;
                 tiers[i] = new TierConfig(t.Tables, t.Rent, t.Upgrade, t.StaffCap,
                                           repCap, t.Plates);
@@ -146,8 +154,8 @@ namespace Lokanta.Content
                 economy.IngredientRateBp,
                 cook.CapacityPerDay,
                 cook.DailyWage,
-                salonWorkMicro,
-                salonWageNumerator,
+                hallWorkMicro,
+                hallWageNumerator,
                 economy.Staffing.OwnerWorkMicro,
                 economy.Staffing.WeeklyXpWageGrowthBp,
                 tiers,
@@ -176,7 +184,7 @@ namespace Lokanta.Content
                 economy.DemandVarianceBp,
                 economy.AttendWorkCutBp)
                 .WithXpSpeed(Ladder(cook.XpSpeedBp),
-                             Ladder(salonLead != null ? salonLead.XpSpeedBp : null),
+                             Ladder(hallLead != null ? hallLead.XpSpeedBp : null),
                              XpDaysPerLevel, MaxXpLevel)
                 .WithRegulars(
                     economy.Regulars != null ? economy.Regulars.VisitChanceBp : 0,
@@ -208,9 +216,10 @@ namespace Lokanta.Content
                         ? economy.Intervention.TreatPatienceMult : 0);
         }
 
-        // docs/14 "Deneyim ve seviye": calisilan her gun 1 puan, 30 puanda
-        // seviye, azami 3 seviye. Ikisi de icerikte degil cunku ikisi de
-        // dengeye degil TASARIMA ait; degisirlerse docs/14 degisir.
+        // docs/14 "Experience and level": 1 point for every day worked, a
+        // level every 30 points, 3 levels at most. Neither number is in
+        // content, because neither belongs to balance but to DESIGN; if they
+        // change, docs/14 changes.
         private const int XpDaysPerLevel = 30;
         private const int MaxXpLevel = 3;
 
@@ -220,14 +229,14 @@ namespace Lokanta.Content
             int[] a = values.ToArray();
             if (a[0] != 10000)
                 throw new ContentException(
-                    "xpSpeedBp ilk basamagi 10000 olmali (seviye 0 = hizsiz), " + a[0] + " bulundu");
+                    "the first rung of xpSpeedBp must be 10000 (level 0 = no speed-up), found " + a[0]);
             for (int i = 1; i < a.Length; i++)
                 if (a[i] < a[i - 1])
-                    throw new ContentException("xpSpeedBp merdiveni azalamaz");
+                    throw new ContentException("the xpSpeedBp ladder cannot fall");
             if (a.Length != MaxXpLevel + 1)
                 throw new ContentException(
-                    "xpSpeedBp " + (MaxXpLevel + 1) + " basamak olmali (seviye 0.." +
-                    MaxXpLevel + "), " + a.Length + " bulundu");
+                    "xpSpeedBp must have " + (MaxXpLevel + 1) + " rungs (level 0.." +
+                    MaxXpLevel + "), found " + a.Length);
             return a;
         }
 
@@ -240,30 +249,32 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// ownerPool okunmuyordu cunku kod zaten "salon" VARSAYIYOR:
-        /// StaffingModel patronun is gununu salon yukundan dusuyor,
-        /// DispatchSalon patronu sifirinci garson olarak calistiriyor ve
-        /// docs/14 patronun mutfakta calismasini yasakliyor.
+        /// ownerPool was not being read, because the code already ASSUMES
+        /// "hall": StaffingModel takes the owner's working day off the hall
+        /// load, DispatchHall runs the owner as waiter number zero, and
+        /// docs/14 forbids the owner from working in the kitchen.
         ///
-        /// Yani alan bir SECIM degil, bir VARSAYIMIN yazili hali. Silmek
-        /// varsayimi gorunmez yapardi; okumak icin ikinci bir havuz
-        /// yazmak gerekirdi ve tasarim onu istemiyor. Ucuncu yol: degismez.
-        /// Icerik baska bir havuz yazarsa oyun acilmiyor.
+        /// So the field is not a CHOICE, it is an ASSUMPTION written down.
+        /// Deleting it would have made the assumption invisible; reading it
+        /// would have meant writing a second pool, and the design does not
+        /// want one. The third way: it is an invariant. If content writes
+        /// any other pool, the game does not open.
         /// </summary>
         private static void ValidateOwnerPool(StaffingDto st)
         {
             if (string.IsNullOrEmpty(st.OwnerPool)) return;
-            if (!string.Equals(st.OwnerPool, SalonPool, StringComparison.Ordinal))
+            if (!string.Equals(st.OwnerPool, HallPool, StringComparison.Ordinal))
                 throw new ContentException(
-                    "staffing.ownerPool '" + st.OwnerPool + "'; simulasyon yalnizca '" +
-                    SalonPool + "' destekliyor (docs/14: patron mutfakta calismaz)");
+                    "staffing.ownerPool '" + st.OwnerPool + "'; the simulation only supports '" +
+                    HallPool + "' (docs/14: the owner does not work in the kitchen)");
         }
 
         /// <summary>
-        /// weeklyWageMultiplierBp, weeklyXpWageGrowthBp'nin bilesikleri.
-        /// Yani ayni sey IKI YERDE yaziyor - ve iki yerde yazilan sey
-        /// sessizce ayrisir. Tablo silinmiyor (denge araci ve arayuz onu
-        /// okuyor) ama artik DEGISMEZ: acilista uretecine karsi dogrulaniyor.
+        /// weeklyWageMultiplierBp is weeklyXpWageGrowthBp compounded. That
+        /// is, the same thing is written in TWO PLACES - and a thing written
+        /// in two places drifts apart silently. The table is not deleted
+        /// (the balance tool and the interface read it) but it is now an
+        /// INVARIANT: at start-up it is checked against its generator.
         /// </summary>
         private static void ValidateWageTable(StaffingDto st)
         {
@@ -271,31 +282,33 @@ namespace Lokanta.Content
             if (table == null || table.Count == 0) return;
             if (table[0] != 10000)
                 throw new ContentException(
-                    "weeklyWageMultiplierBp ilk hafta 10000 olmali, " + table[0] + " bulundu");
+                    "weeklyWageMultiplierBp must be 10000 in the first week, found " + table[0]);
 
             for (int w = 1; w < table.Count; w++)
             {
                 long nano = Fx.PowNano(Fx.Nano + Fx.BpToNano(st.WeeklyXpWageGrowthBp), w);
                 int expected = (int)Fx.MulDiv(10000, nano, Fx.Nano);
-                // Bir baz puanlik tolerans: tablo Python'da, dogrulama
-                // C#'ta hesaplaniyor. Sapma buyurse iki taraf ayrismistir.
+                // A one basis point tolerance: the table is worked out in
+                // Python, the check in C#. If the gap grows beyond that, the
+                // two sides have drifted apart.
                 int diff = table[w] - expected;
                 if (diff < 0) diff = -diff;
                 if (diff > 1)
                     throw new ContentException(
                         "weeklyWageMultiplierBp[" + w + "] = " + table[w] +
-                        " ama weeklyXpWageGrowthBp " + st.WeeklyXpWageGrowthBp +
-                        " ile " + expected + " cikiyor");
+                        " but with weeklyXpWageGrowthBp " + st.WeeklyXpWageGrowthBp +
+                        " it works out to " + expected);
             }
         }
 
         /// <summary>
-        /// Personel huylari. docs/13 staff-traits.json, docs/14 tablo.
+        /// Staff traits. docs/13 staff-traits.json, the docs/14 table.
         ///
-        /// Cakisma listesi INDEKSE cevriliyor ve simetri dogrulaniyor:
-        /// A ile B cakisiyorsa B ile A da cakismali. Tek yonlu yazilmis bir
-        /// cakisma, ise alim kodunda sessizce calismayan bir kural birakir -
-        /// yani iki cakisan huyu tasiyan bir personel uretilebilirdi.
+        /// The conflict list is turned into INDICES and its symmetry is
+        /// checked: if A conflicts with B then B must conflict with A. A
+        /// conflict written in one direction only leaves a rule in the
+        /// hiring code that silently does nothing - which means a member of
+        /// staff carrying two conflicting traits could have been generated.
         /// </summary>
         private static TraitDef[] BuildTraits(List<TraitDto> dtos)
         {
@@ -308,9 +321,9 @@ namespace Lokanta.Content
             {
                 TraitDto d = dtos[i];
                 if (string.IsNullOrEmpty(d.Id) || !IdPattern.IsMatch(d.Id))
-                    throw new ContentException("Gecersiz huy kimligi: " + d.Id);
+                    throw new ContentException("Invalid trait id: " + d.Id);
                 if (index.ContainsKey(d.Id))
-                    throw new ContentException("Tekrarlanan huy: " + d.Id);
+                    throw new ContentException("Duplicate trait: " + d.Id);
                 index[d.Id] = i;
 
                 Dictionary<string, int> e = d.Effects ?? new Dictionary<string, int>();
@@ -334,13 +347,13 @@ namespace Lokanta.Content
                 {
                     if (!index.TryGetValue(conf[k], out int j))
                         throw new ContentException(
-                            "Huy " + dtos[i].Id + " olmayan huyla cakisiyor: " + conf[k]);
+                            "Trait " + dtos[i].Id + " conflicts with a trait that does not exist: " + conf[k]);
                     idx[k] = j;
 
                     List<string> back = dtos[j].ConflictsWith;
                     if (back == null || !back.Contains(dtos[i].Id))
                         throw new ContentException(
-                            "Cakisma tek yonlu: " + dtos[i].Id + " -> " + conf[k]);
+                            "The conflict is one-way: " + dtos[i].Id + " -> " + conf[k]);
                 }
                 result[i].BindConflicts(idx);
             }
@@ -359,21 +372,22 @@ namespace Lokanta.Content
             {
                 StaffRoleDto r = roles[i];
                 if (string.IsNullOrEmpty(r.Id) || !IdPattern.IsMatch(r.Id))
-                    throw new ContentException("Gecersiz kimlik: '" + r.Id + "'. Kural: [a-z0-9_]+");
+                    throw new ContentException("Invalid id: '" + r.Id + "'. The rule: [a-z0-9_]+");
                 if (!seen.Add(r.Id))
-                    throw new ContentException("Tekrarlanan kimlik: " + r.Id);
+                    throw new ContentException("Duplicate id: " + r.Id);
                 if (r.CapacityPerDay <= 0)
-                    throw new ContentException("Rol " + r.Id + ": capacityPerDay pozitif olmali");
+                    throw new ContentException("Role " + r.Id + ": capacityPerDay must be positive");
                 if (r.WorkPerCustomerMicro <= 0)
-                    throw new ContentException("Rol " + r.Id + ": workPerCustomerMicro pozitif olmali");
+                    throw new ContentException("Role " + r.Id + ": workPerCustomerMicro must be positive");
                 if (r.DailyWage <= 0)
-                    throw new ContentException("Rol " + r.Id + ": dailyWage pozitif olmali");
+                    throw new ContentException("Role " + r.Id + ": dailyWage must be positive");
             }
         }
 
         /// <summary>
-        /// docs/23 8.4: JSON'da ondalik sayi yasak. Doguslayici gorurse reddeder.
-        /// Ondalik nokta metinsel olarak aranir; kimlikler ve metinler disinda kalir.
+        /// docs/23 8.4: decimal numbers are banned in JSON. The loader
+        /// refuses a file that has one. The decimal point is searched for
+        /// textually; ids and strings stay out of the search.
         /// </summary>
         public static void AssertNoDecimals(string json, string fileName)
         {
@@ -391,8 +405,8 @@ namespace Lokanta.Content
                     && char.IsDigit(json[i - 1]) && char.IsDigit(json[i + 1]))
                 {
                     throw new ContentException(
-                        fileName + ": ondalik sayi bulundu (konum " + i.ToString(CultureInfo.InvariantCulture)
-                        + "). Butun sayilar tamsayi olmali. Bkz. docs/23-core-contract.md 2.2");
+                        fileName + ": a decimal number was found (position " + i.ToString(CultureInfo.InvariantCulture)
+                        + "). Every number must be an integer. See docs/23-core-contract.md 2.2");
                 }
             }
         }
@@ -404,62 +418,62 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// Duz anahtar-deger metin tablosu. Yerellestirme dosyasi icin.
+        /// A flat key-value string table. For the localisation file.
         ///
-        /// AssertNoDecimals BURADA CALISMIYOR, bilerek: o kural sayilarin
-        /// tamsayi olmasi icin (docs/23 8.4) ve metin dosyasinda nokta
-        /// zaten cumle sonu. Ayni kontrolu buraya uygulamak, "Tamam." yazan
-        /// her metni reddederdi.
+        /// AssertNoDecimals DOES NOT RUN HERE, on purpose: that rule exists
+        /// so that numbers stay integers (docs/23 8.4), and in a string file
+        /// a full stop is just the end of a sentence. Applying the same
+        /// check here would reject every string that reads "Done.".
         /// </summary>
         public static Dictionary<string, string> ReadStringMap(IContentSource src, string rel)
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
             if (!src.Exists(rel))
-                throw new ContentException("Dosya yok: " + src.Describe(rel));
+                throw new ContentException("No such file: " + src.Describe(rel));
 
             var map = JsonConvert.DeserializeObject<Dictionary<string, string>>(
                 src.ReadText(rel), Settings);
             if (map == null || map.Count == 0)
-                throw new ContentException("Bos metin tablosu: " + src.Describe(rel));
+                throw new ContentException("Empty string table: " + src.Describe(rel));
             return map;
         }
 
         internal static T ReadJson<T>(IContentSource src, string rel)
         {
             if (!src.Exists(rel))
-                throw new ContentException("Dosya yok: " + src.Describe(rel));
+                throw new ContentException("No such file: " + src.Describe(rel));
 
             string text = src.ReadText(rel);
             AssertNoDecimals(text, rel);
 
             T result = JsonConvert.DeserializeObject<T>(text, Settings);
             if (result == null)
-                throw new ContentException("Bos veya gecersiz JSON: " + src.Describe(rel));
+                throw new ContentException("Empty or invalid JSON: " + src.Describe(rel));
             return result;
         }
 
-        /// <summary>Liste bicimindeki icerik dosyalarini okur.</summary>
+        /// <summary>Reads content files that are shaped as a list.</summary>
         public static List<T> ReadJsonList<T>(string path)
         {
             return ReadJson<List<T>>(path);
         }
 
-        /// <summary>Tek nesne bicimindeki icerik dosyalarini okur.</summary>
+        /// <summary>Reads content files that are shaped as a single object.</summary>
         public static T ReadJsonObject<T>(string path)
         {
             return ReadJson<T>(path);
         }
 
         /// <summary>
-        /// docs/23 4.2 ve 9.1: kimlikler kucuk harf ASCII.
-        /// Turkce kulturde "ID".ToLower() "id" degil "ıd" verdigi icin
-        /// kimliklerde buyuk harf hic bulunmamali.
+        /// docs/23 4.2 and 9.1: ids are lower-case ASCII.
+        /// Because in the Turkish culture "ID".ToLower() gives a dotless i
+        /// and not "id", an id must never contain a capital at all.
         /// </summary>
         public static void RequireId(string id, string where)
         {
             if (string.IsNullOrEmpty(id) || !IdPattern.IsMatch(id))
                 throw new ContentException(
-                    where + ": gecersiz kimlik '" + id + "'. Kural: [a-z0-9_]+");
+                    where + ": invalid id '" + id + "'. The rule: [a-z0-9_]+");
         }
     }
 }

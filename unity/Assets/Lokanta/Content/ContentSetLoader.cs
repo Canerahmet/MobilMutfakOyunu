@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Lokanta.Core.Content;
@@ -6,24 +6,26 @@ using Lokanta.Core.Content;
 namespace Lokanta.Content
 {
     /// <summary>
-    /// Bir mutfagin butun icerigini yukler ve dogrular.
-    /// docs/23-core-contract.md 9.1: icerik gecersizse oyun ACILMAZ.
-    /// Sessiz varsayilan yok, eksik referans yok.
+    /// Loads and validates all the content of one cuisine.
+    /// docs/23-core-contract.md 9.1: if the content is invalid the game DOES
+    /// NOT OPEN. No silent defaults, no dangling references.
     /// </summary>
     public static class ContentSetLoader
     {
         /// <summary>
-        /// docs/23 8.3: yemek istasyonlari kapali liste. Sira baglayici;
-        /// yemeklerin StationIndex degeri bu siraya gore.
+        /// docs/23 8.3: the dish stations are a closed list. The order is
+        /// binding; a dish's StationIndex value follows this order.
         /// </summary>
         public static readonly string[] StationIds =
         {
             "ocak", "izgara", "firin", "soguk", "icecek", "tatli"
         };
 
+        // The VALUES are content tokens: the frequency tiers as archetypes/*.json
+        // writes them (common, medium, rare).
         private static readonly string[] Tiers = { "sik", "orta", "nadir" };
 
-        /// <summary>Bir gramin kilo fiyatindan maliyeti: fiyat x gram / 1000.</summary>
+        /// <summary>A gram's cost from the price per kilo: price x grams / 1000.</summary>
         private const int GramsPerKilo = 1000;
 
         public static ContentSet Load(string contentDirectory, string cuisine)
@@ -33,7 +35,7 @@ namespace Lokanta.Content
             return Load(new DirectoryContentSource(contentDirectory), cuisine);
         }
 
-        /// <summary>Icerigi bir KAYNAKTAN yukler. Bkz. IContentSource.</summary>
+        /// <summary>Loads content from a SOURCE. See IContentSource.</summary>
         public static ContentSet Load(IContentSource src, string cuisine)
         {
             if (src == null) throw new ArgumentNullException(nameof(src));
@@ -52,29 +54,31 @@ namespace Lokanta.Content
                 ContentLoader.ReadJson<List<ArchetypeDto>>(
                     src, "archetypes/" + cuisine + ".json"));
 
-            // docs/23 9.1: ekipman dosyasi ZORUNLU. Istasyon yuvasi ve
-            // attendBp olmadan mutfak simule edilemez, sessiz varsayilan yok.
+            // docs/23 9.1: the equipment file is MANDATORY. Without station
+            // slots and attendBp the kitchen cannot be simulated, and there
+            // are no silent defaults.
             EquipmentFileDto equipmentDto =
                 ContentLoader.ReadJson<EquipmentFileDto>(src, "equipment.json");
 
-            // Isimli duzenli musteriler. Dosya istege bagli: bir mutfak
-            // duzenli musterisiz de kosuyor (birim testleri boyle), ama
-            // varsa TAMAMEN dogrulaniyor.
+            // Named regular customers. The file is optional: a cuisine runs
+            // without regulars too (that is how the unit tests do it), but if
+            // it is there it is validated IN FULL.
             List<RegularDto> regularDtos = null;
             string regularPath = "regulars/" + cuisine + ".json";
             if (src.Exists(regularPath))
                 regularDtos = ContentLoader.ReadJson<List<RegularDto>>(src, regularPath);
 
-            // Mutfak dosyasi istege bagli: yoksa esit dilim varsayilir.
+            // The cuisine file is optional: without it, equal slots are assumed.
             CuisineDto cuisineDto = null;
             string cuisinePath = "cuisines/" + cuisine + ".json";
             if (src.Exists(cuisinePath))
                 cuisineDto = ContentLoader.ReadJson<CuisineDto>(src, cuisinePath);
 
-            // Mevsim uzunlugu economy.json'da. Burada okunmasinin sebebi
-            // unlockSeason degismezi: mevsim, unlockDay'den turetiliyor ve
-            // turetim mevsim uzunlugunu bilmeden dogrulanamaz. Ikinci bir
-            // sabit yazmak yerine TEK kaynaktan okuyoruz.
+            // The season length lives in economy.json. The reason it is read
+            // here is the unlockSeason invariant: the season is derived from
+            // unlockDay, and that derivation cannot be checked without knowing
+            // the season length. Rather than write a second constant we read
+            // from the ONE source.
             int seasonDays = DefaultSeasonDays;
             if (src.Exists("economy.json"))
             {
@@ -102,8 +106,8 @@ namespace Lokanta.Content
                                        List<StaffRoleDto> staffRoles = null)
         {
             IngredientDef[] ingredients = BuildIngredients(ingredientDtos, out var index);
-            // Istasyonlar YEMEKLERDEN once: yemegin station alani artik
-            // mutfaga ozel bir ekipmani da isaret edebiliyor.
+            // Stations come before DISHES: a dish's station field can now
+            // point at a piece of equipment specific to the cuisine.
             StationDef[] stations = BuildStations(equipmentDto, cuisine);
             DishDef[] dishes = BuildDishes(dishDtos, ingredients, index, cuisine,
                                            stations, seasonDays);
@@ -120,44 +124,45 @@ namespace Lokanta.Content
 
             int eatMs = cuisineDto != null ? cuisineDto.EatMs : 0;
 
-            // MUTFAGIN SALON HAVUZU.
+            // THE CUISINE'S HALL POOL.
             //
-            // economy.json'daki salon rollerinin TOPLAMI kullaniliyordu -
-            // garson + bulasikci + kasiyer. Hizli yemek SELF SERVIS
-            // oldugu icin bu yanlisti: oyuncu calismayan bir garsonun
-            // ucretini oduyor, kadro modeli de ona gore kisi istiyordu.
+            // The SUM of the hall roles in economy.json was being used -
+            // waiter + dishwasher + cashier. Because fast food is SELF
+            // SERVICE this was wrong: the player was paying the wage of a
+            // waiter who does no work, and the staffing model was asking for
+            // a person to match.
             //
-            // Mutfak kendi listesini veriyorsa (salonRoles) yalnizca o
-            // roller toplaniyor. Vermiyorsa sifir donuyor ve eski
-            // davranis aynen kaliyor.
-            int salonWork = 0;
-            long salonWage = 0;
-            // ROLLER VERILMEDIYSE OVERRIDE DE YOK.
+            // If the cuisine gives its own list (hallRoles) only those roles
+            // are summed. If it gives none, this returns zero and the old
+            // behaviour stays exactly as it was.
+            int hallWork = 0;
+            long hallWage = 0;
+            // NO ROLES GIVEN MEANS NO OVERRIDE EITHER.
             //
-            // `Build` saf bir DTO kurucusu; cagiran rolleri vermek
-            // zorunda degil (testler vermiyor). Ilk yazdigimda bunu
-            // hata sayiyordum ve SignatureTests kirildi - kendi
-            // iddiasina varamadan "salonRoles hicbir role denk gelmedi"
-            // diye patladi. "Verilmedi" ile "verildi ama tutmadi" ayri
-            // seyler; yalnizca ikincisi hata.
+            // `Build` is a pure DTO constructor; the caller is not obliged to
+            // pass the roles (the tests do not). The first time I wrote this
+            // I treated that as an error and SignatureTests broke - it blew
+            // up with "hallRoles matched no role" before it could reach its
+            // own assertion. "Not given" and "given but matched nothing" are
+            // different things; only the second is an error.
             if (staffRoles != null && staffRoles.Count > 0
-                && cuisineDto != null && cuisineDto.SalonRoles != null
-                && cuisineDto.SalonRoles.Count > 0)
+                && cuisineDto != null && cuisineDto.HallRoles != null
+                && cuisineDto.HallRoles.Count > 0)
             {
-                // ROLLER PARAMETREDEN GELIYOR, dosyadan degil: `Build`
-                // DTO alip ContentSet doner - kaynak okumasi cagiranin
-                // isi. Bu ayrimi bozmak, saf bir kurucuyu dosya
-                // sistemine baglardi.
+                // THE ROLES COME IN AS A PARAMETER, not from a file:
+                // `Build` takes DTOs and returns a ContentSet - reading the
+                // source is the caller's job. Breaking that separation would
+                // tie a pure constructor to the file system.
                 for (int i = 0; staffRoles != null && i < staffRoles.Count; i++)
                 {
                     StaffRoleDto r = staffRoles[i];
-                    if (!cuisineDto.SalonRoles.Contains(r.Id)) continue;
-                    salonWork += r.WorkPerCustomerMicro;
-                    salonWage += (long)r.WorkPerCustomerMicro * r.DailyWage;
+                    if (!cuisineDto.HallRoles.Contains(r.Id)) continue;
+                    hallWork += r.WorkPerCustomerMicro;
+                    hallWage += (long)r.WorkPerCustomerMicro * r.DailyWage;
                 }
-                if (salonWork <= 0)
+                if (hallWork <= 0)
                     throw new ContentException(
-                        cuisine + ": salonRoles hicbir role denk gelmedi");
+                        cuisine + ": hallRoles matched no role");
             }
 
             SignatureDef signature = BuildSignature(cuisineDto, cuisine, dishes, seasonDays);
@@ -169,14 +174,14 @@ namespace Lokanta.Content
                                   signature, regulars, BuildScoreAxis(cuisineDto),
                                   staffNames,
                                   cuisineDto != null && cuisineDto.SelfService,
-                                  salonWork, salonWage,
+                                  hallWork, hallWage,
                                   cuisineDto != null ? cuisineDto.CustomerMultiplierBp : 0,
                                   cuisineDto != null ? cuisineDto.RentMultiplierBp : 0);
         }
 
         /// <summary>
-        /// Personel isim havuzu. Dosya yoksa bos donuyor: isimler oyunun
-        /// kurallarina girmiyor, yalnizca sunumuna.
+        /// The staff name pool. If the file is missing this returns empty:
+        /// names do not enter the game's rules, only its presentation.
         /// </summary>
         private static string[] LoadStaffNames(IContentSource src)
         {
@@ -189,14 +194,15 @@ namespace Lokanta.Content
 
             for (int i = 0; i < dto.Staff.Length; i++)
                 if (string.IsNullOrWhiteSpace(dto.Staff[i]))
-                    throw new ContentException("names.json: bos isim, sira " + i);
+                    throw new ContentException("names.json: empty name at index " + i);
 
             return dto.Staff;
         }
 
         /// <summary>
-        /// Yil sonu mutfak ekseni. Yoksa notr bir eksen donuyor: eksik
-        /// bir alan oyunu durdurmamali, yalnizca o eksen tam puan verir.
+        /// The cuisine's year-end axis. If there is none, a neutral axis is
+        /// returned: a missing field must not stop the game, it just means
+        /// that axis scores full marks.
         /// </summary>
         private static ScoreAxisDef BuildScoreAxis(CuisineDto dto)
         {
@@ -208,14 +214,15 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// Her yemegin istedigi ekipman kademesi GERCEKTEN VAR MI.
+        /// DOES the equipment tier each dish asks for ACTUALLY EXIST?
         ///
-        /// Uc fast food tatlisi "firin kademe 2" istiyordu; firin
-        /// merdiveni kademe 1'de bitiyor. O uc yemek altmis gun boyunca
-        /// hic acilmiyordu ve hicbir sey sikayet etmiyordu - ne uretec, ne
-        /// yukleyici, ne denge araci. Icerik sessizce erisilemez olmustu.
+        /// Three fast food desserts asked for "oven tier 2"; the oven ladder
+        /// ends at tier 1. Those three dishes never unlocked across all sixty
+        /// days and nothing complained - not the generator, not the loader,
+        /// not the balance tool. Content had silently become unreachable.
         ///
-        /// Sessiz kalmaktansa YUKLENMEMEK: docs/23 9.1 ile ayni tercih.
+        /// Better to FAIL TO LOAD than to stay quiet: the same choice as
+        /// docs/23 9.1.
         /// </summary>
         private static void CheckDishTiersExist(string cuisine, DishDef[] dishes,
                                                 StationDef[] stations)
@@ -228,25 +235,25 @@ namespace Lokanta.Content
                 int st = d.StationIndex;
                 if (st < 0 || st >= stations.Length)
                     throw new ContentException(
-                        cuisine + "/" + d.Id + ": istasyon bulunamadi");
+                        cuisine + "/" + d.Id + ": station not found");
 
                 int top = stations[st].Tiers.Length - 1;
                 if (d.RequiresStationTier > top)
                     throw new ContentException(
-                        cuisine + "/" + d.Id + ": " + stations[st].Id
-                        + " kademe " + d.RequiresStationTier
-                        + " istiyor ama merdiven kademe " + top + "'de bitiyor."
-                        + " Bu yemek hicbir zaman acilamaz.");
+                        cuisine + "/" + d.Id + ": it asks for " + stations[st].Id
+                        + " tier " + d.RequiresStationTier
+                        + " but the ladder ends at tier " + top + "."
+                        + " This dish can never be unlocked.");
             }
         }
 
         /// <summary>
-        /// Isimli duzenli musteriler. docs/13 regulars/*.json.
+        /// Named regular customers. docs/13 regulars/*.json.
         ///
-        /// Dogrulama sert cunku bu dosya ELLE yazilmis icerik: arketip ve
-        /// yemek adlari yazim hatasina acik, ve sessizce dusen bir duzenli
-        /// musteri hic fark edilmez - oyunda "gelmedi" ile "yok" ayni
-        /// gorunur.
+        /// The validation is strict because this file is HAND-written
+        /// content: archetype and dish names are open to typos, and a
+        /// regular that drops out silently is never noticed - in the game
+        /// "did not come today" and "does not exist" look the same.
         /// </summary>
         private static RegularDef[] BuildRegulars(List<RegularDto> dtos, string cuisine,
                                                   DishDef[] dishes,
@@ -263,56 +270,58 @@ namespace Lokanta.Content
             {
                 RegularDto d = dtos[i];
                 if (string.IsNullOrEmpty(d.Id) || !ContentLoader.IdPattern.IsMatch(d.Id))
-                    throw new ContentException("Gecersiz duzenli musteri kimligi: " + d.Id);
+                    throw new ContentException("Invalid regular customer id: " + d.Id);
                 if (!seen.Add(d.Id))
-                    throw new ContentException("Tekrarlanan duzenli musteri: " + d.Id);
+                    throw new ContentException("Duplicate regular customer: " + d.Id);
                 if (!string.IsNullOrEmpty(d.Cuisine)
                     && !string.Equals(d.Cuisine, cuisine, StringComparison.Ordinal))
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + " baska mutfaga ait: " + d.Cuisine);
+                        "Regular customer " + d.Id + " belongs to another cuisine: " + d.Cuisine);
 
                 int arch = IndexOfArchetype(archetypes, d.ArchetypeBase);
                 if (arch < 0)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + ": olmayan arketip " + d.ArchetypeBase);
+                        "Regular customer " + d.Id + ": no such archetype " + d.ArchetypeBase);
 
                 int dish = IndexOfDish(dishes, d.FavouriteDish);
                 if (dish < 0)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + ": olmayan yemek " + d.FavouriteDish);
+                        "Regular customer " + d.Id + ": no such dish " + d.FavouriteDish);
 
                 if (d.ArrivesFromDay < 1)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + ": arrivesFromDay 1'den kucuk");
+                        "Regular customer " + d.Id + ": arrivesFromDay is below 1");
 
-                // Geldigi gun sevdigi yemek kapali olamaz: oyuncunun
-                // elinde olmayan bir eksikle karsilamak haksizlik.
+                // Their favourite dish cannot be locked on the day they
+                // arrive: greeting them with a gap the player cannot close is
+                // unfair.
                 if (dishes[dish].UnlockDay > d.ArrivesFromDay)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + " " + d.ArrivesFromDay +
-                        ". gunde geliyor ama sevdigi yemek " +
-                        dishes[dish].UnlockDay + ". gunde aciliyor");
+                        "Regular customer " + d.Id + " arrives on day " + d.ArrivesFromDay +
+                        " but their favourite dish unlocks on day " +
+                        dishes[dish].UnlockDay);
 
-                // Sirali olmasi uslup degil: gelis takvimi dosyayi okurken
-                // gorunur olmali, ve kod ilk gelmeyeni gorunce kesebilmeli.
+                // Being in order is not a matter of style: the arrival
+                // calendar has to be visible while reading the file, and the
+                // code has to be able to stop at the first one not yet due.
                 if (d.ArrivesFromDay < lastDay)
                     throw new ContentException(
-                        "regulars/" + cuisine + ".json: gelis gunleri artan sirada olmali, " +
-                        d.Id + " bozuyor");
+                        "regulars/" + cuisine + ".json: arrival days must be in increasing order, " +
+                        d.Id + " breaks it");
                 lastDay = d.ArrivesFromDay;
 
-                // Veresiye Turk mutfaginin imza mekanigi. Baska mutfakta
-                // uygun bir duzenli musteri yazmak, hic calismayacak bir
-                // alan yazmaktir.
-                if (d.VeresiyeEligible && signature.Kind != SignatureKind.Credit)
+                // The tab (credit) is the Turkish cuisine's signature
+                // mechanic. Marking a regular as eligible in another cuisine
+                // is writing a field that will never do anything.
+                if (d.TabEligible && signature.Kind != SignatureKind.Credit)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + " veresiyeye uygun ama " +
-                        cuisine + " mutfaginin imza mekanigi veresiye degil");
+                        "Regular customer " + d.Id + " is eligible for a tab but " +
+                        "the signature mechanic of the " + cuisine + " cuisine is not credit");
 
                 result[i] = new RegularDef(d.Id, d.NameKey ?? ("regular." + d.Id + ".name"),
                                            d.JobKey ?? ("regular." + d.Id + ".job"),
                                            arch, dish, d.ArrivesFromDay,
-                                           d.VeresiyeEligible,
+                                           d.TabEligible,
                                            BuildStory(d));
             }
             return result;
@@ -329,14 +338,14 @@ namespace Lokanta.Content
                 StoryBeatDto b = d.Story[i];
                 if (b.Beat != i + 1)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + ": sahne numaralari 1'den artan olmali");
+                        "Regular customer " + d.Id + ": story beat numbers must count up from 1");
                 if (b.RequiresVisits < lastVisits)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + ": sahne ziyaret esikleri azalamaz");
+                        "Regular customer " + d.Id + ": story beat visit thresholds cannot fall");
                 lastVisits = b.RequiresVisits;
                 if (b.RequiresSatisfaction < 0 || b.RequiresSatisfaction > Core.Fx.One)
                     throw new ContentException(
-                        "Duzenli musteri " + d.Id + ": sahne memnuniyet esigi 0-10000 olmali");
+                        "Regular customer " + d.Id + ": a story beat satisfaction threshold must be 0-10000");
                 beats[i] = new StoryBeat(b.Beat, b.RequiresVisits,
                                          b.RequiresSatisfaction, b.TextKey);
             }
@@ -351,27 +360,29 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// Imza mekanigi. docs/23 8.2: "kind bilinmiyorsa dogrulama
-        /// reddeder. Blok eksikse mutfak yuklenmez."
+        /// The signature mechanic. docs/23 8.2: "if the kind is unknown the
+        /// validation refuses. If the block is missing the cuisine does not
+        /// load."
         ///
-        /// Sert olmasinin sebebi docs/07: imza mekanigi bir mutfagi
-        /// digerinden ayiran TEK sey. Sessiz varsayilan, "satin aldigin
-        /// mutfak aslinda ayni oyun" demek olurdu.
+        /// The reason it is strict is docs/07: the signature mechanic is the
+        /// ONLY thing that separates one cuisine from another. A silent
+        /// default would amount to saying "the cuisine you bought is
+        /// actually the same game".
         /// </summary>
         private static SignatureDef BuildSignature(CuisineDto dto, string cuisine,
                                                    DishDef[] dishes,
                                                    int seasonDays)
         {
-            // Mutfak dosyasi olmayan bir mutfak (birim testleri) imzasiz kalir.
+            // A cuisine with no cuisine file (the unit tests) has no signature.
             if (dto == null) return new SignatureDef(SignatureKind.None);
 
-            // docs/09: mekanik ikinci mevsimin ilk gununde geliyor.
+            // docs/09: the mechanic arrives on the first day of the second season.
             int fromDay = seasonDays + 1;
 
             SignatureDto sig = dto.Signature;
             if (sig == null || string.IsNullOrEmpty(sig.Kind))
                 throw new ContentException(
-                    "cuisines/" + cuisine + ".json: signature blogu yok (docs/23 8.2)");
+                    "cuisines/" + cuisine + ".json: no signature block (docs/23 8.2)");
 
             switch (sig.Kind)
             {
@@ -381,7 +392,7 @@ namespace Lokanta.Content
                     return BuildCredit(sig.Credit, cuisine, fromDay);
                 default:
                     throw new ContentException(
-                        "cuisines/" + cuisine + ".json: bilinmeyen imza turu '" +
+                        "cuisines/" + cuisine + ".json: unknown signature kind '" +
                         sig.Kind + "' (combo, credit)");
             }
         }
@@ -391,15 +402,15 @@ namespace Lokanta.Content
         {
             if (c == null || c.Items == null || c.Items.Count != 3)
                 throw new ContentException(
-                    cuisine + ": kombo tam uc kalem olmali (ana, yan, icecek)");
+                    cuisine + ": a combo must have exactly three items (main, side, drink)");
             if (c.PriceBp <= 0 || c.PriceBp >= Core.Fx.One)
                 throw new ContentException(
-                    cuisine + ": kombo priceBp 0-10000 arasi INDIRIM olmali, " +
-                    c.PriceBp + " bulundu");
+                    cuisine + ": a combo priceBp must be a DISCOUNT between 0 and 10000, found " +
+                    c.PriceBp);
             if (c.KitchenLoadBp < Core.Fx.One)
                 throw new ContentException(
-                    cuisine + ": kombo kitchenLoadBp 10000'den kucuk olamaz; " +
-                    "kombo mutfagi RAHATLATMAZ (docs/07)");
+                    cuisine + ": a combo kitchenLoadBp cannot be below 10000; " +
+                    "a combo does NOT EASE the kitchen (docs/07)");
 
             int[] idx = new int[3];
             for (int i = 0; i < 3; i++)
@@ -407,15 +418,16 @@ namespace Lokanta.Content
                 idx[i] = IndexOfDish(dishes, c.Items[i]);
                 if (idx[i] < 0)
                     throw new ContentException(
-                        cuisine + ": kombo kalemi menude yok: " + c.Items[i]);
-                // Kalemler mekanik GELDIGINDE acik olmali. Ilk gun olmalari
-                // sart degil - docs/09 mekanigi ikinci mevsime koyuyor - ama
-                // geldigi gun kilitli bir kombo hic satilamaz.
+                        cuisine + ": combo item not on the menu: " + c.Items[i]);
+                // The items have to be unlocked BY THE TIME the mechanic
+                // arrives. They do not have to be there on day one - docs/09
+                // puts the mechanic in the second season - but a combo that is
+                // still locked on the day it arrives can never be sold.
                 if (dishes[idx[i]].UnlockDay > fromDay)
                     throw new ContentException(
-                        cuisine + ": kombo kalemi '" + c.Items[i] + "' " +
-                        dishes[idx[i]].UnlockDay + ". gunde aciliyor ama mekanik " +
-                        fromDay + ". gunde geliyor");
+                        cuisine + ": combo item '" + c.Items[i] + "' unlocks on day " +
+                        dishes[idx[i]].UnlockDay + " but the mechanic arrives on day " +
+                        fromDay);
             }
             return new SignatureDef(SignatureKind.Combo, fromDay,
                                     idx, c.PriceBp, c.KitchenLoadBp);
@@ -424,20 +436,20 @@ namespace Lokanta.Content
         private static SignatureDef BuildCredit(CreditDto c, string cuisine, int fromDay)
         {
             if (c == null)
-                throw new ContentException(cuisine + ": credit blogu yok");
+                throw new ContentException(cuisine + ": no credit block");
             if (c.MaxPerRegular <= 0)
-                throw new ContentException(cuisine + ": credit maxPerRegular pozitif olmali");
+                throw new ContentException(cuisine + ": credit maxPerRegular must be positive");
             if (c.DueDays <= 0)
-                throw new ContentException(cuisine + ": credit dueDays pozitif olmali");
+                throw new ContentException(cuisine + ": credit dueDays must be positive");
             if (c.CollectChanceBp <= 0 || c.CollectChanceBp > Core.Fx.One)
-                throw new ContentException(cuisine + ": credit collectChanceBp 1-10000 olmali");
-            // RISKSIZ DEFTER KARAR URETMEZ. Tavan tam kesinlige
-            // cikarsa veresiye yine bedava bir prim dugmesi olur.
+                throw new ContentException(cuisine + ": credit collectChanceBp must be 1-10000");
+            // A RISK-FREE LEDGER PRODUCES NO DECISION. If the cap climbs to
+            // full certainty the tab becomes a free bonus button again.
             if (c.ChanceCapBp >= Core.Fx.One)
-                throw new ContentException(cuisine + ": credit chanceCapBp 10000'in altinda olmali");
+                throw new ContentException(cuisine + ": credit chanceCapBp must be below 10000");
 
             if (c.DefaultRepPenaltyCenti < 0)
-                throw new ContentException(cuisine + ": credit defaultRepPenaltyCenti negatif olamaz");
+                throw new ContentException(cuisine + ": credit defaultRepPenaltyCenti cannot be negative");
 
             return new SignatureDef(SignatureKind.Credit, fromDay,
                                     creditMaxPerRegular: c.MaxPerRegular,
@@ -465,13 +477,14 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// Menu rolleri: hangi yemek grubu ana, yan, icecek, tatli yerine
-        /// geciyor. docs/13 gruplari mutfaga ozel tasarlamis.
+        /// Menu roles: which dish group stands in for main, side, drink and
+        /// dessert. docs/13 designed the groups per cuisine.
         ///
-        /// Dogrulama sert: yemek dosyasindaki HER grup tam olarak bir role
-        /// dusmeli ve ilk gun acik en az bir ana yemek olmali. Bu kontrol
-        /// olmadan Turk mutfagi sessizce kirilmisti; sekiz strateji de
-        /// sifir musteriyle batiyordu ve sebep hicbir yerde gorunmuyordu.
+        /// The validation is strict: EVERY group in the dish file must fall
+        /// into exactly one role, and at least one main must be unlocked on
+        /// day one. Without this check the Turkish cuisine broke silently;
+        /// all eight strategies went bust with zero customers and the reason
+        /// was visible nowhere.
         /// </summary>
         private static void BuildMenuRoles(CuisineDto dto, string cuisine, DishDef[] dishes,
                                            out string[] main, out string[] side,
@@ -480,7 +493,7 @@ namespace Lokanta.Content
             MenuRolesDto r = dto?.MenuRoles;
             if (r == null)
                 throw new ContentException(
-                    "cuisines/" + cuisine + ".json: menuRoles yok");
+                    "cuisines/" + cuisine + ".json: no menuRoles");
 
             main = Role(r.Main, cuisine, "main");
             side = Role(r.Side, cuisine, "side");
@@ -492,7 +505,7 @@ namespace Lokanta.Content
                 foreach (string g in set)
                     if (!mapped.Add(g))
                         throw new ContentException(
-                            "cuisines/" + cuisine + ".json: '" + g + "' iki role birden dusuyor");
+                            "cuisines/" + cuisine + ".json: '" + g + "' falls into two roles at once");
 
             HashSet<string> used = new HashSet<string>(StringComparer.Ordinal);
             foreach (DishDef d in dishes) used.Add(d.Group);
@@ -500,7 +513,7 @@ namespace Lokanta.Content
             foreach (string g in used)
                 if (!mapped.Contains(g))
                     throw new ContentException(
-                        "cuisines/" + cuisine + ".json: '" + g + "' grubuna rol verilmemis");
+                        "cuisines/" + cuisine + ".json: the group '" + g + "' has been given no role");
 
             bool firstDayMain = false;
             foreach (DishDef d in dishes)
@@ -508,29 +521,29 @@ namespace Lokanta.Content
                 { firstDayMain = true; break; }
             if (!firstDayMain)
                 throw new ContentException(
-                    "dishes/" + cuisine + ".json: ilk gun acik ana yemek yok");
+                    "dishes/" + cuisine + ".json: no main dish is unlocked on day one");
         }
 
         private static string[] Role(List<string> list, string cuisine, string name)
         {
             if (list == null || list.Count == 0)
                 throw new ContentException(
-                    "cuisines/" + cuisine + ".json: menuRoles." + name + " bos");
+                    "cuisines/" + cuisine + ".json: menuRoles." + name + " is empty");
             return list.ToArray();
         }
 
         /// <summary>
-        /// Soguk hava merdiveni. Kademe 0 zorunlu ve keepBp'si SIFIR:
-        /// docs/12 3'un tasarlanmis temeli, yani bozulabilir malzeme gece
-        /// oluyor. Ustteki kademeler o temeli degistiriyor.
+        /// The cold storage ladder. Tier 0 is mandatory and its keepBp is
+        /// ZERO: the designed baseline of docs/12 3, which is that perishable
+        /// stock dies overnight. The tiers above change that baseline.
         /// </summary>
         private static StorageDef BuildStorage(EquipmentFileDto dto)
         {
             StorageDto sd = dto.Storage;
             if (sd == null)
-                throw new ContentException("equipment.json: storage bolumu yok");
+                throw new ContentException("equipment.json: no storage section");
             if (sd.Tiers == null || sd.Tiers.Count < 2)
-                throw new ContentException("equipment.json: storage en az iki basamak olmali");
+                throw new ContentException("equipment.json: storage must have at least two rungs");
 
             StorageTier[] tiers = new StorageTier[sd.Tiers.Count];
             for (int t = 0; t < sd.Tiers.Count; t++)
@@ -538,27 +551,27 @@ namespace Lokanta.Content
                 StorageTierDto td = sd.Tiers[t];
                 if (td.Tier != t)
                     throw new ContentException(
-                        "equipment.json: storage basamak sirasi bozuk, "
-                        + t + " beklenirken " + td.Tier);
+                        "equipment.json: the storage rung order is broken, expected "
+                        + t + " but found " + td.Tier);
                 if (td.KeepBp < 0 || td.KeepBp > Core.Fx.One)
                     throw new ContentException(
-                        "equipment.json: storage t" + t + " keepBp 0-10000 olmali");
+                        "equipment.json: storage t" + t + " keepBp must be 0-10000");
                 if (t == 0)
                 {
                     if (td.KeepBp != 0)
-                        throw new ContentException("equipment.json: storage t0 keepBp sifir olmali");
+                        throw new ContentException("equipment.json: storage t0 keepBp must be zero");
                     if (td.Price != 0)
-                        throw new ContentException("equipment.json: storage t0 bedava olmali");
+                        throw new ContentException("equipment.json: storage t0 must be free");
                 }
                 else
                 {
                     StorageTierDto prev = sd.Tiers[t - 1];
                     if (td.KeepBp <= prev.KeepBp)
                         throw new ContentException(
-                            "equipment.json: storage t" + t + " keepBp artmiyor");
+                            "equipment.json: storage t" + t + " keepBp does not increase");
                     if (td.Price <= prev.Price)
                         throw new ContentException(
-                            "equipment.json: storage t" + t + " fiyati artmiyor");
+                            "equipment.json: the price of storage t" + t + " does not increase");
                 }
                 tiers[t] = new StorageTier(td.KeepBp, td.Price);
             }
@@ -566,22 +579,22 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// content/equipment.json. docs/27 Karar D: her istasyonun bir
-        /// ekipman merdiveni var; basamak ya yuva ekliyor ya attendBp
-        /// dusuruyor, ikisi de prepMs'e dokunmuyor.
+        /// content/equipment.json. docs/27 Decision D: every station has an
+        /// equipment ladder; a rung either adds a slot or lowers attendBp,
+        /// and neither of them touches prepMs.
         ///
-        /// Kimlikler kapali listeyle AYNI SIRADA olmali: yemeklerin
-        /// StationIndex degeri o siraya gore hesaplandi ve bir kayma
-        /// sessizce yanlis istasyonu mesgul ederdi.
+        /// The ids must be IN THE SAME ORDER as the closed list: a dish's
+        /// StationIndex value was worked out from that order, and a shift by
+        /// one would silently occupy the wrong station.
         /// </summary>
         private static StationDef[] BuildStations(EquipmentFileDto dto, string cuisine)
         {
             if (dto == null)
-                throw new ContentException("equipment.json okunamadi");
+                throw new ContentException("equipment.json could not be read");
             if (dto.Stations == null || dto.Stations.Count != StationIds.Length)
                 throw new ContentException(
-                    "equipment.json: " + StationIds.Length + " istasyon olmali, "
-                    + (dto.Stations == null ? 0 : dto.Stations.Count) + " var");
+                    "equipment.json: there must be " + StationIds.Length + " stations, there are "
+                    + (dto.Stations == null ? 0 : dto.Stations.Count));
 
             StationDef[] defs = new StationDef[StationIds.Length];
             for (int i = 0; i < StationIds.Length; i++)
@@ -589,10 +602,10 @@ namespace Lokanta.Content
                 StationDto sd = dto.Stations[i];
                 if (sd == null || !string.Equals(sd.Id, StationIds[i], StringComparison.Ordinal))
                     throw new ContentException(
-                        "equipment.json: " + i + ". istasyon '" + StationIds[i]
-                        + "' olmali, '" + (sd == null ? "null" : sd.Id) + "' geldi");
+                        "equipment.json: station " + i + " must be '" + StationIds[i]
+                        + "', got '" + (sd == null ? "null" : sd.Id) + "'");
                 if (sd.Tiers == null || sd.Tiers.Count == 0)
-                    throw new ContentException("equipment.json: " + sd.Id + " basamaksiz");
+                    throw new ContentException("equipment.json: " + sd.Id + " has no rungs");
 
                 StationTier[] tiers = new StationTier[sd.Tiers.Count];
                 for (int t = 0; t < sd.Tiers.Count; t++)
@@ -600,32 +613,32 @@ namespace Lokanta.Content
                     StationTierDto td = sd.Tiers[t];
                     if (td.Tier != t)
                         throw new ContentException(
-                            "equipment.json: " + sd.Id + " basamak sirasi bozuk, "
-                            + t + " beklenirken " + td.Tier);
+                            "equipment.json: the rung order of " + sd.Id + " is broken, expected "
+                            + t + " but found " + td.Tier);
                     if (td.Slots < 1)
                         throw new ContentException(
-                            "equipment.json: " + sd.Id + " t" + t + " yuva pozitif olmali");
+                            "equipment.json: " + sd.Id + " t" + t + " slots must be positive");
                     if (td.AttendBp < 1 || td.AttendBp > Core.Fx.One)
                         throw new ContentException(
-                            "equipment.json: " + sd.Id + " t" + t + " attendBp 1-10000 olmali");
+                            "equipment.json: " + sd.Id + " t" + t + " attendBp must be 1-10000");
                     if (td.Price < 0)
                         throw new ContentException(
-                            "equipment.json: " + sd.Id + " t" + t + " fiyat negatif");
+                            "equipment.json: " + sd.Id + " t" + t + " price is negative");
                     if (t == 0 && td.Price != 0)
                         throw new ContentException(
-                            "equipment.json: " + sd.Id + " t0 bedava olmali");
+                            "equipment.json: " + sd.Id + " t0 must be free");
                     if (t > 0)
                     {
                         StationTierDto prev = sd.Tiers[t - 1];
                         if (td.Price <= prev.Price)
                             throw new ContentException(
-                                "equipment.json: " + sd.Id + " t" + t + " fiyati artmiyor");
+                                "equipment.json: the price of " + sd.Id + " t" + t + " does not increase");
                         if (td.Slots < prev.Slots || td.AttendBp > prev.AttendBp)
                             throw new ContentException(
-                                "equipment.json: " + sd.Id + " t" + t + " geriye gidiyor");
+                                "equipment.json: " + sd.Id + " t" + t + " goes backwards");
                         if (td.Slots == prev.Slots && td.AttendBp == prev.AttendBp)
                             throw new ContentException(
-                                "equipment.json: " + sd.Id + " t" + t + " hicbir sey degistirmiyor");
+                                "equipment.json: " + sd.Id + " t" + t + " changes nothing");
                     }
 
                     tiers[t] = new StationTier(td.Slots, td.AttendBp, td.Price, td.NeededAtTables);
@@ -634,9 +647,9 @@ namespace Lokanta.Content
                 defs[i] = new StationDef(sd.Id, sd.NameKey ?? ("station." + sd.Id), tiers);
             }
 
-            // Mutfaga OZEL adlandirilmis ekipman paylasilan altinin ARDINA
-            // ekleniyor. Sira baglayici: yemeklerin StationIndex degeri buna
-            // gore ve kayit dosyasi kademeleri indise gore tasiyor.
+            // Named equipment SPECIFIC to a cuisine is appended AFTER the
+            // shared base. The order is binding: a dish's StationIndex value
+            // follows it and the save file carries the tiers by index.
             List<StationDto> extra = null;
             if (dto.CuisineStations != null)
                 dto.CuisineStations.TryGetValue(cuisine, out extra);
@@ -648,14 +661,14 @@ namespace Lokanta.Content
             {
                 StationDto sd = extra[i];
                 if (string.IsNullOrEmpty(sd.Id))
-                    throw new ContentException("equipment.json: mutfak istasyonunun kimligi yok");
+                    throw new ContentException("equipment.json: the cuisine station has no id");
                 if (Array.IndexOf(StationIds, sd.Id) >= 0)
                     throw new ContentException(
-                        "equipment.json: '" + sd.Id + "' paylasilan istasyonla ayni adi tasiyor");
+                        "equipment.json: '" + sd.Id + "' carries the same name as a shared station");
                 if (sd.Tiers == null || sd.Tiers.Count < 2)
                     throw new ContentException(
-                        "equipment.json: " + sd.Id + " en az iki basamak olmali; "
-                        + "adlandirilmis ekipman SATIN ALINMAK zorunda");
+                        "equipment.json: " + sd.Id + " must have at least two rungs; "
+                        + "named equipment HAS TO BE BOUGHT");
 
                 StationTier[] t = new StationTier[sd.Tiers.Count];
                 for (int k = 0; k < sd.Tiers.Count; k++)
@@ -669,12 +682,13 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// Adlandirilmis ekipmanin "opens" listesi ile yemeklerin gercek
-        /// istasyonu TUTARLI olmali.
+        /// The "opens" list of a piece of named equipment and the dishes'
+        /// actual station must AGREE.
         ///
-        /// Iki yerde yazili bir sey, iki yerde ayrisabilir. Liste yalnizca
-        /// belge degil, capraz kontrol: bir yemek baska istasyona tasinip
-        /// liste guncellenmezse oyun ACILMIYOR.
+        /// A thing written in two places can drift apart in two places. The
+        /// list is not just documentation, it is a cross-check: if a dish is
+        /// moved to another station and the list is not updated, the game
+        /// DOES NOT OPEN.
         /// </summary>
         private static void CheckCuisineStationsOpen(
             EquipmentFileDto dto, string cuisine, DishDef[] dishes, StationDef[] stations)
@@ -696,16 +710,16 @@ namespace Lokanta.Content
 
                     if (di < 0)
                         throw new ContentException(
-                            "equipment.json: " + sd.Id + " '" + dishId + "' aciyor ama"
-                            + " o yemek " + cuisine + " menusunde yok");
+                            "equipment.json: " + sd.Id + " opens '" + dishId + "' but"
+                            + " that dish is not on the " + cuisine + " menu");
                     if (dishes[di].StationIndex != st)
                         throw new ContentException(
-                            "equipment.json: " + sd.Id + " '" + dishId + "' aciyor ama"
-                            + " o yemek baska istasyonda");
+                            "equipment.json: " + sd.Id + " opens '" + dishId + "' but"
+                            + " that dish is at another station");
                     if (dishes[di].RequiresStationTier <= 0)
                         throw new ContentException(
-                            "dishes/" + cuisine + ".json: '" + dishId + "' adlandirilmis"
-                            + " ekipmanda ama requiresStationTier sifir, yani kilitsiz");
+                            "dishes/" + cuisine + ".json: '" + dishId + "' sits on named"
+                            + " equipment but its requiresStationTier is zero, so it is unlocked");
                 }
             }
         }
@@ -718,8 +732,8 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// docs/28-peak-decision.md Karar G. Dort deger, toplami 10000.
-        /// arrivalWeightsBp ile ayni dogrulama kalibi.
+        /// docs/28-peak-decision.md Decision G. Four values summing to 10000.
+        /// The same validation shape as arrivalWeightsBp.
         /// </summary>
         private static int[] BuildSlotDurations(CuisineDto dto, string cuisine)
         {
@@ -727,20 +741,20 @@ namespace Lokanta.Content
 
             if (dto.SlotDurationsBp.Count != (int)DaySlot.Count)
                 throw new ContentException(
-                    "cuisines/" + cuisine + ".json: slotDurationsBp dort deger olmali");
+                    "cuisines/" + cuisine + ".json: slotDurationsBp must have four values");
 
             int sum = 0;
             for (int i = 0; i < dto.SlotDurationsBp.Count; i++)
             {
                 if (dto.SlotDurationsBp[i] <= 0)
                     throw new ContentException(
-                        "cuisines/" + cuisine + ".json: dilim suresi pozitif olmali");
+                        "cuisines/" + cuisine + ".json: a slot duration must be positive");
                 sum += dto.SlotDurationsBp[i];
             }
             if (sum != Core.Fx.One)
                 throw new ContentException(
-                    "cuisines/" + cuisine + ".json: slotDurationsBp toplami "
-                    + sum + ", 10000 olmali");
+                    "cuisines/" + cuisine + ".json: slotDurationsBp sums to "
+                    + sum + ", it must be 10000");
 
             return dto.SlotDurationsBp.ToArray();
         }
@@ -750,7 +764,7 @@ namespace Lokanta.Content
             List<IngredientDto> dtos, out Dictionary<string, int> index)
         {
             if (dtos == null || dtos.Count == 0)
-                throw new ContentException("ingredients.json bos");
+                throw new ContentException("ingredients.json is empty");
 
             index = new Dictionary<string, int>(StringComparer.Ordinal);
             IngredientDef[] result = new IngredientDef[dtos.Count];
@@ -760,9 +774,9 @@ namespace Lokanta.Content
                 IngredientDto d = dtos[i];
                 ContentLoader.RequireId(d.Id, "ingredients.json");
                 if (index.ContainsKey(d.Id))
-                    throw new ContentException("Tekrarlanan malzeme kimligi: " + d.Id);
+                    throw new ContentException("Duplicate ingredient id: " + d.Id);
                 if (d.BasePrice <= 0)
-                    throw new ContentException("Malzeme " + d.Id + ": basePrice pozitif olmali");
+                    throw new ContentException("Ingredient " + d.Id + ": basePrice must be positive");
 
                 index[d.Id] = i;
                 result[i] = new IngredientDef(d.Id, d.NameKey, d.Shared,
@@ -774,12 +788,16 @@ namespace Lokanta.Content
             return result;
         }
 
-        /// <summary>Kalite kademeleri. Sira baglayici: 0 dusuk, 1 standart, 2 yuksek.</summary>
+        /// <summary>
+        /// Quality tiers. The order is binding: 0 low, 1 standard, 2 high.
+        /// The VALUES are content tokens - the keys as ingredients.json
+        /// writes them - so they stay exactly as they are.
+        /// </summary>
         private static readonly string[] QualityIds = { "dusuk", "standart", "yuksek" };
 
         /// <summary>
-        /// Kalite fiyat carpanlari. Standart 10000 olmak ZORUNDA: standart
-        /// referans nokta, taban fiyat onun uzerine kuruluyor.
+        /// Quality price multipliers. Standard MUST be 10000: standard is the
+        /// reference point, the base price is built on top of it.
         /// </summary>
         private static int[] BuildQualityPrice(IngredientDto d)
         {
@@ -787,16 +805,16 @@ namespace Lokanta.Content
                                    "qualityPriceMultiplierBp");
             if (bp[1] != Core.Fx.One)
                 throw new ContentException(
-                    "Malzeme " + d.Id + ": standart kalite carpani 10000 olmali");
+                    "Ingredient " + d.Id + ": the standard quality multiplier must be 10000");
             if (bp[0] >= bp[1] || bp[2] <= bp[1])
                 throw new ContentException(
-                    "Malzeme " + d.Id + ": kalite fiyatlari artan olmali");
+                    "Ingredient " + d.Id + ": the quality prices must increase");
             return bp;
         }
 
         /// <summary>
-        /// Kalitenin memnuniyete etkisi. Standart SIFIR olmak zorunda,
-        /// dusuk negatif, yuksek pozitif.
+        /// What quality does to satisfaction. Standard has to be ZERO, low
+        /// negative, high positive.
         /// </summary>
         private static int[] BuildQualitySatisfaction(IngredientDto d)
         {
@@ -804,10 +822,10 @@ namespace Lokanta.Content
                                   "qualitySatisfactionCenti");
             if (c[1] != 0)
                 throw new ContentException(
-                    "Malzeme " + d.Id + ": standart kalite memnuniyeti sifir olmali");
+                    "Ingredient " + d.Id + ": standard quality satisfaction must be zero");
             if (c[0] > 0 || c[2] < 0)
                 throw new ContentException(
-                    "Malzeme " + d.Id + ": dusuk kalite negatif, yuksek pozitif olmali");
+                    "Ingredient " + d.Id + ": low quality must be negative and high positive");
             return c;
         }
 
@@ -815,45 +833,49 @@ namespace Lokanta.Content
                                          string id, string field)
         {
             if (src == null || src.Count == 0)
-                throw new ContentException("Malzeme " + id + ": " + field + " yok");
+                throw new ContentException("Ingredient " + id + ": no " + field);
             int[] v = new int[QualityIds.Length];
             for (int i = 0; i < QualityIds.Length; i++)
             {
                 if (!src.TryGetValue(QualityIds[i], out int x))
                     throw new ContentException(
-                        "Malzeme " + id + ": " + field + " icinde '" + QualityIds[i] + "' yok");
+                        "Ingredient " + id + ": '" + QualityIds[i] + "' is missing from " + field);
                 v[i] = x;
             }
             return v;
         }
 
-        /// <summary>docs/09: kampanya dort mevsim. Sira baglayici.</summary>
+        /// <summary>
+        /// docs/09: the campaign has four seasons. The order is binding.
+        /// The VALUES are content tokens - the season keys as
+        /// ingredients.json writes them (spring, summer, autumn, winter).
+        /// </summary>
         private static readonly string[] SeasonIds =
         {
             "ilkbahar", "yaz", "sonbahar", "kis"
         };
 
         /// <summary>
-        /// Malzemenin mevsim carpanlari. Dort mevsim de bulunmali; eksik
-        /// bir mevsim sessizce "degisiklik yok" demek olurdu ve tam olarak
-        /// bu sinif hata (icerik vaat ediyor, kod okumuyor) yuzunden
-        /// mevsimler aylarca olu kaldi.
+        /// The ingredient's season multipliers. All four seasons have to be
+        /// there; a missing season would silently mean "no change", and it is
+        /// exactly this class of bug (content promises a field, the code never
+        /// reads it) that left the seasons dead for months.
         /// </summary>
         private static int[] BuildSeason(IngredientDto d)
         {
             if (d.SeasonModifierBp == null || d.SeasonModifierBp.Count == 0)
                 throw new ContentException(
-                    "Malzeme " + d.Id + ": seasonModifierBp yok");
+                    "Ingredient " + d.Id + ": no seasonModifierBp");
 
             int[] bp = new int[SeasonIds.Length];
             for (int i = 0; i < SeasonIds.Length; i++)
             {
                 if (!d.SeasonModifierBp.TryGetValue(SeasonIds[i], out int v))
                     throw new ContentException(
-                        "Malzeme " + d.Id + ": '" + SeasonIds[i] + "' mevsimi yok");
+                        "Ingredient " + d.Id + ": the '" + SeasonIds[i] + "' season is missing");
                 if (v <= 0)
                     throw new ContentException(
-                        "Malzeme " + d.Id + ": '" + SeasonIds[i] + "' carpani pozitif olmali");
+                        "Ingredient " + d.Id + ": the '" + SeasonIds[i] + "' multiplier must be positive");
                 bp[i] = v;
             }
             return bp;
@@ -861,8 +883,8 @@ namespace Lokanta.Content
 
         // -------------------------------------------------------------------
         /// <summary>
-        /// docs/09: kampanya 60 gun, mevsim basina 15. economy.json yoksa
-        /// (birim testleri elle DTO kuruyor) bu deger kullaniliyor.
+        /// docs/09: the campaign is 60 days, 15 per season. If there is no
+        /// economy.json (the unit tests build DTOs by hand) this value is used.
         /// </summary>
         private const int DefaultSeasonDays = 15;
         private const int SeasonCount = 4;
@@ -873,7 +895,7 @@ namespace Lokanta.Content
                                              int seasonDays = DefaultSeasonDays)
         {
             if (dtos == null || dtos.Count == 0)
-                throw new ContentException("Yemek listesi bos: " + cuisine);
+                throw new ContentException("The dish list is empty: " + cuisine);
 
             HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
             DishDef[] result = new DishDef[dtos.Count];
@@ -885,26 +907,26 @@ namespace Lokanta.Content
 
                 ContentLoader.RequireId(d.Id, where);
                 if (!seen.Add(d.Id))
-                    throw new ContentException("Tekrarlanan yemek kimligi: " + d.Id);
+                    throw new ContentException("Duplicate dish id: " + d.Id);
 
                 if (!string.Equals(d.Cuisine, cuisine, StringComparison.Ordinal))
                     throw new ContentException(
-                        "Yemek " + d.Id + " mutfagi '" + d.Cuisine + "', dosya '" + cuisine + "'");
+                        "Dish " + d.Id + " has cuisine '" + d.Cuisine + "', the file is '" + cuisine + "'");
 
-                // docs/23 8.3 dort zorunlu parametre
+                // docs/23 8.3, the four mandatory parameters
                 if (d.Price <= 0)
-                    throw new ContentException("Yemek " + d.Id + ": price pozitif olmali");
+                    throw new ContentException("Dish " + d.Id + ": price must be positive");
                 if (d.PrepMs <= 0)
-                    throw new ContentException("Yemek " + d.Id + ": prepMs pozitif olmali");
+                    throw new ContentException("Dish " + d.Id + ": prepMs must be positive");
                 if (d.Complexity < 1 || d.Complexity > 3)
-                    throw new ContentException("Yemek " + d.Id + ": complexity 1-3 olmali");
+                    throw new ContentException("Dish " + d.Id + ": complexity must be 1-3");
                 if (d.Ingredients == null || d.Ingredients.Count == 0)
-                    throw new ContentException("Yemek " + d.Id + ": malzeme listesi bos");
+                    throw new ContentException("Dish " + d.Id + ": the ingredient list is empty");
 
                 int station = StationIndex(d.Station, stations);
                 if (station < 0)
                     throw new ContentException(
-                        "Yemek " + d.Id + ": bilinmeyen istasyon '" + d.Station + "'");
+                        "Dish " + d.Id + ": unknown station '" + d.Station + "'");
 
                 DishIngredient[] parts = new DishIngredient[d.Ingredients.Count];
                 long cost = 0;
@@ -913,40 +935,42 @@ namespace Lokanta.Content
                     DishIngredientDto p = d.Ingredients[k];
                     if (!index.TryGetValue(p.Id ?? "", out int ing))
                         throw new ContentException(
-                            "Yemek " + d.Id + ": malzeme bulunamadi '" + p.Id + "'");
+                            "Dish " + d.Id + ": ingredient not found '" + p.Id + "'");
                     if (p.Grams <= 0)
                         throw new ContentException(
-                            "Yemek " + d.Id + ": '" + p.Id + "' gramaji pozitif olmali");
+                            "Dish " + d.Id + ": the grammage of '" + p.Id + "' must be positive");
 
                     parts[k] = new DishIngredient(ing, p.Grams);
                     cost += Core.Fx.MulDiv(ingredients[ing].BasePrice, p.Grams, GramsPerKilo);
                 }
 
                 int unlockDay = d.UnlockDay > 0 ? d.UnlockDay : 1;
-                // Kilit sartlari. Ilk gun acik bir yemek hicbir sey
-                // istememeli, yoksa oyun baslar baslamaz kilitli kalir.
+                // Unlock conditions. A dish that is open on day one must ask
+                // for nothing, otherwise it stays locked the moment the game
+                // starts.
                 if (unlockDay <= 1 && (d.RequiresStationTier > 0 || d.UnlockReputationCenti > 0))
                     throw new ContentException(
-                        "Yemek " + d.Id + ": ilk gun acik ama kilit sarti tasiyor");
+                        "Dish " + d.Id + ": it is open on day one yet carries an unlock condition");
                 if (d.RequiresStationTier < 0)
                     throw new ContentException(
-                        "Yemek " + d.Id + ": requiresStationTier negatif");
+                        "Dish " + d.Id + ": requiresStationTier is negative");
                 if (d.UnlockReputationCenti < 0 || d.UnlockReputationCenti > Core.Fx.One)
                     throw new ContentException(
-                        "Yemek " + d.Id + ": unlockReputationCenti 0-10000 olmali");
+                        "Dish " + d.Id + ": unlockReputationCenti must be 0-10000");
 
-                // unlockSeason, unlockDay'in TURETILMISI. Ayni gercek iki
-                // yerde yaziliyor ve iki yerde yazilan sey sessizce ayrisir -
-                // bu dosyada bugune kadar dort kez oldu. Alan silinmiyor
-                // (ilerleme ekrani yemekleri mevsime gore grupluyor) ama
-                // artik DEGISMEZ: tutmazsa oyun acilmiyor.
+                // unlockSeason is DERIVED from unlockDay. The same fact is
+                // written in two places, and a thing written in two places
+                // drifts apart silently - it has happened four times in this
+                // file so far. The field is not deleted (the progress screen
+                // groups dishes by season) but it is now an INVARIANT: if it
+                // does not agree, the game does not open.
                 int season = (unlockDay - 1) / (seasonDays > 0 ? seasonDays : DefaultSeasonDays) + 1;
                 if (season > SeasonCount) season = SeasonCount;
                 if (d.UnlockSeason != 0 && d.UnlockSeason != season)
                     throw new ContentException(
-                        "Yemek " + d.Id + ": unlockSeason " + d.UnlockSeason +
-                        " ama unlockDay " + unlockDay + " " + season +
-                        ". mevsime dusuyor (mevsim " + seasonDays + " gun)");
+                        "Dish " + d.Id + ": unlockSeason is " + d.UnlockSeason +
+                        " but unlockDay " + unlockDay + " falls in season " + season +
+                        " (a season is " + seasonDays + " days)");
 
                 result[i] = new DishDef(d.Id, d.NameKey, d.Cuisine, d.Group, d.Price,
                                         d.PrepMs, station, d.Complexity, unlockDay,
@@ -961,7 +985,7 @@ namespace Lokanta.Content
         private static ArchetypeDef[] BuildArchetypes(List<ArchetypeDto> dtos)
         {
             if (dtos == null || dtos.Count == 0)
-                throw new ContentException("Arketip listesi bos");
+                throw new ContentException("The archetype list is empty");
 
             HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
             ArchetypeDef[] result = new ArchetypeDef[dtos.Count];
@@ -971,30 +995,30 @@ namespace Lokanta.Content
                 ArchetypeDto a = dtos[i];
                 ContentLoader.RequireId(a.Id, "archetypes");
                 if (!seen.Add(a.Id))
-                    throw new ContentException("Tekrarlanan arketip kimligi: " + a.Id);
+                    throw new ContentException("Duplicate archetype id: " + a.Id);
 
                 int tier = Array.IndexOf(Tiers, a.Tier);
                 if (tier < 0)
                     throw new ContentException(
-                        "Arketip " + a.Id + ": bilinmeyen kademe '" + a.Tier + "'");
+                        "Archetype " + a.Id + ": unknown tier '" + a.Tier + "'");
                 if (a.Weight <= 0)
-                    throw new ContentException("Arketip " + a.Id + ": weight pozitif olmali");
+                    throw new ContentException("Archetype " + a.Id + ": weight must be positive");
                 if (a.PatienceMs <= 0)
-                    throw new ContentException("Arketip " + a.Id + ": patienceMs pozitif olmali");
+                    throw new ContentException("Archetype " + a.Id + ": patienceMs must be positive");
                 if (a.GroupSizeMin < 1 || a.GroupSizeMax < a.GroupSizeMin)
-                    throw new ContentException("Arketip " + a.Id + ": grup buyuklugu gecersiz");
+                    throw new ContentException("Archetype " + a.Id + ": the group size is invalid");
 
                 if (a.ArrivalWeightsBp == null
                     || a.ArrivalWeightsBp.Count != (int)DaySlot.Count)
                     throw new ContentException(
-                        "Arketip " + a.Id + ": arrivalWeightsBp dort deger olmali");
+                        "Archetype " + a.Id + ": arrivalWeightsBp must have four values");
 
                 int sum = 0;
                 for (int k = 0; k < a.ArrivalWeightsBp.Count; k++) sum += a.ArrivalWeightsBp[k];
                 if (sum != Core.Fx.One)
                     throw new ContentException(
-                        "Arketip " + a.Id + ": arrivalWeightsBp toplami "
-                        + sum + ", 10000 olmali");
+                        "Archetype " + a.Id + ": arrivalWeightsBp sums to "
+                        + sum + ", it must be 10000");
 
                 result[i] = new ArchetypeDef(
                     a.Id, a.NameKey, tier, a.Weight, a.PatienceMs, a.PriceSensitivityBp,
@@ -1007,20 +1031,21 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// Siklik kademesi ile trafik agirligi TUTARLI olmali.
+        /// The frequency tier and the traffic weight must AGREE.
         ///
-        /// docs/13 144: "Trafik paylari economy.json'da degil, SIKLIK
-        /// KADEMESINDEN turetilir." Icerik bugun buna uyuyor (sik 550-1300,
-        /// orta 220-400, nadir 100-150, hic ortusme yok) ama bunu hicbir
-        /// sey zorlamiyordu ve TierIndex alani hicbir yerde okunmuyordu.
+        /// docs/13 144: "The traffic shares are not in economy.json, they are
+        /// derived FROM THE FREQUENCY TIER." Content obeys that today (common
+        /// 550-1300, medium 220-400, rare 100-150, with no overlap at all) but
+        /// nothing was enforcing it and the TierIndex field was read nowhere.
         ///
-        /// Bu kontrol iki isi birden goruyor: alani canlandiriyor ve iki
-        /// veri parcasinin sessizce ayrisamamasini sagliyor. Bir arketipin
-        /// kademesi degistirilip agirligi unutulursa oyun ACILMIYOR.
+        /// This check does two jobs at once: it brings the field to life, and
+        /// it makes it impossible for the two pieces of data to drift apart
+        /// silently. If an archetype's tier is changed and its weight is
+        /// forgotten, the game DOES NOT OPEN.
         /// </summary>
         private static void CheckTierWeights(ArchetypeDef[] defs)
         {
-            // Her kademenin en dusuk ve en yuksek agirligi
+            // The lowest and the highest weight of each tier
             int[] lo = { int.MaxValue, int.MaxValue, int.MaxValue };
             int[] hi = { 0, 0, 0 };
             foreach (ArchetypeDef d in defs)
@@ -1036,9 +1061,9 @@ namespace Lokanta.Content
                 if (hi[t] == 0 || lo[t + 1] == int.MaxValue) continue;
                 if (lo[t] <= hi[t + 1])
                     throw new ContentException(
-                        "Arketip agirliklari siklik kademesiyle celisiyor: '"
-                        + Tiers[t] + "' en dusugu " + lo[t] + ", '" + Tiers[t + 1]
-                        + "' en yuksegi " + hi[t + 1] + " (docs/13)");
+                        "The archetype weights contradict the frequency tier: the lowest of '"
+                        + Tiers[t] + "' is " + lo[t] + ", the highest of '" + Tiers[t + 1]
+                        + "' is " + hi[t + 1] + " (docs/13)");
             }
         }
     }

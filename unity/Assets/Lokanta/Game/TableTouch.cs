@@ -3,42 +3,43 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Bir masaya dokunuldugunu bildiren isaret ve dokunma hedefi.
+    /// A marker that a table has been touched, and the touch target.
     ///
-    /// Ayri dosyada, [[RoomTouch]] ile ayni sebepten: Unity bir
-    /// MonoBehaviour'un dosya adiyla ayni adi tasimasini bekliyor.
+    /// In its own file for the same reason as [[RoomTouch]]: Unity expects
+    /// a MonoBehaviour to carry the same name as its file.
     ///
-    /// NEDEN VAR: mudahaleler bugune kadar hedefi KENDILERI seciyordu -
-    /// "Cay ikram" her zaman MostImpatientParty'ye gidiyordu. Yani
-    /// oyuncunun servis sirasindaki tek karari "simdi mi, sonra mi"
-    /// idi; KIME sorusunu oyun cevapliyordu. Patron olmanin butun
-    /// mekanigi tek bir zamanlama dugmesine inmisti.
+    /// WHY IT EXISTS: until now the interventions picked their target
+    /// THEMSELVES - "offer tea" always went to MostImpatientParty. So the
+    /// player's only decision during service was "now or later"; the game
+    /// answered the WHO. The whole mechanic of being the owner had shrunk
+    /// to a single timing button.
     ///
-    /// Ikinci kamera kademesinin (odaya yaklasma) da boylece bir isi
-    /// oluyor: yakinlasmak SUSLEME degil, masa secebilmek demek.
-    /// Yaklasmadan da oynanabiliyor - secim yapilmazsa eski davranis,
-    /// yani sabri en az kalan masa.
+    /// It also gives the second camera step (zooming into a room) a job:
+    /// zooming in is not DECORATION, it means being able to pick a table.
+    /// It is still playable without zooming in - if no choice is made the
+    /// old behaviour applies, that is, the table with the least patience
+    /// left.
     /// </summary>
     public sealed class TableTouch : MonoBehaviour
     {
         public int TableIndex;
 
         /// <summary>
-        /// Dokunma hedefinin YARIÇAPI (m). Masanin capi 0,88 m ve
-        /// yalnizca o kadarlik bir carpisan, odaya yaklasildiginda
-        /// yaklasik 67 dp'ye dusuyor - dokunulabilir ama dar.
-        /// Sandalyeleri de iceren 1,30 m, masa TAKIMINI hedef yapiyor
-        /// ve oyuncunun zaten bir butun olarak gordugu sey o.
+        /// The RADIUS of the touch target (m). The table is 0.88 m across
+        /// and a collider only that big drops to about 67 dp when the room
+        /// is zoomed into - touchable, but tight. 1.30 m, which takes the
+        /// chairs in as well, makes the table SET the target, and that is
+        /// what the player already sees as one thing.
         /// </summary>
         private const float Radius = 0.65f;
         private const float Height = 1.10f;
 
         public static TableTouch Attach(Transform table, int index)
         {
-            // Dokunma hacmi AYRI bir cocukta: masa on tanimli parcasinin
-            // kendi carpisani var ve onu buyutmek, gorsel olcegi de
-            // buyuturdu.
-            GameObject go = new GameObject("Dokunma");
+            // The touch volume is a SEPARATE child: the table's prefab part
+            // has a collider of its own and enlarging that would have enlarged
+            // the visual scale too.
+            GameObject go = new GameObject("Touch");
             go.transform.SetParent(table, false);
             go.transform.localPosition = new Vector3(0f, Height * 0.5f, 0f);
 

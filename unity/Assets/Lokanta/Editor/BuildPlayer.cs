@@ -7,17 +7,17 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Oynanabilir yapi alir.
+    /// Takes a playable build.
     ///
-    /// Iki hedef var ve ikisi de gerekli:
+    /// There are two targets and both are needed:
     ///
-    ///   Windows - DOGRULAMA icin. Cihaz yok, editorde play mode toplu
-    ///   kipte takiliyor; oyunu gercekten calistirmanin tek yolu bir
-    ///   masaustu yapisi. Autopilot ile birlikte arayuzu, sesi, kaydi ve
-    ///   simulasyonu tek kosuda dogruluyor.
+    ///   Windows - for VERIFICATION. There is no device, and play mode in the
+    ///   editor hangs in batch mode; the only way to actually run the game is
+    ///   a desktop build. Together with the Autopilot it verifies the
+    ///   interface, the sound, the save and the simulation in a single run.
     ///
-    ///   Android - GERCEK hedef. Ayarlari burada yaziyor ki bir dahaki
-    ///   sefere "paket adi neydi" diye aranmasin.
+    ///   Android - the REAL target. Its settings are written down here so that
+    ///   next time nobody has to go hunting for "what was the package name".
     ///
     ///   .\tools\unity\run.ps1 -Method Lokanta.EditorTools.BuildPlayer.Windows
     ///   .\tools\unity\run.ps1 -Method Lokanta.EditorTools.BuildPlayer.Android
@@ -25,20 +25,21 @@ namespace Lokanta.EditorTools
     public static class BuildPlayer
     {
         // =====================================================================
-        // Yapi PARAMETRELERI: komut satiri ve ortam degiskenleri.
+        // BUILD PARAMETERS: the command line and environment variables.
         //
-        // Surum kodu ve imzalama, betige gomulemeyecek iki seydir:
-        // birincisi her yayinda artmali, ikincisi depoya girmemeli.
+        // The version code and the signing are the two things that cannot be
+        // baked into the script: the first has to go up with every release,
+        // the second must never enter the repository.
         // =====================================================================
 
-        /// <summary>Ortam degiskeni; yoksa bos dize.</summary>
+        /// <summary>An environment variable; an empty string if it is absent.</summary>
         private static string Env(string name)
         {
             string v = System.Environment.GetEnvironmentVariable(name);
             return string.IsNullOrEmpty(v) ? string.Empty : v.Trim();
         }
 
-        /// <summary>Komut satiri bayraginin degeri; yoksa varsayilan.</summary>
+        /// <summary>The value of a command line flag; the fallback if it is absent.</summary>
         private static string Arg(string flag, string fallback)
         {
             string[] a = System.Environment.GetCommandLineArgs();
@@ -55,59 +56,61 @@ namespace Lokanta.EditorTools
 
         private const string Scene = "Assets/Lokanta/Game.unity";
         /// <summary>
-        /// Paket adi. ILK YUKLEMEDE SONSUZA KADAR KILITLENIYOR.
+        /// The package name. IT IS LOCKED FOREVER ON THE FIRST UPLOAD.
         ///
-        /// Tek kaynak: ProjectSetup da buradan okuyor. Ikisi ayri
-        /// yazdiginda hangisinin son kostugu gorunmuyordu ve yanlis bir
-        /// paket adiyla tek bir yukleme geri alinamaz.
+        /// One source: ProjectSetup reads it from here too. When the two wrote
+        /// it separately there was no way to see which had run last, and a
+        /// single upload under the wrong package name cannot be undone.
         /// </summary>
         public const string Package = "com.ahmetakar.lokanta";
 
-        /// <summary>Sirket adi. Tek kaynak; ProjectSetup buradan okuyor.</summary>
+        /// <summary>The company name. One source; ProjectSetup reads it from here.</summary>
         public const string Company = "Ahmet Akar";
 
-        /// <summary>Urun adi. Tek kaynak; ProjectSetup buradan okuyor.</summary>
+        /// <summary>The product name. One source; ProjectSetup reads it from here.</summary>
         public const string Product = "Lokanta";
 
         // =====================================================================
-        [MenuItem("Lokanta/Yapi - Windows")]
+        [MenuItem("Lokanta/Build - Windows")]
         public static void Windows() { WindowsBuild("windows", il2cpp: false); }
 
         /// <summary>
-        /// BUDAMA SINAVI. Windows, ama Android'in derleyicisi ve
-        /// budayicisiyla: IL2CPP + ManagedStrippingLevel.High.
+        /// THE STRIPPING EXAM. Windows, but with Android's compiler and
+        /// stripper: IL2CPP + ManagedStrippingLevel.High.
         ///
-        /// Neden var: link.xml'in kendi yorumu "bu dosyanin korudugu
-        /// hata, projedeki HICBIR testin ulasamadigi tek yapilandirmada
-        /// yasiyor" diyordu - yani koruma akil yurutmeyle yazilmis,
-        /// hic KOSULMAMISTI. APK'yi kosturacak cihaz yokken de budayici
-        /// burada kosuyor: ayni link.xml, ayni Lokanta.Content ve
-        /// Newtonsoft derlemeleri, ayni yansimayla icerik yukleme.
+        /// Why it exists: link.xml's own comment said "the bug this file
+        /// guards against lives in the one configuration NO test in the
+        /// project can reach" - that is, the protection was written by
+        /// reasoning and had NEVER BEEN RUN. Even with no device to run an APK
+        /// on, the stripper runs here: the same link.xml, the same
+        /// Lokanta.Content and Newtonsoft assemblies, the same content loading
+        /// through reflection.
         ///
-        /// Koruma yanlis olsaydi belirti cokme degil SESSIZ VARSAYILAN
-        /// olurdu; oyun acilis dogrulamasinda hata ekranina duser ve tur
-        /// ilk kontrolde kalir. Yani turun 129 kontrolu bu yapilandirmayi
-        /// da olcebiliyor.
+        /// If the protection were wrong the symptom would not be a crash but a
+        /// SILENT DEFAULT; the game falls to the error screen in its start-up
+        /// validation and the tour stops at the first check. So the tour's 129
+        /// checks can measure this configuration as well.
         ///
-        /// Android'in birebir ayni olmadigi yer: motor modullerinin
-        /// budanmasi platforma gore degisiyor. Ayni olan ve onemli olan
-        /// yer: kendi derlemelerimizin YONETILEN budamasi.
+        /// Where Android is not exactly the same: how the engine modules are
+        /// stripped varies by platform. What is the same, and what matters, is
+        /// the MANAGED stripping of our own assemblies.
         ///
-        ///   .\tools\unity\tour.ps1 -Yapi windows-il2cpp
+        ///   .\tools\unity\tour.ps1 -Build windows-il2cpp
         /// </summary>
-        [MenuItem("Lokanta/Yapi - Windows (IL2CPP + budama)")]
+        [MenuItem("Lokanta/Build - Windows (IL2CPP + stripping)")]
         public static void WindowsIl2cpp() { WindowsBuild("windows-il2cpp", il2cpp: true); }
 
         private static void WindowsBuild(string leaf, bool il2cpp)
         {
             Common();
 
-            // AYAR GERI ALINIYOR. IL2CPP yapisi ~15 dakika, Mono ~1;
-            // ayar projede kalirsa her tur kosusu on bes kat yavaslar ve
-            // bunu kimse fark etmeden aylarca odeyebilir.
-            ScriptingImplementation oncekiArka =
+            // THE SETTING IS PUT BACK. An IL2CPP build takes ~15 minutes, Mono
+            // ~1; if the setting stays in the project every tour run gets
+            // fifteen times slower, and that can be paid for months without
+            // anyone noticing.
+            ScriptingImplementation previousBackend =
                 PlayerSettings.GetScriptingBackend(NamedBuildTarget.Standalone);
-            ManagedStrippingLevel oncekiBudama =
+            ManagedStrippingLevel previousStripping =
                 PlayerSettings.GetManagedStrippingLevel(NamedBuildTarget.Standalone);
 
             if (il2cpp)
@@ -121,8 +124,8 @@ namespace Lokanta.EditorTools
             try { WindowsCore(leaf); }
             finally
             {
-                PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, oncekiArka);
-                PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.Standalone, oncekiBudama);
+                PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, previousBackend);
+                PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.Standalone, previousStripping);
             }
         }
 
@@ -138,9 +141,9 @@ namespace Lokanta.EditorTools
                 options = BuildOptions.None,
             };
 
-            // Pencereli ve sabit: tam ekran bir yapi, goruntu alirken
-            // ekran cozunurlugune baglanir ve her makinede baska bir
-            // kareyi cizer.
+            // Windowed and fixed: a full-screen build ties the screenshot to
+            // the display's resolution and draws a different frame on every
+            // machine.
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
@@ -151,168 +154,175 @@ namespace Lokanta.EditorTools
         }
 
         // =====================================================================
-        /// <summary>Cihaza atilacak APK. Test icin.</summary>
-        [MenuItem("Lokanta/Yapi - Android APK")]
+        /// <summary>The APK to push to a device. For testing.</summary>
+        [MenuItem("Lokanta/Build - Android APK")]
         public static void Android() { AndroidBuild(bundle: false); }
 
         /// <summary>
-        /// Magazaya yuklenecek AAB. Play Store 2021'den beri yalnizca
-        /// bunu kabul ediyor.
+        /// The AAB to upload to the store. Since 2021 the Play Store accepts
+        /// nothing else.
         /// </summary>
-        [MenuItem("Lokanta/Yapi - Android AAB")]
+        [MenuItem("Lokanta/Build - Android AAB")]
         public static void AndroidBundle() { AndroidBuild(bundle: true); }
 
         private static void AndroidBuild(bool bundle)
         {
             Common();
 
-            // ACIKCA yaziliyor. Once yazilmiyordu ve Unity projede duran
-            // ayari kullandi: dosyanin adi Lokanta.apk'ydi ama ICI bir
-            // uygulama paketiydi (base/, BUNDLE-METADATA/). Cihaza
-            // atilamayan, adi yanlis bir dosya.
+            // Written EXPLICITLY. It was not written before and Unity used the
+            // setting left in the project: the file was called Lokanta.apk but
+            // INSIDE it was an app bundle (base/, BUNDLE-METADATA/). A file
+            // with the wrong name that cannot be pushed to a device.
             EditorUserBuildSettings.buildAppBundle = bundle;
 
             PlayerSettings.SetApplicationIdentifier(
                 NamedBuildTarget.Android, Package);
 
-            // Dikey DEGIL yatay: kat plani 18,0 x 9,6 m, yani genis bir
-            // dikdortgen. Dikey bir telefonda restoranin yarisi kare disi
-            // kalirdi (docs/31 cerceveleme olcumu).
-            // AUTOROTATION, LandscapeLeft DEGIL.
+            // Landscape, NOT portrait: the floor plan is 18.0 x 9.6 m, that is,
+            // a wide rectangle. On a portrait phone half the restaurant would
+            // fall outside the frame (the docs/31 framing measurement).
+            // AUTOROTATION, NOT LandscapeLeft.
             //
-            // Sabit bir yon Unity'ye manifestte
-            // android:screenOrientation="landscape" yazdiriyor ve
-            // allowedAutorotateToLandscapeRight bayragini YOK SAYIYOR -
-            // Unity o bayraklara yalnizca varsayilan AutoRotation iken
-            // bakiyor. Sonuc: telefonu ters cevirince oyun bas asagi
-            // duruyor ve duzeltmenin bir yolu yok.
+            // A fixed orientation makes Unity write
+            // android:screenOrientation="landscape" into the manifest and
+            // IGNORE the allowedAutorotateToLandscapeRight flag - Unity only
+            // looks at those flags when the default AutoRotation is set. The
+            // result: turn the phone the other way round and the game is
+            // upside down, with no way to fix it.
             //
-            // AutoRotation + yalnizca yatay bayraklar, manifeste
-            // sensorLandscape yaziyor: iki yatay yon serbest, dikey
-            // kapali.
+            // AutoRotation plus landscape-only flags writes sensorLandscape
+            // into the manifest: both landscape orientations free, portrait
+            // off.
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
             PlayerSettings.allowedAutorotateToPortrait = false;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
             PlayerSettings.allowedAutorotateToLandscapeLeft = true;
             PlayerSettings.allowedAutorotateToLandscapeRight = true;
 
-            // ARKA PLANDA CALISMA KAPALI.
+            // RUN IN BACKGROUND IS OFF.
             //
-            // Windows yolu (goruntu alma ve otomatik tur icin) bunu true
-            // yapiyor ve deger PROJE AYARINA yaziliyor, yani Android
-            // yapisi onu devraliyordu. Muzik OnAudioFilterRead ile
-            // surekli uretiliyor: telefon calarken oyun calmaya ve 30
-            // fps cizmeye devam ediyordu.
+            // The Windows route (for screenshots and the automatic tour) sets
+            // this to true, and the value is written into THE PROJECT SETTING,
+            // so the Android build was inheriting it. The music is generated
+            // continuously through OnAudioFilterRead: while the phone was
+            // ringing the game carried on playing and drawing at 30 fps.
             PlayerSettings.runInBackground = false;
 
-            // Kayitlar DAHILI depolamada.
+            // The saves live on INTERNAL storage.
             //
-            // Unity 6'da PlayerSettings.Android.forceInternalStorage
-            // KALKTI; karsiligi manifestteki installLocation ve onu
-            // AndroidManifestPatch yaziyor. Varsayilan preferExternal,
-            // kaydin cikarilabilir bir karta dusmesine izin veriyor.
+            // In Unity 6 PlayerSettings.Android.forceInternalStorage IS GONE;
+            // its counterpart is installLocation in the manifest, and
+            // AndroidManifestPatch writes it. The default, preferExternal,
+            // lets the save land on a removable card.
             PlayerSettings.allowedAutorotateToPortrait = false;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
             PlayerSettings.allowedAutorotateToLandscapeLeft = true;
             PlayerSettings.allowedAutorotateToLandscapeRight = true;
 
-            // API 29 (Android 10): BELGELERIN YAZDIGI TABAN.
+            // API 29 (Android 10): THE FLOOR THE DOCUMENTS WRITE DOWN.
             //
-            // Once 25 (Android 7.1) idi ve docs/19'un desteklenen cihaz
-            // tablosu "Android 10, 3 GB RAM, Vulkan veya OpenGL ES 3.1"
-            // diyor. Yani yapi, oyunu kosturamayacak cihazlara kurulmaya
-            // izin veriyordu: 2017 model, 1 GB, GLES 3.0 bir telefon.
-            // O telefonun birakacagi yorum listeyi bozar ve geri
-            // alinamaz.
+            // It used to be 25 (Android 7.1) while the supported device table
+            // in docs/19 says "Android 10, 3 GB RAM, Vulkan or OpenGL ES 3.1".
+            // That is, the build was allowing installation on devices that
+            // cannot run the game: a 2017 phone, 1 GB, GLES 3.0. The review
+            // such a phone leaves behind spoils the listing and cannot be
+            // undone.
             //
-            // Bu yeni bir karar degil, YAZILI karari koda gecirmek -
-            // zaten bu satirin kendi eski gerekcesi de "ayarin yazdigi
-            // sey ile yapinin urettigi sey ayni olmali" idi.
+            // This is not a new decision, it is putting the WRITTEN decision
+            // into code - the old justification for this very line was already
+            // "what the setting says and what the build produces must agree".
             //
-            // Yan fayda: uyarlanabilir simge API 26'dan itibaren
-            // yeterli, yani eski ve yuvarlak simge yuvalari da
-            // gereksizlesiyor (Unity ikisini de kullanimdan kaldirdigini
-            // soyleyip uyari basiyordu).
+            // A side benefit: the adaptive icon is enough from API 26 onwards,
+            // so the legacy and round icon slots become unnecessary too (Unity
+            // was printing a warning saying it had deprecated both).
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
-            // Hedef SDK ACIKCA yaziliyor, "kurulu olan neyse o" DEGIL.
+            // The target SDK is written EXPLICITLY, NOT "whatever is
+            // installed".
             //
-            // AndroidApiLevelAuto, yapinin hedefini makinede kurulu SDK'ya
-            // baglıyor: baska bir makinede baska bir sayi cikiyor ve
-            // magazanin esigi degistiginde bunu kimse fark etmiyor.
+            // AndroidApiLevelAuto ties the build's target to the SDK installed
+            // on the machine: another machine produces another number, and when
+            // the store's threshold moves nobody notices.
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel36;
 
-            // IL2CPP + ARM64: Play Store 64 bit sart kosuyor.
+            // IL2CPP + ARM64: the Play Store requires 64 bit.
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
 
-            // SURUM KOMUT SATIRINDAN.
+            // THE VERSION COMES FROM THE COMMAND LINE.
             //
-            // Ikisi de sabitti: betik her kostugunda versionCode 1
-            // uretiyordu ve Play ikinci yuklemeyi "Version code 1 has
-            // already been used" diye reddeder. Bir kez kullanilan sayi
-            // bir daha kullanilamiyor, yani bu sabit yayin sonrasi
-            // duzeltilemez bir hata sinifi.
+            // Both were constants: every run of the script produced
+            // versionCode 1, and Play refuses the second upload with "Version
+            // code 1 has already been used". A number once used can never be
+            // used again, so this constant is a class of bug that cannot be
+            // fixed after release.
             //
-            //   -lokanta-surum-kodu 3  -lokanta-surum 0.3.0
-            PlayerSettings.Android.bundleVersionCode = ArgInt("-lokanta-surum-kodu", 1);
-            PlayerSettings.bundleVersion = Arg("-lokanta-surum", "0.1.0");
+            // The flag names stay as they are: docs/21-business-and-release.md
+            // documents them by these spellings, and a flag renamed on one side
+            // only is a release script that quietly builds version 1 again.
+            //
+            //   -lokanta-version-code 3  -lokanta-version 0.3.0
+            PlayerSettings.Android.bundleVersionCode = ArgInt("-lokanta-version-code", 1);
+            PlayerSettings.bundleVersion = Arg("-lokanta-version", "0.1.0");
 
-            // Yerel kutuphaneler SIKISTIRILMIS kalsin.
+            // The native libraries should stay COMPRESSED.
             //
-            // Varsayilan "eski paketleme" onlari kuruluma acarak
-            // kopyaliyor: 32 MB'lik indirme cihazda 110 MB'i asan bir
-            // kuruluma donuyor cunku 77 MB'lik .so yuku (yalnizca
-            // libil2cpp.so 57 MB) hem paketin icinde hem /data altinda
-            // duruyor. Dusuk depolamali cihazlarda kurulum basarisiz
-            // oluyor.
+            // The default "legacy packaging" copies them out into the install:
+            // a 32 MB download turns into an install of more than 110 MB on the
+            // device, because the 77 MB of .so payload (libil2cpp.so alone is
+            // 57 MB) sits both inside the package and under /data. On
+            // low-storage devices the install fails.
             //
-            // BU YORUM UZUN SURE BIR SOZ VERIYOR VE KOD ONU TUTMUYORDU:
-            // asagidaki iki satir sembol ve kare hizi ayari yapiyor,
-            // paketleme ayarini HIC yazmiyordu. Uretilmis paketin
-            // bildirimi cozuldugunde extractNativeLibs="true" cikti,
-            // yani anlatilan sorun aynen duruyordu.
+            // THIS COMMENT MADE A PROMISE FOR A LONG TIME AND THE CODE DID NOT
+            // KEEP IT: the two lines below set the symbols and the frame
+            // pacing, and NEVER wrote the packaging setting at all. When the
+            // manifest of a generated package was unpacked it read
+            // extractNativeLibs="true" - that is, the problem described here
+            // was still exactly there.
             //
-            // Unity 6'da PlayerSettings.Android.useLegacyPackaging YOK
-            // (derleyici reddediyor). Ayar artik Gradle tarafinda ve
-            // AndroidManifestPatch onu hem bildirime hem build.gradle'a
-            // yaziyor - orasi yamanin ZATEN calistigi yer.
-            // YEREL SEMBOLLER URETILIYOR.
+            // In Unity 6 PlayerSettings.Android.useLegacyPackaging DOES NOT
+            // EXIST (the compiler refuses it). The setting now lives on the
+            // Gradle side and AndroidManifestPatch writes it into both the
+            // manifest and build.gradle - which is where the patch was ALREADY
+            // running.
+            // NATIVE SYMBOLS ARE GENERATED.
             //
-            // IL2CPP yapisinda cokmeler libil2cpp.so icinde olur; sembol
-            // olmadan Play Console'daki yiginlar ciplak adres gosterir.
-            // Android vitals cokme orani bir MAGAZA GORUNURLUK esigi -
-            // esigi asan uygulama one cikarmadan duser, ve sembolsuz
-            // gelen raporla hata duzeltilemez. Baska kanal da yok
-            // (cokme raporu API'si kapali).
+            // In an IL2CPP build the crashes happen inside libil2cpp.so;
+            // without symbols the stacks in the Play Console show bare
+            // addresses. The Android vitals crash rate is a STORE VISIBILITY
+            // threshold - an app over the threshold drops out of promotion, and
+            // a report that arrives without symbols cannot be used to fix the
+            // bug. There is no other channel either (the crash report API is
+            // closed).
             //
-            // Sembol dosyasi PAKETE GIRMIYOR, ayrica yukleniyor - yani
-            // boyut gerekcesi yok.
+            // The symbol file DOES NOT GO INTO THE PACKAGE, it is uploaded
+            // separately - so there is no size argument against it.
             EditorUserBuildSettings.androidCreateSymbols = AndroidCreateSymbols.Public;
             PlayerSettings.Android.optimizedFramePacing = true;
 
-            // Yonetilen kod AYIKLANIYOR: kullanilmayan tur ve metotlar
-            // IL2CPP ciktisindan cikiyor.
+            // The managed code IS STRIPPED: unused types and methods drop out
+            // of the IL2CPP output.
             PlayerSettings.SetManagedStrippingLevel(
                 NamedBuildTarget.Android, ManagedStrippingLevel.High);
             PlayerSettings.Android.forceSDCardPermission = false;
 
-            // IMZALAMA ORTAM DEGISKENINDEN.
+            // THE SIGNING COMES FROM ENVIRONMENT VARIABLES.
             //
-            // Once kosulsuz false'ti, yani her yapi HATA AYIKLAMA
-            // anahtariyla imzalaniyordu (sertifika: CN=Android Debug).
-            // Play boyle bir paketi yukleme aninda reddediyor.
+            // It used to be unconditionally false, that is, every build was
+            // signed with the DEBUG key (certificate: CN=Android Debug). Play
+            // refuses such a package at upload time.
             //
-            // Parola koda ya da depoya GIRMIYOR: dort degisken de
-            // ortamdan okunuyor. Hicbiri yoksa eski davranis suruyor -
-            // yerel denemeler icin imzasiz yapi almak hala mumkun.
+            // No password GOES into the code or the repository: all four
+            // variables are read from the environment. If none of them is set
+            // the old behaviour continues - taking an unsigned build for local
+            // experiments is still possible.
             //
-            //   LOKANTA_KEYSTORE       anahtar deposu dosyasi
-            //   LOKANTA_KEYSTORE_PASS  deposunun parolasi
-            //   LOKANTA_KEYALIAS       anahtar takma adi
-            //   LOKANTA_KEYALIAS_PASS  takma adin parolasi
+            //   LOKANTA_KEYSTORE       the keystore file
+            //   LOKANTA_KEYSTORE_PASS  the keystore's password
+            //   LOKANTA_KEYALIAS       the key alias
+            //   LOKANTA_KEYALIAS_PASS  the alias's password
             //
-            // Anahtar dosyasi KAYBEDILIRSE uygulama bir daha
-            // guncellenemez; iki ayri yerde yedeklenmeli.
+            // IF the key file IS LOST the app can never be updated again; it
+            // has to be backed up in two separate places.
             string store = Env("LOKANTA_KEYSTORE");
             string storePass = Env("LOKANTA_KEYSTORE_PASS");
             string alias = Env("LOKANTA_KEYALIAS");
@@ -327,30 +337,30 @@ namespace Lokanta.EditorTools
                 PlayerSettings.Android.keystorePass = storePass;
                 PlayerSettings.Android.keyaliasName = alias;
                 PlayerSettings.Android.keyaliasPass = aliasPass;
-                Debug.Log("  imza  : yukleme anahtari (" + alias + ")");
+                Debug.Log("  signing: upload key (" + alias + ")");
             }
             else
             {
-                Debug.LogWarning("  imza  : HATA AYIKLAMA anahtari - "
-                                 + "Play bu paketi REDDEDER. "
-                                 + "LOKANTA_KEYSTORE ve digerlerini ayarla.");
+                Debug.LogWarning("  signing: the DEBUG key - "
+                                 + "Play will REFUSE this package. "
+                                 + "Set LOKANTA_KEYSTORE and the rest.");
 
-                // UYGULAMA PAKETI IMZASIZ URETILMEZ.
+                // AN APP BUNDLE IS NEVER PRODUCED UNSIGNED.
                 //
-                // Uyarip devam etmek, hata ayiklama anahtariyla imzali
-                // bir .aab uretiyordu; Play Console onu YUKLEME ANINDA
-                // reddediyor ve bu ancak magazaya cikarken fark
-                // ediliyor. Dahasi: ilk yuklenen anahtar KALICIDIR.
+                // Warning and carrying on produced an .aab signed with the
+                // debug key; the Play Console refuses it AT UPLOAD TIME and
+                // that is only noticed on the way to the store. What is more:
+                // the first key uploaded is PERMANENT.
                 //
-                // APK'da uyari yeterli (cihaza atip denemek icin
-                // hata ayiklama imzasi yeterli); AAB yayin icindir.
+                // For an APK a warning is enough (a debug signature is enough
+                // to push it to a device and try it); the AAB is for release.
                 if (bundle)
                     throw new BuildFailedException(
-                        "Yayin paketi (AAB) imzasiz uretilemez. "
-                        + "LOKANTA_KEYSTORE, LOKANTA_KEYSTORE_PASS, "
-                        + "LOKANTA_KEYALIAS, LOKANTA_KEYALIAS_PASS ayarla. "
-                        + "Anahtar dosyasi kaybedilirse uygulama bir daha "
-                        + "guncellenemez - iki ayri yerde yedekle.");
+                        "A release bundle (AAB) cannot be produced unsigned. "
+                        + "Set LOKANTA_KEYSTORE, LOKANTA_KEYSTORE_PASS, "
+                        + "LOKANTA_KEYALIAS and LOKANTA_KEYALIAS_PASS. "
+                        + "If the key file is lost the app can never be "
+                        + "updated again - back it up in two separate places.");
             }
 
             string dir = Out("android");
@@ -369,63 +379,63 @@ namespace Lokanta.EditorTools
         }
 
         // =====================================================================
-        /// <summary>Iki hedefte de ayni olan ayarlar.</summary>
+        /// <summary>The settings that are the same on both targets.</summary>
         private static void Common()
         {
             PlayerSettings.companyName = Company;
             PlayerSettings.productName = Product;
 
-            // ICERIK SENKRONU YAPININ PARCASI.
+            // THE CONTENT SYNC IS PART OF THE BUILD.
             //
-            // Oyun icerigi content/ altinda uretiliyor ve Unity'nin
-            // gormesi icin Assets/Resources/content/ altina kopyalaniyor.
-            // Kopyalama ELLE bir menu ogesiydi; bayat bir kopyayla
-            // alinan yapi, TEST EDILENDEN FARKLI denge sayilariyla
-            // magazaya gider ve hicbir test kirilmaz. SyncContent'in
-            // kendi yorumu "bu projede tam bu sinif hata iki kez oldu"
-            // diyor - ucuncusu yapinin kendisinde engelleniyor.
+            // The game's content is generated under content/ and copied under
+            // Assets/Resources/content/ so that Unity can see it. The copying
+            // used to be a menu item done BY HAND; a build taken with a stale
+            // copy goes to the store with DIFFERENT balance numbers FROM THE
+            // ONES TESTED and not a single test breaks. SyncContent's own
+            // comment says "exactly this class of bug has happened twice on
+            // this project" - the third time is stopped by the build itself.
             SyncContent.Run();
 
-            // GELISMIS METIN URETICISI YAPININ PARCASI.
+            // THE ADVANCED TEXT GENERATOR IS PART OF THE BUILD.
             //
-            // Arapca harf birlestirmesi bu ayara bagli ve ayar bir onay
-            // kutusu. Elle acilan bir kutu, depoyu yeni klonlayan bir
-            // makinede kapali olur; Arapca bozulur ve hicbir test kirilmaz
-            // - icerik senkronunun ogrettigi ders, ayni kelimelerle.
+            // Arabic letter joining depends on this setting and the setting is
+            // a checkbox. A box ticked by hand is unticked on a machine that
+            // has just cloned the repository; Arabic breaks and not a single
+            // test fails - the lesson of the content sync, in the same words.
             AdvancedText.Set(true);
 
-            // ACILIS EKRANI KAPALI.
+            // THE SPLASH SCREEN IS OFF.
             //
-            // Logo yok (m_SplashScreenLogos bos) ama ekran acikti: oyuncu
-            // acilista ~2 saniye BOMBOS koyu bir ekran goruyordu. Unity
-            // 6'da kapatmak her lisans katmaninda serbest.
+            // There is no logo (m_SplashScreenLogos is empty) but the screen
+            // was on: at start-up the player was looking at ~2 seconds of a
+            // COMPLETELY EMPTY dark screen. In Unity 6 turning it off is free
+            // on every licence tier.
             PlayerSettings.SplashScreen.show = false;
 
-            // Renk uzayi DOGRUSAL. Gamma'da dusuk poligonlu duz renkler
-            // yikanmis gorunuyor ve golgeler sertlesiyor; URP zaten
-            // dogrusali varsayiyor.
+            // The colour space is LINEAR. In gamma, low-poly flat colours look
+            // washed out and the shadows harden; URP assumes linear anyway.
             PlayerSettings.colorSpace = ColorSpace.Linear;
 
-            // vSync BURADA AYARLANMIYOR, CALISMA ZAMANINDA ayarlaniyor.
+            // vSync IS NOT SET HERE, it is set AT RUN TIME.
             //
-            // Burada "= 1" yaziyordu ve ProjectSetup.cs'in "kare hizini
-            // kod ayarlar" karariyla (vSyncCount = 0) dogrudan
-            // celisiyordu. Ustelik ikisi de yanlis yere yaziyordu:
-            // ProjectSetup editorde AKTIF olan kalite seviyesine (Ultra)
-            // yaziyor, Android ise seviye 2'yi (Medium) kullaniyor.
+            // It used to read "= 1" here and that contradicted ProjectSetup.cs's
+            // decision that "the code sets the frame rate" (vSyncCount = 0)
+            // head on. What is more, both were writing to the wrong place:
+            // ProjectSetup writes to the quality level that is ACTIVE in the
+            // editor (Ultra), while Android uses level 2 (Medium).
             //
-            // Sonucu somut: vSyncCount != 0 iken Android
-            // Application.targetFrameRate'i YOK SAYIYOR. 90 ya da 120 Hz
-            // ucuz bir telefonda oyun 120 fps hedefliyordu - hedef 30
-            // fps tabaniyken. Statik bir sahneye bakan yonetim oyununda
-            // bu, iki kat CPU/GPU ve iki kat isi demek.
+            // The consequence is concrete: while vSyncCount != 0, Android
+            // IGNORES Application.targetFrameRate. On a cheap 90 or 120 Hz
+            // phone the game was aiming at 120 fps - when the target is a floor
+            // of 30 fps. In a management game looking at a static scene that
+            // means twice the CPU/GPU and twice the heat.
             //
-            // Dogru yer GameApp.Awake: cihazda, calisirken, ve hangi
-            // kalite seviyesinin aktif oldugundan bagimsiz.
+            // The right place is GameApp.Awake: on the device, while running,
+            // and independent of which quality level is active.
 
             if (!File.Exists(Scene))
-                Debug.LogWarning("Sahne yok: " + Scene
-                                 + "  (Lokanta > Oyun sahnesini kur)");
+                Debug.LogWarning("No scene: " + Scene
+                                 + "  (Lokanta > Build the game scene)");
         }
 
         private static string Out(string leaf)
@@ -438,8 +448,8 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Burst'un biraktigi hata ayiklama klasoru. Adinda "DoNotShip"
-        /// yaziyor; silinmezse yanlislikla dagitima girebiliyor.
+        /// The debug folder Burst leaves behind. Its name says "DoNotShip"; if
+        /// it is not deleted it can end up shipped by accident.
         /// </summary>
         private static void DropBurstDebug(string dir)
         {
@@ -447,7 +457,7 @@ namespace Lokanta.EditorTools
                 if (d.EndsWith("_BurstDebugInformation_DoNotShip"))
                 {
                     Directory.Delete(d, true);
-                    Debug.Log("  Burst hata ayiklama klasoru silindi.");
+                    Debug.Log("  the Burst debug folder was deleted.");
                 }
         }
 
@@ -457,24 +467,24 @@ namespace Lokanta.EditorTools
             if (s.result != BuildResult.Succeeded)
             {
                 Debug.LogError(string.Format(
-                    "SORUNLAR: {0} yapisi basarisiz - {1} hata, {2} uyari",
+                    "PROBLEMS: the {0} build failed - {1} errors, {2} warnings",
                     what, s.totalErrors, s.totalWarnings));
                 return;
             }
 
-            // Boyut DOSYADAN okunuyor, rapordan degil.
+            // The size is read FROM THE FILE, not from the report.
             //
-            // BuildSummary.totalSize, Android'de sikistirilmamis toplami
-            // veriyor: 35 MB'lik bir paket icin 828 MB yazdi ve bir an
-            // icin oyunun magazaya sigmadigi sanildi.
+            // On Android BuildSummary.totalSize gives the uncompressed total:
+            // for a 35 MB package it printed 828 MB, and for a moment it looked
+            // as though the game would not fit in the store.
             float mb = File.Exists(s.outputPath)
                 ? new FileInfo(s.outputPath).Length / 1024f / 1024f
                 : s.totalSize / 1024f / 1024f;
 
             Debug.Log(string.Format(
-                "=== Lokanta yapi ===\n  hedef  : {0}\n  yol    : {1}\n"
-                + "  boyut  : {2:0.0} MB\n  sure   : {3:0} sn\n  uyari  : {4}\n"
-                + "=== yapi tamam ===",
+                "=== Lokanta build ===\n  target : {0}\n  path   : {1}\n"
+                + "  size   : {2:0.0} MB\n  time   : {3:0} s\n  warnings: {4}\n"
+                + "=== build done ===",
                 what, s.outputPath, mb, s.totalTime.TotalSeconds, s.totalWarnings));
         }
     }

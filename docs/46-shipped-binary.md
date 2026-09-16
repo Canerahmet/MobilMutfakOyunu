@@ -1,18 +1,19 @@
-# 46 — Gönderdiğimiz ikili hiç koşmadı
+# 46 — The binary we shipped never ran
 
-*14 Eylül 2026.* Soru "oyunu simüle etmek için Android emülatörü kuralım mı"
-diye başladı. Cevap hayır çıktı, ama sorunun **altındaki** boşluk gerçekti ve
-emülatörün kapatacağından daha büyüktü.
+*14 September 2026.* The question started as "should we install an Android
+emulator to simulate the game". The answer came out no, but the gap
+**underneath** the question was real, and bigger than the one the emulator
+would have closed.
 
 ---
 
-## 1. Emülatör neden işe yaramıyor
+## 1. Why the emulator does not help
 
-Bugünkü APK bir emülatöre **kurulamaz**. Emülatör sistem görüntüleri x86_64;
-kurulum `INSTALL_FAILED_NO_MATCHING_ABIS` ile düşer.
+Today's APK **cannot be installed** on an emulator. Emulator system images are
+x86_64; installation fails with `INSTALL_FAILED_NO_MATCHING_ABIS`.
 
-Bu, yapı betiğinin ne yazdığından değil **paketin kendisinden** okundu —
-niyet ile çıktı bu projede daha önce ayrışmıştı:
+This was read off **the package itself**, not off what the build script says —
+intent and output have come apart in this project before:
 
 ```
 $ aapt2 dump badging build/android/Lokanta.apk
@@ -21,169 +22,172 @@ minSdkVersion:'29'  targetSdkVersion:'36'
 native-code: 'arm64-v8a'
 ```
 
-`lib/` altında tek ABI var: `arm64-v8a`. Aynı döküm iki şeyi daha
-doğruluyor: minSdk 29 ([19](19-technical-setup.md)'un yazdığı taban) ve
-izin listesinde **INTERNET yok** — yani [44](44-store-texts.md)'teki
-gizlilik metninin "internet izni bile istemiyor" cümlesi bugünkü paket için
-de doğru.
+There is a single ABI under `lib/`: `arm64-v8a`. The same dump confirms two
+more things: minSdk 29 (the floor [19](19-technical-setup.md) writes down) and
+**no INTERNET** in the permission list — so the sentence in
+[44](44-store-texts.md)'s privacy text, "it does not even ask for internet
+permission", is true of today's package too.
 
-Yani emülatör kullanmak, **yayınlamadığımız ikinci bir yapıyı** derleyip onu
-test etmek demek. Bu projenin tekrar eden dersinin tam da yasakladığı şey:
-*yeşil bir tik yanlış şeyi ölçüyor olabilir.* Test edilen ikili gönderilen
-ikili değilse, tik en baştan yanlış şeyi ölçüyor.
+So using an emulator means compiling **a second build we do not ship** and
+testing that one. This is exactly what this project's recurring lesson forbids:
+*a green tick may be measuring the wrong thing.* If the binary under test is not
+the binary that ships, the tick was measuring the wrong thing from the start.
 
-Emülatörün yapısal olarak veremediği üç şey daha var ve üçü de bu oyunda
-tam isabet:
+There are three more things an emulator structurally cannot give, and all three
+land squarely on this game:
 
-| | emülatör | gerçek telefon |
+| | emulator | real phone |
 |---|---|---|
-| ARM64 ikili | kurulmaz | çalışır |
-| kare süresi / GPU | anlamsız | gerçek |
-| ısınma (60 günlük kampanya) | yok | gerçek |
-| iki parmak kamera | fare taklidi | gerçek |
+| ARM64 binary | will not install | runs |
+| frame time / GPU | meaningless | real |
+| heat (a 60-day campaign) | none | real |
+| two-finger camera | mouse imitation | real |
 
-`adb` zaten kurulu — Unity'nin Android modülüyle geliyor
-(`…/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb.exe`). Yani gerçek
-cihaz yolu **hiçbir indirme gerektirmiyor**, emülatör yolu ~3 GB istiyordu.
+`adb` is already installed — it comes with Unity's Android module
+(`…/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb.exe`). So the real
+device path **requires no download at all**, where the emulator path wanted
+~3 GB.
 
-[tools/android/cihaz.ps1](../tools/android/cihaz.ps1) yazıldı: adb'yi sürümden
-bağımsız buluyor, cihazın ABI'sini **kurulumdan önce** kontrol ediyor (o hata
-mesajı sebebini söylemiyor), APK'yı kuruyor, çalıştırıyor, günlüğü ve ekran
-görüntüsünü alıyor.
+[tools/android/cihaz.ps1](../tools/android/cihaz.ps1) was written: it finds adb
+independently of the version, checks the device's ABI **before** installing
+(that error message does not say why), installs the APK, runs it, and takes the
+log and a screenshot.
 
-İki tuzak betiğin içine yazıldı:
+Two traps were written into the script:
 
-- Günlük **temizleniyor** (`logcat -c`); yoksa eski koşunun çökmesi yeni
-  koşununki gibi görünüyor.
-- Hiç Unity satırı yoksa sonuç `OLCULEMEDI` — "hata yok" ile "uygulama hiç
-  açılmadı" dışarıdan aynı görünüyor. Ekran görüntüsü de bunun için: süreç
-  siyah ekranda da yaşıyor.
-
----
-
-## 2. Asıl boşluk: dokunma değil, budayıcı
-
-Emülatör sorusunu araştırırken `unity/Assets/link.xml` ortaya çıktı. Kendi
-yorumu şunu yazıyordu:
-
-> Editörde ve Windows yapısında (Mono, budama yok) hiçbir şey görünmez — yani
-> bu dosyanın koruduğu hata, projedeki **HİÇBİR testin ulaşamadığı** tek
-> yapılandırmada yaşıyor.
-
-Koruduğu şey şu: Android `ManagedStrippingLevel.High` ile derleniyor, içerik
-yükleme ise tamamen yansıma (`JsonConvert.DeserializeObject<T>`). Yüksek budama,
-yalnızca yansımayla çağrılan üyeleri "kullanılmıyor" sayıp silebilir.
-
-Yorumun **tahmini** şuydu: budanan şey DTO yazıcıları olur, belirti de çökme
-değil sessiz varsayılan — bütün alanlar sıfır/null döner, doğrulama reddeder,
-oyun açılışta hata ekranına düşer. (§4'te ölçüldü ve ikisi de yanlış çıktı;
-tehlike gerçekti ama mekanizma başkaydı.)
-
-Yorum doğruydu ve tam da bu yüzden sorunluydu: koruma **akıl yürütmeyle
-yazılmış, hiç koşturulmamıştı.** Üstelik 13 Eylül'de alınan APK'yı da o güne
-kadar kimse açmamıştı. *Koşmayan bir kontrol, geçen bir kontrolle aynı
-görünüyor.*
+- The log is **cleared** (`logcat -c`); otherwise the previous run's crash looks
+  like this run's.
+- If there is no Unity line at all the result is `COULD NOT MEASURE` — "no
+  errors" and "the app never opened" look the same from outside. The screenshot
+  is for the same reason: a process stays alive on a black screen too.
 
 ---
 
-## 3. Cihaz olmadan budayıcıyı koşturmak
+## 2. The real gap: not touch, the stripper
 
-Cihaz yokken de budayıcı koşturulabiliyor: Windows yapısı, Android'in
-**derleyicisi ve budayıcısıyla** — IL2CPP + High.
+While researching the emulator question, `unity/Assets/link.xml` surfaced. Its
+own comment said this:
+
+> Nothing shows up in the editor or in a Windows build (Mono, no stripping) —
+> so the bug this file protects against lives in the one configuration **NO
+> TEST** in the project reaches.
+
+What it protects is this: Android is compiled with
+`ManagedStrippingLevel.High`, while content loading is entirely reflection
+(`JsonConvert.DeserializeObject<T>`). High stripping can decide that members
+only ever called through reflection are "unused" and delete them.
+
+The comment's **prediction** was: what gets stripped is the DTO setters, and the
+symptom is not a crash but a silent default — every field comes back zero/null,
+validation rejects it, and the game drops to an error screen at startup. (§4
+measured it and both were wrong; the danger was real but the mechanism was a
+different one.)
+
+The comment was right, and that is exactly why it was a problem: the protection
+was **written by reasoning and never run.** On top of that, nobody had opened
+the APK taken on 13 September until that day either. *A check that does not run
+looks exactly like one that passes.*
+
+---
+
+## 3. Running the stripper without a device
+
+The stripper can be run without a device too: a Windows build, with Android's
+**compiler and stripper** — IL2CPP + High.
 
 ```
-.\tools\unity\tour.ps1 -Yapi windows-il2cpp
+.\tools\unity\tour.ps1 -Build windows-il2cpp
 ```
 
-`BuildPlayer.WindowsIl2cpp` bunu kuruyor ve ayarı `finally` içinde geri
-alıyor. Geri alma isteğe bağlı değil: ayar projede kalsaydı her günlük tur
-pahalanır ve bunu kimse fark etmeden aylarca ödeyebilirdik.
+`BuildPlayer.WindowsIl2cpp` sets this up and puts the setting back inside a
+`finally`. Putting it back is not optional: if the setting stayed in the
+project, every daily tour would get more expensive and we could pay that for
+months without anyone noticing.
 
-Aynı olan ve önemli olan: aynı `link.xml`, aynı `Lokanta.Content` ve
-`Newtonsoft.Json` derlemeleri, aynı yansımalı yükleme — yani **kendi
-derlemelerimizin yönetilen budaması.** Aynı olmayan: motor modüllerinin
-budanması platforma göre değişiyor. Bu bir Android testi değil, **budama
-testi**.
+What is the same and matters: the same `link.xml`, the same `Lokanta.Content`
+and `Newtonsoft.Json` assemblies, the same reflective loading — that is,
+**managed stripping of our own assemblies.** What is not the same: stripping of
+the engine modules varies by platform. This is not an Android test, it is a
+**stripping test**.
 
-### Yapının gerçekten IL2CPP olduğu doğrulandı
+### It was confirmed that the build really is IL2CPP
 
-105 saniye IL2CPP için hızlıydı ve "koştu mu" sorusu tam da bu belgenin
-konusu. Kanıt dosyalarda:
+105 seconds was fast for IL2CPP, and "did it actually run" is precisely this
+document's subject. The evidence is in the files:
 
 | | windows (Mono) | windows-il2cpp |
 |---|---|---|
-| `GameAssembly.dll` | yok | **43 MB** |
-| `Lokanta_Data/il2cpp_data` | yok | **var** |
-| `Lokanta_Data/Managed/` | dolu | **boş** |
-| `MonoBleedingEdge/` | var | yok |
+| `GameAssembly.dll` | none | **43 MB** |
+| `Lokanta_Data/il2cpp_data` | none | **present** |
+| `Lokanta_Data/Managed/` | full | **empty** |
+| `MonoBleedingEdge/` | present | none |
 
-Budamanın High koştuğu ayrıca `ProjectSettings.asset`'ten okunuyor:
-`managedStrippingLevel: Android: 3` (= High), ve geri alma sonrası
-`Standalone: 0` (= kapalı) — yani `finally` gerçekten çalıştı.
+That stripping ran at High is also read out of `ProjectSettings.asset`:
+`managedStrippingLevel: Android: 3` (= High), and after the restore
+`Standalone: 0` (= off) — so the `finally` really did run.
 
 ---
 
-## 4. Korumanın gerçekten yük taşıdığı ölçüldü
+## 4. It was measured that the protection really carries load
 
-Tur geçti — ama bu tek başına hiçbir şey kanıtlamıyor. Budama koruma olmadan
-da sorun çıkarmasaydı tur yine geçerdi ve `link.xml` gereksiz bir dosya
-olurdu. İkisi dışarıdan aynı görünüyor.
+The tour passed — but on its own that proves nothing. If stripping caused no
+trouble without the protection, the tour would still pass and `link.xml` would
+be a pointless file. The two look the same from outside.
 
-Tek dürüst sınav **mutasyon**: `link.xml` geçici kaldırıldı, aynı yapı aynı
-turla koşturuldu, ve kırılması **beklendi**.
+The only honest exam is **mutation**: `link.xml` was removed temporarily, the
+same build was run through the same tour, and it was **expected** to break.
 
-| | `link.xml` var | `link.xml` yok |
+| | `link.xml` present | `link.xml` absent |
 |---|---|---|
-| tur | **129 geçti, 0 kaldı** | özet bile üretemedi |
-| çıkış | 0 | çökme |
+| tour | **129 passed, 0 failed** | could not even produce a summary |
+| exit | 0 | crash |
 
-Kök sebep oyuncu günlüğünün 31. satırında:
+The root cause is on line 31 of the player log:
 
 ```
-Icerik yuklenemedi: JsonSerializationException: Unable to find a constructor
+could not load the content: JsonSerializationException: Unable to find a constructor
 to use for type Lokanta.Content.EconomyDto
 ```
 
-Yani `link.xml` gerçekten yük taşıyor. O dosya olmasaydı Android yapısı,
-**içeriğini yükleyemeyen** bir oyun olarak mağazaya giderdi ve bunu hiçbir
-test yakalayamazdı.
+So `link.xml` really does carry load. Without that file the Android build would
+have gone to the store as a game that **cannot load its own content**, and no
+test would have caught it.
 
-### Ölçüm yorumu düzeltti
+### The measurement corrected the comment
 
-Beklenen belirti "sessiz varsayılan: bütün alanlar sıfır/null döner" idi.
-Gerçek belirti daha sert: budanan şey özellik **yazıcıları** değil,
-DTO'ların **kurucuları** — Newtonsoft nesneyi hiç kuramıyor.
+The expected symptom was "a silent default: every field comes back zero/null".
+The real symptom is harsher: what gets stripped is not the property **setters**
+but the DTOs' **constructors** — Newtonsoft cannot construct the object at all.
 
-Sonuç da tahminden kötü: oyun hata ekranına **varamıyor**. İçerik
-yüklenemeyince yarım bir durumda devam ediyor, sekiz kontrol boyunca
-"çalışmadı" yazıyor ve `NullReferenceException` ile ölüyor. Yani oyuncunun
-göreceği şey açıklayıcı bir hata değil, açılışta donan bir uygulama.
+The consequence is worse than predicted too: the game **never reaches** the
+error screen. When content fails to load it carries on in a half state, prints
+"did not work" across eight checks, and dies with a `NullReferenceException`. So
+what the player would see is not an explanatory error but an app that freezes at
+startup.
 
-Tehlike doğru tarif edilmişti, mekanizma yanlış. Yorum ölçülene uyduruldu —
-tersi değil.
+The danger had been described correctly, the mechanism wrongly. The comment was
+made to fit the measurement — not the other way round.
 
-### Yan bulgu: çıkış çökmesi Mono'ya özgü olabilir
+### Side finding: the exit crash may be specific to Mono
 
-Mono turları uzun süredir tamamlandıktan **sonra** `0xC0000005` ile
-kapanıyordu (yönetilen kodun dışında, tur sonucunu etkilemiyor). IL2CPP
-yapısının iki tam koşusunun ikisi de **çıkış kodu 0** verdi.
+Mono tours have for a long time been closing with `0xC0000005` **after**
+completing (outside managed code, not affecting the tour's result). Both full
+runs of the IL2CPP build gave **exit code 0**.
 
-İki koşu kanıt değil, ama ilk kez bir ipucu var: hata Mono çalışma zamanının
-kapanışında olabilir — yani gönderilen ikiliyi (IL2CPP) hiç ilgilendirmiyor
-olabilir. Daha fazlasını iddia etmek için daha çok koşu gerekiyor.
+Two runs are not proof, but for the first time there is a clue: the fault may be
+in the Mono runtime's shutdown — that is, it may not concern the binary we ship
+(IL2CPP) at all. Claiming more than that needs more runs.
 
 ---
 
-## 5. Bu neyi kapatmıyor
+## 5. What this does not close
 
-Budama artık ölçülüyor, ama **ARM64 ikilisi hâlâ hiç koşmadı**. Kalan ve
-yalnızca gerçek cihazın verebileceği şeyler:
+Stripping is measured now, but **the ARM64 binary has still never run**. What is
+left, and only a real device can give:
 
-- ARM64 kod üretimi (IL2CPP'nin x86_64 ve ARM64 çıktısı aynı değil)
-- kare süresi ve termal kısılma — 60 günlük bir kampanya uzun bir oturum
-- dokunma: iki parmak kamera, 48 dp hedefler, gerçek DPI ve çentik
-- Android yaşam döngüsü: arka plana atılıp öldürülen uygulamada kayıt
-  bütünlüğü
+- ARM64 code generation (IL2CPP's x86_64 and ARM64 output are not the same)
+- frame time and thermal throttling — a 60-day campaign is a long session
+- touch: two-finger camera, 48 dp targets, real DPI and the notch
+- the Android lifecycle: save integrity in an app backgrounded and then killed
 
-Bunların hepsi `tools/android/cihaz.ps1` + bir telefon ile tek komut.
-
+All of these are one command with `tools/android/cihaz.ps1` and a phone.

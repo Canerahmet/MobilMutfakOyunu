@@ -4,81 +4,86 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Bir figuru yol noktalari boyunca YURUTUR.
+    /// WALKS a figure along a set of waypoints.
     ///
-    /// Neden ayri bir bilesen: Figure bir figurun NE YAPTIGINI biliyor
-    /// (durus), Walker NEREDE OLDUGUNU. Ikisi ayri, cunku duran bir
-    /// asci da oturan bir musteri de Figure kullaniyor ama ikisinden
-    /// yalnizca biri yuruyor.
+    /// Why a separate component: Figure knows WHAT a figure is doing (its
+    /// pose), Walker knows WHERE IT IS. The two are separate because a
+    /// cook standing still and a seated guest both use Figure, but only
+    /// one of them walks.
     ///
-    /// SIMULASYON METRE BILMIYOR. Cekirdek "garson 3 numarali masayla
-    /// ilgileniyor" diyor; o masanin nerede oldugu ve oraya nasil
-    /// gidilecegi tamamen gorunum katmaninin isi (docs/23: cekirdekte
-    /// Unity yok, kayan nokta yok). Bu sinif simulasyona HICBIR SEY
-    /// yazmiyor - yalnizca okudugu hedefe dogru yuruyor.
+    /// THE SIMULATION KNOWS NOTHING ABOUT METRES. The core says "the
+    /// waiter is dealing with table 3"; where that table is and how to get
+    /// there is entirely the view layer's business (docs/23: no Unity in
+    /// the core, no floating point). This class writes NOTHING back to the
+    /// simulation - it only walks towards the target it reads.
     ///
-    /// HIZ OYUNUN HIZIYLA OLCEKLENIYOR. Oyuncu x16'ya bastiginda
-    /// simulasyon on alti kat hizli akiyor; yuruyus gercek zamanda
-    /// kalsaydi figurler simulasyonun onlarca saniye gerisinde kalir ve
-    /// ekranda gordugu sey artik olan bitenle ilgisiz olurdu. Carpanin
-    /// bir tavani var: cok hizlida figurler kayiyormus gibi gorunuyor,
-    /// o yuzden belli bir noktadan sonra ISINLANIYORLAR (Warp) -
-    /// gorulmeyecek kadar hizli bir yuruyus, yuruyus degil titremedir.
+    /// THE SPEED SCALES WITH THE GAME'S SPEED. When the player presses x16
+    /// the simulation runs sixteen times faster; if the walking stayed in
+    /// real time the figures would fall tens of seconds behind the
+    /// simulation and what the player sees on screen would no longer have
+    /// anything to do with what is happening. The multiplier has a
+    /// ceiling: at very high speed the figures look as if they are
+    /// sliding, so beyond a certain point they TELEPORT (Warp) - a walk
+    /// too fast to see is not a walk, it is a judder.
     /// </summary>
     public sealed class Walker : MonoBehaviour
     {
-        /// <summary>Bu govdenin durusunu suren bilesen.</summary>
+        /// <summary>The component driving this body's pose.</summary>
         public Figure Body;
 
-        /// <summary>Saniyede metre, x1 hizda. Sakin bir servis yuruyusu.</summary>
+        /// <summary>Metres per second, at x1 speed. A calm service walk.</summary>
         public float Speed = 1.15f;
 
         /// <summary>
-        /// Oyunun hiz carpani. GameApp'ten her karede yaziliyor; static,
-        /// cunku sahnedeki her figur ayni saati kullaniyor ve figur
-        /// basina bir baglanti tutmak elli nesnede elli referans demek.
-        /// </summary>
+        /// The game's speed multiplier. Written from GameApp every frame;
+        /// static, because every figure in the scene uses the same clock and
+        /// holding one link per figure means fifty references at fifty
+        /// objects.
         public static float GameSpeed = 1f;
 
         /// <summary>
-        /// Bu carpanin ustunde yuruyus CIZILMIYOR, isinlaniyor.
+        /// Above this multiplier the walk IS NOT DRAWN, it teleports.
         ///
-        /// x4'te bir figur saniyede ~4,6 m gidiyor; 30 fps'te kare
-        /// basina 15 cm. Ustune cikildiginda adimlar arasi mesafe
-        /// figurun kendisinden buyuyor ve hareket "yuruyus" degil
-        /// "sicrama" olarak okunuyor.
+        /// At x4 a figure covers ~4.6 m a second; at 30 fps that is 15 cm a
+        /// frame. Above that the distance between steps grows larger than
+        /// the figure itself and the movement reads as a "jump" rather than
+        /// a walk.
         /// </summary>
         public const float TeleportAbove = 4.5f;
 
         /// <summary>
-        /// BU figurun uyabilecegi en yuksek zaman carpani.
+        /// The highest time multiplier THIS figure may follow.
         ///
-        /// Varsayilan sonsuz: salondaki herkes oyun saatine uyuyor,
-        /// cunku onlarin yaptigi is simulasyonda bir karsiligi olan bir
-        /// is ve gerisinde kalmalari ekranda yalan olurdu.
+        /// The default is infinite: everyone in the hall follows the game
+        /// clock, because what they are doing is work that has a counterpart
+        /// in the simulation, and their falling behind would be a lie on
+        /// screen.
         ///
-        /// Sokaktan gecenlerin ise simulasyonda karsiligi YOK - onlar
-        /// susa. Tavan onlar icin var ve sebebi olculdu: oyuncu hizi
-        /// TeleportAbove'un ustune cikardiginda Walker yuruyusu cizmeyip
-        /// dogrudan yolun sonuna isinliyor; sokakta yolun sonu iki nokta
-        /// oldugu icin bes yaya o iki noktada UST USTE yigiliyordu.
-        /// Tur bunu "en kotu 4 cift ic ice" diye olctu.
+        /// What passes along the street has NO counterpart in the simulation
+        /// - they are scenery. The cap is there for them and the reason was
+        /// measured: when the player took the speed above TeleportAbove,
+        /// Walker stopped drawing the walk and teleported straight to the
+        /// end of the path; on the street the end of the path is two points,
+        /// so five pedestrians piled up ON TOP OF one another at those two
+        /// points. The tour measured it as "4 pairs interpenetrating at
+        /// worst".
         /// </summary>
         public float SpeedCap = float.PositiveInfinity;
 
         /// <summary>
-        /// BU KAREDE gercekten kullanilan yer hizi (m/sn).
+        /// The ground speed actually used THIS FRAME (m/s).
         ///
-        /// Denetim bunu okuyor, Speed x GameSpeed'i yeniden HESAPLAMIYOR.
-        /// Sebep olculdu: GameSpeed'i GameApp.Update yaziyor ve kare
-        /// icindeki sirasi Walker.Update'e gore garanti degil. Yeniden
-        /// hesaplayan bir kontrol, oyun hizinin degistigi karede klip
-        /// temposunu bir onceki hiza gore olcup %123 "kayma" bildiriyordu -
-        /// oysa figur o karede dogru mesafeyi kat etmisti ve bir sonraki
-        /// kare zaten duzeltiyordu.
+        /// The check reads this; it does not RECALCULATE Speed x GameSpeed.
+        /// The reason was measured: GameApp.Update writes GameSpeed and its
+        /// order within the frame is not guaranteed relative to
+        /// Walker.Update. A check that recalculated measured the clip's
+        /// tempo against the previous speed on the frame the game speed
+        /// changed and reported 123% "slip" - when in fact the figure had
+        /// covered the right distance on that frame and the next frame put
+        /// it right anyway.
         ///
-        /// Olculmesi gereken sey "klip temposu, KAT EDILEN mesafeye uydu
-        /// mu" - o da tam olarak bu alan.
+        /// What has to be measured is "did the clip's tempo match the
+        /// distance COVERED" - and that is exactly this field.
         /// </summary>
         public float LastGroundSpeed { get; private set; }
 
@@ -87,10 +92,10 @@ namespace Lokanta.Game
         private System.Action _onArrive;
         private float _faceYaw;
 
-        /// <summary>Hedefe varmadan mi.</summary>
+        /// <summary>Has it yet to arrive?</summary>
         public bool Moving { get { return _at < _path.Count; } }
 
-        /// <summary>Su anki yolun son noktasi; yol yoksa bulundugu yer.</summary>
+        /// <summary>The last point of the current path; where it stands if there is no path.</summary>
         public Vector3 Destination
         {
             get
@@ -101,7 +106,7 @@ namespace Lokanta.Game
         }
 
         // =====================================================================
-        /// <summary>Aninda yerlestirir; varsa yolu iptal eder.</summary>
+        /// <summary>Places it instantly; cancels the path if there is one.</summary>
         public void Warp(Vector3 local, float yaw)
         {
             if (Body != null) Body.ResetPlaybackSpeed();
@@ -114,10 +119,11 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Verilen yol boyunca yurur, sonunda onArrive cagirir.
+        /// Walks along the given path and calls onArrive at the end.
         ///
-        /// finalYaw: varista donecegi yon. NaN ise son adimin yonunde
-        /// kaliyor - yuruyup bir masaya varan garson icin dogrusu bu.
+        /// finalYaw: the direction it turns to on arrival. If it is NaN it
+        /// stays facing the direction of the last step - which is the right
+        /// thing for a waiter who has walked up to a table.
         /// </summary>
         public void GoTo(List<Vector3> waypoints, float finalYaw,
                          System.Action onArrive)
@@ -138,7 +144,7 @@ namespace Lokanta.Game
 
         private float _finalYaw = float.NaN;
 
-        /// <summary>Yuruyusu keser, oldugu yerde birakir.</summary>
+        /// <summary>Cuts the walk off and leaves it where it stands.</summary>
         public void Stop()
         {
             _path.Clear();
@@ -152,14 +158,14 @@ namespace Lokanta.Game
         {
             if (_at >= _path.Count) return;
 
-            // Duraklatildiginda YURUYUS DE DURUYOR (GameSpeed = 0).
+            // When the game is paused THE WALK STOPS TOO (GameSpeed = 0).
             if (GameSpeed <= 0.001f) return;
-            float carpan = Mathf.Min(SpeedCap, Mathf.Max(0.5f, GameSpeed));
-            Vector3 hedef = _path[_at];
-            Vector3 su = transform.localPosition;
+            float multiplier = Mathf.Min(SpeedCap, Mathf.Max(0.5f, GameSpeed));
+            Vector3 target = _path[_at];
+            Vector3 here = transform.localPosition;
 
-            // Cok hizlida yuruyus okunmuyor: isinla.
-            if (carpan > TeleportAbove)
+            // At high speed the walk does not read: teleport.
+            if (multiplier > TeleportAbove)
             {
                 transform.localPosition = _path[_path.Count - 1];
                 _at = _path.Count;
@@ -167,80 +173,81 @@ namespace Lokanta.Game
                 return;
             }
 
-            Vector3 fark = hedef - su;
-            fark.y = 0f;
-            float uzak = fark.magnitude;
-            float adim = Speed * carpan * Time.deltaTime;
+            Vector3 delta = target - here;
+            delta.y = 0f;
+            float distance = delta.magnitude;
+            float step = Speed * multiplier * Time.deltaTime;
 
-            if (uzak <= adim)
+            if (distance <= step)
             {
-                transform.localPosition = new Vector3(hedef.x, su.y, hedef.z);
+                transform.localPosition = new Vector3(target.x, here.y, target.z);
                 _at++;
                 if (_at >= _path.Count) Arrive();
                 return;
             }
 
-            Vector3 yon = fark / uzak;
-            transform.localPosition = su + yon * adim;
+            Vector3 direction = delta / distance;
+            transform.localPosition = here + direction * step;
 
-            // YUZ GITTIGI YONE DONUYOR, ANINDA DEGIL.
+            // THE FACE TURNS THE WAY IT IS GOING, NOT INSTANTLY.
             //
-            // Aninda dondurmek kose donuslerinde figuru "sicratiyor";
-            // yumusatma, sekiz kare suren bir donus veriyor ve yuruyus
-            // klibiyle ayni ritimde okunuyor.
+            // Turning instantly makes the figure "jump" at corners; the
+            // smoothing gives a turn that takes eight frames and reads at the
+            // same rhythm as the walk clip.
             _faceYaw = Mathf.LerpAngle(
-                _faceYaw, Mathf.Atan2(yon.x, yon.z) * Mathf.Rad2Deg,
+                _faceYaw, Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg,
                 Mathf.Clamp01(Time.deltaTime * 10f));
             transform.localRotation = Quaternion.Euler(0f, _faceYaw, 0f);
 
-            // Animator yuruyus boyunca ACIK kalmali. Figure gecisten
-            // 0,9 sn sonra kapatiyor - uzun bir yuruyuste figur donup
-            // duran bir poz olarak kayardi.
+            // The Animator has to stay AWAKE for the whole walk. Figure
+            // switches it off 0.9 s after the transition - on a long walk the
+            // figure would freeze and slide along as a still pose.
             //
-            // KLIP HIZI YER HIZINA BAGLI.
+            // THE CLIP SPEED FOLLOWS THE GROUND SPEED.
             //
-            // Once Anim.speed hicbir yerde ayarlanmiyordu: figur x4 oyun
-            // hizinda saniyede 4,6 m gidiyor ama bacaklar 1x tempoda
-            // oynuyordu - ayaklar yerde kaydiriyordu. Sokaktaki yayalarin
-            // hizlari da rastgele (0,92-1,34) ve ayni sekilde
-            // eslesmiyordu.
+            // At first Anim.speed was not set anywhere: at x4 game speed a
+            // figure covers 4.6 m a second but the legs played at 1x tempo -
+            // the feet slid along the ground. The pedestrians on the street
+            // have random speeds too (0.92-1.34) and did not match either.
             if (Body != null)
             {
                 Body.HoldAwake();
-                LastGroundSpeed = Speed * carpan;
+                LastGroundSpeed = Speed * multiplier;
                 Body.SetGroundSpeed(LastGroundSpeed);
 
-                // KLIP GERCEKTEN ILERLIYOR MU.
+                // IS THE CLIP REALLY ADVANCING?
                 //
-                // Yuruyen bir figurun klibi her karede ilerlemeli.
-                // Ilerlemiyorsa figur KAYIYOR: bacaklar donmus, govde
-                // gidiyor. Kullanicinin bildirdigi sey buydu ve sebebi
-                // kliplerin dongusuz ice aktarilmasiydi - klip bir kez
-                // oynayip son karesinde duruyordu.
+                // A walking figure's clip has to advance every frame. If it does
+                // not, the figure is SLIDING: the legs frozen, the body moving.
+                // This is what the user reported, and the cause was that the
+                // clips had been imported without looping - the clip played once
+                // and stopped on its last frame.
                 //
-                // Sayac STATIK ve kumulatif: tur toplami soruyor.
+                // The counter is STATIC and cumulative: the tour asks for the
+                // total.
                 float p = Body.ClipProgress;
                 if (p >= 0f)
                 {
-                    if (p > _sonKlip + 0.0001f) AnimAdvanced++;
+                    if (p > _lastClipProgress + 0.0001f) AnimAdvanced++;
                     else AnimStalled++;
-                    _sonKlip = p;
+                    _lastClipProgress = p;
                 }
             }
         }
 
         /// <summary>
-        /// Yuruyen figurlerde klibin ilerledigi ve DONDUGU kare sayisi.
-        /// Turun sorabilmesi icin; kumulatif ve statik.
-        /// </summary>
+        /// The number of frames, over walking figures, in which the clip
+        /// advanced and in which it was FROZEN. So the tour can ask;
+        /// cumulative and static.
         public static int AnimAdvanced, AnimStalled;
 
-        private float _sonKlip = -1f;
+        private float _lastClipProgress = -1f;
 
         private void Arrive()
         {
-            // Yuruyus bitti: klip hizi normale donuyor. Duran bir figurun
-            // oturma ya da dograma klibi, yer hiziyla olceklenmemeli.
+            // The walk is over: the clip speed goes back to normal. A standing
+            // figure's sitting or chopping clip must not be scaled by the
+            // ground speed.
             if (Body != null) Body.ResetPlaybackSpeed();
 
             if (!float.IsNaN(_finalYaw))

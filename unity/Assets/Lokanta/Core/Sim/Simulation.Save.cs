@@ -1,87 +1,92 @@
-using System;
+﻿using System;
 using Lokanta.Core.Save;
 
 namespace Lokanta.Core.Sim
 {
     /// <summary>
-    /// Simulasyonun durum yuruyusu ve komut gunlugu.
-    /// docs/23-core-contract.md 6.2 ve 7.
+    /// The simulation's state walk and command log.
+    /// docs/23-core-contract.md 6.2 and 7.
     ///
-    /// Write ve Restore AYNI SIRAYI yurumek zorunda. Ikisi yan yana
-    /// duruyor ki kayma gorunur olsun. Sira sozlesmedir: degisirse eski
-    /// kayitlar okunamaz ve gocurme gerekir.
+    /// Write and Restore have to walk THE SAME ORDER. The two sit side by
+    /// side so that any drift is visible. The order is a contract: if it
+    /// changes, old saves cannot be read and a migration is needed.
     /// </summary>
     public sealed partial class Simulation
     {
         /// <summary>
-        /// Kayit bicimi surumu. Alan sirasi degisirse artar.
-        /// 2: istasyon ekipman kademesi ve pisen isler eklendi.
-        /// 3: soguk hava kademesi ve malzeme yasi eklendi.
-        /// 4: tatli kalemi eklendi (dorduncu istasyon isi).
-        /// 5: sorulan ama yapilamayan yemek eklendi.
-        /// 6: malzeme kalitesi eklendi.
-        /// 7: patron mudahalesi hakki eklendi.
-        /// 8: gunluk hal fiyatlari eklendi.
-        /// 9-14: BELGESIZ. Sayi 8'den 14'e cikmis ama liste
-        ///       guncellenmemis; goc yazmak isteyen kisi neyin
-        ///       degistigini bilemez. Yeni surumler buradan itibaren
-        ///       yazilacak.
-        /// 15: grubun MUTFAK isi ayri bayraga tasindi (kitchenTask).
-        ///     Sabir artik yemek piserken de isliyor.
+        /// The save format version. It goes up whenever the field order
+        /// changes.
+        /// 2: the station equipment tier and the cooking jobs were added.
+        /// 3: the cold-store tier and ingredient age were added.
+        /// 4: the dessert item was added (a fourth station job).
+        /// 5: the dish that was asked for but cannot be made was added.
+        /// 6: ingredient quality was added.
+        /// 7: the owner's intervention allowance was added.
+        /// 8: the day's market prices were added.
+        /// 9-14: UNDOCUMENTED. The number climbed from 8 to 14 but the list
+        ///       was not kept up; anyone wanting to write a migration cannot
+        ///       tell what changed. New versions will be written down from
+        ///       here on.
+        /// 15: the party's KITCHEN work moved to a flag of its own
+        ///     (kitchenTask). Patience now runs while the food cooks too.
         ///
-        /// GOC KURALI: yeni alanlar IStateReader.Has ile okunur ve
-        /// yoksa varsayilanda birakilir. Eksik anahtarda istisna atmak,
-        /// yayindan sonraki ilk yamada butun kampanyalari silerdi.
+        /// THE MIGRATION RULE: new fields are read through IStateReader.Has
+        /// and left at their default when absent. Throwing on a missing key
+        /// would have wiped every campaign on the first patch after release.
         /// </summary>
-        // 16 -> 17: imza ekseni `peakCovers`'tan `comboShare`'e gecti;
-        // "peakCovers" alani yerine "mainOrders" + "comboOrders".
-        // Ayrica "teaSpend": veresiye cayinin bedeli artik sayiliyor.
-        // 20 -> 21: nisanlar (badges/badgesToday/creditEverOpened) ve
-        // haftalik karne (weekAxis/weekAxisPrev/weekReportDay).
-        // 21 -> 22: personel KIDEMI (cookTenure/salonTenure) ayri
-        // tutuluyor. Ekran "gun" diye deneyimi gosteriyordu ve deneyim
-        // huya bagli oldugu icin altmis gundur calisan bir `tecrubeli`
-        // "0 gun" goruunuyordu.
+        // 16 -> 17: the signature axis moved from `peakCovers` to
+        // `comboShare`; the "peakCovers" field gave way to "mainOrders" +
+        // "comboOrders". Also "teaSpend": the cost of the tab's tea is now
+        // counted.
+        // 20 -> 21: badges (badges/badgesToday/creditEverOpened) and the
+        // weekly report (weekAxis/weekAxisPrev/weekReportDay).
+        // 21 -> 22: staff TENURE (cookTenure/salonTenure) is kept
+        // separately. The screen was showing experience under the word
+        // "days", and because experience depends on the trait, an
+        // `experienced` hand who had worked for sixty days was showing
+        // "0 days".
         //
-        // GOC: eski kayitta kidem yok. Varsayilan 0 - yani yamadan sonra
-        // herkesin kidemi sifirdan sayilmaya baslar. Dogru olani bu:
-        // uydurmak (ornegin XP'den turetmek) tam da duzeltilen yalani
-        // baska bir kilikta geri getirirdi.
+        // MIGRATION: an old save has no tenure. The default is 0 - so after
+        // the patch everyone's tenure starts being counted from zero. That
+        // is the right answer: making one up (deriving it from XP, say)
+        // would bring back the very lie being fixed, in another disguise.
         public const int SaveVersion = 22;
 
         /// <summary>
-        /// Okunabilen EN ESKI kayit surumu.
+        /// The OLDEST save version that can be read.
         ///
-        /// `Restore` bundan eskisini reddediyor; arasindaki her surum
-        /// SURUM KAPISIYLA okunuyor - yani o surumde henuz var olmayan
-        /// alanlar atlaniyor ve varsayilanda birakiliyor.
+        /// `Restore` rejects anything older than this; every version in
+        /// between is read through A VERSION GATE - that is, fields that did
+        /// not yet exist in that version are skipped and left at their
+        /// defaults.
         ///
-        /// NEDEN "Has()" DEGIL: dosyanin basindaki kural on alti aydir
-        /// "yeni alanlar Has() ile okunur" diyordu ve 126 okumanin
-        /// IKISINDE uygulanmisti. Ustelik yanlis arac: Has() bir alanin
-        /// YOKLUGUNU her zaman mesru sayar, yani gercekten BOZUK bir
-        /// kayitla eski bir kaydi ayirt edemez. Surum kapisi ikisini
-        /// ayirir - 21. surum kaydinda "badges" yoksa o kayit bozuktur
-        /// ve patlamasi DOGRUDUR.
+        /// WHY NOT "Has()": for sixteen months the rule at the top of this
+        /// file said "new fields are read through Has()", and it had been
+        /// applied in TWO of 126 reads. What is more, it is the wrong tool:
+        /// Has() always treats a field's ABSENCE as legitimate, so it cannot
+        /// tell a genuinely CORRUPT save from an old one. A version gate
+        /// separates the two - if a version 21 save has no "badges" then
+        /// that save is corrupt, and blowing up is the RIGHT thing to do.
         ///
-        /// 20 SECILDI cunku mekanizmanin kostugu ancak bir adim geriye
-        /// giderek kanitlanabiliyor (SaveTests.Eski_surum_kaydi_aciliyor
-        /// 21. surum kaydini 20'ye dusurup yukluyor). Daha eskisi
-        /// uydurma olurdu: 9-14 arasi surumlerin neyi degistirdigi
-        /// BELGESIZ, yani onlar icin dogru kapiyi kimse yazamaz.
-        /// Yayinlanmis kayit da yok, yani kaybedilen bir sey yok.
+        /// 20 WAS CHOSEN because the mechanism can only be proved to run by
+        /// going one step back (SaveTests.Eski_surum_kaydi_aciliyor takes a
+        /// version 21 save down to 20 and loads it). Anything older would be
+        /// invented: what versions 9-14 changed is UNDOCUMENTED, so nobody
+        /// can write the right gate for them. And there is no released save
+        /// either, so nothing is lost.
         ///
-        /// SONRAKI SURUM ICIN: alanlari `if (version >= N)` ile oku,
-        /// listeye bir satir yaz, ve teste bir kol ekle.
+        /// FOR THE NEXT VERSION: read the fields under `if (version >= N)`,
+        /// write a line into the list, and add an arm to the test.
         /// </summary>
         public const int MinReadableVersion = 20;
 
-        // ---- komut gunlugu okuyuculari --------------------------------------
+        // ---- command log readers --------------------------------------------
         public int CommandCount { get { return _commandCount; } }
         public Command CommandAt(int i) { return _commandLog[i]; }
 
         /// <summary>
-        /// Gun basindan beri uygulanan komutlar. Kayit dosyasi bunu tasiyor.
+        /// The commands applied since the start of the day. The save file
+        /// carries this.
         /// </summary>
         public Command[] CopyCommandLog()
         {
@@ -90,7 +95,7 @@ namespace Lokanta.Core.Sim
             return copy;
         }
 
-        /// <summary>Durumun bayt bayt ozeti. Determinizm testleri bunu karsilastirir.</summary>
+        /// <summary>A byte-by-byte hash of the state. The determinism tests compare this.</summary>
         public ulong StateHash()
         {
             HashStateWriter w = new HashStateWriter();
@@ -99,7 +104,7 @@ namespace Lokanta.Core.Sim
         }
 
         // =====================================================================
-        // Yazma
+        // Writing
         // =====================================================================
         public void Write(IStateWriter w)
         {
@@ -127,19 +132,19 @@ namespace Lokanta.Core.Sim
             w.IntArray("weekAxisPrev", _weekAxisPrev, SeasonScore.AxisCount);
             w.Long("cash", _cash);
             w.Int("cooks", _cooks);
-            w.Int("salon", _salon);
+            w.Int("hall", _hall);
             w.IntArray("cookXp", _cookXpDays, MaxServers);
             w.IntArray("cookTenure", _cookTenure, MaxServers);
-            w.IntArray("salonTenure", _salonTenure, MaxServers);
-            w.IntArray("salonXp", _salonXpDays, MaxServers);
+            w.IntArray("salonTenure", _hallTenure, MaxServers);
+            w.IntArray("salonXp", _hallXpDays, MaxServers);
             w.IntArray("cookName", _cookName, MaxServers);
-            w.IntArray("salonName", _salonName, MaxServers);
+            w.IntArray("salonName", _hallName, MaxServers);
             w.IntArray("cookTraitA", _cookTraitA, MaxServers);
             w.IntArray("cookTraitB", _cookTraitB, MaxServers);
-            w.IntArray("salonTraitA", _salonTraitA, MaxServers);
-            w.IntArray("salonTraitB", _salonTraitB, MaxServers);
+            w.IntArray("salonTraitA", _hallTraitA, MaxServers);
+            w.IntArray("salonTraitB", _hallTraitB, MaxServers);
             w.IntArray("cookMorale", _cookMorale, MaxServers);
-            w.IntArray("salonMorale", _salonMorale, MaxServers);
+            w.IntArray("salonMorale", _hallMorale, MaxServers);
             w.Int("busyStreak", _busyStreak);
             w.Int("candDay", _candDay);
             w.IntArray("candA", _candTraitA, CandidateSlots * 2);
@@ -159,8 +164,8 @@ namespace Lokanta.Core.Sim
             WriteRng(w, "hiring", _rngHiring);
             w.End();
 
-            // Imza mekanigi durumu. Veresiye defteri kaydin parcasi:
-            // acik hesaplar gunler sonra kapaniyor.
+            // The signature mechanic's state. The tab book is part of the
+            // save: open accounts are settled days later.
             w.Begin("signature");
             w.Int("comboOn", _comboOn ? 1 : 0);
             w.Int("creditLoyaltyBp", _creditLoyaltyBp);
@@ -178,7 +183,7 @@ namespace Lokanta.Core.Sim
             w.IntArray("pServer", _pServer, MaxParties);
             w.IntArray("pCook", _pCook, MaxParties);
 
-            // TABAK DONGUSU. Degismez: temiz + kullanimda + kirli = toplam.
+            // THE PLATE CYCLE. The invariant: clean + in use + dirty = total.
             w.Int("platesClean", _platesClean);
             w.Int("platesDirty", _platesDirty);
             w.Int("platesInUse", _platesInUse);
@@ -233,17 +238,17 @@ namespace Lokanta.Core.Sim
             w.End();
 
             w.Begin("work");
-            w.IntArray("salonKind", TaskAsInt(_salonTaskKind), MaxServers);
-            w.IntArray("salonTarget", _salonTaskTarget, MaxServers);
-            w.IntArray("salonLeft", _salonTaskLeftMs, MaxServers);
+            w.IntArray("salonKind", TaskAsInt(_hallTaskKind), MaxServers);
+            w.IntArray("salonTarget", _hallTaskTarget, MaxServers);
+            w.IntArray("salonLeft", _hallTaskLeftMs, MaxServers);
             w.IntArray("kitchenKind", TaskAsInt(_kitchenTaskKind), MaxServers);
             w.IntArray("kitchenTarget", _kitchenTaskTarget, MaxServers);
             w.IntArray("kitchenLeft", _kitchenTaskLeftMs, MaxServers);
             w.End();
 
-            // Ekipman ve pisen isler. Yuva sayaci TUREVDIR: _jobState'ten
-            // yeniden kuruluyor, yazilmiyor. Iki yerde tutulan bir sayi
-            // kaydin bozulabilecegi fazladan bir yer demek.
+            // Equipment and the cooking jobs. The slot counter is DERIVED:
+            // it is rebuilt from _jobState rather than written. A number
+            // held in two places is one more place the save can go wrong.
             w.Begin("stations");
             w.Int("storageTier", _storageTier);
             w.Int("quality", _quality);
@@ -279,23 +284,24 @@ namespace Lokanta.Core.Sim
             w.Long("satisfactionSum", _satisfactionSum);
             w.Long("reputationDelta", _reputationDeltaMicro);
 
-            // BUGUNUN UCRETI, KIRASI VE ZAYIATI DA YAZILIYOR.
+            // TODAY'S WAGES, RENT AND SPOILAGE ARE WRITTEN TOO.
             //
-            // Uculu de aksam raporunun icinde ve NetProfit'i belirliyor;
-            // kaydedilmedikleri icin yukleme sonrasi rapor YALAN
-            // SOYLUYORDU: yedinci gunu (kira gunu) kapat, telefonu
-            // kilitle, geri don - "Gunun kari" haftanin en buyuk
-            // giderini yok sayip buyuk bir arti gosteriyor, kasadaki
-            // sayi ise dusmus.
+            // All three are inside the evening report and they determine
+            // NetProfit; because they were not saved, the report after a
+            // load WAS TELLING A LIE: close day seven (the rent day), lock
+            // the phone, come back - and "Today's profit" ignored the
+            // week's largest outgoing and showed a big plus, while the
+            // number in the till had gone down.
             //
-            // Bu, DayReport.WageCost'un yorumunda anlatilan hatanin
-            // (oyunun temel gerilimi hicbir yerde gorunmuyordu)
-            // kayit yoluyla aynen geri gelmesiydi.
+            // This was the bug explained in the comment on
+            // DayReport.WageCost (the game's central tension was visible
+            // nowhere) coming back exactly as it was, by way of the save.
             w.Long("dayWages", _dayWages);
             w.Long("dayRent", _dayRent);
             w.Long("daySpoiled", _daySpoiled);
 
-            // Kampanya boyunca ciro: her yuklemede sifirlaniyordu.
+            // Revenue across the whole campaign: it was being zeroed on
+            // every load.
             w.Long("revenueAll", _revenueAll);
             w.End();
 
@@ -304,10 +310,11 @@ namespace Lokanta.Core.Sim
             w.Long("rentPaid", _weeklyRentPaid);
             w.Int("firstDebtDay", _firstDebtDay);
 
-            // Yil sonu degerlendirmesinin gecmisi. Kayda giriyor cunku
-            // puan GECMISE bakiyor: zirve kuver, tahsilat orani ve
-            // merdivene kac kez inildigi bir gunun degil butun sezonun
-            // ozeti. Kaydedilmezse yuklenen bir oyun gecmissiz kaliyor.
+            // The history behind the year-end evaluation. It goes into the
+            // save because the score looks AT THE PAST: peak covers, the
+            // collection rate and how many times the ladder was climbed down
+            // are a summary of the whole season, not of one day. Unsaved, a
+            // loaded game is left without a past.
             w.Int("debtRungs", _debtRungs);
             w.Long("spoiledValue", _spoiledValue);
             w.Long("ingredientSpend", _ingredientSpend);
@@ -316,13 +323,13 @@ namespace Lokanta.Core.Sim
             w.Long("loanRepaidAll", _loanRepaidAll);
             w.Long("equipmentSpend", _equipmentSpend);
             w.Long("expansionSpend", _expansionSpend);
-            // IMZA EKSENININ SAYACLARI.
+            // THE SIGNATURE AXIS'S COUNTERS.
             //
-            // Yil sonu puani GECMISE bakiyor ve gecmis yalnizca
-            // biriktirilirse var: kaydedilmezse bir oyuncunun altmis
-            // gunluk kombo kullanimi, tek bir yuklemede silinir ve
-            // puan sessizce yanlis cikar. (Once burada `peakCovers`
-            // duruyordu; eksen komboyu olcmeye gecince o alan silindi.)
+            // The year-end score looks AT THE PAST, and the past only exists
+            // if it is accumulated: unsaved, a player's sixty days of combo
+            // use is wiped by a single load and the score comes out silently
+            // wrong. (`peakCovers` used to stand here; once the axis moved
+            // to measuring the combo, that field was deleted.)
             w.Int("mainOrders", _mainOrders);
             w.Int("comboOrders", _comboOrders);
             w.Long("teaSpend", _teaSpend);
@@ -336,7 +343,7 @@ namespace Lokanta.Core.Sim
         }
 
         // =====================================================================
-        // Okuma. Write ile AYNI SIRA.
+        // Reading. THE SAME ORDER as Write.
         // =====================================================================
         public void Restore(IStateReader r)
         {
@@ -346,9 +353,9 @@ namespace Lokanta.Core.Sim
             int version = r.Int("version");
             if (version > SaveVersion || version < MinReadableVersion)
                 throw new InvalidOperationException(
-                    "Kayit surumu " + version + ", okunabilen aralik "
+                    "Save version " + version + ", the readable range is "
                     + MinReadableVersion + "-" + SaveVersion + ".");
-            r.Long("seed");                     // tohum kurucuda verildi
+            r.Long("seed");                     // the seed was given in the constructor
             _tickIndex = r.Long("tick");
             _day = r.Int("day");
             _phase = (DayPhase)r.Int("phase");
@@ -356,20 +363,21 @@ namespace Lokanta.Core.Sim
             string cuisine = r.Str("cuisine");
             if (!string.Equals(cuisine, _content.Cuisine, StringComparison.Ordinal))
                 throw new InvalidOperationException(
-                    "Kayit mutfagi '" + cuisine + "', yuklenen '" + _content.Cuisine + "'");
+                    "The save's cuisine is '" + cuisine + "', the one loaded is '" + _content.Cuisine + "'");
             r.End();
 
             r.Begin("restaurant");
             _tableCount = r.Int("tables");
             _reputationCenti = r.Int("reputationCenti");
             _reputationOverflowCenti = r.Int("reputationOverflow");
-            // 21. SURUMDE EKLENDI: nisanlar ve haftalik karne.
+            // ADDED IN VERSION 21: badges and the weekly report.
             //
-            // Daha eski bir kayitta bu alanlar YOK ve olmamasi dogru.
-            // Varsayilanda birakiliyorlar: nisan kazanilmamis, karne
-            // gunu 0. Oyuncu kaldigi yerden devam ediyor; yalnizca
-            // yamadan onceki nisanlari geriye donuk kazanmiyor - zaten
-            // kazanamazdi, o gunler o mekanik yokken oynandi.
+            // In an older save these fields ARE NOT THERE, and it is right
+            // that they are not. They are left at their defaults: no badge
+            // earned, report day 0. The player carries on from where they
+            // were; they simply do not earn the pre-patch badges
+            // retrospectively - nor could they have, since those days were
+            // played with the mechanic absent.
             if (version >= 21)
             {
                 _badges = r.Int("badges");
@@ -381,25 +389,26 @@ namespace Lokanta.Core.Sim
             }
             _cash = r.Long("cash");
             _cooks = r.Int("cooks");
-            _salon = r.Int("salon");
+            _hall = r.Int("hall");
             r.IntArray("cookXp", _cookXpDays, MaxServers);
 
-            // 22. SURUMDE EKLENDI: personel kidemi. Eski kayitta yok ve
-            // sifirdan sayilmaya basliyor (bkz. SaveVersion notu).
+            // ADDED IN VERSION 22: staff tenure. It is not in an old save
+            // and starts being counted from zero (see the note on
+            // SaveVersion).
             if (version >= 22)
             {
                 r.IntArray("cookTenure", _cookTenure, MaxServers);
-                r.IntArray("salonTenure", _salonTenure, MaxServers);
+                r.IntArray("salonTenure", _hallTenure, MaxServers);
             }
-            r.IntArray("salonXp", _salonXpDays, MaxServers);
+            r.IntArray("salonXp", _hallXpDays, MaxServers);
             r.IntArray("cookName", _cookName, MaxServers);
-            r.IntArray("salonName", _salonName, MaxServers);
+            r.IntArray("salonName", _hallName, MaxServers);
             r.IntArray("cookTraitA", _cookTraitA, MaxServers);
             r.IntArray("cookTraitB", _cookTraitB, MaxServers);
-            r.IntArray("salonTraitA", _salonTraitA, MaxServers);
-            r.IntArray("salonTraitB", _salonTraitB, MaxServers);
+            r.IntArray("salonTraitA", _hallTraitA, MaxServers);
+            r.IntArray("salonTraitB", _hallTraitB, MaxServers);
             r.IntArray("cookMorale", _cookMorale, MaxServers);
-            r.IntArray("salonMorale", _salonMorale, MaxServers);
+            r.IntArray("salonMorale", _hallMorale, MaxServers);
             _busyStreak = r.Int("busyStreak");
             _candDay = r.Int("candDay");
             r.IntArray("candA", _candTraitA, CandidateSlots * 2);
@@ -436,10 +445,10 @@ namespace Lokanta.Core.Sim
             r.IntArray("pServer", _pServer, MaxParties);
             r.IntArray("pCook", _pCook, MaxParties);
 
-            // TABAK DONGUSU. Eski kayitta yok: o zaman butun tabaklar
-            // temiz sayiliyor - Has() ile soruluyor, cunku eksik alani
-            // sifir okumak lokantayi tabaksiz birakir ve servis hic
-            // baslamazdi.
+            // THE PLATE CYCLE. Not in an old save: in that case every plate
+            // counts as clean - it is asked for with Has(), because reading a
+            // missing field as zero would leave the restaurant with no plates
+            // and service would never start.
             if (r.Has("platesClean"))
             {
                 _platesClean = r.Int("platesClean");
@@ -504,10 +513,11 @@ namespace Lokanta.Core.Sim
             r.IntArray("bonus", _pBonusCenti, MaxParties);
             r.BoolArray("inTask", _pInTask, MaxParties);
 
-            // ESKI KAYITTA YOK: sabir mutfak isini de kapsiyordu, ayri
-            // bayrak 15. surumde geldi. Eksikse varsayilan (false)
-            // kaliyor - yani eski kayit acilir ve o gun biraz daha
-            // kolay gecer. Istisna atmak yerine bu.
+            // NOT IN AN OLD SAVE: patience used to cover the kitchen work
+            // as well, and the separate flag arrived in version 15. If it is
+            // missing it stays at its default (false) - so an old save opens
+            // and that one day passes a little more easily. This rather than
+            // throwing.
             if (r.Has("kitchenTask"))
                 r.BoolArray("kitchenTask", _pKitchenTask, MaxParties);
             else
@@ -518,9 +528,9 @@ namespace Lokanta.Core.Sim
             r.Begin("work");
             int[] kinds = new int[MaxServers];
             r.IntArray("salonKind", kinds, MaxServers);
-            for (int i = 0; i < MaxServers; i++) _salonTaskKind[i] = (TaskKind)kinds[i];
-            r.IntArray("salonTarget", _salonTaskTarget, MaxServers);
-            r.IntArray("salonLeft", _salonTaskLeftMs, MaxServers);
+            for (int i = 0; i < MaxServers; i++) _hallTaskKind[i] = (TaskKind)kinds[i];
+            r.IntArray("salonTarget", _hallTaskTarget, MaxServers);
+            r.IntArray("salonLeft", _hallTaskLeftMs, MaxServers);
             r.IntArray("kitchenKind", kinds, MaxServers);
             for (int i = 0; i < MaxServers; i++) _kitchenTaskKind[i] = (TaskKind)kinds[i];
             r.IntArray("kitchenTarget", _kitchenTaskTarget, MaxServers);
@@ -543,7 +553,8 @@ namespace Lokanta.Core.Sim
             r.IntArray("jobsLeft", _pJobsLeft, MaxParties);
             r.End();
 
-            // Yuva sayaci turev: pisen islerden yeniden sayiliyor.
+            // The slot counter is derived: it is counted again from the
+            // cooking jobs.
             for (int i = 0; i < _stationBusy.Length; i++) _stationBusy[i] = 0;
             for (int j = 0; j < _jobStation.Length; j++)
                 if (_jobState[j] == 1 && _jobStation[j] >= 0)
@@ -596,112 +607,114 @@ namespace Lokanta.Core.Sim
             _loanTotalRepaid = r.Long("loanRepaid");
             r.End();
 
-            // Gunluk yuklemeden sonra ayri tekrar oynatiliyor.
+            // The day's log is replayed separately after loading.
             _commandCount = 0;
             _events.Clear();
 
             Validate();
 
-            // DUYURULMUS YEMEKLER, DURUMDAN TURETILIYOR.
+            // THE DISHES ALREADY ANNOUNCED ARE DERIVED FROM THE STATE.
             //
-            // _dishWasUnlocked kaydedilmiyordu ve kurucu onu BIRINCI
-            // GUNUN durumuyla dolduruyordu. Otuzuncu gunden bir kayit
-            // acip "Ertesi Gun"e basinca, aradaki butun yemekler yeniden
-            // "acildi" diye duyuruluyor: her biri icin bir bildirim ve
-            // bir seviye atlama sesi. Kurucunun yorumunun birinci gun
-            // icin engelledigi sey, yukleme yolundan geri geliyordu.
+            // _dishWasUnlocked was not being saved, and the constructor was
+            // filling it with the state of THE FIRST DAY. Open a save from
+            // day thirty, press "Next Day", and every dish in between is
+            // announced as "unlocked" all over again: a notification and a
+            // level-up sound for each one. What the comment in the
+            // constructor prevented for the first day was coming back by way
+            // of the load path.
             //
-            // Diziyi kaydetmek yerine turetmek daha dogru: "su anda acik
-            // olan her sey duyurulmus sayilir" tam olarak istenen anlam,
-            // ve kayit bicimini buyutmuyor. Validate'ten SONRA, cunku
-            // Unlocked() gecerli bir duruma ihtiyac duyuyor.
+            // Deriving the array is better than saving it: "everything open
+            // right now counts as announced" is exactly the meaning wanted,
+            // and it does not grow the save format. AFTER Validate, because
+            // Unlocked() needs a valid state.
             for (int i = 0; i < _dishWasUnlocked.Length; i++)
                 _dishWasUnlocked[i] = Unlocked(i);
         }
 
         /// <summary>
-        /// Yuklenen durumun MANTIKLI oldugunu dogrular.
+        /// Checks that the loaded state MAKES SENSE.
         ///
-        /// Neden gerekli: kayit dosyasi oyuncunun cihazinda, duz metin,
-        /// sifresiz ve saglama toplamsiz duruyor. Tek bayti bozulmus ama
-        /// hala gecerli JSON olan bir dosya - "tables": 5 gibi - sessizce
-        /// kabul ediliyordu. Oyun aciliyor, salon ciziliyor, sonra oyuncu
-        /// Personel ekranini actiginda ya da gunu kapattiginda
-        /// TierForTables(5) istisna firlatiyordu: kayit "aciliyor ama
-        /// oynanamiyor" durumuna dusuyor ve silmekten baska care kalmiyor.
+        /// Why it is needed: the save file sits on the player's device in
+        /// plain text, unencrypted and without a checksum. A file with a
+        /// single byte corrupted but still valid JSON - "tables": 5, say -
+        /// was being accepted in silence. The game opened, the hall was
+        /// drawn, and then, when the player opened the Staff screen or
+        /// closed the day, TierForTables(5) threw: the save fell into the
+        /// "it opens but it cannot be played" state and there was nothing
+        /// for it but to delete it.
         ///
-        /// Burada atilan istisna kayit katmaninda yakalaniyor ve yuva
-        /// "bozuk" gosteriliyor - yani hata OYUNCUYA, oyunun icine
-        /// girmeden once soyleniyor.
+        /// The exception thrown here is caught in the save layer and the
+        /// slot is shown as "corrupt" - that is, the error is told TO THE
+        /// PLAYER, before they go into the game.
         /// </summary>
         private void Validate()
         {
-            Check(_day >= 1, "gun", _day);
+            Check(_day >= 1, "day", _day);
             Check(_phase >= DayPhase.Morning && _phase <= DayPhase.Evening,
-                  "asama", (int)_phase);
-            Check(_serviceTick >= 0, "servis sayaci", _serviceTick);
+                  "stage", (int)_phase);
+            Check(_serviceTick >= 0, "service counter", _serviceTick);
 
-            Check(_tableCount >= 1 && _tableCount <= MaxTables, "masa", _tableCount);
-            Check(_economy.HasTierForTables(_tableCount), "masa kademesi", _tableCount);
+            Check(_tableCount >= 1 && _tableCount <= MaxTables, "tables", _tableCount);
+            Check(_economy.HasTierForTables(_tableCount), "table tier", _tableCount);
 
-            Check(_cooks >= 0 && _cooks <= MaxServers, "asci", _cooks);
-            Check(_salon >= 0 && _salon <= MaxServers, "salon kadrosu", _salon);
-            Check(_partyCount >= 0 && _partyCount <= MaxParties, "grup", _partyCount);
-            Check(_tabCount >= 0 && _tabCount <= _tabAmount.Length, "veresiye", _tabCount);
+            Check(_cooks >= 0 && _cooks <= MaxServers, "cooks", _cooks);
+            Check(_hall >= 0 && _hall <= MaxServers, "hall crew", _hall);
+            Check(_partyCount >= 0 && _partyCount <= MaxParties, "party", _partyCount);
+            Check(_tabCount >= 0 && _tabCount <= _tabAmount.Length, "tab", _tabCount);
 
             Check(_reputationCenti >= 0 && _reputationCenti <= 10000,
-                  "itibar", _reputationCenti);
+                  "reputation", _reputationCenti);
 
-            // BIR FAZLAYDI. MaxTier = Tiers.Length - 1, yani gecerli
-            // en ust kademe Tiers.Length-1. "<=" yazmak, dizinin bir
-            // sonrasini gecerli sayiyordu ve o deger StationSlots ile
-            // StationAttendBp icinde servis ORTASINDA patliyordu -
-            // yani kayit "saglam" gorunup oyun icinde cokuyordu.
-            // Validate tam olarak bunu engellemek icin var.
+            // IT WAS ONE TOO MANY. MaxTier = Tiers.Length - 1, so the highest
+            // valid tier is Tiers.Length-1. Writing "<=" treated one past the
+            // end of the array as valid, and that value blew up inside
+            // StationSlots and StationAttendBp IN THE MIDDLE OF SERVICE - so
+            // the save looked "sound" and then came down inside the game.
+            // Validate exists precisely to stop that.
             for (int i = 0; i < _stationTier.Length; i++)
                 Check(_stationTier[i] >= 0
                       && _stationTier[i] < _content.Stations[i].Tiers.Length,
-                      "istasyon kademesi", _stationTier[i]);
+                      "station tier", _stationTier[i]);
 
-            // Soguk hava kademesi hic bakilmiyordu: bozuk bir deger
-            // StorageKeepBp() icinde, her CloseDay'de cokuyordu.
+            // The cold-store tier was not being looked at at all: a corrupt
+            // value came down inside StorageKeepBp(), on every CloseDay.
             if (_content.Storage != null)
                 Check(_storageTier >= 0 && _storageTier < _content.Storage.Tiers.Length,
-                      "soguk hava kademesi", _storageTier);
+                      "cold-store tier", _storageTier);
 
-            Check(_quality >= 0 && _quality < QualityCount, "kalite", _quality);
+            Check(_quality >= 0 && _quality < QualityCount, "quality", _quality);
 
             for (int i = 0; i < _pTable.Length; i++)
-                Check(_pTable[i] >= -1 && _pTable[i] < MaxTables, "grup masasi", _pTable[i]);
+                Check(_pTable[i] >= -1 && _pTable[i] < MaxTables, "the party's table", _pTable[i]);
 
-            // MASA -> GRUP eslemesi. Gorunum katmani her karede
-            // TableStage(t) cagiriyor ve o _pStage[_tableParty[t]]
-            // okuyor: bozuk bir deger, salon cizilirken HER KAREDE
-            // patliyor.
+            // The TABLE -> PARTY mapping. The view layer calls TableStage(t)
+            // on every frame and that reads _pStage[_tableParty[t]]: a
+            // corrupt value blows up ON EVERY FRAME while the hall is being
+            // drawn.
             for (int t = 0; t < _tableParty.Length; t++)
                 Check(_tableParty[t] >= -1 && _tableParty[t] < MaxParties,
-                      "masadaki grup", _tableParty[t]);
+                      "the party at the table", _tableParty[t]);
 
-            // Varis plani. SpawnArrivals bunlari dogrudan
-            // _content.Archetypes'a indis olarak veriyor.
-            Check(_arrCount >= 0 && _arrCount <= _arrTick.Length, "varis sayisi", _arrCount);
-            Check(_arrNext >= 0 && _arrNext <= _arrCount, "varis sirasi", _arrNext);
+            // The arrival plan. SpawnArrivals feeds these straight into
+            // _content.Archetypes as an index.
+            Check(_arrCount >= 0 && _arrCount <= _arrTick.Length, "arrival count", _arrCount);
+            Check(_arrNext >= 0 && _arrNext <= _arrCount, "arrival index", _arrNext);
             for (int i = 0; i < _arrCount; i++)
                 Check(_arrArchetype[i] >= 0 && _arrArchetype[i] < _content.Archetypes.Length,
-                      "varis arketipi", _arrArchetype[i]);
+                      "arrival archetype", _arrArchetype[i]);
 
-            // Siparis edilen yemekler. AddJob bunlari
-            // _content.Dishes'a indis olarak veriyor.
+            // The dishes ordered. AddJob feeds these into _content.Dishes as
+            // an index.
             for (int i = 0; i < MaxParties; i++)
             {
-                CheckDish(_pDishMain[i], "ana yemek");
-                CheckDish(_pDishSide[i], "yan yemek");
-                CheckDish(_pDishDrink[i], "icecek");
-                CheckDish(_pDishDessert[i], "tatli");
+                CheckDish(_pDishMain[i], "main dish");
+                CheckDish(_pDishSide[i], "side dish");
+                CheckDish(_pDishDrink[i], "drink");
+                CheckDish(_pDishDessert[i], "dessert");
             }
         }
 
-        /// <summary>-1 (siparis yok) ya da gecerli bir yemek indisi.</summary>
+        /// <summary>-1 (nothing ordered) or a valid dish index.</summary>
         private void CheckDish(int dish, string what)
         {
             Check(dish >= -1 && dish < _content.Dishes.Length, what, dish);
@@ -711,10 +724,10 @@ namespace Lokanta.Core.Sim
         {
             if (!ok)
                 throw new InvalidOperationException(
-                    "Kayit bozuk: " + what + " degeri gecersiz (" + value + ")");
+                    "The save is corrupt: the value of " + what + " is invalid (" + value + ")");
         }
 
-        // ---- yardimcilar -----------------------------------------------------
+        // ---- helpers ---------------------------------------------------------
         private static void WriteRng(IStateWriter w, string key, Rng rng)
         {
             w.Begin(key);

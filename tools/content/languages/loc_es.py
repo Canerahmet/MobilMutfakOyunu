@@ -1,36 +1,37 @@
 # -*- coding: utf-8 -*-
 """
-Ispanyolca metin tablosu. gen_loc.py bunu okuyup content/loc/es.json uretir.
+Spanish string table. gen_loc.py reads it and produces content/loc/es.json.
 
-CEVIRI KARARLARI - hepsi loc_en.py'deki kararlarin AYNISI, cunku
-ayrismalari halinde bir dilde "Lahmacun" digerinde "Pizza turca" yazardi:
+TRANSLATION DECISIONS - every one of them THE SAME as the decisions in
+loc_en.py, because if they drifted apart one language would read
+"Lahmacun" where the other read "Pizza turca":
 
-  Malzemeler TAMAMEN cevriliyor.
+  Ingredients are translated IN FULL.
 
-  Yemekler DEGISKEN. Dunyaca taninan Turkce adlar KORUNUYOR (Lahmacun,
-  Doner, Iskender, Baklava); betimleyiciler cevriliyor. Korunan adlarin
-  yaninda gerektiginde kisa bir aciklama var.
+  Dishes VARY. Turkish names the world already knows are KEPT (Lahmacun,
+  Doner, Iskender, Baklava); the descriptive ones are translated. Where
+  a kept name needs it, a short explanation sits beside it.
 
-  Duzenli musterilerin sahneleri OYUNUN SESI: kisa, gundelik, tek bir
-  sey anlatan cumleler. Birebir degil, ayni tonda.
+  The regulars' scenes are THE GAME'S VOICE: short, everyday sentences
+  that each tell one thing. Not word for word, but in the same tone.
 
-  Ozel adlar (Hasan Usta, Nazife Teyze) KORUNUYOR; unvan meslek
-  satirinda aciklaniyor.
+  Proper names (Hasan Usta, Nazife Teyze) are KEPT; the title is
+  explained on the occupation line.
 
-NOTR ISPANYOLCA. Kullanicinin istegi "ortak anlasilir olsun" idi. Bu
-yuzden yereli belli secenekler yerine her yerde anlasilan sozcuk
-seciliyor:
-  - "computadora"/"ordenador" yerine yansizi; "movil"/"celular"
-    gerekmiyor zaten.
-  - Ikinci tekil sahis "tu" (voseo yok) ve cogul "ustedes" degil, oyun
-    zaten oyuncuya tekil sesleniyor.
-  - "patatas"/"papas" ikileminde menude "Papas fritas" degil
-    "Patatas fritas" degil - ikisini de bilen "Papas fritas" daha genis
-    bir kitlede anlasiliyor (Latin Amerika + Ispanya'da taninir).
+NEUTRAL SPANISH. What the user asked for was that it "be commonly
+understood". So instead of options that give a region away, the word
+that is understood everywhere is picked:
+  - the neutral term rather than "computadora"/"ordenador"; "movil"/
+    "celular" is not needed here in any case.
+  - The second person singular is "tu" (no voseo), and the plural is not
+    "ustedes" - the game addresses the player in the singular anyway.
+  - In the "patatas"/"papas" dilemma the menu says "Papas fritas", not
+    "Patatas fritas" - of the two, "Papas fritas" is the one understood
+    by the wider audience (recognised in Latin America and in Spain).
 """
 
 # ---------------------------------------------------------------------------
-# Malzeme adlari
+# Ingredient names
 # ---------------------------------------------------------------------------
 INGREDIENTS = {
     "tuz": "Sal", "karabiber": "Pimienta Negra", "zeytinyagi": "Aceite de Oliva",
@@ -68,7 +69,7 @@ INGREDIENTS = {
 }
 
 # ---------------------------------------------------------------------------
-# Yemek adlari
+# Dish names
 # ---------------------------------------------------------------------------
 DISHES = {
     # fast food
@@ -88,7 +89,7 @@ DISHES = {
     "buzlu_cay": "Té Helado", "dondurma": "Helado",
     "elmali_turta": "Tarta de Manzana", "cikolatali_kek": "Pastel de Chocolate",
     "donut": "Dona", "brownie": "Brownie", "waffle": "Waffle",
-    # turk -- taninan adlar korunuyor, betimleyiciler cevriliyor
+    # turk -- the known names are kept, the descriptive ones translated
     "kuru_fasulye": "Kuru Fasulye (Guiso de Frijoles)",
     "nohut": "Guiso de Garbanzos",
     "etli_turlu": "Guiso de Carne y Verduras",
@@ -110,7 +111,7 @@ DISHES = {
 }
 
 # ---------------------------------------------------------------------------
-# Musteri arketipleri
+# Customer archetypes
 # ---------------------------------------------------------------------------
 ARCHETYPES = {
     "yalniz_musteri": "Comensal Solo", "cift": "Pareja", "aile": "Familia",
@@ -135,7 +136,7 @@ ARCHETYPES = {
 }
 
 # ---------------------------------------------------------------------------
-# Personel huylari, roller, istasyonlar
+# Staff traits, roles, stations
 # ---------------------------------------------------------------------------
 TRAITS = {
     "hizli_ama_daginik": "Prisa y Desorden",
@@ -167,8 +168,8 @@ TRAIT_DESC = {
     "tecrubeli": "Caro, rápido, ya no mejora más.",
 }
 
-# Sesin kurallari loc_en.py ve docs/53 ile ayni: davranisi adlandir,
-# kisiyi degil; aciklamayi esirge; duz ve kisa.
+# The rules of the voice are the same as loc_en.py and docs/53: name the
+# behaviour, not the person; spare the explanation; plain and short.
 TRAIT_VOICE = {
     "hizli_ama_daginik": "Saca el pedido rápido. La prisa se acaba al recoger.",
     "yavas_ama_titiz": "Mira el plato una vez más antes de soltarlo.",
@@ -207,7 +208,7 @@ CUISINES = {
 STORAGE = {"soguk_hava": "Cámara Frigorífica"}
 
 # ---------------------------------------------------------------------------
-# Duzenli musteriler: ad, meslek, uc sahne
+# Regulars: name, occupation, three scenes
 # ---------------------------------------------------------------------------
 REGULARS = {
     # --- turk ---
@@ -314,5 +315,5 @@ REGULARS = {
     ]),
 }
 
-# Arayuz metinleri AYRI DOSYADA (loc_es_ui.py): kaynaklari farkli.
+# Interface text lives in a SEPARATE FILE (loc_es_ui.py): the sources differ.
 from loc_es_ui import UI    # noqa: E402

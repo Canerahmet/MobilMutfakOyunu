@@ -1,24 +1,25 @@
 # -*- coding: utf-8 -*-
-"""Yazi tipi kapsama denetcisi.
+"""Font coverage auditor.
 
-Oyunun ekranda gosterebilecegi HER karakterin yazi tipinde karsiligi var
-mi diye bakar. Olmayan bir karakter oyuncuya bos kutu olarak gorunur ve
-bu, yayindan sonra fark edilen turden bir hatadir.
+Checks whether EVERY character the game can put on screen has a glyph in the
+font. A character that is missing shows up to the player as an empty box, and
+that is the kind of fault that gets noticed after release.
 
-Nereye bakiyor:
-  - content/loc/tr.json           (butun arayuz metinleri)
-  - content/*.json                (yemek, malzeme, arketip, duzenli adlari)
-  - unity/Assets/Lokanta/Game/**  (koda gomulu dizeler)
+Where it looks:
+  - content/loc/tr.json           (all the interface text)
+  - content/*.json                (dish, ingredient, archetype and regular names)
+  - unity/Assets/Lokanta/Game/**  (strings embedded in the code)
 
-Neden koda gomulu dizeler de: yerellestirme tablosu her metni tasimiyor -
-"Patronsun, asci degil." gibi bazi metinler dogrudan ekran kodunda.
-Denetci ikisini de taramazsa eksigi bulamaz.
+Why the embedded strings too: the localisation table does not carry every
+piece of text - some strings, like "Patronsun, asci degil.", are written
+straight into the screen code. If the auditor does not scan both, it cannot
+find what is missing.
 
-Kullanim:
+Usage:
     python tools/art/check_font.py
     python tools/art/check_font.py --font vendor/rubik/Rubik-wght.ttf
 
-Cikis kodu 0 temiz, 1 eksik karakter var.
+Exit code 0 clean, 1 there are missing characters.
 """
 from __future__ import print_function
 
@@ -32,45 +33,45 @@ import sys
 import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# DENETLENEN DOSYA, OYUNA GIRENIN TA KENDISI OLMALI.
+# THE FILE BEING AUDITED MUST BE THE VERY ONE THAT GOES INTO THE GAME.
 #
-# Once vendor/ altindaki indirme kopyasi taraniyordu. Ikisi bugun ayni
-# ama ayni KALACAGININ garantisi yoktu: birini guncelleyip digerini
-# unutmak, "hepsi kapsaniyor" diyen bir denetim ile eksik karakterli bir
-# oyun demek - ve denetim yesil oldugu icin kimse bakmaz.
+# The download copy under vendor/ used to be the one scanned. The two are the
+# same today, but there was no guarantee they would STAY the same: updating
+# one and forgetting the other means an audit that says "all covered" and a
+# game with missing characters - and because the audit is green, nobody looks.
 DEFAULT_FONT = os.path.join(
     ROOT, "unity", "Assets", "Lokanta", "Art", "Fonts", "Rubik.ttf")
 VENDOR_FONT = os.path.join(ROOT, "vendor", "rubik", "Rubik-wght.ttf")
 
-# CINCE AYRI YAZI TIPI.
+# CHINESE IS A SEPARATE FONT.
 #
-# Rubik Latin, Kiril, Ibrani ve ARAPCA tasiyor (sekillendirme tablolari
-# dahil) ama CJK tasimiyor - Cince tablosunda 765 karakteri karsilamadi.
-# Noto Sans SC (SIL OFL 1.1) oyunun KULLANDIGI karakterlere alt kume
-# cikarilarak eklendi: 10,5 MB -> 223 KB.
+# Rubik carries Latin, Cyrillic, Hebrew and ARABIC (including the shaping
+# tables) but not CJK - it failed to cover 765 characters in the Chinese
+# table. Noto Sans SC (SIL OFL 1.1) was added, subset down to the characters
+# the game USES: 10.5 MB -> 223 KB.
 CJK_FONT = os.path.join(
     ROOT, "unity", "Assets", "Lokanta", "Art", "Fonts", "NotoSansSC-Lokanta.ttf")
 
-# HANGI DOSYAYI HANGI YAZI TIPI CIZIYOR.
+# WHICH FONT DRAWS WHICH FILE.
 #
-# Once tek yazi tipi vardi ve butun metin ona soruluyordu. Iki yazi tipi
-# olunca "herhangi birinde varsa tamam" demek YANLIS olurdu: Cince
-# fontta Turkce harf bulunmasi, Turkce ekranin Cince fontla cizilecegi
-# anlamina gelmez. Her dosya, oyunda onu GERCEKTEN cizecek yazi tipiyle
-# karsilastiriliyor.
+# At first there was a single font and every string was asked of it. With two
+# fonts, "it is fine if either one has it" would be WRONG: the fact that the
+# Chinese font contains a Turkish letter does not mean the Turkish screen will
+# be drawn with the Chinese font. Every file is compared against the font that
+# will REALLY draw it in the game.
 def _is_cjk(ch):
-    """CJK blogundan mi. Oyun bunlari ayri yazi tipiyle ciziyor."""
+    """Is it from a CJK block. The game draws these with a separate font."""
     cp = ord(ch)
-    return (0x3000 <= cp <= 0x303F      # CJK noktalama
-            or 0x3400 <= cp <= 0x4DBF   # genisletme A
-            or 0x4E00 <= cp <= 0x9FFF   # ortak ideogramlar
-            or 0xF900 <= cp <= 0xFAFF   # uyumluluk
-            or 0xFF00 <= cp <= 0xFFEF)  # tam genislik bicimler
+    return (0x3000 <= cp <= 0x303F      # CJK punctuation
+            or 0x3400 <= cp <= 0x4DBF   # extension A
+            or 0x4E00 <= cp <= 0x9FFF   # common ideographs
+            or 0xF900 <= cp <= 0xFAFF   # compatibility
+            or 0xFF00 <= cp <= 0xFFEF)  # full-width forms
 
 
-# Loc.PersonName ile AYNI tablo. Degistiren iki yeri birden
-# degistirmeli; denetim bunu zaten gosteriyor (alt kume eksik cikar).
-KATLAMA = {
+# THE SAME table as Loc.PersonName. Whoever changes one has to change both;
+# the audit already shows this (the subset comes out incomplete).
+FOLDING = {
     u"ğ": u"g", u"Ğ": u"G",
     u"ı": u"i", u"İ": u"I",
     u"ş": u"s", u"Ş": u"S",
@@ -87,7 +88,7 @@ def _font_for(path):
 
 
 def _same_bytes(a, b):
-    """Iki dosya ayni mi. Yoksa ikisinden biri eskimis demektir."""
+    """Are the two files identical. If not, one of them is stale."""
     try:
         with open(a, "rb") as fa, open(b, "rb") as fb:
             return fa.read() == fb.read()
@@ -95,18 +96,18 @@ def _same_bytes(a, b):
         return None
 
 def _control(ch):
-    """Ekranda gorunmeyen denetim karakteri mi.
+    """Is it a control character that does not appear on screen.
 
-    Kayit bicimi alanlari U+001F ile ayiriyor (SaveStore). O karakter
-    dosyada duruyor, ekranda degil - denetcinin onu eksik saymasi
-    yanlis alarm olurdu.
+    The save format separates its fields with U+001F (SaveStore). That
+    character is in the file, not on the screen - counting it as missing would
+    be a false alarm.
     """
     return ord(ch) < 0x20 or 0x7F <= ord(ch) <= 0x9F
 
 
 # ---------------------------------------------------------------------------
 def font_codepoints(path):
-    """TTF'nin cmap format 4 tablosundan kapsanan araliklari okur."""
+    """Reads the covered ranges from the TTF's cmap format 4 table."""
     data = open(path, "rb").read()
     num = struct.unpack(">H", data[4:6])[0]
 
@@ -118,7 +119,7 @@ def font_codepoints(path):
         tables[tag] = (o, ln)
 
     if "cmap" not in tables:
-        raise SystemExit("cmap tablosu yok: " + path)
+        raise SystemExit("no cmap table: " + path)
 
     co = tables["cmap"][0]
     ntab = struct.unpack(">H", data[co + 2:co + 4])[0]
@@ -145,7 +146,7 @@ def font_codepoints(path):
                 ranges.append((s, e))
 
     if not ranges:
-        raise SystemExit("Okunabilir cmap alt tablosu yok: " + path)
+        raise SystemExit("no readable cmap subtable: " + path)
     return ranges
 
 
@@ -157,8 +158,8 @@ def covered(ranges, cp):
 
 
 # ---------------------------------------------------------------------------
-# C# dize sabitleri. Kacis dizileri cozuluyor: "ç" yazan bir kaynak
-# ekranda ç gosterir, denetci onu da gormeli.
+# C# string constants. Escape sequences are decoded: a source that writes
+# a U+00E7 escape shows a c-cedilla on screen, and the auditor has to see that too.
 CS_STRING = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 CS_ESCAPE = re.compile(r'\\u([0-9A-Fa-f]{4})|\\(.)')
 
@@ -175,7 +176,7 @@ def unescape(s):
 def scan_csharp(path, seen):
     src = io.open(path, encoding="utf-8").read()
 
-    # Yorum satirlarini at: yorumdaki bir karakter ekrana cikmiyor.
+    # Drop the comment lines: a character in a comment never reaches the screen.
     src = re.sub(r"//[^\n]*", "", src)
     src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
 
@@ -189,7 +190,7 @@ def scan_json(path, seen):
     try:
         data = json.load(io.open(path, encoding="utf-8"))
     except ValueError as e:
-        print("  atlandi (bozuk json): %s - %s" % (path, e))
+        print("  skipped (broken json): %s - %s" % (path, e))
         return
 
     def walk(node):
@@ -207,62 +208,62 @@ def scan_json(path, seen):
 
 
 # ---------------------------------------------------------------------------
-# DIL CINCE IKEN EKRANDA NE CIKABILIR.
+# WHAT CAN APPEAR ON SCREEN WHILE THE LANGUAGE IS CHINESE.
 #
-# Once soru "Cince tablosunda hangi karakter var" diye soruluyordu ve
-# denetim yesildi. Oysa UiRoot.FontForLanguage dil Cince oldugunda
-# BUTUN AGACI bu yazi tipiyle ciziyor - yalnizca Cince metni degil.
-# Uc sey bu yuzden bos kutu olarak gidiyordu:
+# At first the question asked was "which characters are in the Chinese table",
+# and the audit was green. But when the language is Chinese,
+# UiRoot.FontForLanguage draws THE WHOLE TREE with this font - not only the
+# Chinese text. Three things were therefore going out as empty boxes:
 #
-#   - Personel isimleri: content/names.json yerellestirme tablosunda
-#     degil, doksan alti ismin on altisi (Ayse, Ibrahim, Yagmur, Sila...)
-#     alt kumede hic yoktu.
-#   - Aksam raporundaki eksi isareti U+2212 ve menudeki madde imi
-#     U+2022: ikisi de dogrudan C# icinde, hicbir tabloda degil.
-#   - Dil secicideki Arapca dugmesi: o ayri bir sorun ve KODDA cozuldu
-#     (Rubik yerel olarak veriliyor), cunku Noto Sans SC Arapca
-#     tasimiyor - alt kumeye eklenemez.
+#   - Staff names: they are not in the content/names.json localisation table,
+#     and sixteen of the ninety-six names (Ayse, Ibrahim, Yagmur, Sila...)
+#     were not in the subset at all.
+#   - The minus sign U+2212 in the evening report and the bullet U+2022 in the
+#     menu: both straight inside C#, in no table at all.
+#   - The Arabic button in the language picker: that is a separate problem and
+#     it was solved IN THE CODE (Rubik is supplied locally), because Noto Sans
+#     SC does not carry Arabic - it cannot be added to the subset.
 #
-# Kume BURADA tek yerde tanimli: subset_font.py alt kumeyi bundan
-# uretiyor, bu denetci ayni kumeyi ariyor. Iki ayri liste olsaydi
-# ayrisirlardi ve ayrisma yine bos kutu demekti.
+# The set is defined HERE, in one place: subset_font.py generates the subset
+# from it and this auditor looks for the same set. Two separate lists would
+# have diverged, and divergence again means empty boxes.
 def cjk_characters():
     seen = {}
     zh = os.path.join(ROOT, "content", "loc", "zh.json")
     if os.path.exists(zh):
         scan_json(zh, seen)
-    isimler = os.path.join(ROOT, "content", "names.json")
-    if os.path.exists(isimler):
-        scan_json(isimler, seen)
+    names_path = os.path.join(ROOT, "content", "names.json")
+    if os.path.exists(names_path):
+        scan_json(names_path, seen)
     game = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Game")
     for base, _dirs, files in os.walk(game):
         for name in sorted(files):
             if name.endswith(".cs"):
                 scan_csharp(os.path.join(base, name), seen)
-    # ARAP HARFLERI BU HAVUZDA ARANMIYOR.
+    # ARABIC LETTERS ARE NOT LOOKED FOR IN THIS POOL.
     #
-    # Havuza yalnizca tek bir yerden giriyorlar: Loc.LanguageNames
-    # icindeki Arapca dil adi, yani dil secicideki dugme. O dugme
-    # MenuScreens'te YEREL OLARAK Rubik ile ciziliyor, cunku Noto Sans
-    # SC Arapca tasimiyor ve alt kumeye eklenemez - olmayan bir glifin
-    # alt kumesi cikarilamaz.
+    # They enter the pool from exactly one place: the Arabic language name
+    # inside Loc.LanguageNames, that is, the button in the language picker.
+    # That button is drawn LOCALLY with Rubik in MenuScreens, because Noto
+    # Sans SC does not carry Arabic and it cannot be added to the subset - you
+    # cannot subset a glyph that does not exist.
     #
-    # Yani bu bir mazeret degil, kodda karsiligi olan bir istisna:
-    # istisna kalkarsa dugme bos kutu olur ve turdaki dil secici
-    # kontrolu bunu gorur.
-    # KOD NE YAPIYORSA DENETIM DE ONU YAPAR.
+    # So this is not an excuse but an exception with a counterpart in the
+    # code: if the exception is removed the button becomes an empty box, and
+    # the language-picker check in the tour will see it.
+    # THE AUDIT DOES WHATEVER THE CODE DOES.
     #
-    # Loc.PersonName dil Cince'yken Latin Extended-A'daki bu bes harfi
-    # katliyor, cunku Noto Sans SC'de yoklar ve KAYNAK fontta da yoklar
-    # - alt kumeye eklenerek cozulemezler. Katlamayi burada da
-    # uygulamazsak, denetim cozulemeyecek bir eksigi sonsuza kadar
-    # rapor eder.
+    # When the language is Chinese, Loc.PersonName folds these five letters
+    # from Latin Extended-A, because they are not in Noto Sans SC and they are
+    # not in the SOURCE font either - they cannot be solved by adding them to
+    # the subset. If the folding is not applied here as well, the audit
+    # reports a shortfall that can never be resolved.
     #
-    # Havuzun TAMAMINA uygulaniyor: bu harfler havuza iki yerden
-    # giriyor - personel isimleri (katlaniyorlar) ve turun dosya adi
-    # yardimcisindaki tek harflik dizeler (ekrana hic cikmiyorlar).
-    # Ikisi de katlandiktan sonra ayni yere varir.
-    return sorted({KATLAMA.get(ch, ch) for ch in seen
+    # It is applied to the WHOLE pool: these letters enter the pool from two
+    # places - staff names (which are folded) and the single-letter strings in
+    # the tour's file-name helper (which never reach the screen). Both end up
+    # in the same place once folded.
+    return sorted({FOLDING.get(ch, ch) for ch in seen
                    if not _control(ch) and not _is_arabic(ch)})
 
 
@@ -273,12 +274,12 @@ def main():
     args = ap.parse_args()
 
     if not os.path.exists(args.font):
-        raise SystemExit("Yazi tipi yok: " + args.font)
+        raise SystemExit("no such font: " + args.font)
 
     ranges = font_codepoints(args.font)
     seen = {}
 
-    # CINCE AYRI TOPLANIYOR: ayri yazi tipiyle karsilastirilacak.
+    # CHINESE IS COLLECTED SEPARATELY: it will be compared against a separate font.
     seen_cjk = {}
 
     loc = os.path.join(ROOT, "content", "loc")
@@ -286,22 +287,22 @@ def main():
         for name in sorted(os.listdir(loc)):
             if not name.endswith(".json"):
                 continue
-            yol = os.path.join(loc, name)
-            scan_json(yol, seen_cjk if _font_for(yol) else seen)
+            path = os.path.join(loc, name)
+            scan_json(path, seen_cjk if _font_for(path) else seen)
 
     content = os.path.join(ROOT, "content")
     for base, _dirs, files in os.walk(content):
         for name in sorted(files):
             if not name.endswith(".json"):
                 continue
-            yol = os.path.join(base, name)
-            # BU AGAC loc/ KLASORUNU DA GEZIYOR.
+            path = os.path.join(base, name)
+            # THIS WALK GOES THROUGH THE loc/ FOLDER TOO.
             #
-            # Yukarida zaten dosya dosya yonlendirildi; burada tekrar
-            # taranirsa Cince metin IKINCI KEZ, bu kez Rubik havuzuna
-            # giriyor ve "eksik" diye raporlaniyor - oysa kendi yazi
-            # tipinde var. Ilk yazimda tam bu oldu.
-            scan_json(yol, seen_cjk if _font_for(yol) else seen)
+            # It has already been routed file by file above; if it is scanned
+            # again here the Chinese text enters the Rubik pool A SECOND TIME
+            # and gets reported as "missing" - even though its own font has
+            # it. That is exactly what happened in the first version.
+            scan_json(path, seen_cjk if _font_for(path) else seen)
 
     game = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Game")
     for base, _dirs, files in os.walk(game):
@@ -309,25 +310,25 @@ def main():
             if name.endswith(".cs"):
                 scan_csharp(os.path.join(base, name), seen)
 
-    # KODA GOMULU CJK KARAKTERLERI DE CJK FONTUNA GIDIYOR.
+    # CJK CHARACTERS EMBEDDED IN THE CODE GO TO THE CJK FONT AS WELL.
     #
-    # `Loc.LanguageNames` dil adlarini KENDI yazilariyla tasiyor ve
-    # "中文" orada duz bir C# dizesi. Oyunda o dugme CJK fontuyla
-    # ciziliyor (MenuScreens: dil secici her dili okunabildigi yazi
-    # tipiyle yaziyor), yani Rubik'e sormak yanlis soru olurdu.
+    # `Loc.LanguageNames` carries the language names in their own scripts, and
+    # "中文" is a plain C# string there. In the game that button is drawn with
+    # the CJK font (MenuScreens: the language picker writes each language in
+    # the font it can be read in), so asking Rubik would be the wrong question.
     #
-    # Kural DAR: yalnizca CJK blogu. Bir Turkce harfin koda gomulu
-    # olmasi onu CJK fontuna tasimaz.
+    # The rule is NARROW: only the CJK block. A Turkish letter being embedded
+    # in the code does not move it to the CJK font.
     for ch in [c for c in seen if _is_cjk(c)]:
         seen_cjk.setdefault(ch, seen.pop(ch))
 
-    # CINCE HAVUZU DILDEN BAGIMSIZ METNI DE ICERIYOR.
+    # THE CHINESE POOL ALSO CONTAINS LANGUAGE-INDEPENDENT TEXT.
     #
-    # Personel isimleri ve koda gomulu simgeler dil ne olursa olsun
-    # ekrana ciktigi icin, dil Cince'yken onlari da bu yazi tipi
-    # ciziyor. Tek kaynak: cjk_characters().
+    # Because staff names and the symbols embedded in the code reach the
+    # screen whatever the language is, this font draws them too when the
+    # language is Chinese. One source: cjk_characters().
     for ch in cjk_characters():
-        seen_cjk.setdefault(ch, "dilden bagimsiz")
+        seen_cjk.setdefault(ch, "language-independent")
 
     missing = []
     for ch, where in sorted(seen.items()):
@@ -336,10 +337,10 @@ def main():
         if not covered(ranges, ord(ch)):
             missing.append((ch, where))
 
-    # --- IKINCI YAZI TIPI: CINCE ------------------------------------------
+    # --- THE SECOND FONT: CHINESE -----------------------------------------
     if seen_cjk:
         if not os.path.exists(CJK_FONT):
-            print("Cince yazi tipi yok: " + os.path.relpath(CJK_FONT, ROOT))
+            print("no Chinese font: " + os.path.relpath(CJK_FONT, ROOT))
             return 1
         cjk_ranges = font_codepoints(CJK_FONT)
         for ch, where in sorted(seen_cjk.items()):
@@ -347,25 +348,25 @@ def main():
                 continue
             if not covered(cjk_ranges, ord(ch)):
                 missing.append((ch, where))
-        print("cince     : %s (%d benzersiz karakter)"
+        print("chinese   : %s (%d unique characters)"
               % (os.path.relpath(CJK_FONT, ROOT), len(seen_cjk)))
 
-    print("yazi tipi : %s" % os.path.relpath(args.font, ROOT))
-    print("taranan   : %d benzersiz karakter" % len(seen))
+    print("font      : %s" % os.path.relpath(args.font, ROOT))
+    print("scanned   : %d unique characters" % len(seen))
 
     if not missing:
-        # Indirme kopyasi ile oyuna giren kopya AYRISTI MI.
+        # HAVE the download copy and the copy that goes into the game DIVERGED.
         same = _same_bytes(args.font, VENDOR_FONT)
         if same is False:
-            print("sonuc     : hepsi kapsaniyor AMA vendor/ kopyasi FARKLI")
+            print("result    : all covered BUT the vendor/ copy is DIFFERENT")
             print("            %s" % VENDOR_FONT)
-            print("            Biri guncellenip digeri unutulmus; ikisini esitle.")
+            print("            One was updated and the other forgotten; make them equal.")
             return 1
 
-        print("sonuc     : hepsi kapsaniyor")
+        print("result    : all covered")
         return 0
 
-    print("sonuc     : %d karakter EKSIK" % len(missing))
+    print("result    : %d characters MISSING" % len(missing))
     for ch, where in missing:
         try:
             name = unicodedata.name(ch)

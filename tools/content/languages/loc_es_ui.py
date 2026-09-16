@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Ispanyolca ARAYUZ metinleri. loc_es.py bunu okuyor.
+Spanish INTERFACE text. loc_es.py reads it.
 
-NEDEN AYRI DOSYA: arayuz metinlerinin kaynagi icerik degil EKRAN KODU.
-Ikisi ayri dosyada durunca bir yemek eklemek arayuzu, bir dugme eklemek
-yemek tablosunu kirletmiyor.
+WHY A SEPARATE FILE: the source of interface text is not the content, it
+is the SCREEN CODE. With the two sitting in separate files, adding a
+dish does not dirty the interface and adding a button does not dirty the
+dish table.
 
-NOTR ISPANYOLCA (bkz. loc_es.py): her yerde anlasilan sozcuk seciliyor.
-  - "mesero" (Latin Amerika) ile "camarero" (Ispanya) arasinda oyunun
-    ROL adinda "Mesero" kullaniliyor; ikisi de karsilikli anlasilir ve
-    daha genis bir kitle icin dogal olan bu.
-  - Para birimi simgesi ¤ - oyunun kendi sikkesi, cevrilmiyor.
-  - Oyuncuya TEKIL sesleniliyor ("tu"), voseo yok.
+NEUTRAL SPANISH (see loc_es.py): the word that is understood everywhere
+is picked.
+  - Between "mesero" (Latin America) and "camarero" (Spain), the game's
+    ROLE name uses "Mesero"; both are mutually understood, and this is
+    the one that is natural for the wider audience.
+  - The currency symbol is ¤ - the game's own coin, not translated.
+  - The player is addressed in the SINGULAR ("tu"), no voseo.
 """
 
 UI = {
-    # --- nisanlar ---------------------------------------------------------
+    # --- badges -----------------------------------------------------------
     "badge.book_closed": "El libro está saldado",
     "badge.book_closed.note": "Cobraste todas las cuentas que apuntaste.",
     "badge.first_beat": "Ya te conocen",
@@ -31,7 +33,7 @@ UI = {
     "badge.short_peak": "Sacaste el pico con menos gente",
     "badge.short_peak.note": "Trabajaste con menos gente de la necesaria y aun así nadie se levantó enojado de la mesa.",
 
-    # --- bildirimler ------------------------------------------------------
+    # --- notices ----------------------------------------------------------
     "notice.angry": "Un cliente se fue — {0}",
     "notice.credit_given": "Apuntado en el libro: {0}",
     "notice.credit_lost": "Cuenta perdida: {0}",
@@ -67,7 +69,7 @@ UI = {
     "notice.why.other": "no pudo esperar",
     "notice.why.table": "no consiguió mesa",
 
-    # --- yil sonu eksenleri -----------------------------------------------
+    # --- year-end axes ----------------------------------------------------
     "score.axis.combo": "Proporción de combos",
     "score.axis.credit": "Cuentas cobradas",
     "score.crew": "Equipo",
@@ -78,7 +80,7 @@ UI = {
     "score.signature": "Cocina",
     "score.wealth": "Patrimonio",
 
-    # --- ortak ------------------------------------------------------------
+    # --- common -----------------------------------------------------------
     "ui.badge.earned": "Nueva distinción",
     "ui.badge.have": "conseguida",
     "ui.badge.open": "todavía no",
@@ -92,7 +94,7 @@ UI = {
     "ui.common.upgrade": "Mejorar — {0}",
     "ui.common.yes": "Sí",
 
-    # --- yapimci ----------------------------------------------------------
+    # --- credits ----------------------------------------------------------
     "ui.credits.audio": "Música y sonido",
     "ui.credits.audio_by": "Sintetizados en el juego",
     "ui.credits.author": "Ahmet Caner Akar",
@@ -104,7 +106,7 @@ UI = {
     "ui.credits.models": "Modelos 3D",
     "ui.credits.models_by": "Kenney (kenney.nl) — CC0",
 
-    # --- mutfak secimi ----------------------------------------------------
+    # --- cuisine choice ---------------------------------------------------
     "ui.cuisine.combo": "Combo: si mantienes tres platos juntos en el menú, la cuenta sube — y la carga de la cocina también.",
     "ui.cuisine.credit": "Fiado: perjudica tu flujo de caja, construye lealtad.",
     "ui.cuisine.fastfood_desc": "Ritmo rápido, cuentas pequeñas, mucha gente. El menú se mantiene corto.",
@@ -113,7 +115,7 @@ UI = {
     "ui.cuisine.start": "Empezar",
     "ui.cuisine.turk_desc": "Pico fuerte al mediodía, cuentas grandes, clientes del barrio.",
 
-    # --- yil sonu ---------------------------------------------------------
+    # --- year end ---------------------------------------------------------
     "ui.end.continue": "Seguir en juego libre",
     "ui.end.lede": "Lo llevaste {0} días. Tu puntuación de fin de año: {1} / 100.",
     "ui.end.menu": "Menú principal",
@@ -122,12 +124,12 @@ UI = {
     "ui.end.plaque2": "Un restaurante del que se ha oído hablar",
     "ui.end.plaque3": "El restaurante del que habla la ciudad",
 
-    # --- hata -------------------------------------------------------------
+    # --- error ------------------------------------------------------------
     "ui.error.content": "No se pudieron leer los archivos de contenido. Es un error de contenido; el juego no abre con un balance roto.",
     "ui.error.save": "No se pudo abrir la partida guardada.",
     "ui.error.title": "El juego no pudo iniciarse",
 
-    # --- aksam raporu -----------------------------------------------------
+    # --- evening report ---------------------------------------------------
     "ui.evening.away": "No pasará por un tiempo.",
     "ui.evening.gross": "Ganancia bruta",
     "ui.evening.hall": "Salón",
@@ -154,7 +156,7 @@ UI = {
     "ui.evening.visits": "{0} visitas",
     "ui.evening.wages": "Sueldos pagados",
 
-    # --- genisleme --------------------------------------------------------
+    # --- expansion --------------------------------------------------------
     "ui.expand.buy": "Ampliar — {0}",
     "ui.expand.last": "Estás en el último nivel.",
     "ui.expand.tables": "Mesas",
@@ -163,7 +165,7 @@ UI = {
 
     "ui.game.title": "Lokanta",
 
-    # --- ipuclari ---------------------------------------------------------
+    # --- hints ------------------------------------------------------------
     "ui.hint.cap": "Con esta cantidad de mesas tu reputación llega como mucho a {0}. Para subir más necesitas un salón más grande.",
     "ui.hint.interventions": "Las tres intervenciones salen del mismo bolsillo: {0} al día. Lo que no gastas se pierde al cerrar.",
     "ui.hint.menu": "Sin nada en el menú, los clientes se dan la vuelta en la puerta. El informe del día dice cuántos.",
@@ -174,7 +176,7 @@ UI = {
     "ui.hint.service": "Una vez abierto el servicio no puedes comprar hasta la noche. Prepara tu stock y tu menú ahora.",
     "ui.hint.staff": "El equipo te da capacidad pero cuesta sueldos cada semana. Mira la caja antes de contratar.",
 
-    # --- servis ekrani ustu -----------------------------------------------
+    # --- top of the service screen ----------------------------------------
     "ui.hud.angry": "Se fueron",
     "ui.hud.back": "Atrás",
     "ui.hud.cash": "Caja",
@@ -193,7 +195,7 @@ UI = {
     "ui.hud.tables": "Mesas",
     "ui.hud.today": "Hoy",
 
-    # --- defter -----------------------------------------------------------
+    # --- ledger -----------------------------------------------------------
     "ui.ledger.amount": "Importe",
     "ui.ledger.chance_now": "Si cobras ahora",
     "ui.ledger.chance_wait": "Si esperas",
@@ -207,7 +209,7 @@ UI = {
     "ui.ledger.today": "hoy",
     "ui.ledger.total": "{0} en el libro",
 
-    # --- kredi ------------------------------------------------------------
+    # --- loan -------------------------------------------------------------
     "ui.loan.installment": "Cuota semanal",
     "ui.loan.one_at_a_time": "Solo puedes tener un préstamo a la vez.",
     "ui.loan.open": "Tienes un préstamo en curso",
@@ -218,7 +220,7 @@ UI = {
     "ui.loan.weekly": "Tu costo fijo semanal es {0}",
     "ui.loan.weeks_left": "Semanas restantes",
 
-    # --- menu ekrani ------------------------------------------------------
+    # --- menu screen ------------------------------------------------------
     "ui.menu.add": "Añadir al menú",
     "ui.menu.continue": "Continuar",
     "ui.menu.cost": "Costo",
@@ -242,7 +244,7 @@ UI = {
     "ui.menu.unlock_day": "Se abre el día {0}",
     "ui.menu.vs_market": "Frente al mercado",
 
-    # --- sabah ------------------------------------------------------------
+    # --- morning ----------------------------------------------------------
     "ui.morning.average_over": "{0}% por encima del promedio",
     "ui.morning.average_same": "Precio promedio",
     "ui.morning.average_under": "{0}% por debajo del promedio",
@@ -277,7 +279,7 @@ UI = {
     "ui.morning.storage_none": "Sin refrigeración — lo perecedero se pierde esta noche",
     "ui.morning.storage_tier": "Refrigeración nivel {0}",
 
-    # --- duraklatma -------------------------------------------------------
+    # --- pause ------------------------------------------------------------
     "ui.pause.resume": "Continuar",
     "ui.pause.save_quit": "Guardar y salir",
     "ui.pause.season": "Balance de fin de año",
@@ -290,7 +292,7 @@ UI = {
     "ui.quality.1": "Estándar",
     "ui.quality.2": "Alta",
 
-    # --- servis -----------------------------------------------------------
+    # --- service ----------------------------------------------------------
     "ui.service.attention": "Atención",
     "ui.service.close": "Cerrar el día",
     "ui.service.close_sub": "Terminó el servicio",
@@ -316,7 +318,7 @@ UI = {
     "ui.service.target_auto": "impaciente",
     "ui.service.tea": "Té",
 
-    # --- ayarlar ----------------------------------------------------------
+    # --- settings ---------------------------------------------------------
     "ui.settings.back": "Atrás",
     "ui.settings.hints_reset": "Mostrar los consejos otra vez",
     "ui.settings.language": "Idioma",
@@ -324,7 +326,7 @@ UI = {
     "ui.settings.sound": "Sonido",
     "ui.settings.title": "Ajustes",
 
-    # --- kayit yuvasi -----------------------------------------------------
+    # --- save slot --------------------------------------------------------
     "ui.slot.broken": "partida dañada",
     "ui.slot.day": "Día {0}",
     "ui.slot.delete": "Borrar",
@@ -334,7 +336,7 @@ UI = {
     "ui.slot.title": "Ranura de guardado",
     "ui.slot.unloadable": "No se puede cargar",
 
-    # --- personel ---------------------------------------------------------
+    # --- staff ------------------------------------------------------------
     "ui.staff.busser": "Ayudante de mesas",
     "ui.staff.candidates": "Candidatos",
     "ui.staff.cap": "Límite de equipo",
@@ -345,14 +347,14 @@ UI = {
     "ui.staff.fire_confirm": "¿Despedir a esta persona? Su experiencia se va con ella.",
     "ui.staff.hire": "Contratar",
     "ui.staff.inherited": "De mal genio — el cocinero que heredaste",
-    "ui.staff.inherited_salon": "Vino con el local",
+    "ui.staff.inherited_hall": "Vino con el local",
     "ui.staff.level": "Nivel",
     "ui.staff.morale": "Ánimo",
     "ui.staff.no_candidate": "No quedan candidatos. La lista se renueva cada tres días.",
     "ui.staff.normal": "normal",
-    "ui.staff.salon": "Salón",
-    "ui.staff.salon_needed": "No hay nadie en el salón — hoy necesitas {0}.",
-    "ui.staff.salon_none": "No hay nadie en el salón. Con las mesas de hoy no hace falta.",
+    "ui.staff.hall": "Salón",
+    "ui.staff.hall_needed": "No hay nadie en el salón — hoy necesitas {0}.",
+    "ui.staff.hall_none": "No hay nadie en el salón. Con las mesas de hoy no hace falta.",
     "ui.staff.sink": "Turno de fregadero",
     "ui.staff.sink_add": "Poner al fregadero",
     "ui.staff.sink_hint": "Quien está en el fregadero no atiende. Sin nadie ahí, la cocina espera cuando se acaban los platos limpios.",
@@ -363,7 +365,7 @@ UI = {
     "ui.staff.wage": "Sueldo",
     "ui.staff.weekend": "fin de semana",
 
-    # --- istasyon ---------------------------------------------------------
+    # --- station ----------------------------------------------------------
     "ui.station.cuisine_only": "solo de esta cocina",
     "ui.station.slots": "Puestos",
     "ui.station.too_low": "Insuficiente para tantas mesas",

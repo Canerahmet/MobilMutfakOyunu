@@ -1,155 +1,161 @@
-# Hikaye ve Metin
+# Story and Text
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddesi:** A13
-**Durum:** Yazıldı, karar bekliyor
-
----
-
-## Neden önemli
-
-Araştırmada mobilde en güçlü tutundurma araçlarından biri karakterli düzenli müşteriler çıkmıştı. Hungry Hearts Diner için oyuncular şöyle diyordu: **"Çoğu insan yemek için gelir ama hikayeler için kalır."**
-
-Ama aynı araştırma bir uyarı da veriyordu. Cat Cafe Manager'ın hikayesi çok kısaydı ve "iki günlük içerik" diye eleştirilmişti. Az hikaye, hiç hikaye olmamasından kötü değil ama beklenti yaratıp karşılamamak kötü.
+**Last updated:** 9 September 2026
+**Register item:** A13
+**Status:** Written, awaiting decision
 
 ---
 
-## Beş metin kaynağı
+## Why it matters
 
-| Kaynak | Yazım biçimi | Hacim |
+In the research, one of the strongest retention tools on mobile turned out to be regulars with character. Players said this about Hungry Hearts Diner: **"Most people come for the food but stay for the stories."**
+
+But the same research also gave a warning. Cat Cafe Manager's story was very short and was criticised as "two days of content". Little story is not worse than no story, but raising an expectation and not meeting it is.
+
+---
+
+## Five sources of text
+
+| Source | How it is written | Volume |
 |---|---|---|
-| Düzenli müşteri yayları | Elle | Yüksek |
-| İsimli personel sahneleri | Elle | Orta |
-| Müşteri yorumları | Şablon artı değişken | Düşük ama çok görünür |
-| Eleştirmen yazısı | Elle, puana göre dallanan | Orta |
-| Olay metinleri | Elle | Düşük |
+| Regulars' arcs | By hand | High |
+| Named staff scenes | By hand | Medium |
+| Customer reviews | A template plus variables | Low but very visible |
+| The critic's piece | By hand, branching on the score | Medium |
+| Event texts | By hand | Low |
 
 ---
 
-## Düzenli müşteri yayları
+## Regulars' arcs
 
-Mutfak başına on kişi, kişi başına üç ile dört sahne.
+Ten people per cuisine, three to four scenes per person.
 
-**Sahne açılma koşulu iki şarta bağlı:** kaç kez geldiği ve ortalama memnuniyeti. Yani hikaye sadece zamanla değil, **iyi hizmet vererek** açılıyor.
+**The condition for a scene opening depends on two things:** how many times they have come and their average satisfaction. So the story opens not just with time but by **serving them well**.
 
 ```
-1. sahne:  3 ziyaret,  70 memnuniyet
-2. sahne:  8 ziyaret,  75 memnuniyet
-3. sahne: 15 ziyaret,  80 memnuniyet
-4. sahne: 25 ziyaret,  85 memnuniyet
+Scene 1:  3 visits,  70 satisfaction
+Scene 2:  8 visits,  75 satisfaction
+Scene 3: 15 visits,  80 satisfaction
+Scene 4: 25 visits,  85 satisfaction
 ```
 
-Dördüncü sahne isteğe bağlı, sadece bazı karakterlerde var.
+The fourth scene is optional; only some characters have one.
 
-**Sahne uzunluğu üç ile beş cümle.** Mobilde kimse uzun metin okumaz. Kısa ve sık, uzun ve seyrek olmaktan iyi.
+**A scene is three to five sentences long.** Nobody reads long text on mobile. Short and frequent beats long and rare.
 
-### Ton
+### Tone
 
-- Sıcak ama duygusal sömürü yok.
-- Mizah var ama alay yok. Karakterlerle gülüyoruz, onlara gülmüyoruz.
-- Hungry Hearts Diner'ın sıcaklığı hedef, ama daha az melodram.
-- Kimse trajedisini ilk sahnede anlatmıyor. Güven zamanla kuruluyor.
+- Warm, but no emotional exploitation.
+- There is humour but no mockery. We laugh with the characters, not at them.
+- Hungry Hearts Diner's warmth is the target, but with less melodrama.
+- Nobody tells you their tragedy in the first scene. Trust is built over time.
 
-### Türk mutfağı bağlantısı
+### The connection to Turkish cuisine
 
-Veresiye açılan kişiler bu on kişi. Yani hikaye ve mekanik aynı karakterlerde buluşuyor. Borcunu ödemeyen biri sadece bir sayı değil, hikayesini bildiğin biri oluyor.
+The people you open a tab for are these ten. So the story and the mechanic meet in the same characters. Somebody who does not pay their debt is not just a number, it is somebody whose story you know.
 
-Bu, oyunun en güçlü tasarım kesişimi. Mekanik ve anlatı ayrı yerlerde durmuyor.
+This is the game's strongest design intersection. The mechanic and the narrative do not sit in separate places.
 
 ---
 
-## Müşteri yorumları
+## Customer reviews
 
-Her gün hesap ekranında birkaç kısa yorum çıkıyor. Bunlar elle yazılmıyor, **şablon artı değişkenle** üretiliyor.
+A few short reviews appear on the accounts screen every day. These are not written by hand; they are generated from **a template plus variables**.
 
 ```
-"{yemek} güzeldi ama {şikayet}."
-"{sure} bekledim. {yorum}"
-"{fiyat_yorumu} Yine de {olumlu}."
+"The {dish} was good but {complaint}."
+"I waited {duration}. {comment}"
+"{price_comment} Still, {positive}."
 ```
 
-Değişkenler memnuniyet bileşenlerinden geliyor:
+The variables come from the satisfaction components:
 
-| Bileşen | Tetiklediği ifade |
+| Component | The phrase it triggers |
 |---|---|
-| Uzun bekleme | "Çok bekledim", "Servis yavaştı" |
-| Yüksek fiyat | "Biraz tuzlu geldi", "Fiyatlar artmış" |
-| Düşük kalite | "Malzeme eskiymiş", "Tadı olması gerektiği gibi değildi" |
-| Tükenen yemek | "İstediğim yoktu" |
-| İkram | "Çay ikram ettiler, incelik" |
-| Yüksek memnuniyet | "Yine geleceğim", "Mahallenin en iyisi" |
+| A long wait | "I waited a long time", "The service was slow" |
+| A high price | "It came out a bit salty", "The prices have gone up" |
+| Low quality | "The ingredients were old", "It did not taste the way it should" |
+| A dish that ran out | "They did not have what I wanted" |
+| Something offered free | "They offered tea, that was kind" |
+| High satisfaction | "I will come again", "The best on the street" |
 
-**Yaklaşık 120 şablon parçası** yeterli. Kombinasyon sayısı binlerce yorum üretiyor ve her biri o günün gerçek verisini yansıtıyor.
+> *"Biraz tuzlu geldi"*
+>
+> *("it came out a bit salty" — in Turkish a bill that is "salty" means an
+> expensive one, so this line reads as a complaint about the price, not the
+> seasoning; the English table above keeps both readings side by side.)*
 
-Bu, elle yazmadan tepkisel bir sistem kurmanın yolu. Oyuncu yorumu okuyunca "evet, bugün gerçekten geciktim" diyor.
+**Roughly 120 template fragments** are enough. The number of combinations produces thousands of reviews, and every one of them reflects that day's real data.
 
----
-
-## Eleştirmen yazısı
-
-Yıl sonu değerlendirmesinin metni. Mutfak başına ayrı, puana göre beş kademe.
-
-**Yazı senin oyununa referans veriyor.** Sadece "iyiydi" demiyor, şunlara değiniyor:
-
-- En yüksek kuver günün
-- Kaç düzenli müşteri kazandığın
-- Batma merdivenine düşüp düşmediğin
-- Mutfağa özel eksende nasıl olduğun
-
-Yani otuz saatlik oynayışın özeti tek bir gazete yazısına dönüşüyor. Bu, plaketin duygusal karşılığını yaratan şey.
-
-Kademe başına yaklaşık 150 kelime. Beş kademe, dört mutfak.
+This is the way to build a reactive system without hand-writing it. When the player reads a review they say "yes, I really was late today".
 
 ---
 
-## Olay metinleri
+## The critic's piece
 
-- Batma merdiveninin beş kademesi, ev sahibinin mesajları
-- Nadir arketiplerin girişleri: yemek eleştirmeni, denetim görevlisi, toplu sipariş
-- Personel istifası, zam talebi
-- Mutfak açılış ve kapanış metinleri
+The text of the end-of-year evaluation. Separate per cuisine, five tiers by score.
 
-Kısa, işlevsel, karakterli. Her biri bir iki cümle.
+**The piece refers to your game.** It does not just say "it was good"; it touches on:
+
+- Your highest-covers day
+- How many regulars you won
+- Whether or not you fell onto the bankruptcy ladder
+- How you did on the cuisine-specific axis
+
+So the summary of thirty hours of play turns into a single newspaper piece. That is what creates the emotional counterpart of the plaque.
+
+Roughly 150 words per tier. Five tiers, four cuisines.
 
 ---
 
-## Hacim bütçesi
+## Event texts
 
-| Kalem | Kelime | Kapsam |
+- The five rungs of the bankruptcy ladder, the landlord's messages
+- The entrances of the rare archetypes: the food critic, the health inspector, the bulk order
+- A staff resignation, a raise demand
+- Cuisine opening and closing texts
+
+Short, functional, with character. Each one is a sentence or two.
+
+---
+
+## The volume budget
+
+| Item | Words | Scope |
 |---|---|---|
-| Düzenli müşteri yayları | ~2.100 | Mutfak başına |
-| İsimli personel sahneleri | ~450 | Mutfak başına |
-| Müşteri yorum şablonları | ~1.800 | Paylaşılan |
-| Eleştirmen yazıları | ~1.500 | Çıkıştaki iki mutfak |
-| Olay metinleri | ~800 | Paylaşılan |
-| Arayüz ve öğretici | ~1.200 | Paylaşılan |
-| **Çıkışta toplam** | **~10.400** | İki mutfak |
-| **İki dilde** | **~20.800** | Türkçe ve İngilizce |
+| Regulars' arcs | ~2,100 | Per cuisine |
+| Named staff scenes | ~450 | Per cuisine |
+| Customer review templates | ~1,800 | Shared |
+| Critic's pieces | ~1,500 | The two cuisines at launch |
+| Event texts | ~800 | Shared |
+| Interface and tutorial | ~1,200 | Shared |
+| **Total at launch** | **~10,400** | Two cuisines |
+| **In two languages** | **~20,800** | Turkish and English |
 
-Yirmi bin kelime, ortalama bir romanın dörtte biri. Tek kişilik bir proje için taşınabilir, özellikle yorumların şablonla üretildiği düşünülünce.
+Twenty thousand words is a quarter of an average novel. Bearable for a one-person project, especially considering that the reviews are generated from templates.
 
-Her ek mutfak yaklaşık 2.550 kelime getiriyor, artı eleştirmen yazısı.
+Every extra cuisine brings roughly 2,550 words, plus the critic's piece.
 
 ---
 
-## Yerelleştirme kararları
+## Localisation decisions
 
-| Konu | Karar |
+| Topic | Decision |
 |---|---|
-| Diller | Türkçe ve İngilizce |
-| Para birimi | İsimsiz, çeviri gerekmiyor |
-| Karakter isimleri | Çevrilmiyor. Hasan Usta her dilde Hasan Usta |
-| Türk yemek isimleri | **Çevrilmiyor, açıklanıyor** |
+| Languages | Turkish and English |
+| Currency | Nameless, no translation needed |
+| Character names | Not translated. Hasan Usta is Hasan Usta in every language |
+| Turkish dish names | **Not translated, explained** |
 
-**Yemek isimleri kararı önemli.** İngilizce sürümde "Kuru Fasulye" adı korunuyor, altında küçük puntoyla "white bean stew" yazıyor. Bu hem doğru hem karakterli. "White Bean Stew" yazmak yemeği jenerikleştiriyor ve mutfağın kimliğini siliyor.
+**The decision on dish names matters.** In the English version the name "Kuru Fasulye" is kept, with "white bean stew" in small type underneath. That is both accurate and full of character. Writing "White Bean Stew" makes the dish generic and erases the cuisine's identity.
 
-Aynı ilke İtalyan ve Japon mutfaklarında da geçerli olacak. Ramen ramen kalıyor.
+The same principle will hold for Italian and Japanese cuisine. Ramen stays ramen.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Details awaiting a decision
 
-1. Kişi başına dört sahne mi üç sahne mi olmalı
-2. Yorum şablonu sayısı 120 yeterli mi
-3. Eleştirmen yazısı beş kademe mi olmalı
-4. Üçüncü bir dil eklenmeli mi, hangisi
+1. Should it be four scenes or three per person
+2. Are 120 review templates enough
+3. Should the critic's piece have five tiers
+4. Should a third language be added, and which one

@@ -20,8 +20,8 @@ namespace Lokanta.Core.Tests
     }
 
     /// <summary>
-    /// tools/balance/rng_reference.py tarafindan uretilen bagimsiz referans.
-    /// C# ureteci bunu tutturmak zorunda.
+    /// The independent reference produced by tools/balance/rng_reference.py.
+    /// The C# generator has to match it.
     /// </summary>
     public sealed class RngReference
     {
@@ -33,7 +33,7 @@ namespace Lokanta.Core.Tests
         {
             string path = Path.Combine(Paths.Golden, "rng.json");
             Assert.True(File.Exists(path),
-                "RNG referansi yok. Once 'python tools/balance/rng_reference.py' calistirin. Beklenen: " + path);
+                "No RNG reference. Run 'python tools/balance/rng_reference.py' first. Expected: " + path);
             return JsonConvert.DeserializeObject<RngReference>(File.ReadAllText(path));
         }
     }

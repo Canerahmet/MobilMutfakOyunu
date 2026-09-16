@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Lokanta.Content;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
@@ -9,88 +9,90 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Oyunun tamami: icerik, simulasyon, ekranlar ve kayit.
+    /// The whole game: the content, the simulation, the screens and the
+    /// save.
     ///
-    /// Tek bir MonoBehaviour olmasinin sebebi Unity'nin yasam dongusu.
-    /// Icerik bir kez yukleniyor ve mutfak degistiginde YALNIZCA mutfaga
-    /// bagli kisim yeniden yukleniyor; ekonomi (economy.json, huylar,
-    /// personel rolleri) mutfaktan bagimsiz.
+    /// The reason it is a single MonoBehaviour is Unity's life cycle. The
+    /// content is loaded once and, when the cuisine changes, ONLY the part
+    /// tied to the cuisine is loaded again; the economy (economy.json, the
+    /// traits, the staff roles) is independent of the cuisine.
     ///
-    /// Gorunum katmani simulasyonu OKUR, ona yazmaz. Yazan tek sey komut
-    /// (docs/23). Bu sinifin Send() disinda simulasyona dokunan bir uyesi
-    /// yok - AdvanceToNextDay haric, o da bir asama gecisi.
+    /// The view layer READS the simulation, it does not write to it. The
+    /// only thing that writes is a command (docs/23). This class has no
+    /// member that touches the simulation apart from Send() - except
+    /// AdvanceToNextDay, and that is a change of phase.
     /// </summary>
     public sealed class GameApp : MonoBehaviour
     {
-        [Header("Baglantilar")]
+        [Header("Links")]
         public UiRoot Ui;
         public RestaurantView View;
         public CameraRig Rig;
 
         /// <summary>
-        /// DUNKU gun raporu. Yoksa Gecerli false.
+        /// YESTERDAY's day report. Valid is false if there is none.
         ///
-        /// Neden var: oyunda tek bir gun-onceki-gun karsilastirmasi
-        /// yoktu. Bir yonetim oyununda ogrenmenin tek yolu "bir seyi
-        /// degistir, ertesi gun bak" - besinci gunde fiyati 51'den
-        /// 58'e cikaran oyuncu altinci gunde "568" goruyor ve bunun iyi
-        /// mi kotu mu oldugunu BILMIYOR. Ogrenme durunca ikinci gune
-        /// donmek icin sebep kalmiyor.
+        /// Why it exists: the game had no comparison at all between a day and
+        /// the day before it. In a management game the only way to learn is
+        /// "change something, look the next day" - a player who raises the
+        /// price from 51 to 58 on the fifth day sees "568" on the sixth and
+        /// DOES NOT KNOW whether that is good or bad. When the learning
+        /// stops, there is no reason left to come back for a second day.
         ///
-        /// Kayda YAZILMIYOR: yalnizca oturum icinde bir kiyas. Kayittan
-        /// donen oyuncu bir gun kiyassiz gecirir, sonra yeniden baslar.
+        /// IT IS NOT WRITTEN TO THE SAVE: it is a comparison within the
+        /// session only. A player coming back from a save spends one day
+        /// without a comparison, and then it starts again.
         /// </summary>
         public DayReport Yesterday;
 
-        /// <summary>Dunku rapor var mi.</summary>
+        /// <summary>Is there a report from yesterday?</summary>
         public bool HasYesterday;
 
-        /// <summary>Gunun saatini ekrana ceviren bilesen.</summary>
+        /// <summary>The component that turns the time of day into a picture.</summary>
         public DayLight Light;
         public Music Music;
 
-        [Header("Hiz")]
-        [Tooltip("Bir gercek saniyede kac simulasyon saniyesi")]
+        [Header("Speed")]
+        [Tooltip("How many simulation seconds in one real second")]
         /// <summary>
-        /// Kac simulasyon milisaniyesi, bir gercek milisaniyede. 1 =
-        /// gercek zaman.
+        /// How many simulation milliseconds per real millisecond. 1 = real
+        /// time.
         ///
-        /// VARSAYILAN 60 IDI VE OYUNU OYNANAMAZ HALE GETIRIYORDU.
-        /// Servis penceresi 480.000 sim-ms; 60'ta bu SEKIZ GERCEK
-        /// SANIYE eder. docs/16 servis icin 90-180 sn diyor, yani oyun
-        /// tasarlandigi surenin on besde birinde akiyordu.
+        /// THE DEFAULT WAS 60 AND IT MADE THE GAME UNPLAYABLE. The service
+        /// window is 480,000 sim-ms; at 60 that comes to EIGHT REAL SECONDS.
+        /// docs/16 says 90-180 s for service, so the game ran in a fifteenth
+        /// of the time it was designed for.
         ///
-        /// Altinda kalan her sey coktu: en sabirsiz musterinin TUM
-        /// sabri 10.000 sim-ms, yani 0,17 gercek saniye. Masa rozetinin
-        /// mavi-sari-kirmizi gecisi goz kirpmasindan kisa; masaya
-        /// dokunup mudahale hedefi secmek (kamera gecisi tek yon 0,35
-        /// sn) servisin %10'unu yiyor; bildirim balonu 3,5 saniye
-        /// yasiyor, yani servisin %44'u. Servis asamasinin butun
-        /// arayuzu insan tepki suresine gore yazilmisti ve hicbiri
-        /// yetismiyordu.
+        /// Everything underneath collapsed: the ENTIRE patience of the most
+        /// impatient guest is 10,000 sim-ms, that is 0.17 real seconds. The
+        /// table badge's blue-yellow-red transition is shorter than a blink;
+        /// touching a table to pick an intervention target (a camera
+        /// transition is 0.35 s one way) eats 10% of the service; a notice
+        /// bubble lives 3.5 seconds, which is 44% of the service. The whole
+        /// interface of the service phase was written to human reaction
+        /// times and none of it could keep up.
         ///
-        /// 4 = 120 saniye, docs/16 bandinin ortasi. Eski 60, artik
-        /// hiz dugmesinin en ustu: "x15".
+        /// 4 = 120 seconds, the middle of the docs/16 band. The old 60 is now
+        /// the top of the speed button: "x15".
         /// </summary>
         public float TimeScale = 4f;
 
         /// <summary>
-        /// Uygulama kapaniyor mu. Temizlik yollari buna bakiyor:
-        /// kapanista Unity zaten her seyi bosaltiyor ve o sirada elle
-        /// Destroy cagirmak surecin cokmesine yol acabiliyor.
-        /// </summary>
+        /// Is the application quitting? The cleanup paths look at this: on
+        /// quit Unity is unloading everything anyway, and calling Destroy by
+        /// hand at that moment can make the process crash.
         public static bool Quitting { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void IzleKapanis()
+        private static void WatchQuit()
         {
             Quitting = false;
             Application.quitting += () => { Quitting = true; };
         }
 
         /// <summary>
-        /// Hiz etiketinin "x1" saydigi olcek. Oyuncuya gosterilen sayi
-        /// TimeScale / BaseTimeScale.
+        /// The scale the speed label counts as "x1". The number shown to the
+        /// player is TimeScale / BaseTimeScale.
         /// </summary>
         public const float BaseTimeScale = 4f;
         public bool Paused = true;
@@ -106,9 +108,9 @@ namespace Lokanta.Game
         private float _accumulator;
         private int _lastDay = -1;
 
-        // Olay tamponu BOSALTILIYOR (Drain), indisle okunmuyor: tampon
-        // halka ve dolunca bastan yaziyor, yani sakladigimiz bir indis
-        // sessizce gecersizlesir.
+        // The event buffer is DRAINED, not read by index: the buffer is a
+        // ring and writes over itself when it fills, so an index we kept
+        // would silently become invalid.
         private readonly SimEvent[] _events = new SimEvent[256];
 
         public bool InGame { get { return Sim != null; } }
@@ -116,16 +118,16 @@ namespace Lokanta.Game
         // =====================================================================
         private void Awake()
         {
-            // KARE HIZI 30, VE vSYNC KAPALI.
+            // THE FRAME RATE IS 30, AND vSYNC IS OFF.
             //
-            // vSyncCount != 0 iken Android targetFrameRate'i yok
-            // sayiyor; kalite ayarindaki varsayilan 1'di, yani hedef
-            // hicbir zaman uygulanmiyordu ve oyun ekranin yenileme
-            // hizina (90/120 Hz olabilir) kosuyordu.
+            // While vSyncCount != 0, Android ignores targetFrameRate; the
+            // default in the quality setting was 1, so the target was never
+            // applied and the game ran at the screen's refresh rate (which can
+            // be 90 or 120 Hz).
             //
-            // Hedef 30: docs/19 kare hizi tabani bu, ve oyun statik bir
-            // sahneye bakiyor - 60 fps'in getirdigi hicbir sey yok,
-            // goturdugu sey pil ve isi.
+            // The target is 30: that is the frame-rate floor of docs/19, and
+            // the game is looking at a static scene - 60 fps brings nothing,
+            // and it costs battery and heat.
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 30;
 
@@ -138,7 +140,7 @@ namespace Lokanta.Game
             catch (Exception e)
             {
                 LoadError = e.Message;
-                Debug.LogError("Icerik yuklenemedi: " + e);
+                Debug.LogError("could not load the content: " + e);
             }
         }
 
@@ -156,14 +158,14 @@ namespace Lokanta.Game
                     : new ErrorScreen(LoadError));
             }
 
-            // Kendi kendine gezen tur. Yalnizca komut satirinda istenirse.
+            // The self-playing tour. Only when it is asked for on the command line.
             if (Autopilot.Requested && Ui != null)
                 gameObject.AddComponent<Autopilot>()
                           .Begin(this, Ui.GetComponent<UnityEngine.UIElements.UIDocument>());
         }
 
         // =====================================================================
-        /// <summary>Yeni kampanya. Yuva -1 ise henuz kaydedilmemis.</summary>
+        /// <summary>A new campaign. Slot -1 means it has not been saved yet.</summary>
         public bool StartNew(string cuisine, int slot)
         {
             if (!LoadCuisine(cuisine)) return false;
@@ -173,7 +175,7 @@ namespace Lokanta.Game
             return true;
         }
 
-        /// <summary>Kayitli oyunu yukler.</summary>
+        /// <summary>Loads a saved game.</summary>
         public bool LoadSlot(int slot)
         {
             SlotInfo info = SaveStore.Read(slot);
@@ -201,15 +203,16 @@ namespace Lokanta.Game
                 return true;
             }
 
-            // KAYIT BASARISIZLIGI SESSIZ KALMAMALI.
+            // A FAILED SAVE MUST NOT STAY SILENT.
             //
-            // SaveStore.Save her istisnayi yutup false donuyordu ve bu
-            // false'u HICBIR CAGRI YERI okumuyordu. Cihaz depolamasi
-            // dolu bir oyuncu otuz gun oynar, uygulamadan cikar ve
-            // hicbir sey bulamazdi - tek bir uyari gormeden.
+            // SaveStore.Save swallowed every exception and returned false, and
+            // NO CALL SITE read that false. A player whose device storage was
+            // full would play for thirty days, leave the application and find
+            // nothing there - without ever seeing a warning.
             //
-            // Bildirim GUNDE BIR: her gun basinda kaydediliyor ve altmis
-            // gun boyunca ayni balonu basmak, uyariyi gurultuye cevirir.
+            // The notice comes ONCE A DAY: the save happens at the start of
+            // every day, and printing the same bubble for sixty days turns the
+            // warning into noise.
             if (!_saveFailed)
             {
                 _saveFailed = true;
@@ -220,11 +223,11 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Kayit en son basarisiz mi oldu. Uyariyi tekrarlamamak icin.
+        /// Did the last save fail? So that the warning is not repeated.
         /// </summary>
         private bool _saveFailed;
 
-        /// <summary>Oyunu birakip menuye doner.</summary>
+        /// <summary>Leaves the game and goes back to the menu.</summary>
         public void LeaveGame()
         {
             if (Sim != null && Slot >= 0) SaveToSlot(Slot);
@@ -245,7 +248,7 @@ namespace Lokanta.Game
             catch (Exception e)
             {
                 LoadError = e.Message;
-                Debug.LogError("Mutfak yuklenemedi (" + cuisine + "): " + e);
+                Debug.LogError("could not load the cuisine (" + cuisine + "): " + e);
                 return false;
             }
         }
@@ -258,12 +261,12 @@ namespace Lokanta.Game
                     .WithEatMs(Content.EatMs)
                 : TimingConfig.Default();
 
-            // Tohum SAATTEN: her yeni kampanya farkli olmali. Kaydedilen
-            // tohum kayitla birlikte geliyor, yani yuklenen oyun ayni
-            // kampanyayi surduruyor.
-            // UtcNow: yerel saat yaz saati gecisinde ve kullanici saati
-            // degistirdiginde GERIYE gidebiliyor; tohum icin sicrayan bir
-            // saat, iki kampanyanin ayni tohumla baslamasi demek.
+            // The seed comes FROM THE CLOCK: every new campaign has to be
+            // different. The saved seed comes back with the save, so a loaded
+            // game carries the same campaign on.
+            // UtcNow: local time can go BACKWARDS at a daylight-saving change
+            // and when the user changes the clock; a jumping clock for a seed
+            // means two campaigns starting from the same seed.
             ulong seed = unchecked((ulong)DateTime.UtcNow.Ticks);
             return new Simulation(Economy, Content, timing, seed);
         }
@@ -278,7 +281,7 @@ namespace Lokanta.Game
             {
                 Rig.OpenTables = Sim.TableCount;
                 Rig.Overview();
-                Rig.Snap();          // oyuna girerken kamera ucmasin
+                Rig.Snap();          // so the camera does not fly about as you enter the game
             }
         }
 
@@ -287,59 +290,59 @@ namespace Lokanta.Game
         {
             if (Sim == null) return;
 
-            // Genisleyince kamera yeni kanadi da cerceveliyor. Tek bir
-            // int karsilastirmasi; degisim altmis gunde en fazla uc kez.
+            // When it expands the camera frames the new wing too. A single int
+            // comparison; it changes at most three times in sixty days.
             if (Rig != null) Rig.OpenTables = Sim.TableCount;
 
-            // YURUYUS HIZI OYUNUN SAATIYLE AYNI TEMPODA.
+            // THE WALKING SPEED KEEPS THE SAME TEMPO AS THE GAME CLOCK.
             //
-            // Oyuncu x16'ya basinca simulasyon on alti kat hizli akiyor.
-            // Yuruyus gercek zamanda kalsaydi figurler olan bitenin
-            // onlarca saniye gerisinde kalir, ekranda gordugu sey
-            // simulasyonla ilgisiz olurdu. Duraklatildiginda da
-            // yuruyus durmali: duran bir dunyada yuruyen garson,
-            // duraklamanin ne ise yaradigini bozar.
+            // When the player presses x16 the simulation runs sixteen times
+            // faster. If the walking stayed in real time the figures would fall
+            // tens of seconds behind what is going on and what is on screen
+            // would have nothing to do with the simulation. The walking has to
+            // stop when the game is paused as well: a waiter walking in a
+            // stopped world ruins what pausing is for.
             Walker.GameSpeed = Paused ? 0f : TimeScale / BaseTimeScale;
 
-            // GUNUN SAATI: golgeler, isigin rengi, arka plan ve sokak
-            // lambalari tek bir sayidan (servis ilerlemesi) okunuyor.
+            // THE TIME OF DAY: the shadows, the colour of the light, the
+            // background and the street lamps are all read from a single number
+            // (the service progress).
             if (Light != null) Light.Apply(Sim.Phase, Sim.ServiceProgressBp / 10000f);
 
             if (!Paused && Sim.Phase == DayPhase.Service)
             {
                 _accumulator += Time.deltaTime * TimeScale * 1000f;
 
-                // BUTCE 40, 400 DEGIL.
+                // THE BUDGET IS 40, NOT 400.
                 //
-                // Time.deltaTime maximumDeltaTime (0,333 sn) ile
-                // sinirli; en yuksek hizda (x16) bu tek karede 213 tick
-                // demek ve butce 400'e izin veriyordu - yani 22 ms'lik
-                // tek bir kare mumkundu. Ve bu KENDINI BESLIYOR: uzun
-                // kare -> daha buyuk birikim -> daha uzun kare. Bir
-                // kayit yazimi ya da bir cop toplama tetiklemeye yeter.
+                // Time.deltaTime is limited by maximumDeltaTime (0.333 s); at the
+                // highest speed (x16) that means 213 ticks in a single frame, and
+                // the budget allowed 400 - so a single 22 ms frame was possible.
+                // And it FEEDS ITSELF: a long frame -> a bigger accumulation -> a
+                // longer frame. Enough to set off a save being written or a
+                // garbage collection.
                 //
-                // x16'da bir karede islenmesi gereken en fazla ~21 tick;
-                // 40 iki kat pay birakiyor. Fazla biriken zaman
-                // ATILIYOR ve dogrusu bu: hiz tusu "gunu hizla gec"
-                // demek, tam simulasyon dogrulugu degil.
-                // BIRIKEN BORC GERCEKTEN ATILIYOR.
+                // At x16 the most that has to be processed in one frame is ~21
+                // ticks; 40 leaves twice the margin. Time accumulated beyond that
+                // is THROWN AWAY, and that is right: the speed key means "get
+                // through the day quickly", not full simulation accuracy.
+                // THE ACCUMULATED DEBT REALLY IS THROWN AWAY.
                 //
-                // Yorum "Fazla biriken zaman ATILIYOR" diyordu ama kod
-                // bunu YAPMIYORDU: butce dolunca `_accumulator`'da
-                // kalan kismi kimse silmiyor, yalnizca
-                // AfterSimChanged sifirliyordu. Sonucu olcum katmanini
-                // yaniltiyordu - x240'ta biriken borc, tur x1'e
-                // dustukten SONRA da kare basina 40 tick (~4 sim
-                // saniyesi) hizinda akmaya devam ediyor. Canlilik
-                // penceresinin butun mantigi "burada x1'de olcuyoruz"
-                // varsayimina dayaniyor ve o varsayim yanlisti.
+                // The comment said "time accumulated beyond that is THROWN AWAY"
+                // but the code WAS NOT DOING IT: when the budget filled up nobody
+                // cleared what was left in `_accumulator` - only AfterSimChanged
+                // reset it. The result was misleading the measurement layer - the
+                // debt accumulated at x240 goes on running at 40 ticks a frame (~4
+                // sim seconds) even AFTER the tour has dropped back to x1. The
+                // whole logic of the liveliness window rests on the assumption
+                // "here we are measuring at x1", and that assumption was wrong.
                 //
-                // Tavan: bir karede islenecek tick sayisi kadar birikim
-                // tutuluyor, gerisi atiliyor. Hiz tusu "gunu hizla gec"
-                // demek, tam simulasyon dogrulugu degil.
+                // The cap: as much accumulation is kept as can be processed in one
+                // frame, and the rest is thrown away. The speed key means "get
+                // through the day quickly", not full simulation accuracy.
                 const int budgetMax = 40;
-                float tavan = budgetMax * TimingConfig.TickMs;
-                if (_accumulator > tavan) _accumulator = tavan;
+                float cap = budgetMax * TimingConfig.TickMs;
+                if (_accumulator > cap) _accumulator = cap;
 
                 int budget = budgetMax;
                 while (_accumulator >= TimingConfig.TickMs && budget-- > 0)
@@ -348,15 +351,14 @@ namespace Lokanta.Game
                     Sim.Tick();
                     if (Sim.ServiceComplete)
                     {
-                        // SERVIS BITTIGINI SOYLEYEN BIR SEY OLMALI.
+                        // SOMETHING HAS TO SAY THE SERVICE IS OVER.
                         //
-                        // Once servis penceresi dolup salon bosalinca oyun
-                        // sessizce duruyordu: bildirim yok, serit yeniden
-                        // kurulmuyor, asama hala "Servis", "Duraklat"
-                        // dugmesi hala "Duraklat" yaziyor - ustelik
-                        // Paused zaten true. Oyuncu donmus bir salona
-                        // bakiyor ve "Gunu Kapat"i kendi bulmak zorunda
-                        // kaliyordu.
+                        // The game used to stop silently once the service window had
+                        // filled and the hall had emptied: no notice, the strip not
+                        // rebuilt, the phase still "Service", the "Pause" button still
+                        // saying "Pause" - and Paused already true. The player was
+                        // looking at a frozen hall and had to find "Close the day" for
+                        // themselves.
                         Paused = true;
                         if (!_serviceEndAnnounced)
                         {
@@ -375,25 +377,25 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Simulasyon olaylarini SESE ve YAZIYA cevirir.
+        /// Turns simulation events into SOUND and TEXT.
         ///
-        /// Once yalnizca sese ceviriyordu ve bu oyunun en buyuk eksigiydi:
-        /// cekirdek otuz uc tur olay uretiyor, gorunum yedisini okuyup ses
-        /// caliyordu. Stok bitmesi, personel istifasi, kizgin cikis, kusen
-        /// musteri, gecikmis maas - hepsi hesaplaniyor ve atiliyordu.
-        /// Ustelik mobilde ses cogunlukla KAPALI, yani pratikte geri
-        /// bildirim sifirdi.
+        /// It used to turn them into sound only, and that was the game's
+        /// biggest gap: the core produces thirty-three kinds of event and the
+        /// view read seven of them to play a sound. Running out of stock, a
+        /// staff resignation, an angry exit, an offended guest, late wages -
+        /// all of them worked out and thrown away. And on mobile the sound is
+        /// mostly OFF, so in practice the feedback was nothing at all.
         ///
-        /// Olaylar cekirdegin tek disari konusma yolu (docs/23 5) ve
-        /// gorunum katmani onlari yalnizca OKUYOR.
+        /// Events are the core's only way of speaking outwards (docs/23 5)
+        /// and the view layer only READS them.
         /// </summary>
         private void ReadEvents()
         {
             int n = Sim.Events.Drain(_events);
 
-            // Ses SINIRLI: hizli kipte tek karede yuzlerce tick isleniyor
-            // ve ayni sesi elli kez ust uste calmak kirpilma ve ani islemci
-            // yuku demek.
+            // The sound is LIMITED: in fast mode hundreds of ticks are
+            // processed in a single frame, and playing the same sound fifty
+            // times over means clipping and a sudden load on the processor.
             int bell = 0, coin = 0, upset = 0, pour = 0;
 
             for (int i = 0; i < n; i++)
@@ -413,9 +415,9 @@ namespace Lokanta.Game
                     case SimEventKind.DishUnlocked: Sfx.LevelUp(); break;
                 }
 
-                // Hikaye sahnesi BILDIRIM DEGIL: uc saniyelik bir serit,
-                // oyunun en iyi cumlesini gecistirmek olurdu. Aksama
-                // saklaniyor ve orada tam ekran bir kart oluyor.
+                // A story beat IS NOT A NOTICE: a three-second strip would be
+                // brushing the game's best line aside. It is kept for the evening
+                // and becomes a full-screen card there.
                 if (e.Kind == SimEventKind.RegularStoryBeat)
                 {
                     _pendingStory = e.A;
@@ -432,9 +434,9 @@ namespace Lokanta.Game
 
         // =====================================================================
         /// <summary>
-        /// Ekranda bekleyen bildirimler. Halka degil KISA BIR LISTE: ayni
-        /// anda ucten fazlasini gostermek okunmuyor, ve en yenisi en
-        /// onemlisi.
+        /// The notices waiting on screen. Not a ring but A SHORT LIST:
+        /// showing more than three at once does not get read, and the newest
+        /// is the most important.
         /// </summary>
         public const int MaxNotices = 3;
 
@@ -446,20 +448,21 @@ namespace Lokanta.Game
         public string NoticeTextAt(int i) { return _noticeText[i]; }
         public NoticeTone NoticeToneAt(int i) { return _noticeTone[i]; }
 
-        /// <summary>Ekran bunu okuyup kendini yeniden kurmali mi.</summary>
+        /// <summary>Should the screen read this and rebuild itself?</summary>
         public bool NoticesChanged { get; private set; }
         public void NoticesSeen() { NoticesChanged = false; }
 
         /// <summary>
-        /// Servis bitisi bir kez duyuruldu mu. Her karede yeniden
-        /// duyurmak balonlari doldururdu.
+        /// Has the end of service been announced once? Announcing it again
+        /// every frame would fill the screen with bubbles.
         /// </summary>
         private bool _serviceEndAnnounced;
 
         private void PushNotice(string text, NoticeTone tone)
         {
-            // Ayni metin ust uste gelirse tekrarlanmiyor: on dort masalik
-            // bir salonda "malzeme bitti" ayni saniyede uc kez dusebiliyor.
+            // The same text is not repeated when it comes twice in a row: in
+            // a hall of fourteen tables "out of ingredients" can land three
+            // times in the same second.
             if (NoticeCount > 0 && _noticeText[0] == text)
             {
                 _noticeLeft[0] = NoticeSeconds;
@@ -494,49 +497,50 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Kampanya doldu mu. Dolduysa yil sonu degerlendirmesi aciliyor.
+        /// Is the campaign over? If it is, the year-end evaluation opens.
         ///
-        /// Bu bag bir zamanlar HIC YOKTU: EndScreen yazilmisti, puanlama
-        /// tasarlanmisti, CampaignDays icerikte duruyordu - ve altmisinci
-        /// gun gelip geciyor, hicbir sey olmuyordu. Oyun sonsuza kadar
-        /// suruyor, kapanisi olmuyordu.
+        /// This link once DID NOT EXIST AT ALL: EndScreen had been written,
+        /// the scoring designed, CampaignDays sat in the content - and the
+        /// sixtieth day came and went with nothing happening. The game ran on
+        /// for ever and had no close.
         ///
-        /// Bayrak SIMULASYONDA ve kayda giriyor; ikinci acilista ayni ekran
-        /// tekrar cikmiyor.
+        /// The flag is IN THE SIMULATION and goes into the save; the same
+        /// screen does not come up again the second time the game is opened.
         /// </summary>
         private void CheckSeasonEnd()
         {
             if (Sim == null || Ui == null) return;
             if (!Sim.SeasonJustEnded) return;
 
-            // BAYRAK EKRAN KAPANINCA KONUYOR, ACILINCA DEGIL.
+            // THE FLAG IS SET WHEN THE SCREEN CLOSES, NOT WHEN IT OPENS.
             //
-            // Once sirayla: isaretle, KAYDET, sonra ekrani ac. Yani
-            // "gorulmus" bilgisi, oyuncu daha tek satir okumadan diske
-            // yaziliyordu. Telefon o anda kilitlenirse (ya da biri
-            // arayip uygulama arkaya atilirsa) OnApplicationPause bir
-            // kez daha kaydediyor, Android uygulamayi olduruyor ve
-            // SeasonJustEnded bir daha true donmuyor.
+            // The order used to be: mark it, SAVE, then open the screen. So
+            // the "seen" fact was written to disk before the player had read a
+            // single line. If the phone locks at that moment (or someone rings
+            // and the application is pushed to the background),
+            // OnApplicationPause saves once more, Android kills the
+            // application and SeasonJustEnded never returns true again.
             //
-            // Kaybedilen sey kucuk degil: yedi eksenli degerlendirme,
-            // plaket, altmis gunun tek kapanisi. Ve EndScreen'i acan
-            // baska hicbir cagri yeri yoktu.
-            // EKRAN BIR KEZ ACILIYOR.
+            // What is lost is not small: a seven-axis evaluation, the plaque,
+            // the single close of sixty days. And there was no other call site
+            // that opened EndScreen.
+            // THE SCREEN IS OPENED ONCE.
             //
-            // Yukaridaki duzeltme (bayragi kapanista koymak) dogruydu ama
-            // bir kapi acti: SeasonJustEnded, ekran KAPANANA KADAR true
-            // kaliyor ve bu metot Update'ten KOSULSUZ cagriliyor. Yani
-            // 61. gunden itibaren her karede yeni bir EndScreen
-            // kuruluyordu - 30 fps'te dakikada 1800 tane, her biri
-            // sim.Score() cagirip oyunun en agir panelini insa ederek.
+            // The fix above (setting the flag when the screen closes) was
+            // right, but it opened a door: SeasonJustEnded stays true UNTIL
+            // THE SCREEN CLOSES, and this method is called from Update
+            // UNCONDITIONALLY. So from day 61 onwards a new EndScreen was
+            // built every frame - 1800 of them a minute at 30 fps, each one
+            // calling sim.Score() and building the game's heaviest panel.
             //
-            // Oyuncu icin sonucu daha da kotuydu: "Serbest oyuna devam"
-            // tek bir Ui.Pop() yapiyor ve altindan AYNI ekran cikiyor.
-            // Altmis gunluk kampanya, cikilamayan bir ekranda bitiyordu.
+            // For the player the result was worse still: "carry on in free
+            // play" does a single Ui.Pop() and THE SAME screen appears
+            // underneath. A sixty-day campaign ended on a screen you could not
+            // get out of.
             //
-            // GameScreen'in hikaye kartinda ayni koruma zaten var
-            // (Ui.Top == this); burada yoktu cunku bu metot GameApp'ten,
-            // yani ustte ne oldugundan bagimsiz cagriliyor.
+            // GameScreen's story card already has the same guard (Ui.Top ==
+            // this); it was missing here because this method is called from
+            // GameApp, that is, regardless of what is on top.
             if (Ui.Top is EndScreen) return;
 
             Paused = true;
@@ -544,11 +548,11 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Bugun acilan hikaye sahnesi; yoksa -1.
+        /// The story beat opened today; -1 if there is none.
         ///
-        /// Gunde EN FAZLA BIR tane: iki sahne ust uste gelirse ikincisi
-        /// ertesi gunu bekliyor. Ard arda iki kart, ikisini de okunmaz
-        /// yapar.
+        /// AT MOST ONE a day: if two beats fall together the second waits for
+        /// the next day. Two cards one after the other make both of them
+        /// unreadable.
         /// </summary>
         private int _pendingStory = -1;
         private int _pendingBeat;
@@ -562,9 +566,9 @@ namespace Lokanta.Game
         private void UpdateMusic()
         {
             if (Music == null) return;
-            // Yogunluk = salonun dolulugu. Muzik oyunun durumunu
-            // izliyor; sabit bir dongu, servis kilitlendiginde de ayni
-            // sakinlikte calardi.
+            // The intensity = how full the hall is. The music follows the
+            // state of the game; a fixed loop would play just as calmly when
+            // service had jammed.
             float busy = Sim.TableCount > 0
                 ? Sim.OccupiedTables / (float)Sim.TableCount : 0f;
             Music.Intensity = Mathf.Lerp(Music.Intensity, busy, Time.deltaTime * 0.6f);
@@ -572,34 +576,34 @@ namespace Lokanta.Game
 
         // =====================================================================
         /// <summary>
-        /// Uygulama arka plana alininca KAYDET.
+        /// SAVE WHEN THE APPLICATION GOES INTO THE BACKGROUND.
         ///
-        /// Android arka plandaki oyunlari duzenli olarak olduruyor. Bu
-        /// kanca olmadan, telefon caldiginda ya da uygulama
-        /// degistirildiginde O GUNUN TAMAMI gidiyordu: alinan malzeme,
-        /// kurulan menu, ise alinan personel, gunun cirosu. Mobil yonetim
-        /// oyunlarinda tek yildizli yorumlarin bir numarali sebebi bu.
+        /// Android kills games in the background regularly. Without this
+        /// hook, THE WHOLE OF THAT DAY was lost when the phone rang or the
+        /// user switched applications: the ingredients bought, the menu
+        /// built, the staff hired, the day's takings. This is the number one
+        /// cause of one-star reviews on mobile management games.
         ///
-        /// OnApplicationQuit degil OnApplicationPause: Android'de cikis
-        /// kancasi guvenilir degil, duraklatma kancasi guvenilir.
+        /// OnApplicationPause rather than OnApplicationQuit: on Android the
+        /// quit hook is not reliable, the pause hook is.
         ///
-        /// Yazmanin kendisi atomik (SaveStore.WriteAtomic), yani sik
-        /// tetiklemek bozuk kayit riski yaratmiyor.
+        /// The write itself is atomic (SaveStore.WriteAtomic), so triggering
+        /// it often carries no risk of a corrupt save.
         /// </summary>
         /// <summary>
-        /// Arka plana atilirken BIR KEZ kaydediliyor.
+        /// It saves ONCE on the way into the background.
         ///
-        /// Android'de uygulamayi arka plana atmak OnApplicationPause(true)
-        /// VE OnApplicationFocus(false) geri cagrilarinin IKISINI BIRDEN
-        /// tetikliyor, yani kayit iki kez yaziliyordu - tam da isletim
-        /// sisteminin uygulamayi oldurmeye hazirlandigi anda.
+        /// On Android, putting the application into the background triggers
+        /// BOTH the OnApplicationPause(true) AND the OnApplicationFocus(false)
+        /// callbacks, so the save was written twice - at exactly the moment
+        /// the operating system is getting ready to kill the application.
         ///
-        /// Kayit ucuz degil: simulasyon durumu ~12.500 sayisal alan ve
-        /// yazim ana is parcaciginda, dusuk seviye bir telefonda 30-60
-        /// ms. Iki kati, tam olarak kaybedilecek en kotu anda.
+        /// A save is not cheap: the simulation state is ~12,500 numeric
+        /// fields and the write is on the main thread, 30-60 ms on a low-end
+        /// phone. Twice that, at exactly the worst moment to lose.
         ///
-        /// One donunce bayrak dusuyor, yani bir sonraki arka plana
-        /// atilma yine kaydediyor.
+        /// The flag drops when it comes back to the front, so the next trip
+        /// into the background saves again.
         /// </summary>
         private bool _savedOnBackground;
 
@@ -610,14 +614,14 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// BELLEK BASKISINDA DA KAYIT.
+        /// A SAVE UNDER MEMORY PRESSURE TOO.
         ///
-        /// Android ON PLANDAYKEN de bellek baskisi altinda uygulamayi
-        /// oldurebiliyor; hedef cihaz 3 GB (docs/19). O yolda son kayit
-        /// gun basindakidir - bir gunluk oynanis gider ve oyuncu neden
-        /// gittigini anlamaz.
+        /// Android can kill an application under memory pressure even IN THE
+        /// FOREGROUND; the target device has 3 GB (docs/19). On that path the
+        /// last save is the one from the start of the day - a day's play is
+        /// lost and the player does not understand why.
         ///
-        /// SaveOnBackground zaten cift kayda karsi korumali.
+        /// SaveOnBackground already guards against a double save.
         /// </summary>
         private void OnEnable()
         {
@@ -628,14 +632,14 @@ namespace Lokanta.Game
         {
             Application.lowMemory -= OnLowMemory;
 
-            // RENDER OLCEGI GERI KONUYOR.
+            // THE RENDER SCALE IS PUT BACK.
             //
-            // Quality.ApplyZoom URP varliginin renderScale'ini
-            // degistiriyor ve o varlik projede TEK dosya. Editorde
-            // oyuncu yakinlastirip play'den cikinca deger 1,0'da
-            // kaliyor, bir sonraki varlik kaydinda DISKE yaziliyor ve
-            // 0,8'lik mobil butce sessizce kayboluyor. Restore yazilmis
-            // ama hicbir yerden cagrilmiyordu.
+            // Quality.ApplyZoom changes the URP asset's renderScale, and that
+            // asset is a SINGLE file in the project. In the editor, if the
+            // player zooms in and then leaves play mode, the value stays at
+            // 1.0, is written TO DISK at the next asset save, and the 0.8
+            // mobile budget quietly disappears. Restore had been written but
+            // was never called from anywhere.
             Quality.Restore();
         }
 
@@ -651,13 +655,13 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Duman turu kosuyor mu.
+        /// Is the smoke tour running?
         ///
-        /// Tek etkisi: ODAK KAYBINDA DURAKLATMAYI kapatmak. Oyunun
-        /// kendisi icin dogru davranis (telefonda uygulama arka plana
-        /// alininca oyun durmali ve kaydetmeli), ama tur masaustunde
-        /// kosuyor ve baska bir pencere one geldiginde olcum donmus bir
-        /// dunyayi olcuyor.
+        /// Its only effect: switching off PAUSE ON LOSING FOCUS. That is the
+        /// right behaviour for the game itself (when an application is put
+        /// into the background on a phone the game should stop and save), but
+        /// the tour runs on the desktop and, when another window comes to the
+        /// front, the measurement measures a frozen world.
         /// </summary>
         public static bool SmokeTour;
 
@@ -671,24 +675,25 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Mudahalelerin hedefledigi masa. -1 = secim yok.
+        /// The table the interventions are aimed at. -1 = no selection.
         ///
-        /// GORUNUM DURUMU, simulasyon durumu degil: docs/23 7.2 kamera ve
-        /// secimi komut saymiyor, yani kaydedilmiyor ve tekrar oynatmayi
-        /// etkilemiyor. Kaydedilseydi ayni komut dizisi iki farkli
-        /// sonuc verebilirdi.
+        /// VIEW STATE, not simulation state: docs/23 7.2 does not count the
+        /// camera and the selection as commands, so it is not saved and does
+        /// not affect replay. Had it been saved, the same sequence of
+        /// commands could give two different results.
         ///
-        /// Secim yoksa mudahaleler eski davranisa donuyor: sabri en az
-        /// kalan masa. Yani yakinlasmadan da oynanabiliyor - secim bir
-        /// ZORUNLULUK degil, bir INCELIK.
+        /// With no selection the interventions fall back to the old
+        /// behaviour: the table with the least patience left. So it can be
+        /// played without zooming in - the selection is not an OBLIGATION but
+        /// a REFINEMENT.
         /// </summary>
         public int SelectedTable = -1;
 
         /// <summary>
-        /// Secimi gecerli tutar. Masa bosaldiysa ya da servis bittiyse
-        /// secim dusuyor - bos bir masayi hedefleyen bir "Cay ikram"
-        /// dugmesi, oyuncuya hicbir sey soylemeden hakkini yerdi.
-        /// </summary>
+        /// Keeps the selection valid. If the table has emptied or service
+        /// has ended the selection drops - an "offer tea" button aimed at an
+        /// empty table would eat the player's allowance without telling them
+        /// anything.
         public int ValidSelection()
         {
             if (Sim == null || SelectedTable < 0) return -1;
@@ -730,15 +735,15 @@ namespace Lokanta.Game
         {
             if (Sim == null) return;
 
-            // BUGUNKU RAPOR DUNE TASINIYOR.
+            // TODAY'S REPORT MOVES TO YESTERDAY.
             //
-            // Gun ilerlemeden once alinmali: AdvanceToNextDay sayaclari
-            // sifirliyor ve rapor bir daha kurulamiyor.
+            // It has to be taken before the day advances: AdvanceToNextDay
+            // resets the counters and the report can no longer be built.
             Yesterday = Sim.BuildDayReport();
             HasYesterday = true;
 
             Sim.AdvanceToNextDay();
-            if (Slot >= 0) SaveToSlot(Slot);      // her gun basinda kaydet
+            if (Slot >= 0) SaveToSlot(Slot);      // save at the start of every day
             if (View != null) View.Rebuild();
         }
 
@@ -747,16 +752,16 @@ namespace Lokanta.Game
             if (Sim == null) return;
             long before = Sim.Cash;
 
-            // TEK KOMUT, elli degil.
+            // ONE COMMAND, not fifty.
             //
-            // Once malzeme basina bir OrderIngredient gonderiliyordu ve
-            // gunluk komut siniri 256: bu dugmeye bes kez basmak gunun
-            // butcesini bitiriyor, sonrasinda fiyat, menu, ise alim,
-            // ekipman, genisleme, mudahale ve veresiye dahil HER komut
-            // sessizce reddediliyordu. Parasi yetmeyen bir oyuncu icin
-            // daha da kolaydi: alim reddedilse bile komut GUNLUGE
-            // yaziliyor, stok dolmadigi icin "eksik" hala eksik ve
-            // oyuncu tekrar basiyor.
+            // One OrderIngredient used to be sent per ingredient, and the daily
+            // command limit is 256: pressing this button five times used up the
+            // day's budget, and after that EVERY command - the price, the menu,
+            // hiring, equipment, expansion, interventions and the book included
+            // - was silently rejected. For a player short of money it was
+            // easier still: even when the purchase is rejected the command IS
+            // WRITTEN TO THE LOG, the stock is not filled so the "shortfall" is
+            // still there, and the player presses again.
             Send(CommandKind.OrderRecommended);
 
             if (Sim.Cash != before) Sfx.Coin();

@@ -1,136 +1,140 @@
-# Üçüncü taraf varlıklar — kaynak ve lisans kaydı
+# Third-party assets — source and licence record
 
-Bu dosya **zorunlu**. Oyuna giren her dış dosyanın nereden geldiği ve
-hangi lisansla kullanıldığı burada yazılı olmalı.
+This file is **mandatory**. Where every external file that enters the game came
+from, and under which licence it is used, has to be written down here.
 
-Sebebi ticari: yayın öncesi lisans gözden geçirmesi ancak böyle
-yapılabilir. "Bunu nereden indirmiştik?" sorusunun cevabı olmayan bir
-dosya, yayınlanamaz bir dosyadır.
+The reason is commercial: the pre-release licence review can only be done this
+way. A file with no answer to "where did we download this from?" is a file that
+cannot be published.
 
-## Kural
+## The rule
 
-1. Her indirilen paket önce `vendor/` altına, **zip hâliyle** iner.
-2. Zip'in içindeki `License.txt` **silinmez** ve projeye birlikte taşınır.
-3. Bu tabloya bir satır eklenir: ne, nereden, hangi lisans, ne zaman.
-4. Lisans CC0 / CC-BY / MIT dışında bir şeyse **kullanılmaz**, önce sorulur.
+1. Every downloaded package lands under `vendor/` first, **as the zip**.
+2. The `License.txt` inside the zip is **never deleted** and travels into the project with the asset.
+3. A row is added to this table: what, from where, which licence, when.
+4. If the licence is anything other than CC0 / CC-BY / MIT it is **not used** — ask first.
 
-## Tablo
+## The table
 
-| Paket | Sürüm | Kaynak | Lisans | İndirme | Kullanım |
+| Package | Version | Source | Licence | Downloaded | Used for |
 |---|---|---|---|---|---|
-| Kenney Food Kit | 2.0 | https://kenney.nl/assets/food-kit | CC0 1.0 | 2026-09-11 | Tabak, yemek ve mutfak nesneleri |
-| Kenney Furniture Kit | 2.0 | https://kenney.nl/assets/furniture-kit | CC0 1.0 | 2026-09-11 | Masa, sandalye, dolap, tezgâh |
-| Kenney Mini Characters | 1.0 | https://kenney.nl/assets/mini-characters | CC0 1.0 | 2026-09-11 | Müşteri ve personel figürleri **ve 32 animasyon klibi** |
-| Kenney Modular Characters | 1.0 | https://kenney.nl/assets/modular-characters | CC0 1.0 | 2026-09-11 | **KULLANILMIYOR** — paket 2B sprite çıktı, 3B gardırop değil |
+| Kenney Food Kit | 2.0 | https://kenney.nl/assets/food-kit | CC0 1.0 | 2026-09-11 | Plates, food and kitchen objects |
+| Kenney Furniture Kit | 2.0 | https://kenney.nl/assets/furniture-kit | CC0 1.0 | 2026-09-11 | Tables, chairs, cabinets, counters |
+| Kenney Mini Characters | 1.0 | https://kenney.nl/assets/mini-characters | CC0 1.0 | 2026-09-11 | Customer and staff figures **and 32 animation clips** |
+| Kenney Modular Characters | 1.0 | https://kenney.nl/assets/modular-characters | CC0 1.0 | 2026-09-11 | **NOT USED** — the package turned out to be 2D sprites, not a 3D wardrobe |
 
-İki kayıt var ve **ikisi de doğru olmalı**: bu dosya ile `vendor/ATTRIBUTION.md`. Bir süre ayrıştılar — burası Furniture Kit'i 1.0 diyordu (gerçek: 2.0, `Art/Furniture/License.txt`) ve Modular Characters'ı kullanılıyor gösteriyordu, oysa o paket 2B sprite çıktığı için hiç kullanılmadı. Yayın öncesi varlık lisans denetimi ([21](../../../../docs/21-business-and-release.md) D6) bu tabloya bakıyor; yanlış bir satır denetimi geçersiz kılar.
+There are two records and **both must be right**: this file and `vendor/ATTRIBUTION.md`. They drifted apart for a while — this one said the Furniture Kit was 1.0 (the truth: 2.0, `Art/Furniture/License.txt`) and showed Modular Characters as used, when that package was never used at all because it turned out to be 2D sprites. The pre-release asset licence audit ([21](../../../../docs/21-business-and-release.md) D6) reads this table; one wrong row invalidates the audit.
 
-## CC0 ne demek
+## What CC0 means
 
-Creative Commons Zero: kamu malına bırakılmış. Kişisel, eğitim ve
-**ticari** kullanım serbest, atıf **zorunlu değil**. Kenney'in kendi
-lisans metninden: *"You can use this content for personal, educational,
+Creative Commons Zero: released into the public domain. Personal, educational
+and **commercial** use are free, attribution is **not required**. From Kenney's
+own licence text: *"You can use this content for personal, educational,
 and commercial purposes."*
 
-Atıf zorunlu olmasa da **yapılacak** — yapımcı ekranında Kenney'in adı
-geçiyor. Zorunlu olmayan bir teşekkürü atlamak ucuzluk olur.
+Attribution is not required but it **will be given** — Kenney's name appears on
+the credits screen. Skipping a thank-you that costs nothing would be cheap.
 
-## Ses: dosya yok, sentez var — ve yeri hazır
+## Audio: no files, synthesis instead — and the slot is ready
 
-Bugün **hiç ses dosyası yok**; on ses efekti de `Sfx.cs` içinde
-sentezleniyor. Bu bilinçli bir başlangıç ama **bitmiş hâli değil**: basit
-dalga biçimleri bir lokanta oyununda ucuz duyuluyor, ve kapı zili, mutfak
-cızırtısı, kalabalık uğultusu gibi sesler sentezle inandırıcı olmuyor.
+Today there are **no audio files at all**; all ten sound effects are synthesised
+inside `Sfx.cs`. That is a deliberate start but **not the finished state**:
+simple waveforms sound cheap in a restaurant game, and sounds like a door bell,
+a kitchen sizzle or the murmur of a crowd are not convincing when synthesised.
 
-`Sfx.Init` artık **önce dosyaya bakıyor**: `Resources/audio/<ad>` altında bir
-klip varsa onu çalıyor, yoksa sentezlenmiş tona düşüyor. Yani ses dosyası
-eklemek **kod değişikliği istemiyor** — klasöre koymak yetiyor, ve
-konulmadığı sürece oyun eksiksiz çalışıyor.
+`Sfx.Init` now **looks at the files first**: if there is a clip under
+`Resources/audio/<name>` it plays that, otherwise it falls back to the
+synthesised tone. So adding an audio file **requires no code change** — putting
+it in the folder is enough, and as long as nothing is put there the game runs
+complete.
 
-Konulacak dosyalar (klasör: `unity/Assets/Lokanta/Resources/audio/`):
+The files to be added (folder: `unity/Assets/Lokanta/Resources/audio/`). The
+names stay Turkish because they are the literal strings `Sfx.cs` looks for:
 
-| Dosya adı | Ne zaman çalıyor | Ne aranıyor |
+| File name | When it plays | What to look for |
 |---|---|---|
-| `tik` | Her düğme | Çok kısa, yumuşak arayüz tıkı |
-| `onay` | Servis açma, satın alma | Kısa olumlu iki ton |
-| `iptal` | Reddedilen komut | Kısa olumsuz ton |
-| `para` | Hesap ödendi | Kasa / madenî para |
-| `kapi-zili` | Müşteri girdi | Dükkân kapı zili |
-| `cizirti` | Mutfakta iş başladı | Izgara cızırtısı |
-| `dokme` | İçecek hazırlandı | Sıvı doldurma |
-| `kizgin` | Müşteri kızgın çıktı | Homurtu / olumsuz vurgu |
-| `seviye` | Personel seviye atladı | Kısa başarı cümlesi |
-| `gun-donumu` | Gün kapandı | Yumuşak, alçak geçiş |
+| `tik` | Every button | Very short, soft interface click |
+| `onay` | Opening service, buying | Short positive two-tone |
+| `iptal` | Rejected command | Short negative tone |
+| `para` | Bill paid | Till / coin |
+| `kapi-zili` | Customer came in | Shop door bell |
+| `cizirti` | Work started in the kitchen | Grill sizzle |
+| `dokme` | Drink prepared | Liquid pouring |
+| `kizgin` | Customer left angry | Grumble / negative accent |
+| `seviye` | Staff member levelled up | Short success phrase |
+| `gun-donumu` | Day closed | Soft, low transition |
 
-Unity `.ogg`, `.wav` ve `.mp3` okuyor; **`.ogg` tercih edilmeli** (APK'da en
-küçüğü). Uzantı önemli değil, dosya **adı** önemli.
+Unity reads `.ogg`, `.wav` and `.mp3`; **`.ogg` should be preferred** (smallest
+in the APK). The extension does not matter, the file **name** does.
 
-**Lisans kuralı değişmiyor:** yalnızca **CC0** ya da ticari kullanıma açık,
-atıf gerektirse bile net lisanslı kaynaklar. Görsellerde Kenney kullanıldı
-ve Kenney'in **CC0 ses paketleri de var** (Interface Sounds, UI Audio,
-Impact Sounds) — aynı lisans, aynı kaynak, aynı tutarlı üslup. Başka bir
-kaynak kullanılırsa lisans metni `Art/<klasör>/License.txt` olarak eklenmeli
-**ve** `Resources/licenses/` altına kopyalanmalı; oyun içi lisans ekranı
-metnin kendisini gösteriyor, Kenney ve Rubik için yapıldığı gibi.
+**The licence rule does not change:** only **CC0** or sources that are open to
+commercial use with a clear licence, even if that licence requires attribution.
+Kenney was used for the visuals and Kenney **has CC0 audio packs too**
+(Interface Sounds, UI Audio, Impact Sounds) — same licence, same source, same
+consistent style. If another source is used, its licence text must be added as
+`Art/<folder>/License.txt` **and** copied under `Resources/licenses/`; the
+in-game licence screen shows the text itself, as it does for Kenney and Rubik.
 
-Müziğin henüz dosya yolu **yok**; aynı kalıp müziğe de uygulanabilir ama
-önce ses efektleri.
+Music has no file path **yet**; the same pattern can be applied to music, but
+sound effects come first.
 
 
-## Kendi ürettiklerimiz
+## Our own work
 
-Aşağıdakiler kodla üretiliyor, dış kaynak yok, lisans sorunu yok:
+The following are produced in code: no external source, no licence question.
 
-| Ne | Nerede |
+| What | Where |
 |---|---|
-| Ses efektleri (dosya konulmadığı sürece) | `unity/Assets/Lokanta/Game/Sfx.cs` — dalga biçimi kodda sentezleniyor |
-| Müzik | `unity/Assets/Lokanta/Game/Music.cs` — sürekli sentez, dosya yok |
-| Kat planı ve oda geometrisi | `unity/Assets/Lokanta/Game/RoomPlan.cs` |
-| Bütün arayüz | `unity/Assets/Lokanta/Game/Ui/` — UI Toolkit, kodla kuruluyor |
-| Bütün içerik (yemek, malzeme, arketip, müşteri) | `tools/content/`, `tools/balance/` |
+| Sound effects (as long as no file is put in) | `unity/Assets/Lokanta/Game/Sfx.cs` — the waveform is synthesised in code |
+| Music | `unity/Assets/Lokanta/Game/Music.cs` — continuous synthesis, no file |
+| Floor plan and room geometry | `unity/Assets/Lokanta/Game/RoomPlan.cs` |
+| The whole interface | `unity/Assets/Lokanta/Game/Ui/` — UI Toolkit, built in code |
+| All content (dishes, ingredients, archetypes, customers) | `tools/content/`, `tools/balance/` |
 
-## Yazı tipi
+## Typeface
 
-**Rubik**, SIL Open Font License 1.1 — `Art/Fonts/Rubik.ttf`. Ticari
-kullanıma açık ve Türkçe karakterleri tam (`tools/art/check_font.py`
-oyundaki her metni tarayarak doğruluyor).
+**Rubik**, SIL Open Font License 1.1 — `Art/Fonts/Rubik.ttf`. Open to commercial
+use and complete for the Turkish characters (`tools/art/check_font.py` verifies
+it by scanning every piece of text in the game).
 
-OFL, lisans metninin **ürünle birlikte dağıtılmasını** istiyor: metin
-`Resources/licenses/rubik-ofl.txt` olarak derlemeye giriyor ve oyun içi lisans
-ekranında **tam metin** okunabiliyor — "Rubik — SIL OFL 1.1" yazmak lisansı
-karşılamıyor.
+OFL asks for the licence text to be **distributed with the product**: the text
+goes into the build as `Resources/licenses/rubik-ofl.txt` and the **full text**
+can be read on the in-game licence screen — writing "Rubik — SIL OFL 1.1" does
+not satisfy the licence.
 
-Bu bölüm bir süre "Unity'nin varsayılan teması, Liberation Sans, ayrı bir
-yazı tipi indirilmedi" diyordu ve **yanlıştı**.
+For a while this section said "Unity's default theme, Liberation Sans, no
+separate typeface was downloaded", and that was **wrong**.
 
-### İkinci yazı tipi: Çince
+### The second typeface: Chinese
 
 **Noto Sans SC**, SIL Open Font License 1.1 — `Art/Fonts/NotoSansSC-Lokanta.ttf`.
 
-Rubik Latin, Kiril, İbrani ve **Arapça** taşıyor (şekillendirme tabloları
-dahil) ama CJK taşımıyor: Çince tablosunda 765 karakteri karşılamadı. Bu
-font, tam sürümden (10,5 MB) **oyunun gerçekten kullandığı 827 karaktere**
-alt küme çıkarılarak eklendi — 227 KB.
+Rubik carries Latin, Cyrillic, Hebrew and **Arabic** (shaping tables included)
+but it does not carry CJK: it failed to cover 765 characters in the Chinese
+table. This font was added by subsetting the full version (10.5 MB) down to
+**the characters the game can actually show while the language is
+Chinese** — 229732 bytes. That set is measured, not guessed: `tools/art/subset_font.py`
+builds the subset from `check_font.cjk_characters()` and `check_font.py` audits
+the same set, so the number moves when the game's text moves.
 
-Alt küme Latin harfleri, rakamları ve para simgesini de taşıyor: oyun
-Çince'deyken bütün arayüz bu fontla çiziliyor.
+The subset carries the Latin letters, the digits and the currency symbol as
+well: when the game is in Chinese the whole interface is drawn with this font.
 
-Lisans metni ayrı bir dosya olarak derlemeye giriyor
-(`Resources/licenses/noto-sans-sc-ofl.txt`) ve oyun içi Lisanslar ekranında
-tam metin okunuyor. **Ayrı telif sahibi, ayrı bildirim** — "zaten OFL var"
-demek lisansı karşılamıyor.
+The licence text goes into the build as a separate file
+(`Resources/licenses/noto-sans-sc-ofl.txt`) and the full text can be read on the
+in-game Licences screen. **Separate copyright holder, separate notice** — saying
+"there is already an OFL" does not satisfy the licence.
 
-## Klasör eşlemesi (makine okur)
+## Folder mapping (read by a machine)
 
-`tools/check_licenses.py` bu tabloyu okuyor. Art/ altındaki her varlık
-klasörü burada bir satıra sahip olmalı; olmayan klasör denetimi kırmızıya
-düşürür. "Gözle bakıldı" bir kez doğrudur — yeni bir klasör açıldığında
-kimse yeniden bakmaz.
+`tools/check_licenses.py` reads this table. Every asset folder under Art/ must
+have a row here; a folder that has none turns the check red. "Somebody looked at
+it" is true once — when a new folder is added nobody looks again.
 
-| Klasör | Paket | Lisans |
+| Folder | Package | Licence |
 |---|---|---|
 | Characters | Kenney Mini Characters 1.0 | CC0 1.0 |
 | Furniture | Kenney Furniture Kit 2.0 | CC0 1.0 |
 | Food | Kenney Food Kit 2.0 | CC0 1.0 |
-| Fonts | Rubik (Hubert & Fischer) + Noto Sans SC (Google) | SIL OFL 1.1 (ikisi de) |
-| Icons | Projenin kendi üretimi (Editor/IconShot.cs) | — |
+| Fonts | Rubik (Hubert & Fischer) + Noto Sans SC (Google) | SIL OFL 1.1 (both) |
+| Icons | The project's own work (Editor/IconShot.cs) | — |

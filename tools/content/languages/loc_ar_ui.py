@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Arapca ARAYUZ metinleri. loc_ar.py bunu okuyor.
+Arabic INTERFACE text. loc_ar.py reads it.
 
-MODERN STANDART ARAPCA (fusha) - bkz. loc_ar.py.
+MODERN STANDARD ARABIC (fusha) - see loc_ar.py.
 
-YER TUTUCULAR {0} {1} olarak KALIYOR. Arapca sagdan sola akiyor ama
-yer tutucunun KENDISI kod tarafinda; cumledeki yerini Arapca soz dizimi
-belirliyor, Ingilizce'deki sirasi degil.
+THE PLACEHOLDERS {0} {1} STAY AS THEY ARE. Arabic flows from right to
+left, but the placeholder ITSELF belongs to the code side; where it sits
+in the sentence is decided by Arabic word order, not by the order in
+English.
 
-SAYILAR BATI RAKAMLARIYLA (0-9). Arap-Hindi rakamlari (٠١٢) fontta var
-ama oyunun butun sayilari tek bicimde olmali: kasa, fiyat, gun sayisi
-kod tarafindan bicimlenip geliyor ve o bicimleyici Bati rakami uretiyor.
-Ikisini karistirmak, ayni ekranda iki ayri rakam sistemi demekti.
+NUMBERS IN WESTERN DIGITS (0-9). The Arabic-Indic digits (٠١٢) are in
+the font, but every number in the game has to be in one single form: the
+till, the prices and the day count are formatted on the code side and
+that formatter produces Western digits. Mixing the two would have meant
+two different numeral systems on one screen.
 """
 
 UI = {
-    # --- nisanlar ---------------------------------------------------------
+    # --- badges -----------------------------------------------------------
     "badge.book_closed": "أُغلق الدفتر",
     "badge.book_closed.note": "حصّلت كل دَين كتبته.",
     "badge.first_beat": "صاروا يعرفونك",
@@ -31,7 +33,7 @@ UI = {
     "badge.short_peak": "أدرت الذروة بطاقم ناقص",
     "badge.short_peak.note": "عملت بأقل من الطاقم اللازم ومع ذلك لم يغادر أحد طاولته غاضبًا.",
 
-    # --- bildirimler ------------------------------------------------------
+    # --- notices ----------------------------------------------------------
     "notice.angry": "غادر زبون — {0}",
     "notice.credit_given": "كُتب في الدفتر: {0}",
     "notice.credit_lost": "ضاع الدَين: {0}",
@@ -67,7 +69,7 @@ UI = {
     "notice.why.table": "لم يجد طاولة",
     "notice.why.other": "لم يستطع الانتظار",
 
-    # --- yil sonu eksenleri -----------------------------------------------
+    # --- year-end axes ----------------------------------------------------
     "score.axis.combo": "نسبة الوجبات المجمّعة",
     "score.axis.credit": "الديون المحصّلة",
     "score.crew": "الفريق",
@@ -78,7 +80,7 @@ UI = {
     "score.signature": "المطبخ",
     "score.wealth": "الثروة",
 
-    # --- ortak ------------------------------------------------------------
+    # --- common -----------------------------------------------------------
     "ui.badge.earned": "وسام جديد",
     "ui.badge.have": "مُحرز",
     "ui.badge.open": "ليس بعد",
@@ -92,7 +94,7 @@ UI = {
     "ui.common.upgrade": "ترقية — {0}",
     "ui.common.yes": "نعم",
 
-    # --- yapimci ----------------------------------------------------------
+    # --- credits ----------------------------------------------------------
     "ui.credits.audio": "الموسيقى والصوت",
     "ui.credits.audio_by": "مُولّدة داخل اللعبة",
     "ui.credits.author": "Ahmet Caner Akar",
@@ -104,7 +106,7 @@ UI = {
     "ui.credits.models": "المجسّمات ثلاثية الأبعاد",
     "ui.credits.models_by": "Kenney (kenney.nl) — CC0",
 
-    # --- mutfak secimi ----------------------------------------------------
+    # --- cuisine choice ---------------------------------------------------
     "ui.cuisine.combo": "الوجبة المجمّعة: أبقِ ثلاثة أطباق معًا في اللائحة فترتفع الفاتورة — ويرتفع حِمل المطبخ كذلك.",
     "ui.cuisine.credit": "الدفتر: يضغط على السيولة، لكنه يكسب ولاء الزبائن.",
     "ui.cuisine.fastfood_desc": "إيقاع سريع، فواتير صغيرة، زحام. اللائحة تبقى قصيرة.",
@@ -113,7 +115,7 @@ UI = {
     "ui.cuisine.start": "ابدأ",
     "ui.cuisine.turk_desc": "ذروة غداء قوية، فواتير كبيرة، زبائن من الحي.",
 
-    # --- yil sonu ---------------------------------------------------------
+    # --- year end ---------------------------------------------------------
     "ui.end.continue": "تابع في اللعب الحر",
     "ui.end.lede": "أدرت المطعم {0} يومًا. نتيجتك في نهاية السنة: {1} من 100.",
     "ui.end.menu": "القائمة الرئيسية",
@@ -122,12 +124,12 @@ UI = {
     "ui.end.plaque2": "مطعم سمع به الناس",
     "ui.end.plaque3": "المطعم الذي تتحدث عنه المدينة",
 
-    # --- hata -------------------------------------------------------------
+    # --- error ------------------------------------------------------------
     "ui.error.content": "تعذّر قراءة ملفات المحتوى. هذا خطأ في المحتوى؛ واللعبة لا تفتح بتوازن ناقص.",
     "ui.error.save": "تعذّر فتح الحفظ.",
     "ui.error.title": "تعذّر تشغيل اللعبة",
 
-    # --- aksam raporu -----------------------------------------------------
+    # --- evening report ---------------------------------------------------
     "ui.evening.away": "لن يمرّ لفترة.",
     "ui.evening.gross": "الربح الإجمالي",
     "ui.evening.hall": "الصالة",
@@ -154,7 +156,7 @@ UI = {
     "ui.evening.visits": "الزيارات: {0}",
     "ui.evening.wages": "الأجور المدفوعة",
 
-    # --- genisleme --------------------------------------------------------
+    # --- expansion --------------------------------------------------------
     "ui.expand.buy": "توسيع — {0}",
     "ui.expand.last": "أنت في المستوى الأخير.",
     "ui.expand.tables": "الطاولات",
@@ -163,7 +165,7 @@ UI = {
 
     "ui.game.title": "Lokanta",
 
-    # --- ipuclari ---------------------------------------------------------
+    # --- hints ------------------------------------------------------------
     "ui.hint.cap": "بهذا العدد من الطاولات تبلغ سمعتك {0} على الأكثر. لتصعد أكثر تحتاج صالة أكبر.",
     "ui.hint.interventions": "التدخلات الثلاثة من جيب واحد: {0} في اليوم. وما لا تنفقه يضيع عند الإغلاق.",
     "ui.hint.menu": "إن خلت اللائحة عاد الزبائن من الباب، وتقرير اليوم يبيّن كم منهم عاد.",
@@ -174,7 +176,7 @@ UI = {
     "ui.hint.service": "بعد فتح الدوام لا يمكنك الشراء حتى المساء. جهّز مخزونك ولائحتك الآن.",
     "ui.hint.staff": "الطاقم يمنحك طاقة لكنه يكلّف أجورًا كل أسبوع. انظر إلى الصندوق قبل التوظيف.",
 
-    # --- servis ekrani ustu -----------------------------------------------
+    # --- top of the service screen ----------------------------------------
     "ui.hud.angry": "المنصرفون",
     "ui.hud.back": "رجوع",
     "ui.hud.cash": "الصندوق",
@@ -193,7 +195,7 @@ UI = {
     "ui.hud.tables": "الطاولات",
     "ui.hud.today": "اليوم",
 
-    # --- defter -----------------------------------------------------------
+    # --- ledger -----------------------------------------------------------
     "ui.ledger.amount": "المبلغ",
     "ui.ledger.chance_now": "إن طالبت الآن",
     "ui.ledger.chance_wait": "إن انتظرت",
@@ -207,7 +209,7 @@ UI = {
     "ui.ledger.today": "اليوم",
     "ui.ledger.total": "{0} في الدفتر",
 
-    # --- kredi ------------------------------------------------------------
+    # --- loan -------------------------------------------------------------
     "ui.loan.installment": "القسط الأسبوعي",
     "ui.loan.one_at_a_time": "لا يمكنك حمل أكثر من قرض واحد في الوقت نفسه.",
     "ui.loan.open": "لديك قرض قائم",
@@ -218,7 +220,7 @@ UI = {
     "ui.loan.weekly": "تكلفتك الثابتة الأسبوعية {0}",
     "ui.loan.weeks_left": "الأسابيع المتبقية",
 
-    # --- menu ekrani ------------------------------------------------------
+    # --- menu screen ------------------------------------------------------
     "ui.menu.add": "أضف إلى اللائحة",
     "ui.menu.continue": "متابعة",
     "ui.menu.cost": "الكلفة",
@@ -242,7 +244,7 @@ UI = {
     "ui.menu.unlock_day": "يُفتح في اليوم {0}",
     "ui.menu.vs_market": "مقارنةً بالسوق",
 
-    # --- sabah ------------------------------------------------------------
+    # --- morning ----------------------------------------------------------
     "ui.morning.average_over": "أعلى من المتوسط بنسبة {0}%",
     "ui.morning.average_same": "سعر متوسط",
     "ui.morning.average_under": "أقل من المتوسط بنسبة {0}%",
@@ -277,7 +279,7 @@ UI = {
     "ui.morning.storage_none": "بلا تبريد — كل ما يفسد يضيع الليلة",
     "ui.morning.storage_tier": "التبريد — المستوى {0}",
 
-    # --- duraklatma -------------------------------------------------------
+    # --- pause ------------------------------------------------------------
     "ui.pause.resume": "متابعة",
     "ui.pause.save_quit": "احفظ واخرج",
     "ui.pause.season": "حصاد نهاية السنة",
@@ -290,7 +292,7 @@ UI = {
     "ui.quality.1": "عادية",
     "ui.quality.2": "عالية",
 
-    # --- servis -----------------------------------------------------------
+    # --- service ----------------------------------------------------------
     "ui.service.attention": "اهتمام",
     "ui.service.close": "أغلق اليوم",
     "ui.service.close_sub": "انتهى الدوام",
@@ -316,7 +318,7 @@ UI = {
     "ui.service.target_auto": "الأكثر نفادًا للصبر",
     "ui.service.tea": "شاي",
 
-    # --- ayarlar ----------------------------------------------------------
+    # --- settings ---------------------------------------------------------
     "ui.settings.back": "رجوع",
     "ui.settings.hints_reset": "أظهر التلميحات من جديد",
     "ui.settings.language": "اللغة",
@@ -324,7 +326,7 @@ UI = {
     "ui.settings.sound": "الصوت",
     "ui.settings.title": "الإعدادات",
 
-    # --- kayit yuvasi -----------------------------------------------------
+    # --- save slot --------------------------------------------------------
     "ui.slot.broken": "حفظ تالف",
     "ui.slot.day": "اليوم {0}",
     "ui.slot.delete": "حذف",
@@ -334,7 +336,7 @@ UI = {
     "ui.slot.title": "خانة الحفظ",
     "ui.slot.unloadable": "لا يمكن تحميله",
 
-    # --- personel ---------------------------------------------------------
+    # --- staff ------------------------------------------------------------
     "ui.staff.busser": "عامل ترتيب الطاولات",
     "ui.staff.candidates": "المتقدّمون",
     "ui.staff.cap": "حدّ الطاقم",
@@ -345,14 +347,14 @@ UI = {
     "ui.staff.fire_confirm": "أتستغني عن هذا الشخص؟ خبرته تعود إلى الصفر.",
     "ui.staff.hire": "توظيف",
     "ui.staff.inherited": "سيّئ المزاج — الطبّاخ الذي ورثته",
-    "ui.staff.inherited_salon": "جاء مع المحل",
+    "ui.staff.inherited_hall": "جاء مع المحل",
     "ui.staff.level": "المستوى",
     "ui.staff.morale": "المعنويات",
     "ui.staff.no_candidate": "لم يبقَ متقدّمون. تتجدّد القائمة كل ثلاثة أيام.",
     "ui.staff.normal": "عادي",
-    "ui.staff.salon": "الصالة",
-    "ui.staff.salon_needed": "لا أحد في الصالة — تحتاج اليوم إلى {0} من العاملين.",
-    "ui.staff.salon_none": "لا أحد في الصالة. بعدد طاولات اليوم لا حاجة لأحد.",
+    "ui.staff.hall": "الصالة",
+    "ui.staff.hall_needed": "لا أحد في الصالة — تحتاج اليوم إلى {0} من العاملين.",
+    "ui.staff.hall_none": "لا أحد في الصالة. بعدد طاولات اليوم لا حاجة لأحد.",
     "ui.staff.sink": "نوبة المغسلة",
     "ui.staff.sink_add": "أرسِله إلى المغسلة",
     "ui.staff.sink_hint": "من يقف عند المغسلة لا يخدم الزبائن. وإن لم يقف أحد، ينتظر المطبخ حين تنفد الصحون النظيفة.",
@@ -363,7 +365,7 @@ UI = {
     "ui.staff.wage": "الأجر",
     "ui.staff.weekend": "عطلة الأسبوع",
 
-    # --- istasyon ---------------------------------------------------------
+    # --- station ----------------------------------------------------------
     "ui.station.cuisine_only": "لهذا المطبخ فقط",
     "ui.station.slots": "المواقع",
     "ui.station.too_low": "لا يكفي لهذا العدد من الطاولات",

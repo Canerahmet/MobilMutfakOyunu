@@ -1,15 +1,16 @@
-using System;
+﻿using System;
 
 namespace Lokanta.Core.Content
 {
     /// <summary>
-    /// Cekirdegin gordugu icerik tipleri. Hepsi degismez ve TAMSAYI.
-    /// JSON'u Lokanta.Content ayristirir; cekirdek hazir yapiyi alir.
+    /// The content types the core sees. All of them immutable and INTEGER.
+    /// Lokanta.Content parses the JSON; the core takes the finished
+    /// structure.
     /// docs/23-core-contract.md 6.1.
     /// </summary>
     public readonly struct DishIngredient
     {
-        public readonly int IngredientIndex;   // ContentSet.Ingredients icindeki sira
+        public readonly int IngredientIndex;   // the position within ContentSet.Ingredients
         public readonly int Grams;
 
         public DishIngredient(int ingredientIndex, int grams)
@@ -25,40 +26,41 @@ namespace Lokanta.Core.Content
         public string NameKey { get; }
         public string Cuisine { get; }
         public string Group { get; }
-        public long Price { get; }            // santi-sikke
+        public long Price { get; }            // centi-coins
         public int PrepMs { get; }
         public int StationIndex { get; }
         /// <summary>
-        /// 1..3. Karmasik yemek daha pahali ve daha uzun surer; iyi servis
-        /// edilince daha cok memnun eder, gec kalinca daha cok cezalandirir.
+        /// 1..3. A complex dish is dearer and takes longer; served well it
+        /// pleases more, served late it punishes more.
         ///
-        /// Bu alan icerikte vardi ve HICBIR YERDE okunmuyordu; ne fiyati,
-        /// ne memnuniyeti, ne kilidi etkiliyordu. tools/audit_content.py
-        /// boyle buldu.
+        /// This field was in the content and was read NOWHERE; it affected
+        /// neither the price, nor satisfaction, nor the unlock.
+        /// tools/audit_content.py found it that way.
         /// </summary>
         public int Complexity { get; }
 
-        /// <summary>Kilit acilmadan once gecmesi gereken en az gun.</summary>
+        /// <summary>The earliest day on which the lock may come off.</summary>
         public int UnlockDay { get; }
 
         /// <summary>
-        /// Kilidin dustugu mevsim, 1-4. UnlockDay'den TURETILIR - iki ayri
-        /// gercek degil, ayni gercegin iki gosterimi. Yukleme sirasinda
-        /// dogrulaniyor; ilerleme ekrani yemekleri buna gore grupluyor.
+        /// The season the lock comes off in, 1-4. DERIVED from UnlockDay -
+        /// not two separate facts but two presentations of the same fact. It
+        /// is validated during loading; the progression screen groups the
+        /// dishes by it.
         /// </summary>
         public int UnlockSeason { get; }
 
         /// <summary>
-        /// Kilit icin istasyonun en az bu kademesi gerekli. Ekipman satin
-        /// almak boylece YALNIZCA hiz degil, MENU aciyor.
+        /// The unlock requires at least this tier of the station. Buying
+        /// equipment therefore opens NOT ONLY speed but MENU.
         /// </summary>
         public int RequiresStationTier { get; }
 
-        /// <summary>Kilit icin gereken itibar, santi-puan.</summary>
+        /// <summary>The reputation the unlock requires, in centi-points.</summary>
         public int UnlockReputationCenti { get; }
         public DishIngredient[] Ingredients { get; }
 
-        /// <summary>Malzeme maliyeti, santi-sikke. Yuklemede bir kez hesaplanir.</summary>
+        /// <summary>The ingredient cost, in centi-coins. Computed once at load.</summary>
         public long IngredientCost { get; }
 
         public DishDef(string id, string nameKey, string cuisine, string group,
@@ -82,38 +84,40 @@ namespace Lokanta.Core.Content
         public string Id { get; }
         public string NameKey { get; }
         public bool Shared { get; }
-        /// <summary>Kilo basina santi-sikke.</summary>
+        /// <summary>Centi-coins per kilo.</summary>
         public long BasePrice { get; }
         public bool Perishable { get; }
         public int SpoilDays { get; }
 
         /// <summary>
-        /// Mevsime gore fiyat carpani, baz puan, dort deger:
-        /// ilkbahar, yaz, sonbahar, kis. 10000 = degisiklik yok.
+        /// The seasonal price multiplier, in basis points, four values:
+        /// spring, summer, autumn, winter. 10000 = no change.
         ///
-        /// Icerikte 77 malzemenin 35'inin gercek oynamasi var (domates
-        /// yazin %14 ucuz, kisin %20 pahali) ama simulasyon bu alani hic
-        /// okumuyordu. tools/audit_content.py bunu boyle buldu.
+        /// In the content 35 of the 77 ingredients have real movement
+        /// (tomatoes 14% cheaper in summer, 20% dearer in winter), but the
+        /// simulation was not reading this field at all.
+        /// tools/audit_content.py found it that way.
         /// </summary>
         public int[] SeasonPriceBp { get; }
 
         /// <summary>
-        /// Kalite kademesine gore fiyat carpani, baz puan. Uc deger:
-        /// dusuk, standart, yuksek. Standart her zaman 10000.
+        /// The price multiplier by quality tier, in basis points. Three
+        /// values: low, standard, high. Standard is always 10000.
         /// </summary>
         public int[] QualityPriceBp { get; }
 
         /// <summary>
-        /// Kalite kademesinin memnuniyete etkisi, santi-puan.
+        /// The quality tier's effect on satisfaction, in centi-points.
         ///
-        /// Icerik burada bir tasarim karari tasiyor: en hassas alti
-        /// malzemenin HEPSI et (kiyma, tavuk gogsu, balik filetosu, dana
-        /// ve kuzu kusbasi, kuzu pirzola). Tuz ile karabiber neredeyse
-        /// duyarsiz. Yani ucuza kacmak tuzda serbest, ette felaket.
+        /// The content carries a design decision here: the six most
+        /// sensitive ingredients are ALL meat (mince, chicken breast, fish
+        /// fillet, diced beef and lamb, lamb chops). Salt and black pepper
+        /// are all but insensitive. So cutting corners is free on salt and
+        /// a disaster on meat.
         ///
-        /// Bu yuzden kalite TEK BIR kuresel ayar olabiliyor: sonuc yemeğe
-        /// gore kendiliginden degisiyor ve oyuncuya 77 ayri karar
-        /// yuklenmiyor (docs/16 dokunus butcesi).
+        /// That is why quality can be ONE SINGLE global setting: the result
+        /// varies by dish on its own and the player is not loaded with 77
+        /// separate decisions (docs/16, the touch budget).
         /// </summary>
         public int[] QualitySatisfactionCenti { get; }
 
@@ -129,7 +133,7 @@ namespace Lokanta.Core.Content
             QualitySatisfactionCenti = qualitySatisfactionCenti;
         }
 
-        /// <summary>Verilen mevsim ve kalitedeki kilo fiyati, santi-sikke.</summary>
+        /// <summary>The price per kilo at the given season and quality, in centi-coins.</summary>
         public long PriceAt(int season, int quality)
         {
             long p = PriceInSeason(season);
@@ -138,7 +142,7 @@ namespace Lokanta.Core.Content
             return Core.Fx.MulDiv(p, QualityPriceBp[quality], Core.Fx.One);
         }
 
-        /// <summary>Kalite kademesinin memnuniyete etkisi, santi-puan.</summary>
+        /// <summary>The quality tier's effect on satisfaction, in centi-points.</summary>
         public int QualityDelta(int quality)
         {
             if (QualitySatisfactionCenti == null
@@ -146,7 +150,7 @@ namespace Lokanta.Core.Content
             return QualitySatisfactionCenti[quality];
         }
 
-        /// <summary>Verilen mevsimdeki kilo fiyati, santi-sikke.</summary>
+        /// <summary>The price per kilo in the given season, in centi-coins.</summary>
         public long PriceInSeason(int season)
         {
             if (SeasonPriceBp == null || season < 0 || season >= SeasonPriceBp.Length)
@@ -156,27 +160,29 @@ namespace Lokanta.Core.Content
     }
 
     /// <summary>
-    /// Bir ekipman basamagi. docs/27 Karar D: yukseltme yemegin pisme
-    /// suresine DOKUNMAZ; ya istasyona yuva ekler ya asciyi erken birakir.
-    /// Boylece "ekipman alinca her sey hizlanir" enflasyonu kapali kaliyor.
+    /// One rung of equipment. docs/27 Decision D: an upgrade DOES NOT TOUCH
+    /// a dish's cooking time; it either adds a slot to the station or
+    /// releases the cook earlier. That keeps the "buy equipment and
+    /// everything speeds up" inflation shut off.
     /// </summary>
     public readonly struct StationTier
     {
-        /// <summary>Istasyonun ayni anda alabildigi tabak sayisi.</summary>
+        /// <summary>How many plates the station can take at once.</summary>
         public readonly int Slots;
 
         /// <summary>
-        /// Duvar saatinin yuzde kaci ascinin ELINDE geciyor, baz puan.
-        /// Firin 2000: koyar, kapatir, gider. Icecek 10000: bosluk yok.
+        /// What share of the wall clock is spent IN THE COOK'S HANDS, in
+        /// basis points. The oven is 2000: put it in, shut it, walk away.
+        /// Drinks are 10000: no slack at all.
         /// </summary>
         public readonly int AttendBp;
 
-        /// <summary>Santi-sikke. Kademe 0 bedava ve baslangicta var.</summary>
+        /// <summary>Centi-coins. Tier 0 is free and is there from the start.</summary>
         public readonly long Price;
 
         /// <summary>
-        /// Bu basamagin ilk gerektigi masa sayisi. 0 ise zorunlu degil,
-        /// yalnizca asciyi rahatlatiyor.
+        /// The table count at which this rung first becomes necessary. If 0
+        /// it is not compulsory, it only makes the cook's life easier.
         /// </summary>
         public readonly int NeededAtTables;
 
@@ -189,12 +195,12 @@ namespace Lokanta.Core.Content
         }
     }
 
-    /// <summary>Bir duzenli musterinin hikaye sahnesi.</summary>
+    /// <summary>One story beat of a regular.</summary>
     public readonly struct StoryBeat
     {
         public readonly int Beat;
         public readonly int RequiresVisits;
-        /// <summary>Ortalama memnuniyet esigi, santi-puan.</summary>
+        /// <summary>The mean satisfaction threshold, in centi-points.</summary>
         public readonly int RequiresSatisfactionCenti;
         public readonly string TextKey;
 
@@ -209,46 +215,48 @@ namespace Lokanta.Core.Content
     }
 
     /// <summary>
-    /// Isimli duzenli musteri. docs/11: arketip binlerce musteri uretir,
-    /// isimli musteri TEK BIR KISIDIR ve hep ayni kisidir.
+    /// A named regular. docs/11: an archetype produces thousands of
+    /// customers, whereas a named customer is ONE SINGLE PERSON and is
+    /// always the same person.
     ///
-    /// Davranisi arketipten geliyor (sabir, grup buyuklugu, fiyat
-    /// duyarliligi, gelis saati); kendine ait olan uc sey var: sevdigi
-    /// yemek, kampanyaya girdigi gun, ve veresiye defterine yazilip
-    /// yazilamayacagi.
+    /// Their behaviour comes from the archetype (patience, group size,
+    /// price sensitivity, time of arrival); three things are their own: the
+    /// dish they favour, the day they enter the campaign, and whether they
+    /// may be written into the tab book.
     /// </summary>
     public sealed class RegularDef
     {
         public string Id { get; }
         public string NameKey { get; }
         public string JobKey { get; }
-        /// <summary>Taban arketibin indeksi.</summary>
+        /// <summary>The index of the underlying archetype.</summary>
         public int ArchetypeIndex { get; }
-        /// <summary>Sevdigi yemegin indeksi. Menude yoksa hayal kirikligi.</summary>
+        /// <summary>The index of their favourite dish. Not on the menu means disappointment.</summary>
         public int FavouriteDish { get; }
         public int ArrivesFromDay { get; }
-        public bool VeresiyeEligible { get; }
+        public bool TabEligible { get; }
         public StoryBeat[] Story { get; }
 
         public RegularDef(string id, string nameKey, string jobKey,
                           int archetypeIndex, int favouriteDish,
-                          int arrivesFromDay, bool veresiyeEligible,
+                          int arrivesFromDay, bool tabEligible,
                           StoryBeat[] story)
         {
             Id = id; NameKey = nameKey; JobKey = jobKey;
             ArchetypeIndex = archetypeIndex; FavouriteDish = favouriteDish;
-            ArrivesFromDay = arrivesFromDay; VeresiyeEligible = veresiyeEligible;
+            ArrivesFromDay = arrivesFromDay; TabEligible = tabEligible;
             Story = story ?? new StoryBeat[0];
         }
     }
 
-    /// <summary>Mutfagin imza mekaniginin turu. docs/23 8.2 kapali liste.</summary>
+    /// <summary>The kind of the cuisine's signature mechanic. docs/23 8.2, a closed list.</summary>
     /// <summary>
-    /// Yil sonu degerlendirmesinin MUTFAGA OZEL ekseni. docs/08.
+    /// The CUISINE-SPECIFIC axis of the year-end evaluation. docs/08.
     ///
-    /// Mekanik kodda (Simulation.Score), SAYI burada: hangi olcu ve o
-    /// olcunun tam puan verdigi deger. Fast food'da bir gunun en yuksek
-    /// kuver sayisi, Turk mutfaginda veresiye tahsilat orani.
+    /// The mechanic is in the code (Simulation.Score), the NUMBER is here:
+    /// which measure, and the value of that measure that scores full marks.
+    /// On fast food the highest covers served in a day, on Turkish cuisine
+    /// the tab collection rate.
     /// </summary>
     public sealed class ScoreAxisDef
     {
@@ -267,38 +275,41 @@ namespace Lokanta.Core.Content
     public enum SignatureKind
     {
         None = 0,
-        Combo = 1,      // fast food: kombo ve akis
-        Credit = 2,     // turk: veresiye ve duzenli musteri
-        Courses = 3,    // italyan: masa suresi ve kurs zamanlamasi
-        Broth = 4,      // japon: corba suyu ve tukenme
+        Combo = 1,      // fast food: the combo and the flow
+        Credit = 2,     // turk: the tab and the regulars
+        Courses = 3,    // italian: table time and course timing
+        Broth = 4,      // japanese: the broth and running out
     }
 
     /// <summary>
-    /// Mutfagin imza mekanigi. docs/07: "en onemli satir - satin almanin
-    /// yeniden boyama degil BASKA BIR OYUN oldugunu gosteren sey bu."
+    /// The cuisine's signature mechanic. docs/07: "the most important line -
+    /// this is the thing that shows a purchase is not a repaint but ANOTHER
+    /// GAME."
     ///
-    /// Mekanik kodda, sayilar burada. Blok eksikse mutfak yuklenmiyor.
+    /// The mechanic is in the code, the numbers are here. If the block is
+    /// missing, the cuisine does not load.
     /// </summary>
     public sealed class SignatureDef
     {
         public SignatureKind Kind { get; }
 
         /// <summary>
-        /// Mekanigin acildigi gun. docs/09: "Imza mekanigi IKINCI MEVSIMIN
-        /// BASINDA gelir. Birinci mevsime konursa ogretici yuku cok
-        /// agirlasir, cunku oyuncu zaten menu ve fiyati ogreniyor."
+        /// The day the mechanic opens. docs/09: "The signature mechanic
+        /// arrives AT THE START OF THE SECOND SEASON. Put in the first
+        /// season it makes the teaching load far too heavy, because the
+        /// player is already learning the menu and the price."
         /// </summary>
         public int FromDay { get; }
 
-        // --- Kombo (fast food) --------------------------------------------
-        /// <summary>Komboyu olusturan yemek indeksleri: ana, yan, icecek.</summary>
+        // --- The combo (fast food) ----------------------------------------
+        /// <summary>The dish indices that make up the combo: main, side, drink.</summary>
         public int[] ComboDishes { get; }
-        /// <summary>Uc kalemin toplamina uygulanan fiyat, baz puan.</summary>
+        /// <summary>The price applied to the sum of the three items, in basis points.</summary>
         public int ComboPriceBp { get; }
-        /// <summary>Kombo isinin asciyi ne kadar daha uzun bagladigi.</summary>
+        /// <summary>How much longer a combo job ties up the cook.</summary>
         public int ComboKitchenLoadBp { get; }
 
-        // --- Veresiye (turk) ----------------------------------------------
+        // --- The tab (turk) -----------------------------------------------
         public long CreditMaxPerRegular { get; }
         public int CreditDueDays { get; }
         public int CreditCollectChanceBp { get; }
@@ -308,69 +319,76 @@ namespace Lokanta.Core.Content
         public int CreditTeaCostCenti { get; }
 
         /// <summary>
-        /// GUVEN: musterinin her ziyareti tahsilat sansina bu kadar
-        /// ekliyor, baz puan.
+        /// TRUST: each visit by the customer adds this much to the
+        /// collection chance, in basis points.
         ///
-        /// Bu alan olcum sonucu eklendi. Sans herkes icin SABITTI
-        /// (8500, cayla 9500) ve odeyen fisin %112'sini odiyordu:
-        /// beklenen nakit 0,95 x 1,12 = 1,064 x fis, yani veresiye
-        /// PESIN SATISTAN KARLIYDI. Reddetmek icin hicbir gun yoktu ve
-        /// mekanik bir defter degil, bedava bir prim dugmesiydi.
+        /// This field was added as the result of a measurement. The chance
+        /// was FIXED for everyone (8500, or 9500 with tea) and whoever paid
+        /// paid 112% of the ticket: the expected cash was
+        /// 0.95 x 1.12 = 1.064 x the ticket, so the tab was MORE PROFITABLE
+        /// THAN A CASH SALE. There was never a day to refuse, and the
+        /// mechanic was not a book but a free bonus button.
         ///
-        /// Sans artik KIME yazdigina bagli: yeni tanistigin biri
-        /// kotu bir bahis, yillardir gelen biri iyi. Sorunun kendisi
-        /// bu - "veresiye acayim mi" degil, "BU ADAMA acayim mi".
+        /// The chance now depends on WHO it is written against: someone you
+        /// have just met is a bad bet, someone who has come for years is a
+        /// good one. That is the question itself - not "shall I open a tab"
+        /// but "shall I open one FOR THIS MAN".
         /// </summary>
         public int CreditTrustPerVisitBp { get; }
 
-        /// <summary>Guvenin ekleyebilecegi en yuksek pay, baz puan.</summary>
+        /// <summary>The largest share trust may add, in basis points.</summary>
         public int CreditTrustCapBp { get; }
 
         /// <summary>
-        /// Tahsilat sansinin TAVANI. Tam kesinlik olmamali: risksiz
-        /// bir defter yine karar uretmeyen bir prim dugmesidir.
+        /// The CEILING on the collection chance. There must be no complete
+        /// certainty: a riskless book is once again a bonus button that
+        /// produces no decision.
         /// </summary>
         public int CreditChanceCapBp { get; }
 
         /// <summary>
-        /// Tahsil edilen her hesabin TALEBE kalici katkisi, baz puan.
+        /// Each account collected adds this much permanently TO DEMAND, in
+        /// basis points.
         ///
-        /// Bu alan olcum sonucu eklendi. Veresiyenin tek getirisi itibar
-        /// oldugunda mekanik ISE YARAMIYORDU: iyi oynayan zaten itibar
-        /// tavaninda, yani sadakat primi bir sey satin almiyordu. docs/07
-        /// zaten iki sey soyluyor - "sadakati VE itibari yukseltir" - ve
-        /// sadakatin karsiligi geri gelen musteridir, tavana dayali bir
-        /// puan degil.
+        /// This field was added as the result of a measurement. When the
+        /// tab's only return was reputation the mechanic WAS OF NO USE: a
+        /// good player is already at the reputation ceiling, so the loyalty
+        /// bonus bought nothing. docs/07 says two things already - "it
+        /// raises loyalty AND reputation" - and what loyalty buys is the
+        /// customer coming back, not a score pressed against a ceiling.
         /// </summary>
         public int CreditLoyaltyDemandBp { get; }
-        /// <summary>Sadakatin tavani. Sonsuz birikirse veresiye zorunlu olur.</summary>
+        /// <summary>The ceiling on loyalty. If it accumulated without limit the tab would become compulsory.</summary>
         public int CreditLoyaltyCapBp { get; }
 
         /// <summary>
-        /// Uygun bir grubun veresiye ISTEME olasiligi, baz puan.
+        /// The chance that an eligible party ASKS for a tab, in basis points.
         ///
-        /// Mekanigin asil yonu bu. Ilk yazimda veresiye bir prim dugmesiydi
-        /// ve olcum reddetti: iyi oynayan zaten itibar tavaninda ve masalari
-        /// dolu, yani ne itibar ne talep bir sey satin aliyordu - veresiye
-        /// yalnizca nakit kaybettiriyordu. Dogru yon TERSI: musteri ISTIYOR,
-        /// vermeyen kaybediyor. Kilitli yemegi soran musteri mekanigi
-        /// (docs/34 6) ile ayni fikir.
+        /// This is the mechanic's real direction. In the first draft the tab
+        /// was a bonus button and measurement rejected it: a good player is
+        /// already at the reputation ceiling with full tables, so neither
+        /// reputation nor demand bought anything - the tab only lost them
+        /// cash. The right direction is THE OTHER WAY ROUND: the customer
+        /// ASKS, and whoever refuses loses. The same idea as the mechanic
+        /// where a customer asks for a locked dish (docs/34 6).
         /// </summary>
         public int CreditAskChanceBp { get; }
-        /// <summary>Isteyen musteriye veresiye acilmazsa memnuniyet cezasi.</summary>
+        /// <summary>The satisfaction penalty when a customer who asks is not given a tab.</summary>
         public int CreditRefusedPenaltyCenti { get; }
 
         /// <summary>
-        /// Hesabini kapatan musterinin USTUNE koydugu pay, baz puan.
+        /// The share a customer settling their account puts ON TOP, in basis
+        /// points.
         ///
-        /// Mekanigin kazanc tarafi burasi. Ilk iki denemede veresiyenin
-        /// getirisi ITIBAR ve TALEP idi; ikisi de iyi oynayanda ise
-        /// yaramiyor - itibar zaten tavanda, masalar zaten dolu. Kalan
-        /// tek gercek getiri PARA: veresiye defterine yazilan adam
-        /// hesabini kapatirken fazlasiyla kapatiyor.
+        /// This is the mechanic's earning side. In the first two attempts
+        /// the tab's return was REPUTATION and DEMAND; neither is any use to
+        /// a good player - reputation is already at the ceiling, the tables
+        /// are already full. The only real return left is MONEY: the man
+        /// written into the tab book settles his account and then some.
         ///
-        /// Beklenen deger: tahsilat sansi x (1 + bu pay). Cay ikramiyla
-        /// sans yukseldigi icin cay veren kazanir, ayrim gozetmeyen kaybeder.
+        /// The expected value: collection chance x (1 + this share). Because
+        /// a glass of tea raises the chance, whoever offers the tea wins and
+        /// whoever makes no distinction loses.
         /// </summary>
         public int CreditRepayBonusBp { get; }
 
@@ -422,10 +440,10 @@ namespace Lokanta.Core.Content
         public StationTier[] Tiers { get; }
 
         /// <summary>
-        /// Paylasilan alti istasyondan biri mi. false ise mutfaga OZEL
-        /// adlandirilmis ekipman (tas firin, doner ocagi...): baslangicta
-        /// yoktur, masa sayisi yuzunden hicbir zaman ZORUNLU olmaz, yalnizca
-        /// menu acar.
+        /// Is this one of the six shared stations. If false it is equipment
+        /// named SPECIFICALLY for the cuisine (tas_firin, doner_ocagi, ...):
+        /// it is not there at the start, it never becomes COMPULSORY because
+        /// of the table count, and it only opens menu.
         /// </summary>
         public bool Shared { get; }
 
@@ -437,25 +455,26 @@ namespace Lokanta.Core.Content
             NameKey = nameKey ?? throw new ArgumentNullException(nameof(nameKey));
             Tiers = tiers ?? throw new ArgumentNullException(nameof(tiers));
             if (tiers.Length == 0)
-                throw new ArgumentException("istasyonun en az bir basamagi olmali", nameof(tiers));
+                throw new ArgumentException("a station must have at least one rung", nameof(tiers));
         }
 
         public int MaxTier { get { return Tiers.Length - 1; } }
     }
 
     /// <summary>
-    /// Soguk hava kademesi. Bozulabilir malzemenin KENDI raf omrunun
-    /// (spoilDays) yuzde kacinin gecerli oldugunu soyluyor.
+    /// The cold-store tier. It says what share of a perishable ingredient's
+    /// OWN shelf life (spoilDays) applies.
     ///
-    /// Kademe 0'da pay sifir: bozulabilir her sey gece oluyor. docs/12 3
-    /// bunu tasarlanmis temel olarak yaziyor; soguk hava o temeli DEGISTIREN
-    /// yukseltme, eksigi kapatan bir duzeltme degil.
+    /// At tier 0 the share is zero: everything perishable goes off
+    /// overnight. docs/12 3 writes that down as the designed baseline; the
+    /// cold store is the upgrade that CHANGES that baseline, not a fix that
+    /// patches a shortcoming.
     /// </summary>
     public readonly struct StorageTier
     {
-        /// <summary>spoilDays'in yuzde kaci gecerli, baz puan. 0 = hic.</summary>
+        /// <summary>What share of spoilDays applies, in basis points. 0 = none at all.</summary>
         public readonly int KeepBp;
-        public readonly long Price;      // santi-sikke
+        public readonly long Price;      // centi-coins
 
         public StorageTier(int keepBp, long price)
         {
@@ -474,19 +493,19 @@ namespace Lokanta.Core.Content
             NameKey = nameKey ?? throw new ArgumentNullException(nameof(nameKey));
             Tiers = tiers ?? throw new ArgumentNullException(nameof(tiers));
             if (tiers.Length == 0)
-                throw new ArgumentException("deponun en az bir basamagi olmali", nameof(tiers));
+                throw new ArgumentException("a store must have at least one rung", nameof(tiers));
         }
 
         public int MaxTier { get { return Tiers.Length - 1; } }
     }
 
-    /// <summary>Servis gununun dort dilimi. docs/12 5.6.</summary>
+    /// <summary>The four slots of the service day. docs/12 5.6.</summary>
     public enum DaySlot
     {
-        Acilis = 0,
-        Ogle = 1,
-        OgledenSonra = 2,
-        Aksam = 3,
+        Opening = 0,
+        Lunch = 1,
+        Afternoon = 2,
+        Evening = 3,
         Count = 4
     }
 
@@ -494,7 +513,7 @@ namespace Lokanta.Core.Content
     {
         public string Id { get; }
         public string NameKey { get; }
-        public int TierIndex { get; }          // 0 sik, 1 orta, 2 nadir
+        public int TierIndex { get; }          // 0 frequent, 1 middling, 2 rare
         public int Weight { get; }
         public int PatienceMs { get; }
         public int PriceSensitivityBp { get; }
@@ -502,7 +521,7 @@ namespace Lokanta.Core.Content
         public int GroupSizeMax { get; }
         public int ReputationWeightBp { get; }
         public int TipChanceBp { get; }
-        /// <summary>Dort dilimin agirligi, toplami 10000.</summary>
+        /// <summary>The weights of the four slots; they sum to 10000.</summary>
         public int[] ArrivalWeightsBp { get; }
 
         public ArchetypeDef(string id, string nameKey, int tierIndex, int weight,
@@ -520,54 +539,57 @@ namespace Lokanta.Core.Content
     }
 
     /// <summary>
-    /// Tek bir mutfagin butun icerigi. Yuklemeden sonra degismez.
-    /// Diziler sirali ve indeksle adreslenir: kayitta kimlik degil indeks
-    /// tutulur, ama indeks icerik surumune bagli oldugu icin kayit dosyasi
-    /// kimlikleri de saklar ve yuklemede yeniden esler.
+    /// The whole content of a single cuisine. Immutable once loaded.
+    /// The arrays are ordered and addressed by index: the save holds the
+    /// index rather than the id, but because an index depends on the content
+    /// version the save file also keeps the ids and re-matches them on load.
     /// </summary>
     public sealed class ContentSet
     {
         public string Cuisine { get; }
 
         /// <summary>
-        /// Gunun dort diliminin SURESI, baz puan, toplami 10000.
-        /// docs/28-peak-decision.md Karar G: dilimler esit degil ve mutfaga
-        /// gore degisiyor. Turk lokantasinin ogle dilimi gunun %48'i.
+        /// The DURATION of the day's four slots, in basis points, summing to
+        /// 10000. docs/28-peak-decision.md Decision G: the slots are not
+        /// equal and they vary by cuisine. A Turkish restaurant's lunch slot
+        /// is 48% of the day.
         /// </summary>
         public int[] SlotDurationsBp { get; }
 
         /// <summary>
-        /// Masaya garson gelmiyor: siparis ve odeme TEZGAHTA, tepsiyi
-        /// musteri tasiyor. Salonun isi tezgah + toplama + bulasik.
+        /// No waiter comes to the table: ordering and paying happen AT THE
+        /// COUNTER and the customer carries the tray. The hall's work is
+        /// counter + clearing + washing-up.
         /// </summary>
         public bool SelfService { get; }
 
         /// <summary>
-        /// Bu mutfagin salon yuku, mikro/musteri. 0 ise economy.json
-        /// toplami gecerli.
+        /// This cuisine's hall workload, in micro per customer. If 0, the
+        /// total from economy.json applies.
         /// </summary>
-        public int SalonWorkPerCustomerMicro { get; }
+        public int HallWorkPerCustomerMicro { get; }
 
-        /// <summary>Ucret payi: sum(work x gunluk ucret). 0 ise degismez.</summary>
-        public long SalonWageNumerator { get; }
+        /// <summary>The wage numerator: sum(work x daily wage). If 0 it is unchanged.</summary>
+        public long HallWageNumerator { get; }
 
         /// <summary>
-        /// Talep carpani, baz puan. 0 ya da 10000 ise degisiklik yok.
-        /// Fast food hacim, Turk fis oyunu.
+        /// The demand multiplier, in basis points. 0 or 10000 means no
+        /// change. Fast food is a volume game, Turkish is a ticket game.
         /// </summary>
         public int CustomerMultiplierBp { get; }
 
-        /// <summary>Kira carpani, baz puan. 0 ya da 10000 ise degisiklik yok.</summary>
+        /// <summary>The rent multiplier, in basis points. 0 or 10000 means no change.</summary>
         public int RentMultiplierBp { get; }
 
         /// <summary>
-        /// Musterinin yemek yeme suresi, milisaniye. Mutfaga gore degisiyor:
-        /// fast food'da kisa, lokantada uzun. Masa devir hizini dogrudan
-        /// belirliyor.
+        /// How long the customer takes to eat, in milliseconds. It varies by
+        /// cuisine: short on fast food, long in a restaurant. It sets the
+        /// table turnover rate directly.
         ///
-        /// Bu alan icerikte 38.000 yaziyordu ama TimingConfig 45.000
-        /// kullaniyordu; ikisi yillardir ayrisikti ve kimse gormemisti.
-        /// tools/audit_content.py uc numarali kontrolu boyle buldu.
+        /// This field read 38,000 in the content while TimingConfig was
+        /// using 45,000; the two had been out of step for ages and nobody
+        /// had seen it. Check number three of tools/audit_content.py found
+        /// it that way.
         /// </summary>
         public int EatMs { get; }
         public IngredientDef[] Ingredients { get; }
@@ -575,24 +597,24 @@ namespace Lokanta.Core.Content
         public ArchetypeDef[] Archetypes { get; }
         public StationDef[] Stations { get; }
 
-        /// <summary>Soguk hava merdiveni. Icerik yoksa null.</summary>
+        /// <summary>The cold-store ladder. Null when the content has none.</summary>
         public StorageDef Storage { get; }
 
         /// <summary>
-        /// Bu mutfagin ORTALAMA yemek karmasikligi, baz puan (15000 = 1,5).
+        /// This cuisine's MEAN dish complexity, in basis points (15000 = 1.5).
         ///
-        /// Karmasiklik riski MUTLAK degil BAGIL olmali. Fast food'un
-        /// ortalamasi 1,50, Turk lokantasinin 2,34: mutlak olcekte Turk
-        /// menusunun 17'si "zor" sayiliyor ve iyi oyuncunun itibari 51,6'ya
-        /// dusuyordu, fast food'da 99,0 iken. Ayni hata kilit kuralinda da
-        /// yapilmisti (bkz. docs/34 5).
+        /// Complexity risk must be RELATIVE, not ABSOLUTE. Fast food's mean
+        /// is 1.50, the Turkish restaurant's 2.34: on an absolute scale 17
+        /// dishes on the Turkish menu counted as "hard" and a good player's
+        /// reputation fell to 51.6, against 99.0 on fast food. The same
+        /// mistake had been made in the unlock rule as well (see docs/34 5).
         ///
-        /// Bagil olcekte her mutfagin kendi ortalamasi notr: ortalamanin
-        /// ustundeki yemek risk tasiyor, altindaki rahatlik veriyor.
+        /// On a relative scale each cuisine's own mean is neutral: a dish
+        /// above the mean carries risk, one below it gives relief.
         /// </summary>
         public int MeanComplexityBp { get; }
 
-        /// <summary>Yemegin, kendi mutfaginin ortalamasina gore karmasikligi.</summary>
+        /// <summary>A dish's complexity relative to the mean of its own cuisine.</summary>
         public int RelativeComplexityBp(int dish)
         {
             if (MeanComplexityBp <= 0) return Core.Fx.One;
@@ -601,33 +623,33 @@ namespace Lokanta.Core.Content
         }
 
         /// <summary>
-        /// Menu ROLLERI: hangi yemek gruplari ana, yan, icecek ve tatli
-        /// yerine geciyor. Mutfak basina degisiyor.
+        /// The menu ROLES: which dish groups stand for the main, the side,
+        /// the drink and the dessert. They vary per cuisine.
         ///
-        /// docs/13 mutfaga ozel grup adlarini KASITLI tasarlamis: fast
-        /// food'da ana/yan, Turk lokantasinda sulu/corba/pilav/izgara/meze.
-        /// Simulasyon ise fast food sozlugunu sabit kodlamisti ve ikinci
-        /// mutfakta hicbir musteri ana yemek bulamiyordu; sekiz stratejinin
-        /// hepsi sifir musteriyle batiyordu.
+        /// docs/13 designed the cuisine-specific group names ON PURPOSE:
+        /// ana/yan on fast food, sulu/corba/pilav/izgara/meze in the Turkish
+        /// restaurant. But the simulation had hard-coded the fast food
+        /// vocabulary, and on the second cuisine no customer could find a
+        /// main dish; all eight strategies went under with zero customers.
         /// </summary>
         public string[] MainGroups { get; }
         public string[] SideGroups { get; }
         public string[] DrinkGroups { get; }
         public string[] DessertGroups { get; }
 
-        /// <summary>Mutfagin imza mekanigi. docs/23 8.2: eksikse yuklenmez.</summary>
+        /// <summary>The cuisine's signature mechanic. docs/23 8.2: if missing, it does not load.</summary>
         public SignatureDef Signature { get; }
 
-        /// <summary>Yil sonu degerlendirmesinin mutfaga ozel ekseni.</summary>
+        /// <summary>The cuisine-specific axis of the year-end evaluation.</summary>
         public ScoreAxisDef ScoreAxis { get; }
 
         /// <summary>
-        /// Personel isim havuzu. Bos olabilir - o zaman arayuz "Asci 1"
-        /// gibi sirali adlara duser ve oyun calismaya devam eder.
+        /// The pool of staff names. It may be empty - the UI then falls back
+        /// to numbered names such as "Cook 1" and the game carries on.
         /// </summary>
         public string[] StaffNames { get; }
 
-        /// <summary>Isimli duzenli musteriler, gelis gunune gore sirali.</summary>
+        /// <summary>The named regulars, ordered by the day they arrive.</summary>
         public RegularDef[] Regulars { get; }
 
         public bool IsInRole(string group, string[] role)
@@ -649,16 +671,16 @@ namespace Lokanta.Core.Content
                           ScoreAxisDef scoreAxis = null,
                           string[] staffNames = null,
                           bool selfService = false,
-                          int salonWorkPerCustomerMicro = 0,
-                          long salonWageNumerator = 0,
+                          int hallWorkPerCustomerMicro = 0,
+                          long hallWageNumerator = 0,
                           int customerMultiplierBp = 0,
                           int rentMultiplierBp = 0)
         {
             CustomerMultiplierBp = customerMultiplierBp;
             RentMultiplierBp = rentMultiplierBp;
             SelfService = selfService;
-            SalonWorkPerCustomerMicro = salonWorkPerCustomerMicro;
-            SalonWageNumerator = salonWageNumerator;
+            HallWorkPerCustomerMicro = hallWorkPerCustomerMicro;
+            HallWageNumerator = hallWageNumerator;
             StaffNames = staffNames ?? new string[0];
             Signature = signature ?? new SignatureDef(SignatureKind.None);
             ScoreAxis = scoreAxis ?? new ScoreAxisDef("none", "score.signature", 1);
@@ -710,7 +732,7 @@ namespace Lokanta.Core.Content
             return -1;
         }
 
-        /// <summary>Belirli bir gunde acik olan yemeklerin indeksleri.</summary>
+        /// <summary>How many dishes are open on a given day.</summary>
         public int UnlockedDishCount(int day)
         {
             int n = 0;
@@ -720,9 +742,9 @@ namespace Lokanta.Core.Content
         }
 
         /// <summary>
-        /// O mevsimde acilan yemek sayisi. docs/09 ilerleme egrisi bunun
-        /// uzerine kurulu (6 -> 13 -> 21 -> 27 -> 32) ve ilerleme ekrani
-        /// yemekleri mevsime gore grupluyor.
+        /// How many dishes open in that season. The progression curve of
+        /// docs/09 is built on this (6 -> 13 -> 21 -> 27 -> 32) and the
+        /// progression screen groups the dishes by season.
         /// </summary>
         public int DishCountInSeason(int season)
         {

@@ -1,211 +1,211 @@
-# Beş Ajanlı Değerlendirme: Sentez
+# The Five-Agent Review: Synthesis
 
-**Tarih:** 9 Eylül 2026
-**Girdi:** Beş bağımsız değerlendirme, her biri farklı bir uzman bakış açısıyla ve sadece kendi alanındaki dokümanlarla. Ham raporlar bu klasörde 01'den 05'e.
-**Kapsam:** Kütükteki onay bekleyen 24 kalem.
+**Date:** 9 September 2026
+**Input:** five independent reviews, each from a different expert perspective and each with only the documents in its own field. The raw reports are in this folder, 01 to 05.
+**Scope:** the 24 items in the register awaiting approval.
 
 ---
 
-## Hüküm
+## The verdict
 
-| Karar | Kalem |
+| Decision | Items |
 |---|---|
-| ONAYLA | 3 |
-| DÜZELT | 21 |
-| REDDET | 0 |
+| APPROVE | 3 |
+| REVISE | 21 |
+| REJECT | 0 |
 
-**Hiçbir kalem reddedilmedi. Neredeyse hiçbiri de olduğu gibi onaylanmadı.** Beş ajanın ortak teşhisi aynı: yapı doğru, gerekçeler araştırmaya bağlı, ilkeler sağlam. Ama sayısal ve ayrıntı katmanı kendi içinde tutmuyor.
+**No item was rejected. Almost none was approved as it stood, either.** The five agents share a diagnosis: the structure is right, the reasoning is tied to the research, the principles are sound. But the numeric and detail layer does not hold together.
 
-İki ajanın tek cümlelik hükümleri planın durumunu özetliyor:
+Two agents' one-sentence verdicts sum up the state of the plan:
 
-- Kapsam gerçekçisi: **"Tek kişi bu oyunu çıkarabilir, ama bu planı çıkaramaz."**
-- Yayıncı: **"Plan para kazanmaz değil, planlandığı sırayla para kazanmaz."**
+- The scope realist: **"One person can ship this game, but not this plan."**
+- The publisher: **"It is not that the plan makes no money; it makes no money in the order it is planned."**
 
-Onaylanan üç kalem: kayıt dosyası formatı (B6), ses kaynağı (C4), arayüz ve yazı tipi (C5). Üçü de şartlı onay.
-
----
-
-## Beş ajanın birleştiği yerler
-
-Bunlar birden fazla ajanın bağımsız olarak, farklı dokümanlardan gelerek bulduğu sorunlar. En güvenilir bulgular bunlar.
-
-### 1. Sayılar formülden türemiyor
-
-**Üç ajan, üç açıdan.** Tasarımcı ekonomi tablosunu yeniden hesapladı: ikinci hafta neti 560 değil 933, üçüncü hafta −322 değil +1.810. "Genişleme haftası zarar ettiriyor" anlatısı tasarım kararı değil, aritmetik hatasının sonucu. Kapasite modelinde 58 müşteri için 8 değil 12 personel gerekiyor; "tavan ihtiyaca göre ayarlandı" cümlesi kendi sayılarıyla yanlış. Mimar aynı kapasite modelinin şemalarda hiç olmadığını buldu. UX uzmanı öğreticinin ilk personel dersinin kapasite modeliyle çeliştiğini buldu.
-
-**Sonuç:** Faz 0 denge aracı bu tablolardan değil, formüllerden başlamalı. Tablolar sonuç olmalı, girdi değil.
-
-### 2. Hal aşaması çözülmemiş
-
-**İki ajan.** UX uzmanı bir günün dokunuşlarını saydı: ham akışta 80, bütçe 60, ve hal tek başına 40. Tasarımcı aynı aşamada bir ilke çelişkisi buldu: 02 ilke 2 "malzeme siparişi otomatikleşir" derken 02 §3 halı "ikinci döngü" yapıyor. Fast food'da malzemenin %80'i bozulmadığı için hal "ucuz günde stokla" oyununa dönüyor, üstelik ücretsiz ve öğretici mutfakta.
-
-**Sonuç:** Hal ya otomatik taban sipariş artı günde 3-5 elle karar olacak, ya da gerçek bir ikinci döngü. İkisi birden olamaz.
-
-### 3. Kapsam, prototip yokken şişti
-
-**İki ajan.** Kapsam gerçekçisi varlıkları saydı ve süreyi tahmin etti: 13-14 kişi-ay, yol haritası 5-7 ay diyor. Tek günde yemek 20→32, arketip 8→20, kıyafet 12→16, isimli karakter 8→13 olmuş, ekonomi hâlâ dengelenmemiş. Tasarımcı aynı noktaya farklı yoldan geldi: 32 yemek ancak her yemek dört parametre taşırsa anlamlı, aksi hâlde v1'in 20'si yeterliydi.
-
-**Sonuç:** v2 sayıları şema tavanı olarak kalsın, çıkış v1 sayılarında dondurulsun.
-
-### 4. Dokümanlar birbiriyle çelişiyor
-
-**Üç ajan.** Kombinasyon sayısı bir dosyada hem 17.280 hem 23.040. Müzik parçası 8 ve 9. Arketip v1 sayısı 6 ve 8. `hourSplit` ile `arrivalWeights` aynı şeyin iki kaynağı. İlk personel zamanı dört dokümanda dört farklı. `IAnalytics` bir listede var bir listede yok.
-
-**Sonuç:** Planın aynı gün içinde birkaç kez büyüdüğünün izi. Tek geçişte temizlenmeli.
-
-### 5. Öğretici takvimi tutmuyor
-
-**UX uzmanı ana bulgu, tasarımcı destek.** İlk on dakikada öğrenilen beş şeyin beşi de ceza: fiyat kızdırır, stok biter, personel para götürür, kira gelir. Tek olumlu doruk yok. "İlk üç gün batma yok" kuralı ölü, çünkü merdiven haftalık ödemeye bağlı ve yedinci günden önce zaten tetiklenemez. Tasarımcı ise döngünün 20. günde otomatikleştiğini, fiyatın birinci gün çözülüp bir daha dokunulmadığını buldu.
+The three approved items: the save file format (B6), the audio source (C4), and the UI and typeface (C5). All three are conditional approvals.
 
 ---
 
-## Tek ajanın bulduğu ama kritik olanlar
+## Where the five agents converge
 
-Bunlar yalnızca bir uzmanın alanına giriyor ama her biri tek başına Faz 0'ı engelleyecek ağırlıkta.
+These are the problems more than one agent found independently, arriving from different documents. They are the most reliable findings.
 
-| Bulgu | Ajan | Neden kritik |
+### 1. The numbers do not follow from the formulas
+
+**Three agents, from three angles.** The designer recomputed the economy table: week two's net is 933, not 560, and week three's is +1,810, not −322. The story that "the expansion week costs you money" is not a design decision but the result of an arithmetic error. In the capacity model, 58 customers need 12 staff, not 8; the sentence "the cap was tuned to the need" is wrong by its own numbers. The architect found that the same capacity model is nowhere in the schemas. The UX expert found that the tutorial's first staff lesson contradicts the capacity model.
+
+**Conclusion:** the Phase 0 balance harness must start from the formulas, not from these tables. The tables should be output, not input.
+
+### 2. The Market stage is unresolved
+
+**Two agents.** The UX expert counted the touches in a day: 80 in the raw flow, against a budget of 60, with the Market alone at 40. The designer found a contradiction of principle in the same stage: 02 principle 2 says "ingredient ordering becomes automatic" while 02 §3 makes the Market "the second loop". Because 80% of fast food ingredients do not spoil, the Market turns into a game of "stock up on a cheap day" — and in the free, tutorial cuisine at that.
+
+**Conclusion:** the Market will either be an automatic baseline order plus 3-5 manual decisions a day, or a real second loop. It cannot be both.
+
+### 3. The scope grew while there was no prototype
+
+**Two agents.** The scope realist counted the assets and estimated the time: 13-14 person-months, against a roadmap that says 5-7 months. In a single day dishes went 20→32, archetypes 8→20, outfits 12→16 and named characters 8→13, and the economy is still unbalanced. The designer arrived at the same point by a different road: 32 dishes are only meaningful if every dish carries four parameters; otherwise v1's 20 were enough.
+
+**Conclusion:** keep the v2 numbers as a schema ceiling and freeze the release at the v1 numbers.
+
+### 4. The documents contradict each other
+
+**Three agents.** The combination count is both 17,280 and 23,040 in one file. Music tracks are 8 and 9. The v1 archetype count is 6 and 8. `hourSplit` and `arrivalWeights` are two sources for the same thing. The time of the first staff member is four different things in four documents. `IAnalytics` is in one list and not in another.
+
+**Conclusion:** the trace of a plan that grew several times in a single day. It should be cleaned up in one pass.
+
+### 5. The tutorial calendar does not hold
+
+**The UX expert's main finding, with the designer in support.** All five things learned in the first ten minutes are punishments: price angers people, stock runs out, staff take money, rent arrives. There is no single positive peak. The rule "no collapse in the first three days" is dead, because the ladder hangs on the weekly payment and cannot fire before day seven. The designer, for his part, found that the loop goes on autopilot by day 20 and that price is solved on day one and never touched again.
+
+---
+
+## Found by a single agent, but critical
+
+These fall within only one expert's field, but each one on its own is heavy enough to block Phase 0.
+
+| Finding | Agent | Why it is critical |
 |---|---|---|
-| **Determinizm tasarlanmamış** | Mimar | `Tick(deltaTime)` değişken kare süresini çekirdeğe sokuyor. RNG belirsiz, kayan nokta platformlar arası ayrışır, tr-TR kültürü `ToUpper` ve `Parse`'ı bozar. Kayıt sistemi ve denge aracı bu varsayıma yaslanıyor |
-| **Steam sırası ters** | Yayıncı | Araştırmadaki on referansın dokuzu Steam. Sayaçtan nefret eden kitle orada. Plan Steam'i en sona atıyor |
-| **Dönüşüm tetikleyicisi 4-6 saat sonrada** | Yayıncı | Satın alma ancak ücretsiz kampanya bitince anlam kazanıyor. Oraya kurulumların %5-10'u ulaşır |
-| **Sabır uyarısı sadece renk** | UX | Kırmızı masa kenarı, kırmızı-sarı fast food paletinde. Sessiz ve renk körü oyuncu görmüyor |
-| **GPU Resident Drawer yanlış araç** | Mimar | Forward+ ister, GLES'te çalışmaz, 100 çizim çağrısında faydası ölçülemez |
-| **Karakter hattı yetenek boşluğunda** | Kapsam | Ağırlık aktarımı görsel yargı ister. 16 set × 3 vücut tipi = 96 mesh. Mixamo yedeği iskeleti kurtarıyor, klipleri değil |
-| **Hukuki boşluklar somut** | Yayıncı | Satın alma geri yükleme (Apple 3.1.1 reddi), iade iptali, AB DSA tacir adresi, Steam yapay zekâ beyanı, oyunun adı yok |
+| **Determinism is not designed** | Architect | `Tick(deltaTime)` lets variable frame time into the core. The RNG is undefined, floating point diverges across platforms, and the tr-TR culture breaks `ToUpper` and `Parse`. The save system and the balance harness both lean on this assumption |
+| **The Steam order is backwards** | Publisher | Nine of the ten references in the research are Steam games. The audience that hates timers is there. The plan puts Steam last |
+| **The conversion trigger is 4-6 hours in** | Publisher | A purchase only becomes meaningful once the free campaign is over. An estimated 5-10% of installs get there |
+| **The patience warning is colour only** | UX | A red table edge, in a red-and-yellow fast food palette. A silent player and a colour-blind player do not see it |
+| **The GPU Resident Drawer is the wrong tool** | Architect | It wants Forward+, does not work on GLES, and its benefit cannot be measured at 100 draw calls |
+| **The character pipeline sits in the skill gap** | Scope | Weight transfer needs visual judgement. 16 sets × 3 body types = 96 meshes. The Mixamo fallback saves the rig, not the clips |
+| **The legal gaps are concrete** | Publisher | Restore purchases (an Apple 3.1.1 rejection), refund revocation, the EU DSA trader address, the Steam AI declaration, and the game has no name |
 
 ---
 
-## Ajanların çeliştiği yerler
+## Where the agents disagree
 
-Gerçek çelişki tek: **yemek sayısı.** Tasarımcı "32 kalabilir, ama her yemek parametreliyse" diyor. Kapsam gerçekçisi "20'ye in" diyor. İkisi de 32'nin parametresiz hâlinin yanlış olduğunda hemfikir.
+There is only one real conflict: **the dish count.** The designer says "32 can stay, but only if every dish is parameterised". The scope realist says "come down to 20". Both agree that 32 without parameters is wrong.
 
-Diğer görünür çelişkiler aslında uyumlu:
+The other apparent conflicts are actually compatible:
 
-- Yayıncı gün sonu ödüllü reklamı geri istiyor. Mimar `IAdProvider`'ın tanımsız olduğunu, tanım yoksa kaldırılması gerektiğini söylüyor. Reklam tanımlanırsa ikisi de memnun.
-- Kapsam gerçekçisi isimli karakteri 13'ten 8'e indiriyor. Yayıncı veresiye ile düzenli müşteri kesişimini "satın almanın tek gerçek gerekçesi" sayıyor. Kapsam gerçekçisi zaten "sayı iner, sistem kalır, bu asla kesilmez" diyor.
+- The publisher wants the end-of-day rewarded ad back. The architect says `IAdProvider` is undefined and that without a definition it should be removed. If the ad is defined, both are satisfied.
+- The scope realist cuts named characters from 13 to 8. The publisher counts the intersection of the tab and the regular customer as "the only real justification for the purchase". The scope realist already says "the count comes down, the system stays, this is never cut".
 
 ---
 
-## Kalem kalem kararlar
+## Item-by-item decisions
 
-| Kalem | Konu | Karar | Ajan | Öz |
+| Item | Topic | Decision | Agent | In short |
 |---|---|---|---|---|
-| A4 | Ekonomi sayıları | DÜZELT | Tasarım | Tablo formülden türesin, hafta sonu katsayısı uygulansın |
-| A5 | İçerik envanteri | DÜZELT | Tasarım | Her yemeğe dört parametre, menü yuvası kademeyle büyüsün |
-| A6 | İlerleme eğrisi | DÜZELT | Tasarım | 4. mevsime olay zinciri ya da kampanya 45 güne |
-| A7 | Müşteri sistemi | DÜZELT | Tasarım | Kişi/grup netleşsin, nadir takvime bağlansın, fiyat cezası doğrusal olmasın |
-| A8 | Personel sistemi | DÜZELT | Tasarım | Kadro kapasiteden türesin, tavan 3/5/7/9, izin günü evet |
-| A9 | Ekranlar ve akış | DÜZELT | UX | Aşama içi geri alma, geri tuşu duraklatma açsın, "Dün" kartı |
-| A10 | Öğretici | DÜZELT | UX | Tek takvim, ilk kayıptan sonra ilk işe alım, olumlu doruk |
-| A11 | Kayıt sistemi | DÜZELT | Mimar | Servis ortası kayıt komut günlüğü olsun, yazma arka iş parçacığında |
-| A12 | Ses tasarımı | DÜZELT | UX | Görsel ikiz renkten bağımsız olsun, titreşim eklensin |
-| A13 | Hikaye ve metin | DÜZELT | Kapsam | Düzenli 10→6, personel 3→2, eleştirmen 5→3 kademe |
-| A15 | Mutfak kimliği | DÜZELT | Kapsam | Kıyafet 16→8-10, kombinasyon sayısı tutarlı olsun |
-| B3 | Veri şemaları | DÜZELT | Mimar | İmza mekaniği parametreleri, kapasite bloğu, tamsayı birimler |
-| B4 | Unity ve render | DÜZELT | Mimar | GRD kapalı, HDR kapalı, taşınabilir mobilya pişirilmesin |
-| B5 | Performans | DÜZELT | Mimar | Bütçeler milisaniye cinsinden, sıfır GC, PSS tanımlı |
-| **B6** | **Kayıt formatı** | **ONAYLA** | Mimar | Şartlı: CRC32, Flush(true), zarf meta alanları |
-| B7 | Girdi haritası | DÜZELT | Mimar | Oyun kolu şeması şimdi, 16:10 desteği, IInputSource port olmasın |
-| C1 | Model yolu | DÜZELT | Kapsam | Prototip hazır paketle, betik iki haftalık zaman kutusuyla |
-| C2 | Karakter | DÜZELT | Kapsam | Tek mesh artı kemik ölçeği, klipler bugün indirilsin |
-| **C4** | **Ses kaynağı** | **ONAYLA** | Kapsam | Şartlı: stem verebildiği doğrulansın, bütçe satırı dolsun |
-| **C5** | **Arayüz ve yazı tipi** | **ONAYLA** | Kapsam | Planın en tamam kalemi |
-| C8 | Test planı | DÜZELT | Kapsam | Sıkılma sorusu telemetriye, Mac yoksa iOS ertelensin |
-| D2 | Fiyat | DÜZELT | Yayıncı | Paket 9,99 ve ancak iki mutfakla, bölgesel fiyat, dekor kademesi |
-| D5 | Lansman | DÜZELT | Yayıncı | Steam sayfası Faz 1 sonunda, Next Fest, kapalı test Türkiye |
-| D6 | Hukuki | DÜZELT | Yayıncı | Geri yükleme, iade iptali, DSA adresi, AI beyanı, ad tescili |
+| A4 | Economy numbers | REVISE | Design | Derive the table from the formula, apply the weekend factor |
+| A5 | Content inventory | REVISE | Design | Four parameters per dish, menu slots grow with the tier |
+| A6 | Progression curve | REVISE | Design | An event chain for season 4, or cut the campaign to 45 days |
+| A7 | Customer system | REVISE | Design | Settle person/party, bind rares to a calendar, make the price penalty non-linear |
+| A8 | Staff system | REVISE | Design | Derive the crew from capacity, cap 3/5/7/9, day off yes |
+| A9 | Screens and flow | REVISE | UX | In-stage undo, the back button opens pause, a "Yesterday" card |
+| A10 | Tutorial | REVISE | UX | One calendar, the first hire after the first loss, a positive peak |
+| A11 | Save system | REVISE | Architect | Mid-service saving as a command log, writing on a background thread |
+| A12 | Audio design | REVISE | UX | The visual twin must not depend on colour, add haptics |
+| A13 | Story and text | REVISE | Scope | Regulars 10→6, staff 3→2, the critic 5→3 tiers |
+| A15 | Cuisine identity | REVISE | Scope | Outfits 16→8-10, make the combination count consistent |
+| B3 | Data schemas | REVISE | Architect | Signature mechanic parameters, a capacity block, integer units |
+| B4 | Unity and render | REVISE | Architect | GRD off, HDR off, do not bake movable furniture |
+| B5 | Performance | REVISE | Architect | Budgets in milliseconds, zero GC, PSS defined |
+| **B6** | **Save format** | **APPROVE** | Architect | Conditional: CRC32, Flush(true), envelope meta fields |
+| B7 | Input map | REVISE | Architect | The gamepad scheme now, 16:10 support, IInputSource should not be a port |
+| C1 | Model path | REVISE | Scope | Prototype with a ready-made pack, the script on a two-week time box |
+| C2 | Characters | REVISE | Scope | One mesh plus bone scaling, download the clips today |
+| **C4** | **Audio source** | **APPROVE** | Scope | Conditional: verify it can give stems, fill in the budget line |
+| **C5** | **UI and typeface** | **APPROVE** | Scope | The most finished item in the plan |
+| C8 | Test plan | REVISE | Scope | The boredom question into telemetry, defer iOS if there is no Mac |
+| D2 | Price | REVISE | Publisher | The bundle at 9.99 and only with two cuisines, regional pricing, a décor tier |
+| D5 | Launch | REVISE | Publisher | The Steam page at the end of Phase 1, Next Fest, closed test in Turkey |
+| D6 | Legal | REVISE | Publisher | Restore purchases, refund revocation, the DSA address, the AI declaration, name registration |
 
-Danışma niteliğinde: **D1 gelir modeli** (karar verilmişti) için yayıncı DÜZELT diyor: üç günlük sıfırlama penceresi ücretli mutfağın bedava tadımına çevrilsin, gün sonu ödüllü reklam geri gelsin.
-
----
-
-## Düzeltme planı
-
-Yirmi bir düzeltme yedi partiye ayrıldı. İlk ikisi Faz 0'ın ön koşulu.
-
-### Parti A — Sayısal tutarlılık *(Faz 0 öncesi zorunlu)*
-
-1. Büyüme tablosunu formülden, hafta sonu katsayısıyla yeniden üret
-2. Kapasite modelini kadro tablosu ve tavanla uzlaştır: ya kapasite yüksel, ya talep düş, tavan 3/5/7/9
-3. Servis süresi kademeyle ölçeklensin: 4 masada 120 sn, 14 masada 180 sn
-4. Müşteri birimi netleşsin: hız için grup, fiş için kişi
-5. Nadir arketipler yüzdeden çıkıp takvime bağlansın: kampanyada 8-12 olay
-6. Fiyat cezası doğrusal olmaktan çıksın, %10 üstünde hızlansın, tolerans itibara bağlansın
-7. Her yemeğe dört parametre: hazırlık süresi, istasyon, bozulabilir malzeme, arketip çekimi
-8. Veresiye tanımlansın: tavan, vade, tahsilat takvimi, ödememe olasılığı
-
-### Parti B — Çekirdek mimari *(Faz 0 öncesi zorunlu)*
-
-1. Sabit adım: parametresiz `Tick()`, 100 ms, `tickIndex` kayıtta
-2. Durum tamamen tamsayı: milisaniye, gram, 1/100 puan
-3. Çekirdekte kendi RNG'si, alt sisteme ve güne göre ayrı akış
-4. Invariant kültür zorunlu, `string.GetHashCode` yasak
-5. JSON kütüphanesi, olay mekanizması ve kompozisyon kökü tanımlansın
-6. Şemalara imza mekaniği parametre blokları, `combos.json`, kapasite bloğu
-7. Servis ortası kayıt komut günlüğü artı tekrar oynatma
-8. CI'da .NET ile Android IL2CPP hash karşılaştırması
-
-### Parti C — Kapsam kesintisi
-
-1. Yemek 32 → 20, kalan 12 çıkış sonrası ücretsiz
-2. Kıyafet 16 → 8-10, üç vücut tipi tek mesh artı kemik ölçeği
-3. İsimli karakter 13 → 8, sahne 3
-4. Yol haritası 13-14 kişi-ay üstünden yeniden yazılsın
-5. Sulu yemek, çorba, pilav betiğe alınsın; yapay zeka üretimi 5-10 kahraman yemeğe
-6. Bütün animasyon klipleri bugün indirilip depoya konsun
-
-### Parti D — Oyuncu deneyimi
-
-1. Hal: dünkü sipariş hazır gelsin, porsiyon üstünden sipariş, hedef on dokunuş
-2. Sabır uyarısı üç kanallı: masada renk artı şekil artı hareket, ekran kenarında ok, üst çubukta dokunulabilir çipler
-3. Öğretici tek takvimde, ilk işe alım ilk görünür kayıptan sonra, beşinci dakikadan önce olumlu doruk
-4. Servis: 1x/2x hız, gün ilerleme çubuğu, müdahale sayacı
-5. Aşama içi geri alma, geri tuşu duraklatma açsın, "Dün" kartı, kayıp müşteri sebebi
-
-### Parti E — İş ve yayın
-
-1. Steam sayfası Faz 1 sonunda, Next Fest demosu ücretsiz kampanya, Erken Erişim 9,99
-2. Üç günlük sıfırlama ücretli mutfağın bedava tadımına dönüşsün
-3. Gün sonu ödüllü reklam geri gelsin, sadece oyuncu basınca
-4. Bölgesel fiyat tabloları, 1,99-2,99 dekor kademesi, paket 9,99 ve ancak iki mutfakla
-5. Kapalı test Türkiye, açık test Filipinler artı Kanada, Android önce, 300-500 dolar edinim bütçesi
-6. Metrikler takvim günü ile oyun gününü ayırsın; D1 ≥ %35, D7 ≥ %15, D30 ≥ %6
-7. Hukuk: geri yükleme, iade iptali, DSA adresi, Steam AI beyanı, ad tescili
-
-### Parti F — Teknik ayarlar
-
-1. GPU Resident Drawer kapalı, HDR kapalı, MSAA 4x
-2. Sadece duvar ve zemin pişirilsin
-3. Bütçeler milisaniye: ana ≤ 10, render ≤ 6, GPU ≤ 14; serviste sıfır GC; PSS ≤ 500 MB
-4. Oyun kolu şeması şimdi, 16:10 desteği, `IInputSource` port olmaktan çıksın
-5. Uzak Addressables ilk sürümde yok
-
-### Parti G — Doküman temizliği
-
-1. 17.280 ile 23.040, 8 ile 9 müzik, 6 ile 8 arketip, `hourSplit` ile `arrivalWeights`, ilk personel zamanı, `IAnalytics`
+In an advisory capacity: for **D1, the revenue model** (which had been decided), the publisher says REVISE: turn the three-day reset window into a free taste of the paid cuisine, and bring back the end-of-day rewarded ad.
 
 ---
 
-## Senin cevaplaman gereken sorular
+## The fix plan
 
-Ajanların sorduğu soruların çoğu tasarım işiyle kapanır. Ama şu dokuzu senin bilgin veya kararın olmadan kapanmaz.
+The twenty-one revisions are split into seven batches. The first two are preconditions of Phase 0.
 
-| # | Soru | Soran | Neden önemli |
+### Batch A — Numeric consistency *(mandatory before Phase 0)*
+
+1. Regenerate the growth table from the formula, with the weekend factor
+2. Reconcile the capacity model with the crew table and the cap: either raise capacity or lower demand, cap 3/5/7/9
+3. Scale service time with the tier: 120 s at 4 tables, 180 s at 14
+4. Settle the customer unit: parties for throughput, people for the bill
+5. Take the rare archetypes off percentages and bind them to a calendar: 8-12 events per campaign
+6. Make the price penalty non-linear, accelerating above 10%, with tolerance tied to reputation
+7. Four parameters per dish: prep time, station, perishable ingredient, archetype pull
+8. Define the tab: cap, term, collection calendar, chance of non-payment
+
+### Batch B — Core architecture *(mandatory before Phase 0)*
+
+1. Fixed step: a parameterless `Tick()`, 100 ms, `tickIndex` in the save
+2. State entirely integer: milliseconds, grams, 1/100 points
+3. Its own RNG in the core, a separate stream per subsystem and per day
+4. Invariant culture mandatory, `string.GetHashCode` banned
+5. Define the JSON library, the event mechanism and the composition root
+6. Signature-mechanic parameter blocks in the schemas, `combos.json`, a capacity block
+7. Mid-service saving as a command log plus replay
+8. A .NET vs Android IL2CPP hash comparison in CI
+
+### Batch C — Scope cut
+
+1. Dishes 32 → 20, the remaining 12 free after release
+2. Outfits 16 → 8-10, three body types as one mesh plus bone scaling
+3. Named characters 13 → 8, beats 3
+4. Rewrite the roadmap on 13-14 person-months
+5. Script the stews, soups and rice; AI generation for 5-10 hero dishes
+6. Download every animation clip today and put it in the repository
+
+### Batch D — Player experience
+
+1. The Market: yesterday's order arrives ready, orders placed in portions, target ten touches
+2. A three-channel patience warning: colour plus shape plus motion on the table, an arrow at the screen edge, touchable chips on the top bar
+3. The tutorial on a single calendar, the first hire after the first visible loss, a positive peak before minute five
+4. Service: 1x/2x speed, a day progress bar, an intervention counter
+5. In-stage undo, the back button opens pause, a "Yesterday" card, the reason a customer was lost
+
+### Batch E — Business and release
+
+1. The Steam page at the end of Phase 1, the Next Fest demo as the free campaign, Early Access at 9.99
+2. Turn the three-day reset into a free taste of the paid cuisine
+3. Bring back the end-of-day rewarded ad, only when the player presses it
+4. Regional price tables, a 1.99-2.99 décor tier, the bundle at 9.99 and only with two cuisines
+5. Closed test Turkey, open test the Philippines plus Canada, Android first, a $300-500 acquisition budget
+6. The metrics must separate the calendar day from the in-game day; D1 ≥ 35%, D7 ≥ 15%, D30 ≥ 6%
+7. Legal: restore purchases, refund revocation, the DSA address, the Steam AI declaration, name registration
+
+### Batch F — Technical settings
+
+1. GPU Resident Drawer off, HDR off, MSAA 4x
+2. Bake only the walls and the floor
+3. Budgets in milliseconds: main ≤ 10, render ≤ 6, GPU ≤ 14; zero GC during service; PSS ≤ 500 MB
+4. The gamepad scheme now, 16:10 support, `IInputSource` should stop being a port
+5. No remote Addressables in the first release
+
+### Batch G — Document clean-up
+
+1. 17,280 vs 23,040, 8 vs 9 music tracks, 6 vs 8 archetypes, `hourSplit` vs `arrivalWeights`, the time of the first staff member, `IAnalytics`
+
+---
+
+## The questions you have to answer
+
+Most of the agents' questions close with design work. But these nine do not close without your knowledge or your decision.
+
+| # | Question | Asked by | Why it matters |
 |---|---|---|---|
-| 1 | **Tam zamanlı mı, akşamları mı?** | Kapsam | Kişi-ay ile takvim ayı arasındaki çarpan bu |
-| 2 | **Mac var mı?** | Kapsam | Yoksa iOS derlemesi yok, ilk sürüm Android |
-| 3 | **Blender'ı hiç açtın mı, mesh'in yanlış olduğunu görebiliyor musun?** | Kapsam | Prosedürel yolun zaman kutusu buna bağlı |
-| 4 | **Bütçe gerçekten sıfır mı?** | Yayıncı | 300-500 dolar test edinimi olmadan soft launch veri üretmiyor |
-| 5 | **Oyunun adı ne?** | Yayıncı | Marka taraması ve tescil, klonlara karşı tek savunma |
-| 6 | **Yemek 20 mi 32 mi?** | Tasarım ve Kapsam çelişiyor | 32 sadece parametreliyse anlamlı |
-| 7 | **Gün sonu ödüllü reklam geri gelsin mi?** | Yayıncı, verilmiş kararı sorguluyor | Ödemeyen %98'den tek gelir kaynağı |
-| 8 | **Steam öne alınsın mı?** | Yayıncı, verilmiş kararı sorguluyor | Kitle orada, mobil dönüşüm düşük |
-| 9 | **Yatay mod kesin mi?** | UX | Öneri: yatay kalsın ama başparmak bölgesi düzeni ve sol el aynalama |
+| 1 | **Full time, or evenings?** | Scope | This is the multiplier between person-months and calendar months |
+| 2 | **Is there a Mac?** | Scope | Without one there is no iOS build, and the first release is Android |
+| 3 | **Have you ever opened Blender, can you see that a mesh is wrong?** | Scope | The time box on the procedural path depends on it |
+| 4 | **Is the budget really zero?** | Publisher | Without $300-500 of test acquisition, a soft launch produces no data |
+| 5 | **What is the game called?** | Publisher | A trademark search and registration are the only defence against clones |
+| 6 | **20 dishes or 32?** | Design and Scope disagree | 32 is only meaningful if they are parameterised |
+| 7 | **Should the end-of-day rewarded ad come back?** | Publisher, questioning a decision already made | The only revenue from the 98% who do not pay |
+| 8 | **Should Steam be moved forward?** | Publisher, questioning a decision already made | The audience is there, and mobile conversion is low |
+| 9 | **Is landscape settled?** | UX | Suggestion: stay landscape, but with a thumb-zone layout and left-handed mirroring |
 
 ---
 
-## Sonraki adım
+## The next step
 
-Bu dokuz soru cevaplanınca Parti A ve B yazılır. İkisi bitmeden Faz 0 başlamaz, çünkü denge aracı tutarsız sayılar ve deterministik olmayan bir çekirdek üstünde anlamsız sonuç üretir.
+Once these nine questions are answered, Batches A and B get written. Phase 0 does not start until both are done, because the balance harness produces meaningless results on top of inconsistent numbers and a non-deterministic core.
 
-Parti C'den G'ye kadar olanlar Faz 0 ile paralel yürütülebilir.
+Batches C through G can run in parallel with Phase 0.

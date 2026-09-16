@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -7,60 +7,65 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Moduler ODA TABANLI yerlesim ve dokunma hedefi olcumu.
+    /// The modular ROOM-BASED layout and the touch target measurement.
     ///
-    /// Tur 1 (acik salon, RestaurantScene.cs): masa her kademede 15-20 dp,
-    /// asgari 48 dp. Basarisiz.
+    /// Round 1 (an open hall, RestaurantScene.cs): a table was 15-20 dp at
+    /// every tier against a 48 dp minimum. Failed.
     ///
-    /// Tur 2 (odalar tek sira): restoran 25 x 4,6 m bir koridora dondu,
-    /// 20:9 karenin yarisi bos kaldi ve kamera her kademede geri cekildigi
-    /// icin dokunma hedefi buyumeyle KUCULUYORDU. Oda fikri dogru, dizilim
-    /// yanlis.
+    /// Round 2 (rooms in a single row): the restaurant turned into a
+    /// 25 x 4.6 m corridor, half of the 20:9 frame was left empty, and
+    /// because the camera pulled back at every tier the touch target SHRANK
+    /// as you grew. The idea of rooms was right, the arrangement wrong.
     ///
-    /// Tur 3 (2x2 esit izgara): sayilar tuttu ama render yapay durdu.
-    /// Butun odalar ayni olcude, butun ayrim cizgileri hizali.
+    /// Round 3 (an even 2x2 grid): the numbers held up but the render looked
+    /// artificial. Every room the same size, every dividing line aligned.
     ///
-    /// Tur 4, bu dosya: FARKLI OLCUDE dikdortgenler bir arsayi kapliyor.
-    ///   - Arsa sabit 18,0 x 9,6 m. Kamera ACIK odalari cerceveliyor
-    ///     ve mesafe kademeler arasinda degismiyor, yani dokunma hedefi
-    ///     kademeden bagimsiz kaliyor.
+    /// Round 4, this file: rectangles OF DIFFERENT SIZES covering one plot.
+    ///   - The plot is a fixed 18.0 x 9.6 m. The camera frames the OPEN
+    ///     rooms and the distance does not change between tiers, so the
+    ///     touch target stays independent of the tier.
     ///
-    /// Tur 5: kamera artik OYUNUN kendi hesabini kullaniyor
-    /// (Lokanta.Game.CameraFit). Onceden burada ayri acilar ve ayri bir
-    /// mesafe formulu vardi; ikisi ayrismisti ve olcum, oyunun
-    /// gosterdiginden %30 uzak bir kameradan bakiyordu.
-    ///   - Odalarin olculeri farkli ve ayrim cizgileri hizali degil
-    ///     (sol yarida z=4,4, sag yarida z=5,0). Gercek bir kat plani
-    ///     boyle okunuyor.
-    ///   - Duvarlar odanin KENARINDAN uretiliyor: komsusu yapilmis kenar
-    ///     alcak bolme (0,85 m), yapilmamis veya disari bakan arka ve sol
-    ///     kenar tam duvar (2,6 m), kameraya bakan on ve sag kenar acik.
-    ///     Bina bu yuzden odalar eklendikce kendiliginden buyuyor.
+    /// Round 5: the camera now uses THE GAME'S own arithmetic
+    /// (Lokanta.Game.CameraFit). There used to be separate angles and a
+    /// separate distance formula here; the two had drifted apart and the
+    /// measurement was looking through a camera 30% further away than the
+    /// one the game shows.
+    ///   - The rooms are of different sizes and the dividing lines are not
+    ///     aligned (z=4.4 on the left half, z=5.0 on the right). That is how
+    ///     a real floor plan reads.
+    ///   - The walls are generated FROM THE ROOM'S EDGE: an edge whose
+    ///     neighbour is built gets a low partition (0.85 m), an unbuilt one
+    ///     or one facing outward - the back and left edges - gets a full
+    ///     wall (2.6 m), and the front and right edges facing the camera are
+    ///     left open. That is why the building grows by itself as rooms are
+    ///     added.
     ///
-    /// Dogrulama sahneleri UNLIT: editor toplu kipinde URP Lit calismiyor.
+    /// The verification scenes are UNLIT: URP Lit does not work in the
+    /// editor's batch mode.
     /// </summary>
     public static class RoomLayout
     {
         private const string OutDir = "../tools/art/out/unity";
         private const int ShotW = 960;
-        private const int ShotH = 432;      // 20:9 telefon yatay
+        private const int ShotH = 432;      // 20:9 phone landscape
 
-        // EN DAR KARE ORANI DA OLCULUYOR.
+        // THE NARROWEST ASPECT RATIO IS MEASURED TOO.
         //
-        // Telefonlar 16:9 ile 21:9 arasinda; dar olanda kamera ayni
-        // derinligi sigdirmak icin DAHA UZAGA gidiyor (31,7 m vs 28,4)
-        // ve dokunma hedefi kuculuyor. Yalnizca 20:9 olcmek, en kotu
-        // durumu hic gormemek demekti.
+        // Phones run between 16:9 and 21:9; on the narrow one the camera goes
+        // FURTHER AWAY to fit the same depth (31.7 m against 28.4) and the
+        // touch target shrinks. Measuring 20:9 alone meant never seeing the
+        // worst case.
         private const int NarrowW = 960;
         private const int NarrowH = 540;    // 16:9
 
-        private const float CellX = Lokanta.Game.RoomPlan.CellX;  // masa takimi araligi, en
-        private const float CellZ = Lokanta.Game.RoomPlan.CellZ;  // masa takimi araligi, derinlik
-        private const float Margin = Lokanta.Game.RoomPlan.Margin; // odanin masasiz kenar payi
+        private const float CellX = Lokanta.Game.RoomPlan.CellX;  // table set pitch, across
+        private const float CellZ = Lokanta.Game.RoomPlan.CellZ;  // table set pitch, in depth
+        private const float Margin = Lokanta.Game.RoomPlan.Margin; // the room's tableless edge margin
 
         private const float WallT = 0.14f;
         private const float WallH = 2.60f;
-        // 1,10 m denendi ve arka siradaki sandalyelerin sirtini kesti.
+        // 1.10 m was tried and it cut through the backs of the chairs in the
+        // row behind.
         private const float PartH = 0.85f;
         private const float DoorW = 1.30f;
 
@@ -88,8 +93,8 @@ namespace Lokanta.EditorTools
             public string Name;
             public float X0, Z0, W, D;
             public Color Floor;
-            public int Tier;      // 0 = her zaman var, 1..4 = o kademede aciliyor
-            public int Tables;    // salon degilse 0
+            public int Tier;      // 0 = always there, 1..4 = opens at that tier
+            public int Tables;    // 0 if it is not a hall
 
             public float X1 { get { return X0 + W; } }
             public float Z1 { get { return Z0 + D; } }
@@ -100,18 +105,20 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Kat plani. TEK KAYNAK: Lokanta.Game.RoomPlan.
+        /// The floor plan. ONE SOURCE: Lokanta.Game.RoomPlan.
         ///
-        /// Bu dizi bir zamanlar burada, kendi sayilariyla duruyordu ve
-        /// calisma zamani plani hic bilmiyordu. Ayni sayilari iki yere
-        /// yazmak bu projede dort kez sessizce ayristi (bkz. docs/34);
-        /// o yuzden plan calisma zamanina tasindi ve bu arac ondan
-        /// TURETIYOR. Burada kalan tek sey RENK - yani gorunum.
+        /// This array once stood here with its own numbers while the run time
+        /// knew nothing about the plan. Writing the same numbers in two places
+        /// has drifted apart silently four times on this project (see
+        /// docs/34); so the plan moved into the run time and this tool now
+        /// DERIVES from it. The only thing left here is COLOUR - that is,
+        /// appearance.
         ///
-        /// Plandaki dikdortgenler arsayi bosluksuz kapliyor ama olculeri
-        /// farkli; sol yarinin ayrim cizgisi z=4,4, sag yarinin z=5,0.
-        /// Depo ARKADA ve mutfagin sag kenarina yapisik: teslimat arkadan
-        /// girer, depoya iner, mutfaga cikar.
+        /// The rectangles in the plan cover the plot with no gaps but are of
+        /// different sizes; the left half's dividing line is at z=4.4, the
+        /// right half's at z=5.0. The store room is AT THE BACK and joined to
+        /// the kitchen's right edge: a delivery comes in from the back, down
+        /// into the store and out into the kitchen.
         /// </summary>
         private static Room[] Plan
         {
@@ -135,18 +142,23 @@ namespace Lokanta.EditorTools
             }
         }
 
+        /// <summary>
+        /// The floor colour of a room. THE ROOM NAMES ARE THE ONES RoomPlan.cs
+        /// PRODUCES and they are matched by exact string, so they stay as that
+        /// file spells them.
+        /// </summary>
         private static Color FloorOf(string room)
         {
             switch (room)
             {
-                case "Mutfak": return FloorKitchen;
-                case "Giris": return FloorEntry;
-                case "Bulasik": return FloorWet;
-                case "Depo": return FloorStore;
-                case "Salon1":
-                case "Salon4": return FloorWood;
-                case "Salon2":
-                case "Salon3": return FloorWood2;
+                case "Kitchen": return FloorKitchen;
+                case "Entry": return FloorEntry;
+                case "Sink": return FloorWet;
+                case "Store": return FloorStore;
+                case "Hall1":
+                case "Hall4": return FloorWood;
+                case "Hall2":
+                case "Hall3": return FloorWood2;
                 default: return FloorEmpty;
             }
         }
@@ -154,61 +166,63 @@ namespace Lokanta.EditorTools
         private static readonly int[] TierTables = { 4, 7, 10, 14 };
 
         /// <summary>
-        /// Oyun ekranindaki ust seridin ve eylem cubugunun ekrandan
-        /// aldigi oran. Oyunda bu sayilar OLCULEREK kameraya bildiriliyor
-        /// (GameScreen -> CameraRig.SetSafeArea); burada temsili deger
-        /// duruyor, cunku olcum arayuzu kurmuyor. Cubuk buyurse hedef
-        /// kuculur, o yuzden bu iki sayi arayuzun UST SINIRI sayilmali.
+        /// The share of the screen taken by the top strip and the action bar
+        /// on the game screen. In the game these numbers are MEASURED and
+        /// reported to the camera (GameScreen -> CameraRig.SetSafeArea); what
+        /// stands here is a stand-in value, because this measurement does not
+        /// build the interface. If the bar grows the target shrinks, so these
+        /// two numbers should be treated as the interface's UPPER BOUND.
         /// </summary>
-        // OLCULEN DEGERLER, TAHMIN DEGIL.
+        // MEASURED VALUES, NOT GUESSES.
         //
-        // Eski 0,13 / 0,17 (toplam %30) arayuz yeniden tasarlanmadan
-        // once yazilmisti ve "ust sinir" oldugu soyleniyordu. Tur artik
-        // seridi GERCEKTEN olcuyor: toplam 156 dp / 393 dp = %40. Yani
-        // sayi ust sinir degil, ALT sinirdi - olcum, hedefin gercekte
-        // olduğundan BUYUK oldugunu soyluyordu.
+        // The old 0.13 / 0.17 (30% in total) was written before the interface
+        // was redesigned and was described as an "upper bound". The tour now
+        // measures the strip FOR REAL: 156 dp / 393 dp = 40% in total. So the
+        // number was not an upper bound but a LOWER one - the measurement was
+        // saying the target was LARGER than it really is.
         //
-        // Ust serit 56 dp (kapsul 42 + dolgu), alt 100 dp (simge dugmesi
-        // 62 + dolgu + kriz seridi payi).
-        // BU IKI SAYI TURUN OLCTUGU SERIDIN KOPYASI.
+        // The top strip is 56 dp (a 42 capsule plus padding), the bottom 100 dp
+        // (a 62 icon button plus padding plus room for the crisis strip).
+        // THESE TWO NUMBERS ARE A COPY OF THE STRIP THE TOUR MEASURES.
         //
-        // Tur `GameScreen.StripHeight`'i gercekten olcuyor; burasi
-        // editor kipinde calistigi icin arayuzu kuramiyor ve elle
-        // yazilmis bir kopya tutmak zorunda. Tehlike de burada: turun
-        // serit BUTCESI 220 dp'ye izin veriyor, bu kopya ise
-        // %40 (~157 dp) varsayiyor. Serit 200 dp'ye ciksa tur yesil
-        // kalir, dokunma hedefi olcumu hala 157 dp'ye gore hesaplardi.
+        // The tour really measures `GameScreen.StripHeight`; this place runs in
+        // editor mode, cannot build the interface, and has to keep a
+        // hand-written copy. And that is where the danger is: the tour's strip
+        // BUDGET allows 220 dp while this copy assumes 40% (~157 dp). If the
+        // strip grew to 200 dp the tour would stay green and the touch target
+        // measurement would still be working from 157 dp.
         //
-        // Bu yuzden kopya artik TURUN BUTCESIYLE ayni tavana bagli ve
-        // asagidaki kontrol ikisinin uyustugunu sinaniyor.
+        // So the copy is now tied to the same ceiling as THE TOUR'S BUDGET, and
+        // the check below tests that the two agree.
         private const float BandTop = 0.145f;       // 57 dp
         private const float BandBottom = 0.293f;    // 115 dp
 
         /// <summary>
-        /// Turun EN KOTU asamada olctugu serit yuksekligi (dp).
+        /// The strip height (dp) the tour measures AT THE WORST phase.
         ///
-        /// 13 Eylul 2026 olcumu: sabah 154, servis 154, aksam 172 - iki
-        /// dilde de ayni. Kopya bu sayiya gore kuruldu.
+        /// The measurement of 13 September 2026: morning 154, service 154,
+        /// evening 172 - the same in both languages. The copy was built around
+        /// this number.
         ///
-        /// Turun BUTCESI (220 dp) ile karistirilmamali: butce izin
-        /// verilen tavan, bu ise BUGUN OLCULEN deger. Kopyayi butceye
-        /// gore kurmak, olmayan bir serit icin yer ayirip dokunma
-        /// hedefini oldugundan KUCUK bildirmek olurdu; olculenin altina
-        /// kurmak ise oldugundan BUYUK bildirir. Asagidaki kontrol
-        /// ikincisini yakaliyor.
+        /// Not to be confused with THE TOUR'S BUDGET (220 dp): the budget is
+        /// the ceiling that is allowed, this is the value MEASURED TODAY.
+        /// Building the copy around the budget would reserve room for a strip
+        /// that is not there and report the touch target as SMALLER than it is;
+        /// building it below what is measured reports it LARGER. The check
+        /// below catches the second case.
         ///
-        /// Serit degisince: turu kos, "serit butcesi" satirlarindaki en
-        /// buyugu buraya yaz, bandi da ona gore ayarla.
+        /// When the strip changes: run the tour, take the largest of the "strip
+        /// budget" lines, write it here, and set the band to match.
         /// </summary>
         private const float TourMeasuredStripDp = 172f;
 
-        /// <summary>Telefonun kisa kenari, dp (873x393).</summary>
+        /// <summary>The phone's short edge, in dp (873x393).</summary>
         private const float PhoneShortDp = 393f;
 
         private static readonly List<Bounds> DiningRooms = new List<Bounds>();
         private static int _wallSeq;
 
-        [MenuItem("Lokanta/Oda yerlesimini render et")]
+        [MenuItem("Lokanta/Render the room layout")]
         public static void Capture()
         {
             try
@@ -217,28 +231,28 @@ namespace Lokanta.EditorTools
                 Directory.CreateDirectory(dir);
                 string stamp = DateTime.Now.ToString("HHmmss");
 
-                Debug.Log("=== Lokanta oda yerlesimi ===");
-                Debug.Log(string.Format("  OLCUM arsa {0:0.0} x {1:0.0} m, sabit", PlotW, PlotD));
-                Debug.Log("  OLCUM asgari dokunma hedefi 48 dp (Google), 44 pt (Apple)");
-                Debug.Log("  OLCUM olcek: 960 px render -> 2400 px telefon, dp = px * 2,5 / 2,75");
+                Debug.Log("=== Lokanta room layout ===");
+                Debug.Log(string.Format("  MEASURED plot {0:0.0} x {1:0.0} m, fixed", PlotW, PlotD));
+                Debug.Log("  MEASURED minimum touch target 48 dp (Google), 44 pt (Apple)");
+                Debug.Log("  MEASURED scale: a 960 px render -> a 2400 px phone, dp = px * 2.5 / 2.75");
                 CheckPlan();
 
-                // KOPYA ILE BUTCE UYUSUYOR MU.
+                // DO THE COPY AND THE BUDGET AGREE?
                 //
-                // Bu arac seridi kuramiyor (editor kipi) ve elle
-                // yazilmis bir orana gore olcuyor. O oran turun serit
-                // butcesinden KUCUK kalirsa, tur yesil kalirken bu
-                // olcum fazla yer varsayar ve dokunma hedefini oldugundan
-                // buyuk bildirir.
-                float kopyaDp = (BandTop + BandBottom) * PhoneShortDp;
+                // This tool cannot build the strip (editor mode) and measures
+                // against a hand-written ratio. If that ratio falls SHORT of the
+                // tour's strip budget, the tour stays green while this
+                // measurement assumes there is more room and reports the touch
+                // target as larger than it is.
+                float copyDp = (BandTop + BandBottom) * PhoneShortDp;
                 Debug.Log(string.Format(
-                    "  OLCUM serit kopyasi {0:0} dp, turun olctugu {1:0} dp",
-                    kopyaDp, TourMeasuredStripDp));
-                if (kopyaDp < TourMeasuredStripDp - 1f)
+                    "  MEASURED the strip copy is {0:0} dp, the tour measured {1:0} dp",
+                    copyDp, TourMeasuredStripDp));
+                if (copyDp < TourMeasuredStripDp - 1f)
                     Debug.LogError(string.Format(
-                        "SORUNLAR: serit kopyasi ({0:0} dp) turun olctugunden "
-                        + "({1:0} dp) kucuk - dokunma hedefi oldugundan BUYUK "
-                        + "olculuyor", kopyaDp, TourMeasuredStripDp));
+                        "PROBLEMS: the strip copy ({0:0} dp) is smaller than what the "
+                        + "tour measured ({1:0} dp) - the touch target is being "
+                        + "measured LARGER than it is", copyDp, TourMeasuredStripDp));
 
                 for (int tier = 1; tier <= 4; tier++)
                 {
@@ -246,76 +260,77 @@ namespace Lokanta.EditorTools
                     int tables = TierTables[tier - 1];
 
                     Vector3 near = Shoot(
-                        Path.Combine(dir, string.Format("kat_{0:00}_tekoda_{1}.png", tables, stamp)),
+                        Path.Combine(dir, string.Format("floor_{0:00}_oneroom_{1}.png", tables, stamp)),
                         Pad(DiningRooms[0], 0.5f), DiningRooms[0], null);
 
-                    // GENEL GORUNUM ACIK ODALARI cerceveliyor, butun
-                    // arsayi degil - oyun da oyle yapiyor. Kapali kanadi
-                    // cerceveye katmak hedefi oldugundan KUCUK olcuyordu.
+                    // THE OVERVIEW frames THE OPEN ROOMS, not the whole plot -
+                    // and that is what the game does too. Counting the closed
+                    // wing into the frame was measuring the target SMALLER than
+                    // it is.
                     List<string> roomDp = new List<string>();
-                    Bounds acik = Lokanta.Game.CameraFit.OpenBounds(tables);
+                    Bounds open = Lokanta.Game.CameraFit.OpenBounds(tables);
                     Vector3 far = Shoot(
-                        Path.Combine(dir, string.Format("kat_{0:00}_hepsi_{1}.png", tables, stamp)),
-                        acik, DiningRooms[0], roomDp);
+                        Path.Combine(dir, string.Format("floor_{0:00}_all_{1}.png", tables, stamp)),
+                        open, DiningRooms[0], roomDp);
 
-                    // Ve bir de ARAYUZ CUBUKLARI VARKEN: oyunda ust serit
-                    // ve eylem cubugu ekranin bir kismini aliyor, kamera da
-                    // kalan seride sigdiriyor. Hedefin gercek tabani bu.
+                    // And once more WITH THE INTERFACE BARS IN PLACE: in the
+                    // game the top strip and the action bar take part of the
+                    // screen and the camera fits into the band that is left.
+                    // This is the target's real floor.
                     List<string> bandDp = new List<string>();
                     Vector3 band = Shoot(
-                        Path.Combine(dir, string.Format("kat_{0:00}_serit_{1}.png", tables, stamp)),
-                        acik, DiningRooms[0], bandDp, BandTop, BandBottom);
+                        Path.Combine(dir, string.Format("floor_{0:00}_strip_{1}.png", tables, stamp)),
+                        open, DiningRooms[0], bandDp, BandTop, BandBottom);
 
                     Debug.Log(string.Format(
-                        "  OLCUM {0,2} masa | ODA: masa {1:0} dp, masa+sandalye {2:0} dp"
-                        + " || GENEL: masa {3:0} dp, ilk salon {4:0} dp"
-                        + " || SERITLI: ilk salon {5:0} dp",
+                        "  MEASURED {0,2} tables | ROOM: table {1:0} dp, table+chairs {2:0} dp"
+                        + " || OVERVIEW: table {3:0} dp, first hall {4:0} dp"
+                        + " || WITH STRIPS: first hall {5:0} dp",
                         tables, Dp(near.x), Dp(near.y), Dp(far.x), Dp(far.z), Dp(band.z)));
-                    Debug.Log("  OLCUM   genel gorunumde odalar: "
+                    Debug.Log("  MEASURED   the rooms in the overview: "
                               + string.Join(", ", roomDp.ToArray()));
 
-                    // TABAN: en kucuk ACIK odanin seritli degeri. Asgari
-                    // 48 dp'yi tutan ya da tutmayan sayi bu - ortalama
-                    // degil, en kotu oda.
-                    List<string> darDp = new List<string>();
+                    // THE FLOOR: the smallest OPEN room's value with the strips
+                    // in place. This is the number that meets the 48 dp minimum
+                    // or fails it - the worst room, not the average.
+                    List<string> narrowDp = new List<string>();
                     Shoot(Path.Combine(dir,
-                              string.Format("kat_{0:00}_dar_{1}.png", tables, stamp)),
-                          acik, DiningRooms[0], darDp, BandTop, BandBottom,
+                              string.Format("floor_{0:00}_narrow_{1}.png", tables, stamp)),
+                          open, DiningRooms[0], narrowDp, BandTop, BandBottom,
                           NarrowW, NarrowH);
 
-                    string taban209 = Smallest(bandDp, tables);
-                    string taban169 = Smallest(darDp, tables);
-                    Debug.Log("  OLCUM   seritli odalar: "
+                    string floor209 = Smallest(bandDp, tables);
+                    string floor169 = Smallest(narrowDp, tables);
+                    Debug.Log("  MEASURED   the rooms with strips: "
                               + string.Join(", ", bandDp.ToArray())
-                              + "  -> TABAN 20:9 " + taban209
-                              + " dp, 16:9 " + taban169 + " dp");
+                              + "  -> FLOOR 20:9 " + floor209
+                              + " dp, 16:9 " + floor169 + " dp");
 
-                    // 48 dp ESIGI ARTIK IDDIA EDILIYOR.
+                    // THE 48 dp THRESHOLD IS NOW ASSERTED.
                     //
-                    // Ustte bir satir metin olarak yaziliydi
-                    // ("asgari dokunma hedefi 48 dp") ama HICBIR
-                    // kosulda karsilastirilmiyordu. Hafizadaki
-                    // "gercek zemin 48 dp'ydi" bulgusu sessizce geri
-                    // gelebilirdi - tam da bu aracin yakalamasi
-                    // gereken sey.
-                    Esik(taban209, tables, "20:9");
-                    Esik(taban169, tables, "16:9");
+                    // It was written above as a line of TEXT ("minimum touch
+                    // target 48 dp") but was compared against NOTHING under any
+                    // condition. The finding held in memory - "the real floor was
+                    // 48 dp" - could have crept back silently, which is exactly
+                    // what this tool is supposed to catch.
+                    Threshold(floor209, tables, "20:9");
+                    Threshold(floor169, tables, "16:9");
                 }
 
-                Debug.Log("=== oda yerlesimi tamam ===");
+                Debug.Log("=== room layout done ===");
                 if (Application.isBatchMode) EditorApplication.Exit(0);
             }
             catch (Exception e)
             {
-                Debug.LogError("SORUNLAR: oda yerlesimi -> " + e.GetType().Name + ": " + e.Message);
+                Debug.LogError("PROBLEMS: room layout -> " + e.GetType().Name + ": " + e.Message);
                 if (Application.isBatchMode) EditorApplication.Exit(2);
             }
         }
 
         /// <summary>
-        /// Kat plani arsayi bosluksuz ve ust uste binmeden kapliyor mu, ve
-        /// her odaya istenen masa sigiyor mu. Elle yazilan dikdortgenlerde
-        /// bir ondalik kaymasi sessizce bosluk birakiyor.
+        /// Does the floor plan cover the plot with no gaps and no overlaps, and
+        /// does every room fit the tables it asks for? In hand-written
+        /// rectangles one misplaced decimal leaves a gap silently.
         /// </summary>
         private static void CheckPlan()
         {
@@ -329,27 +344,28 @@ namespace Lokanta.EditorTools
                         Plan[i].X0 < Plan[j].X1 - 0.001f && Plan[j].X0 < Plan[i].X1 - 0.001f &&
                         Plan[i].Z0 < Plan[j].Z1 - 0.001f && Plan[j].Z0 < Plan[i].Z1 - 0.001f;
                     if (overlap)
-                        throw new Exception("odalar cakisiyor: " + Plan[i].Name + " / " + Plan[j].Name);
+                        throw new Exception("the rooms overlap: " + Plan[i].Name + " / " + Plan[j].Name);
                 }
 
                 int cols, rows;
                 Fit(Plan[i], out cols, out rows);
                 if (Plan[i].Tables > cols * rows)
-                    throw new Exception(string.Format("{0}: {1} masa istiyor, {2} siga",
+                    throw new Exception(string.Format("{0}: it asks for {1} tables, {2} fit",
                                                       Plan[i].Name, Plan[i].Tables, cols * rows));
             }
             if (Mathf.Abs(area - PlotW * PlotD) > 0.01f)
                 throw new Exception(string.Format(
-                    "arsa kaplanmadi: odalar {0:0.00} m2, arsa {1:0.00} m2", area, PlotW * PlotD));
+                    "the plot is not covered: the rooms are {0:0.00} m2, the plot {1:0.00} m2", area, PlotW * PlotD));
 
-            Debug.Log(string.Format("  OLCUM kat plani tutarli: {0} oda, {1:0.0} m2",
+            Debug.Log(string.Format("  MEASURED the floor plan is consistent: {0} rooms, {1:0.0} m2",
                                     Plan.Length, area));
         }
 
         /// <summary>
-        /// Odaya kac sutun kac satir masa siger. Epsilon sart: 4,6 - 0,9 =
-        /// 3,6999998 cikiyor ve 1,85'e bolununce 1,99999 oluyor, taban
-        /// alinca iki yerine bir sutun. Kontrol bunu yakaladi.
+        /// How many columns and rows of tables fit in a room. The epsilon is
+        /// essential: 4.6 - 0.9 comes out as 3.6999998 and divided by 1.85
+        /// gives 1.99999, so taking the floor gives one column instead of two.
+        /// The check caught this.
         /// </summary>
         private static void Fit(Room r, out int cols, out int rows)
         {
@@ -372,12 +388,12 @@ namespace Lokanta.EditorTools
             {
                 if (r.Tier > tier)
                 {
-                    Slab(r.Name + "Arsa", r.X0, r.Z0, r.W, r.D, FloorEmpty);
-                    Frame(r.Name + "Cerceve", r.X0, r.Z0, r.W, r.D);
+                    Slab(r.Name + "Plot", r.X0, r.Z0, r.W, r.D, FloorEmpty);
+                    Frame(r.Name + "Frame", r.X0, r.Z0, r.W, r.D);
                     continue;
                 }
 
-                Slab(r.Name + "Zemin", r.X0, r.Z0, r.W, r.D, r.Floor);
+                Slab(r.Name + "Floor", r.X0, r.Z0, r.W, r.D, r.Floor);
                 Edges(r, built);
 
                 if (r.Tables > 0)
@@ -390,8 +406,8 @@ namespace Lokanta.EditorTools
                     int made = 0;
                     for (int rr = 0; rr < rows && made < r.Tables; rr++)
                     {
-                        // Eksik kalan son satir ortalansin; kenara yaslanmis
-                        // tek masa unutulmus gibi duruyor.
+                        // Centre a last row that is not full; a single table
+                        // pushed against the edge looks forgotten.
                         int inRow = Mathf.Min(cols, r.Tables - made);
                         float off = (cols - inRow) * CellX * 0.5f;
                         for (int cc = 0; cc < inRow; cc++, made++)
@@ -410,45 +426,48 @@ namespace Lokanta.EditorTools
 
         }
 
-        /// <summary>Servis odalarinin icindekiler.</summary>
+        /// <summary>
+        /// What stands inside the service rooms. The room names are the ones
+        /// RoomPlan.cs produces, so they stay as that file spells them.
+        /// </summary>
         private static void Props(Room r)
         {
             switch (r.Name)
             {
-                case "Mutfak":
-                    Box("Ocak", new Vector3(r.X0 + 1.30f, 0.43f, r.Z1 - 0.75f),
+                case "Kitchen":
+                    Box("Stove", new Vector3(r.X0 + 1.30f, 0.43f, r.Z1 - 0.75f),
                         new Vector3(1.80f, 0.86f, 0.72f), Dark);
-                    Box("Tezgah", new Vector3(r.X0 + 3.50f, 0.45f, r.Z1 - 0.75f),
+                    Box("Counter", new Vector3(r.X0 + 3.50f, 0.45f, r.Z1 - 0.75f),
                         new Vector3(2.20f, 0.90f, 0.66f), Metal);
-                    Box("Davlumbaz", new Vector3(r.X0 + 1.30f, 1.95f, r.Z1 - 0.75f),
+                    Box("ExtractorHood", new Vector3(r.X0 + 1.30f, 1.95f, r.Z1 - 0.75f),
                         new Vector3(1.90f, 0.45f, 0.85f), Metal);
-                    // Buzdolabi mutfaktan KALDIRILDI: soguk saklama artik
-                    // deponun isi ve orada gorunur bir yukseltme merdiveni
-                    // var. Ikisini birden gostermek yalan olurdu.
+                    // The fridge was TAKEN OUT of the kitchen: cold storage is
+                    // the store room's job now and there is a visible upgrade
+                    // ladder there. Showing both would be a lie.
                     break;
-                case "Bulasik":
-                    Box("Evye", new Vector3(r.X0 + r.W * 0.5f, 0.45f, r.Z1 - 0.70f),
+                case "Sink":
+                    Box("Sink", new Vector3(r.X0 + r.W * 0.5f, 0.45f, r.Z1 - 0.70f),
                         new Vector3(2.40f, 0.90f, 0.64f), Metal);
-                    Box("BulasikRaf", new Vector3(r.X1 - 0.40f, 0.60f, r.Z0 + r.D * 0.40f),
+                    Box("DishRack", new Vector3(r.X1 - 0.40f, 0.60f, r.Z0 + r.D * 0.40f),
                         new Vector3(0.50f, 1.20f, 2.20f), Wood);
                     break;
-                case "Depo":
-                    // Soguk hava odasi arkada, kuru raf yan duvarda. Ikisi
-                    // malzeme listesinin bozulabilir / bozulmaz ayrimina
-                    // karsilik geliyor; dekor degil.
-                    Box("SogukHava", new Vector3(r.X0 + r.W * 0.5f, 1.05f, r.Z1 - 0.65f),
+                case "Store":
+                    // The cold room is at the back, the dry shelf on the side
+                    // wall. The two match the perishable / non-perishable split
+                    // of the ingredient list; they are not decoration.
+                    Box("ColdRoom", new Vector3(r.X0 + r.W * 0.5f, 1.05f, r.Z1 - 0.65f),
                         new Vector3(r.W - 0.50f, 2.10f, 0.90f), Metal);
-                    Box("SogukKapi", new Vector3(r.X0 + r.W * 0.5f, 0.95f, r.Z1 - 1.12f),
+                    Box("ColdRoomDoor", new Vector3(r.X0 + r.W * 0.5f, 0.95f, r.Z1 - 1.12f),
                         new Vector3(0.85f, 1.80f, 0.08f), Dark);
-                    Box("KuruRaf", new Vector3(r.X1 - 0.40f, 0.70f, r.Z0 + 1.15f),
+                    Box("DryShelf", new Vector3(r.X1 - 0.40f, 0.70f, r.Z0 + 1.15f),
                         new Vector3(0.50f, 1.40f, 1.60f), Wood);
-                    Box("Sandik1", new Vector3(r.X0 + 0.80f, 0.30f, r.Z0 + 0.70f),
+                    Box("Crate1", new Vector3(r.X0 + 0.80f, 0.30f, r.Z0 + 0.70f),
                         new Vector3(0.90f, 0.60f, 0.80f), Wood);
                     break;
-                case "Giris":
-                    Box("Kasa", new Vector3(r.X0 + 1.50f, 0.50f, r.Z0 + 1.40f),
+                case "Entry":
+                    Box("Till", new Vector3(r.X0 + 1.50f, 0.50f, r.Z0 + 1.40f),
                         new Vector3(1.80f, 1.00f, 0.70f), Wood);
-                    Box("Kapi", new Vector3(r.X1 - 1.30f, 1.05f, r.Z0 + 0.08f),
+                    Box("Door", new Vector3(r.X1 - 1.30f, 1.05f, r.Z0 + 0.08f),
                         new Vector3(1.30f, 2.10f, 0.10f), Wood);
                     break;
             }
@@ -456,18 +475,18 @@ namespace Lokanta.EditorTools
 
         // ---------------------------------------------------------------------
         /// <summary>
-        /// Odanin dort kenarini yurur ve her parcayi siniflar: komsusu
-        /// yapilmis ise alcak bolme, degilse tam duvar. Kameraya bakan on
-        /// (-Z) ve sag (+X) kenarlara tam duvar konmuyor, yoksa sahneyi
-        /// kapatiyor. Ic kenarlar iki kez cizilmesin diye bolme yalnizca
-        /// +Z ve +X kenarlarindan uretiliyor.
+        /// Walks the room's four edges and classifies each stretch: a low
+        /// partition if its neighbour is built, a full wall if not. No full
+        /// wall goes on the front (-Z) and right (+X) edges that face the
+        /// camera, or it would close the scene off. So that inner edges are not
+        /// drawn twice, partitions are only generated from the +Z and +X edges.
         /// </summary>
         private static void Edges(Room r, List<Room> built)
         {
-            EdgeRun(r, built, true, r.Z1, r.X0, r.X1, +1f, true);    // arka
-            EdgeRun(r, built, true, r.Z0, r.X0, r.X1, -1f, false);   // on
-            EdgeRun(r, built, false, r.X0, r.Z0, r.Z1, -1f, true);   // sol
-            EdgeRun(r, built, false, r.X1, r.Z0, r.Z1, +1f, false);  // sag
+            EdgeRun(r, built, true, r.Z1, r.X0, r.X1, +1f, true);    // back
+            EdgeRun(r, built, true, r.Z0, r.X0, r.X1, -1f, false);   // front
+            EdgeRun(r, built, false, r.X0, r.Z0, r.Z1, -1f, true);   // left
+            EdgeRun(r, built, false, r.X1, r.Z0, r.Z1, +1f, false);  // right
         }
 
         private static void EdgeRun(Room r, List<Room> built, bool horizontal,
@@ -489,11 +508,11 @@ namespace Lokanta.EditorTools
                     float pz = horizontal ? fixedC + dir * 0.10f : mid;
                     bool neighbour = InBuilt(built, px, pz);
                     bool outside = px < 0f || px > PlotW || pz < 0f || pz > PlotD;
-                    // 0 = bolme, 1 = tam duvar, 2 = gecici duvar, -1 = hicbir sey
+                    // 0 = partition, 1 = full wall, 2 = temporary wall, -1 = nothing
                     if (neighbour) kind = 0;
                     else if (outside) kind = wallIfOpen ? 1 : -1;
-                    else kind = 2;      // arsa icinde ama henuz yapilmamis
-                    if (kind == 0 && dir < 0f) kind = -1;   // ic kenar tek seferde
+                    else kind = 2;      // inside the plot but not built yet
+                    if (kind == 0 && dir < 0f) kind = -1;   // an inner edge once only
                 }
 
                 if (kind != runKind)
@@ -510,12 +529,13 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// kind: 0 ic bolme, 1 arsa sinirinda tam duvar, 2 gecici duvar.
+        /// kind: 0 an inner partition, 1 a full wall on the plot boundary, 2 a
+        /// temporary wall.
         ///
-        /// Gecici duvar, arsanin icinde olup henuz yapilmamis odaya bakan
-        /// kenar. Tam duvar denendi ve genisleme alanini tamamen gizledi;
-        /// oyuncu nereye buyuyecegini goremiyordu. Alcak ve ayri renkte:
-        /// "burasi acilacak" diyor.
+        /// A temporary wall is an edge facing a room that is inside the plot
+        /// but not built yet. A full wall was tried and it hid the expansion
+        /// area completely; the player could not see where they would grow.
+        /// Low and in a different colour, it says "this will open up".
         /// </summary>
         private static void EdgeSegment(bool horizontal, float fixedC,
                                         float b0, float b1, int kind, string owner)
@@ -525,7 +545,8 @@ namespace Lokanta.EditorTools
             float h = kind == 1 ? WallH : PartH;
             Color c = kind == 1 ? Wall : (kind == 2 ? Temp : Part);
 
-            // Uzun her bolmenin ortasinda gecit; yoksa odalar kapali kaliyor.
+            // A doorway in the middle of every long partition; without one the
+            // rooms stay shut.
             if (kind == 0 && len > DoorW + 0.8f)
             {
                 float half = (len - DoorW) * 0.5f;
@@ -547,7 +568,7 @@ namespace Lokanta.EditorTools
             Vector3 size = horizontal
                 ? new Vector3(len, h, WallT)
                 : new Vector3(WallT, h, len);
-            Box("Duvar" + (_wallSeq++) + "_" + owner, pos, size, c);
+            Box("Wall" + (_wallSeq++) + "_" + owner, pos, size, c);
         }
 
         private static bool InBuilt(List<Room> built, float x, float z)
@@ -560,8 +581,9 @@ namespace Lokanta.EditorTools
         // ---------------------------------------------------------------------
         private static void Slab(string name, float x0, float z0, float w, float d, Color c)
         {
-            // Iki santim bosluk: bitisik zeminler arasinda ince bir cizgi
-            // kaliyor, odanin siniri renk farkindan bagimsiz okunuyor.
+            // A two-centimetre gap: a thin line is left between adjoining
+            // floors, so a room's boundary reads regardless of the colour
+            // difference.
             Box(name, new Vector3(x0 + w * 0.5f, -0.05f, z0 + d * 0.5f),
                 new Vector3(w - 0.02f, 0.10f, d - 0.02f), c);
         }
@@ -581,21 +603,23 @@ namespace Lokanta.EditorTools
 
         private static void Table(int i, Vector3 at)
         {
-            Box("Masa" + i, at + new Vector3(0f, 0.74f, 0f),
+            // These names belong to this validation scene alone; the probe
+            // below looks up "Table0".
+            Box("Table" + i, at + new Vector3(0f, 0.74f, 0f),
                 new Vector3(0.86f, 0.06f, 0.86f), Wood);
-            Box("MasaAyak" + i, at + new Vector3(0f, 0.36f, 0f),
+            Box("TableLeg" + i, at + new Vector3(0f, 0.36f, 0f),
                 new Vector3(0.12f, 0.72f, 0.12f), Wood);
-            Chair("Sandalye" + i + "a", at + new Vector3(0f, 0f, 0.62f), 1f);
-            Chair("Sandalye" + i + "b", at + new Vector3(0f, 0f, -0.62f), -1f);
+            Chair("Chair" + i + "a", at + new Vector3(0f, 0f, 0.62f), 1f);
+            Chair("Chair" + i + "b", at + new Vector3(0f, 0f, -0.62f), -1f);
         }
 
         private static void Chair(string name, Vector3 at, float away)
         {
             Box(name, at + new Vector3(0f, 0.44f, 0f),
                 new Vector3(0.42f, 0.06f, 0.42f), Seat);
-            Box(name + "Ayak", at + new Vector3(0f, 0.21f, 0f),
+            Box(name + "Leg", at + new Vector3(0f, 0.21f, 0f),
                 new Vector3(0.10f, 0.42f, 0.10f), Dark);
-            Box(name + "Sirt", at + new Vector3(0f, 0.68f, away * 0.18f),
+            Box(name + "Back", at + new Vector3(0f, 0.68f, away * 0.18f),
                 new Vector3(0.42f, 0.46f, 0.06f), Seat);
         }
 
@@ -609,44 +633,44 @@ namespace Lokanta.EditorTools
         private static float Dp(float renderPx) { return renderPx * 2.5f / 2.75f; }
 
         /// <summary>
-        /// Acik odalarin en kucuk dp degeri. Kapali oda sayilmiyor -
-        /// oyuncu ona dokunamiyor, cunku artik cizilmiyor.
+        /// The touch target thresholds. The number was already being worked
+        /// out; the only thing missing was tying it to an ASSERTION - 48 dp was
+        /// written to the log as a line of TEXT and compared against nothing
+        /// under any condition.
+        ///
+        /// TWO THRESHOLDS, BECAUSE 48 CANNOT BE RED HERE.
+        ///
+        /// Google's floor is 48 dp (Apple's 44 pt), and when the project turned
+        /// the camera 10 degrees it MEASURED the drop to 45 dp at 20:9 and
+        /// accepted it (docs/41): "what falls below the floor is not a button
+        /// but the SHORT edge on screen of a five-metre room; its long edge is
+        /// more than twice that and the player can come closer with two
+        /// fingers." Making 48 red would mean reporting a decision already
+        /// taken as an error on every run.
+        ///
+        ///   - below 48 dp: a WARNING (the industry floor, a known price)
+        ///   - below 40 dp: RED (a clear regression from the accepted 45; at
+        ///     that point "you can zoom in and touch it" no longer holds either)
         /// </summary>
-        /// <summary>
-        /// Dokunma hedefi esikleri. Sayi zaten hesaplaniyordu; eksik
-        /// olan tek sey onu bir IDDIAYA baglamakti - 48 dp bir satir
-        /// METIN olarak gunluge yaziliyor ve hicbir kosulda
-        /// karsilastirilmiyordu.
-        ///
-        /// IKI ESIK, CUNKU 48 BURADA KIRMIZI OLAMAZ.
-        ///
-        /// Google'in tabani 48 dp (Apple 44 pt) ve proje kamerayi 10
-        /// derece dondurdugunde 20:9'da 45 dp'ye dustugunu OLCUP kabul
-        /// etti (docs/41): "tabanin altinda kalan sey bir dugme degil,
-        /// bes metrelik bir odanin ekrandaki KISA kenari; uzun kenari
-        /// iki katindan fazla ve oyuncu iki parmakla yaklasabiliyor."
-        /// 48'i kirmizi yapmak, verilmis bir karari her kosuda hata
-        /// diye bildirmek olurdu.
-        ///
-        ///   - 48 dp alti: UYARI (sektor tabani, bilinen bedel)
-        ///   - 40 dp alti: KIRMIZI (kabul edilen 45'ten belirgin
-        ///     gerileme; artik "yaklasip dokunulur" da denemez)
-        /// </summary>
-        private static void Esik(string dpMetin, int tables, string en)
+        private static void Threshold(string dpText, int tables, string aspect)
         {
-            if (!int.TryParse(dpMetin, out int dp)) return;
+            if (!int.TryParse(dpText, out int dp)) return;
             if (dp < 40)
             {
-                Debug.LogError("SORUNLAR: dokunma hedefi " + dp + " dp (< 40), "
-                               + tables + " masa, " + en);
+                Debug.LogError("PROBLEMS: touch target " + dp + " dp (< 40), "
+                               + tables + " tables, " + aspect);
                 return;
             }
             if (dp < 48)
-                Debug.LogWarning("Dokunma hedefi " + dp + " dp, sektor tabani 48 - "
-                                 + tables + " masa, " + en
-                                 + " (docs/41: bilinen ve kabul edilmis bedel)");
+                Debug.LogWarning("Touch target " + dp + " dp against an industry floor of 48 - "
+                                 + tables + " tables, " + aspect
+                                 + " (docs/41: a known and accepted price)");
         }
 
+        /// <summary>
+        /// The smallest dp value among the open rooms. A closed room does not
+        /// count - the player cannot touch it, because it is no longer drawn.
+        /// </summary>
         private static string Smallest(List<string> dp, int tables)
         {
             int best = int.MaxValue;
@@ -693,29 +717,30 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Cerceveler, render eder ve olcumleri doner.
-        /// x = masanin ekran boyu, y = masa arti sandalye, z = odanin boyu.
-        /// roomDp verilirse butun odalarin dp degeri de yaziliyor.
+        /// Frames the target, renders it and returns the measurements.
+        /// x = the table's size on screen, y = the table plus its chairs,
+        /// z = the room's size. If roomDp is given, every room's dp value is
+        /// written down as well.
         /// </summary>
         private static Vector3 Shoot(string path, Bounds target, Bounds roomBounds,
                                      List<string> roomDp,
                                      float top01 = 0f, float bottom01 = 0f,
                                      int w = ShotW, int h = ShotH)
         {
-            GameObject camGo = new GameObject("Kamera");
+            GameObject camGo = new GameObject("Camera");
             Camera cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.93f, 0.94f, 0.91f);
-            // ACILAR VE MESAFE OYUNUN KENDISINDEN.
+            // THE ANGLES AND THE DISTANCE COME FROM THE GAME ITSELF.
             //
-            // Burada bir zamanlar `32f`, `Euler(34, -12, 0)` ve kapali bir
-            // mesafe formulu YAZILIYDI. CameraFit'in varlik sebebi tam
-            // olarak bu: ayni hesabin iki kopyasi sessizce ayrisiyor - ve
-            // ayristi da. Oyun ikili arama ile en kucuk mesafeyi buluyordu,
-            // buradaki formul ise her terimde guvenli tarafa yanilip %30
-            // fazla mesafe veriyordu. Yani OLCUM, oyunun gosterdiginden
-            // KUCUK bir hedef bildiriyordu; sayilar guvenli taraftaydi ama
-            // olculen sey oyun degildi.
+            // `32f`, `Euler(34, -12, 0)` and a closed-form distance formula
+            // were once WRITTEN HERE. That is exactly why CameraFit exists: two
+            // copies of the same arithmetic drift apart silently - and they
+            // did. The game was finding the smallest distance by binary search
+            // while the formula here erred on the safe side in every term and
+            // gave 30% too much distance. So THE MEASUREMENT was reporting a
+            // SMALLER target than the game shows; the numbers were on the safe
+            // side but what was measured was not the game.
             cam.fieldOfView = Lokanta.Game.CameraFit.FieldOfView;
             cam.aspect = w / (float)h;
 
@@ -736,7 +761,7 @@ namespace Lokanta.EditorTools
             File.WriteAllBytes(path, shot.EncodeToPNG());
 
             float px = 0f, pxSet = 0f;
-            GameObject probe = GameObject.Find("Masa0");
+            GameObject probe = GameObject.Find("Table0");
             if (probe != null)
             {
                 px = Smaller(cam, probe.transform.position, 0.43f, 0.43f);
@@ -759,9 +784,9 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Hedefin ekrandaki iki ekseninin KUCUGU. Derinlik yonu 34 derece
-        /// bakista 0,56 kat kisaliyor; yalnizca yatay olcmek hedefi
-        /// oldugundan buyuk gosteriyor.
+        /// The SMALLER of the target's two axes on screen. At a 34 degree view
+        /// the depth direction is foreshortened to 0.56; measuring only the
+        /// horizontal makes the target look larger than it is.
         /// </summary>
         private static float Smaller(Camera cam, Vector3 c, float halfX, float halfZ)
         {

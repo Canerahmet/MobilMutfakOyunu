@@ -1,33 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-Yemek ve malzeme veri yazicisi - Faz 0
+Dish and ingredient data writer - Phase 0
 ============================================================================
-Uc dosya uretir:
+Writes three files:
 
-  content/ingredients.json      malzeme katalogu, iki mutfak ortak
-  content/dishes/fastfood.json  32 fast food yemegi
-  content/dishes/turk.json      32 Turk mutfagi yemegi
+  content/ingredients.json      the ingredient catalogue, shared by both cuisines
+  content/dishes/fastfood.json  32 fast food dishes
+  content/dishes/turk.json      32 Turkish restaurant dishes
 
-Kaynak dokumanlar:
-  docs/09-content-inventory.md      menuler, acilis menusu, mevsim egrisi
-  docs/12-economy.md 3             malzeme maliyeti ~ satis fiyatinin %32'si
-  docs/23-core-contract.md   8.3 yemek semasi, 8.4 tamsayi birim kurali
-  docs/24-art-pipeline.md           moduler tabaklama, 6 taban + 8 ust parca
+Source documents:
+  docs/09-content-inventory.md      menus, the opening menu, the season curve
+  docs/12-economy.md 3              ingredient cost ~ 32% of the sale price
+  docs/23-core-contract.md   8.3 the dish schema, 8.4 the integer unit rule
+  docs/24-art-pipeline.md           modular plating, 6 bases + 8 toppings
 
-Birimler docs/23 2.2 ve 8.4'e gore, ONDALIK NOKTA YOK:
-  para        santi-sikke   (1 sikke = 100)
-  oran        baz puan      (10000 = 1,0)
-  sure        milisaniye
-  agirlik     gram
-  malzeme     santi-sikke / kilogram   (unit alani "kg")
+Units follow docs/23 2.2 and 8.4, NO DECIMAL POINT:
+  money       centi-coin    (1 coin = 100)
+  ratio       basis point   (10000 = 1.0)
+  time        milliseconds
+  weight      grams
+  ingredient  centi-coin / kilogram   (the "unit" field is "kg")
 
-Fiyat TURETILIR, elle yazilmaz. Tarif gramajlari ve malzeme kilo fiyatlari
-girdi; satis fiyati = maliyet / hedef malzeme orani, 50 santi-sikkeye
-yuvarlanmis. Boylece docs/12'nin "%32 malzeme" kurali her yemekte
-dogrulanabilir bir sayidan gelir.
+The price is DERIVED, not written by hand. Recipe weights and ingredient
+kilo prices are the input; sale price = cost / target ingredient ratio,
+rounded to 50 centi-coins. That way docs/12's "32% ingredients" rule
+comes from a number that can be verified on every dish.
 
-Calistirma:  python tools/content/gen_dishes.py
-Cikis kodu 1 ise denge kurallarindan biri bozulmustur, rapor sebebini yazar.
+Run with:  python tools/content/gen_dishes.py
+Exit code 1 means one of the balance rules broke; the report says why.
 """
 import io
 import json
@@ -43,53 +43,58 @@ BP = 10_000
 ID_RE = re.compile(r"^[a-z0-9_]+$")
 DECIMAL_RE = re.compile(r"[0-9]\.[0-9]")
 
-# docs/24-art-pipeline.md: tabak = taban + 0-3 ust parca
+# docs/24-art-pipeline.md: a plate = base + 0-3 toppings
 BASES = ("bun", "plate_round", "plate_oval", "bowl", "tray", "paper", "cup")
 TOPPINGS = ("patty", "slice", "sphere", "leaf", "strip", "sauce", "stick", "steam")
 STATIONS = ("ocak", "izgara", "firin", "soguk", "icecek", "tatli")
 
-# Mutfaga OZEL adlandirilmis ekipman. Paylasilan altinin ardina gelir,
-# baslangicta YOKTUR, satin alinana kadar bagli yemekler kilitlidir.
-# docs/09 mutfak basina 10 tane istiyor; simdilik uc ve iki tane var.
+# Named equipment SPECIFIC to a cuisine. It comes after the shared six,
+# it DOES NOT EXIST at the start, and the dishes tied to it stay locked
+# until it is bought. docs/09 asks for 10 per cuisine; for now there are
+# three and two.
 #
-# Bu tablonun burada olmasinin sebebi aci bir olay: adlandirilmis
-# istasyonlar dogrudan content/dishes/*.json icine yazilmisti ve URETEC
-# ONLARI BILMIYORDU. gen_dishes.py'yi calistirmak hepsini sessizce
-# "firin"a geri ceviriyordu. Artik istasyon yemek satirinda yaziyor ve
-# ekipmanin "opens" listesi BURADAN turetiliyor (tools/balance/export.py).
+# This table is here because of a painful incident: the named stations
+# had been written straight into content/dishes/*.json and THE GENERATOR
+# DID NOT KNOW ABOUT THEM. Running gen_dishes.py silently turned every
+# one of them back into "firin" (the oven). The station is now written on
+# the dish row and the equipment's "opens" list is derived FROM HERE
+# (tools/balance/export.py).
 CUISINE_STATIONS = {
     "turk": ("tas_firin", "doner_ocagi", "pide_firini"),
     "fastfood": ("milkshake_makinesi", "waffle_makinesi"),
 }
 
-# Tarifte gecmeyen ama mutfakta bulunmasi gereken kalemler. docs/09: cay
-# menude satilan bir yemek degil, ikram kararidir; docs/23 8.2 teaCostCenti
-# onun maliyetini okur.
-SERVIS_MALZEMESI = ("cay",)
+# Items that appear in no recipe but have to be in the kitchen. docs/09:
+# tea is not a dish sold on the menu, it is a decision to offer something;
+# docs/23 8.2 teaCostCenti reads its cost.
+SERVICE_INGREDIENTS = ("cay",)
 
-# Malzeme orani bandi: docs/12 %32 der, bant %28-%36
+# The ingredient ratio band: docs/12 says 32%, the band is 28%-36%
 RATIO_MIN = 2800
 RATIO_MAX = 3600
 
-# Grup basina hedef malzeme orani. Ana yemek doyurucu ve pahali malzemeli,
-# icecek en yuksek marjli. Hepsi banda rahat sigar.
-# MALZEME ORANI HEDEFI: MUTFAK + GRUP.
+# The target ingredient ratio per group. A main dish is filling and made
+# of expensive ingredients, a drink has the highest margin. All of them
+# sit comfortably inside the band.
+# THE INGREDIENT RATIO TARGET IS KEYED ON CUISINE + GROUP.
 #
-# Olculdu ve vaat sayilarda YOKTU: fast food'un brut marji %64, Turk'un
-# %56 idi. Yani "ucuz ve kalabalik" diye satilan mutfak DAHA KARLI
-# olani. Gercekte tersi - zincirler birim basina az kazanip hacimle
-# yasar.
+# Measured, and the promise WAS NOT IN THE NUMBERS: fast food's gross
+# margin was 64%, the Turkish one's 56%. That is, the cuisine sold as
+# "cheap and crowded" was the MORE PROFITABLE one. In reality it is the
+# other way round - chains earn little per unit and live on volume.
 #
-# Fast food bandin UST ucuna cekildi (malzeme orani yuksek = marj dar).
-# Turk DEGISMEDI: istenen sey fast food'un birim kazancinin dusmesiydi.
+# Fast food was pulled to the TOP end of the band (high ingredient ratio
+# = narrow margin). Turkish DID NOT CHANGE: what was wanted was fast
+# food's per-unit earnings coming down.
 #
-# ANAHTAR MUTFAK + GRUP, yalnizca grup DEGIL. Ilk denemede grup basina
-# yazmistim ve Turk'un marji da dustu (17.351 -> 16.009): iki mutfak
-# "icecek" ve "tatli" gruplarini PAYLASIYOR, yani grup basina bir hedef
-# ikisini birden kaydiriyor. Paylasilan grubun hedefi mutfaga gore
-# ayrilmadan bu ayrim yapilamaz.
+# THE KEY IS CUISINE + GROUP, NOT group alone. On the first attempt I
+# wrote it per group and the Turkish margin fell too (17,351 -> 16,009):
+# the two cuisines SHARE the "icecek" (drink) and "tatli" (dessert)
+# groups, so one target per group shifts both of them at once. Without
+# splitting a shared group's target by cuisine, the distinction cannot be
+# made at all.
 #
-# Ikisi de docs/12'nin %28-36 bandinin icinde.
+# Both are inside docs/12's 28-36% band.
 GROUP_TARGET_BP = {
     "fastfood": {
         "ana": 3550, "yan": 3400, "icecek": 3250, "tatli": 3450,
@@ -98,7 +103,10 @@ GROUP_TARGET_BP = {
         "sulu": 3300, "izgara": 3300, "corba": 3050,
         "pilav": 3050, "meze": 3050, "icecek": 2950, "tatli": 3150,
     },
-}# Denetim icin kaba rol eslemesi: acilis menusunde ana, yan ve icecek sart
+}
+
+# A rough role mapping for the check: the opening menu must have a main,
+# a side and a drink.
 GROUP_ROLE = {
     "ana": "ana", "sulu": "ana", "izgara": "ana",
     "yan": "yan", "pilav": "yan", "meze": "yan", "corba": "yan",
@@ -106,9 +114,17 @@ GROUP_ROLE = {
 }
 
 # ---------------------------------------------------------------------------
-# Mevsim ve kalite profilleri
+# Season and quality profiles
+#
+# The profile NAMES below stay Turkish ("sabit" fixed, "sebze" vegetable,
+# "yesillik" leafy, "meyve" fruit, "et" meat, "sut" dairy; "kahraman"
+# hero, "orta" mid, "temel" basic). They are labels inside the same data
+# rows as the content ids (`kuru_fasulye`, `ana`, `ocak`), which are
+# fixed by content/ and by the C# loader - translating half of a data
+# table reads worse than leaving it whole.
 # ---------------------------------------------------------------------------
-# 10000 = degisim yok. docs/12: bazi malzemeler bir mevsim %20 ucuz ya da pahali.
+# 10000 = no change. docs/12: some ingredients are 20% cheaper or dearer
+# in a given season.
 SEASON = {
     "sabit":    (10000, 10000, 10000, 10000),
     "sebze":    (10200,  8600,  9000, 12000),
@@ -117,8 +133,9 @@ SEASON = {
     "et":       (10000, 10500,  9500, 11500),
     "sut":      ( 9400, 10200, 10000, 11200),
 }
-# Kalite kademesi fiyat carpani ve memnuniyet etkisi (santi-puan).
-# docs/13-data-schemas.md kiyma ornegi "kahraman" profiline denk gelir.
+# Quality tier price multiplier and satisfaction effect (centi-points).
+# The minced meat example in docs/13-data-schemas.md corresponds to the
+# "kahraman" (hero) profile.
 QUALITY = {
     "kahraman": ((7500, 10000, 13500), (-2000, 0, 1500)),
     "orta":     ((8000, 10000, 12500), (-1200, 0,  800)),
@@ -127,13 +144,13 @@ QUALITY = {
 
 FF = "fastfood"
 TR = "turk"
-IKI = [FF, TR]
+BOTH = [FF, TR]
 
 # ---------------------------------------------------------------------------
-# Malzemeler
-#   (id, santi-sikke/kg, bozulur mu, bozulma gunu, mevsim, kalite, mutfaklar)
+# Ingredients
+#   (id, centi-coin/kg, perishable, spoil day, season, quality, cuisines)
 # ---------------------------------------------------------------------------
-# Temel kiler, docs/09: 12 kalem, her mutfakta bulunur (shared = true)
+# The basic pantry, docs/09: 12 items, present in every cuisine (shared = true)
 PANTRY = [
     ("tuz",           900, False,  0, "sabit", "temel"),
     ("karabiber",   24000, False,  0, "sabit", "temel"),
@@ -149,31 +166,34 @@ PANTRY = [
     ("tereyagi",    15000, True,  25, "sut",   "orta"),
 ]
 
-# Kilerin disindaki malzemeler (shared = false). "mutfaklar" alani hangi
-# menude gectigini soyler; ikisinde birden gecenler ikinci mutfagin maliyetini
-# dusuren paylasilan tabani buyutur (docs/09 "paylasilan taban").
+# Ingredients outside the pantry (shared = false). The "cuisines" field
+# says which menu they appear in; the ones that appear in both enlarge the
+# shared base that lowers the second cuisine's cost (docs/09 "the shared
+# base").
 #
-# FAST FOOD DONDURULMUS VE PAKETLI. docs/13 iki mutfak icin ayri bir
-# perishableRatio vaat ediyordu (fast food 0,20 - Turk 0,60) ve olculdu:
-# ikisi de 0,58 idi. Yani vaat edilen fark HIC YOKTU; iki mutfak bu
-# eksende tipatip ayniydi.
+# FAST FOOD IS FROZEN AND PACKAGED. docs/13 promised a different
+# perishableRatio for the two cuisines (fast food 0.20 - Turkish 0.60)
+# and it was measured: both were 0.58. So the promised difference DID NOT
+# EXIST AT ALL; on that axis the two cuisines were exactly alike.
 #
-# Fark gercek olmali, cunku mutfaklar arasindaki en somut oynanis farki
-# bu: fast food AFFEDIYOR (kanat, fileto, kofte, dondurma karisimi hepsi
-# dondurucudan cikiyor; sos, tursu, jalapeno kavanozda), Turk mutfagi
-# AFFETMIYOR (her sey taze). Yanlis gunu fast food'da atlatirsin,
-# Turk mutfaginda odersin - ve soguk hava deposu Turk mutfaginda cok
-# daha erken bir zorunluluk.
+# The difference has to be real, because it is the most concrete
+# difference in play between the cuisines: fast food FORGIVES (wings,
+# fillet, patties, ice cream mix all come out of the freezer; sauce,
+# pickles and jalapenos come in a jar), the Turkish kitchen DOES NOT
+# FORGIVE (everything is fresh). You survive a bad day in fast food, you
+# pay for it in the Turkish kitchen - and cold storage is a necessity far
+# earlier there.
 #
-# Kural: fast food'a OZEL bir malzeme gercek bir lokantada dondurulmus
-# ya da kavanozda geliyorsa bozulmaz. Taze kalanlar ekmek, marul,
-# lahana ve elma - yani burgerin USTUNE konan seyler.
+# The rule: an ingredient SPECIFIC to fast food does not perish if in a
+# real restaurant it arrives frozen or in a jar. The ones that stay fresh
+# are bread, lettuce, cabbage and apple - that is, the things that go ON
+# TOP of the burger.
 SPECIFIC = [
-    # -- et ve tavuk
-    ("kiyma",             8500, True,   1, "et",       "kahraman", IKI),
-    ("tavuk_gogus",       5400, True,   2, "et",       "kahraman", IKI),
-    # tavuk_kanat artik yalnizca fast food: "tavuk kanat izgara" Turk
-    # lokantasindan cikinca burada tarifsiz kaliyordu.
+    # -- meat and chicken
+    ("kiyma",             8500, True,   1, "et",       "kahraman", BOTH),
+    ("tavuk_gogus",       5400, True,   2, "et",       "kahraman", BOTH),
+    # tavuk_kanat (chicken wings) is fast food only now: once grilled
+    # wings left the Turkish restaurant, it was left here with no recipe.
     ("tavuk_kanat",       4200, False,   0, "et",       "orta",     [FF]),
     ("doner_eti",         9200, True,   1, "et",       "kahraman", [TR]),
     ("balik_filetosu",    8200, False,   0, "et",       "kahraman", [FF]),
@@ -182,29 +202,29 @@ SPECIFIC = [
     ("kuzu_kusbasi",     17000, True,   2, "et",       "kahraman", [TR]),
     ("kuzu_pirzola_et",  19000, True,   2, "et",       "kahraman", [TR]),
     ("iskembe",           5000, True,   1, "et",       "orta",     [TR]),
-    # -- ekmek ve hamur
+    # -- bread and dough
     ("burger_ekmek",      2600, True,   3, "sabit",    "orta",     [FF]),
     ("hotdog_ekmek",      2800, True,   3, "sabit",    "orta",     [FF]),
     ("tost_ekmegi",       2800, True,   3, "sabit",    "orta",     [FF]),
-    ("lavas",             2400, True,   4, "sabit",    "orta",     IKI),
+    ("lavas",             2400, True,   4, "sabit",    "orta",     BOTH),
     ("yufka",             3200, True,   5, "sabit",    "orta",     [TR]),
     ("makarna",           2600, False,  0, "sabit",    "temel",    [TR]),
-    ("galeta_unu",        2800, False,  0, "sabit",    "temel",    IKI),
+    ("galeta_unu",        2800, False,  0, "sabit",    "temel",    BOTH),
     ("misir_nisastasi",   3200, False,  0, "sabit",    "temel",    [TR]),
     ("kabartma_tozu",     9500, False,  0, "sabit",    "temel",    [FF]),
     ("maya",              8500, False,  0, "sabit",    "temel",    [FF]),
     ("irmik",             2600, False,  0, "sabit",    "temel",    [TR]),
-    # -- sut urunu
-    ("kasar",            12000, True,  12, "sut",      "orta",     IKI),
+    # -- dairy
+    ("kasar",            12000, True,  12, "sut",      "orta",     BOTH),
     ("mozzarella",       14000, False,  0, "sut",      "orta",     [FF]),
-    ("yogurt",            3200, True,   6, "sut",      "orta",     IKI),
+    ("yogurt",            3200, True,   6, "sut",      "orta",     BOTH),
     ("beyaz_peynir",     13000, True,  12, "sut",      "orta",     [TR]),
     ("dondurma_karisimi", 6600, False,   0, "sut",      "orta",     [FF]),
-    # -- sebze ve yesillik
-    ("patates",           1900, True,  25, "sebze",    "temel",    IKI),
+    # -- vegetables and greens
+    ("patates",           1900, True,  25, "sebze",    "temel",    BOTH),
     ("marul",             3000, True,   3, "yesillik", "orta",     [FF]),
     ("lahana",            1400, True,  12, "sebze",    "temel",    [FF]),
-    ("havuc",             1600, True,  18, "sebze",    "temel",    IKI),
+    ("havuc",             1600, True,  18, "sebze",    "temel",    BOTH),
     ("jalapeno",          5600, False,  0, "sebze",    "temel",    [FF]),
     ("tursu",             3400, False,  0, "sabit",    "temel",    [FF]),
     ("patlican",          2600, True,   6, "sebze",    "orta",     [TR]),
@@ -214,29 +234,29 @@ SPECIFIC = [
     ("taze_fasulye",      3000, True,   4, "sebze",    "orta",     [TR]),
     ("salatalik",         2200, True,   6, "sebze",    "temel",    [TR]),
     ("maydanoz",          2400, True,   3, "yesillik", "temel",    [TR]),
-    # -- bakliyat ve tahil
+    # -- pulses and grains
     ("kuru_fasulye_tane", 3800, False,  0, "sabit",    "orta",     [TR]),
     ("nohut_tane",        3400, False,  0, "sabit",    "orta",     [TR]),
     ("mercimek",          3200, False,  0, "sabit",    "orta",     [TR]),
     ("bulgur",            2400, False,  0, "sabit",    "temel",    [TR]),
     ("pirinc",            3600, False,  0, "sabit",    "orta",     [TR]),
-    # -- sos, baharat, tatlandirici
+    # -- sauces, spices, sweeteners
     ("burger_sos",        7200, False,  0, "sabit",    "orta",     [FF]),
     ("acili_sos",         7600, False,  0, "sabit",    "orta",     [FF]),
     ("ketcap",            4400, False,  0, "sabit",    "temel",    [FF]),
     ("mayonez",           5800, False,  0, "sabit",    "temel",    [FF]),
     ("salca",             5200, True,  30, "sabit",    "orta",     [TR]),
     ("sirke",             3200, False,  0, "sabit",    "temel",    [TR]),
-    ("baharat_karisimi", 16000, False,  0, "sabit",    "orta",     IKI),
+    ("baharat_karisimi", 16000, False,  0, "sabit",    "orta",     BOTH),
     ("kirmizi_biber",    18000, False,  0, "sabit",    "temel",    [TR]),
     ("kimyon",           20000, False,  0, "sabit",    "temel",    [TR]),
     ("nane",              3400, False,  0, "sabit",    "temel",    [TR]),
-    ("tarcin",           26000, False,  0, "sabit",    "temel",    IKI),
-    # -- icecek ve tatli girdisi
+    ("tarcin",           26000, False,  0, "sabit",    "temel",    BOTH),
+    # -- drink and dessert inputs
     ("gazoz_surubu",      6000, False,  0, "sabit",    "temel",    [FF]),
     ("kola_surubu",       6600, False,  0, "sabit",    "temel",    [FF]),
-    ("cay",              24000, False,  0, "sabit",    "orta",     IKI),
-    ("limon",             2800, True,  15, "meyve",    "temel",    IKI),
+    ("cay",              24000, False,  0, "sabit",    "orta",     BOTH),
+    ("limon",             2800, True,  15, "meyve",    "temel",    BOTH),
     ("elma",              2600, True,  20, "meyve",    "temel",    [FF]),
     ("cikolata",         18000, False,  0, "sabit",    "orta",     [FF]),
     ("kakao",            20000, False,  0, "sabit",    "orta",     [FF]),
@@ -246,14 +266,15 @@ SPECIFIC = [
 ]
 
 # ---------------------------------------------------------------------------
-# Yemekler
-#   (id, grup, istasyon, karmasiklik, prepMs, mevsim, taban, [ust parca],
-#    [(malzeme, gram), ...])
-# Mevsim 0 = kampanyanin ilk gunu acik olan menu (docs/09 "Acilis menusu"),
-# JSON'da unlockSeason 1 olur, unlockDay 1 alir.
+# Dishes
+#   (id, group, station, complexity, prepMs, season, base, [toppings],
+#    [(ingredient, grams), ...])
+# Season 0 = the menu that is open on the campaign's first day (docs/09
+# "the opening menu"); in the JSON it becomes unlockSeason 1 and takes
+# unlockDay 1.
 # ---------------------------------------------------------------------------
 FASTFOOD_DISHES = [
-    # ---- Ana, 12 kalem
+    # ---- Mains, 12 items
     ("hamburger", "ana", "izgara", 1, 75000, 0, "bun", ["patty", "leaf", "slice"], [
         ("kiyma", 120), ("burger_ekmek", 80), ("marul", 15), ("domates", 25),
         ("sogan", 10), ("tursu", 10), ("burger_sos", 20)]),
@@ -289,7 +310,7 @@ FASTFOOD_DISHES = [
     ("et_durum", "ana", "izgara", 2, 135000, 3, "paper", ["strip", "leaf", "sauce"], [
         ("kiyma", 130), ("lavas", 90), ("marul", 20), ("domates", 25),
         ("sogan", 10), ("acili_sos", 15)]),
-    # ---- Yan, 8 kalem
+    # ---- Sides, 8 items
     ("patates_kizartma", "yan", "ocak", 1, 55000, 0, "paper", ["strip"], [
         ("patates", 200), ("aycicek_yagi", 25), ("tuz", 2)]),
     ("nugget", "yan", "ocak", 1, 65000, 0, "paper", ["sphere", "sauce"], [
@@ -311,7 +332,7 @@ FASTFOOD_DISHES = [
     ("coleslaw", "yan", "soguk", 1, 40000, 3, "bowl", ["strip"], [
         ("lahana", 120), ("havuc", 40), ("mayonez", 35), ("seker", 5),
         ("limon", 5)]),
-    # ---- Icecek, 6 kalem
+    # ---- Drinks, 6 items
     ("gazoz", "icecek", "icecek", 1, 20000, 0, "cup", ["stick"], [
         ("gazoz_surubu", 60), ("seker", 20)]),
     ("kola", "icecek", "icecek", 1, 20000, 1, "cup", ["stick"], [
@@ -324,7 +345,7 @@ FASTFOOD_DISHES = [
         ("yogurt", 150), ("tuz", 3)]),
     ("buzlu_cay", "icecek", "icecek", 1, 40000, 4, "cup", ["slice", "stick"], [
         ("cay", 8), ("seker", 30), ("limon", 20)]),
-    # ---- Tatli, 6 kalem
+    # ---- Desserts, 6 items
     ("dondurma", "tatli", "tatli", 1, 30000, 0, "cup", ["sphere"], [
         ("dondurma_karisimi", 80), ("sut", 30), ("seker", 10)]),
     ("elmali_turta", "tatli", "firin", 3, 240000, 2, "plate_round", ["slice", "sauce"], [
@@ -345,7 +366,7 @@ FASTFOOD_DISHES = [
 ]
 
 TURK_DISHES = [
-    # ---- Sulu yemek, 9 kalem
+    # ---- Stews, 9 items
     ("kuru_fasulye", "sulu", "ocak", 3, 300000, 0, "bowl", ["sphere", "sauce"], [
         ("kuru_fasulye_tane", 130), ("dana_kusbasi", 70), ("salca", 25),
         ("sogan", 35), ("aycicek_yagi", 18), ("tuz", 3)]),
@@ -373,7 +394,7 @@ TURK_DISHES = [
     ("patlican_kebabi", "sulu", "tas_firin", 3, 350000, 4, "plate_oval", ["slice", "sphere", "sauce"], [
         ("patlican", 150), ("kiyma", 110), ("domates", 50), ("yesil_biber", 25),
         ("sarimsak", 5), ("aycicek_yagi", 15)]),
-    # ---- Corba, 4 kalem
+    # ---- Soups, 4 items
     ("mercimek_corbasi", "corba", "ocak", 2, 150000, 0, "bowl", ["steam", "slice"], [
         ("mercimek", 90), ("sogan", 30), ("havuc", 30), ("patates", 40),
         ("tereyagi", 12), ("un", 10), ("kirmizi_biber", 2), ("tuz", 3)]),
@@ -386,7 +407,7 @@ TURK_DISHES = [
     ("iskembe_corbasi", "corba", "ocak", 3, 400000, 4, "bowl", ["steam", "sauce"], [
         ("iskembe", 180), ("un", 15), ("sarimsak", 8), ("sirke", 8),
         ("tereyagi", 12), ("limon", 8)]),
-    # ---- Pilav ve hamur, 4 kalem
+    # ---- Pilaf and pastry, 4 items
     ("pirinc_pilavi", "pilav", "ocak", 1, 80000, 0, "plate_round", ["sphere"], [
         ("pirinc", 90), ("makarna", 10), ("tereyagi", 15), ("tuz", 3)]),
     ("bulgur_pilavi", "pilav", "ocak", 1, 75000, 1, "plate_round", ["sphere"], [
@@ -398,7 +419,7 @@ TURK_DISHES = [
     ("manti", "pilav", "ocak", 3, 480000, 4, "bowl", ["sphere", "sauce"], [
         ("un", 90), ("kiyma", 60), ("sogan", 20), ("yogurt", 80),
         ("tereyagi", 15), ("kirmizi_biber", 2), ("nane", 2)]),
-    # ---- Izgara, 8 kalem (dordu adlandirilmis ekipmana bagli)
+    # ---- Grill, 8 items (four of them tied to named equipment)
     ("kofte", "izgara", "izgara", 2, 120000, 0, "plate_oval", ["sphere", "leaf", "sauce"], [
         ("kiyma", 220), ("sogan", 25), ("galeta_unu", 15), ("yumurta", 10),
         ("karabiber", 2), ("kimyon", 2)]),
@@ -408,9 +429,9 @@ TURK_DISHES = [
     ("adana", "izgara", "izgara", 2, 150000, 2, "plate_oval", ["strip", "leaf", "sauce"], [
         ("kiyma", 200), ("kirmizi_biber", 4), ("kimyon", 3), ("sogan", 20),
         ("lavas", 60)]),
-    # Doner ve pide: kullanicinin istedigi adlandirilmis ekipman.
-    # "Izgara kademe 2 gerekli" soyut; "doner ocagini al, doner acilsin"
-    # okunur. Ikisi de ana rolde, yani menunun omurgasina dokunuyorlar.
+    # Doner and pide: the named equipment the user asked for. "Grill tier
+    # 2 required" is abstract; "buy the doner grill and doner opens" reads.
+    # Both are in the main role, so they touch the spine of the menu.
     ("doner", "izgara", "doner_ocagi", 2, 130000, 2, "plate_oval", ["strip", "leaf", "sauce"], [
         ("doner_eti", 180), ("lavas", 70), ("domates", 40), ("sogan", 25),
         ("maydanoz", 5), ("aycicek_yagi", 8)]),
@@ -425,7 +446,7 @@ TURK_DISHES = [
         ("salca", 15), ("maydanoz", 6), ("kirmizi_biber", 3)]),
     ("kuzu_pirzola", "izgara", "izgara", 2, 130000, 3, "plate_oval", ["slice", "leaf"], [
         ("kuzu_pirzola_et", 220), ("tuz", 3), ("karabiber", 2), ("zeytinyagi", 10)]),
-    # ---- Meze ve salata, 3 kalem
+    # ---- Meze and salad, 3 items
     ("coban_salata", "meze", "soguk", 1, 50000, 1, "bowl", ["slice", "leaf"], [
         ("domates", 100), ("salatalik", 80), ("yesil_biber", 30), ("sogan", 25),
         ("maydanoz", 8), ("zeytinyagi", 12), ("limon", 8)]),
@@ -435,7 +456,7 @@ TURK_DISHES = [
     ("piyaz", "meze", "soguk", 1, 60000, 1, "plate_oval", ["sphere", "slice", "leaf"], [
         ("kuru_fasulye_tane", 90), ("sogan", 30), ("domates", 40), ("maydanoz", 6),
         ("sirke", 10), ("zeytinyagi", 15), ("yumurta", 30)]),
-    # ---- Tatli, 3 kalem
+    # ---- Desserts, 3 items
     ("sutlac", "tatli", "tatli", 2, 175000, 0, "bowl", ["sauce"], [
         ("sut", 250), ("pirinc", 30), ("seker", 45), ("misir_nisastasi", 8),
         ("tarcin", 2)]),
@@ -445,14 +466,15 @@ TURK_DISHES = [
     ("revani", "tatli", "tas_firin", 3, 200000, 3, "plate_round", ["slice", "sauce"], [
         ("irmik", 80), ("un", 30), ("seker", 70), ("yumurta", 40),
         ("yogurt", 40), ("limon", 5)]),
-    # ---- Icecek, 1 kalem. docs/09 icecek grubu tanimlamiyor, docs/12 ayrani
-    # fiyatliyor ve "tipik siparis: sulu yemek + pilav + ayran" diyor.
+    # ---- Drinks, 1 item. docs/09 does not define a drinks group for this
+    # cuisine; docs/12 prices ayran and says "a typical order: stew + pilaf
+    # + ayran".
     ("ayran", "icecek", "icecek", 1, 25000, 0, "cup", [], [
         ("yogurt", 150), ("tuz", 3)]),
 ]
 
 # ---------------------------------------------------------------------------
-# Uretim
+# Generation
 # ---------------------------------------------------------------------------
 def ensure(d):
     if not os.path.isdir(d):
@@ -460,50 +482,56 @@ def ensure(d):
 
 
 def round50(x):
-    """En yakin 50 santi-sikkeye yuvarla. Yarisi sifirdan uzaga."""
+    """Round to the nearest 50 centi-coins. Half goes away from zero."""
     return ((x + 25) // 50) * 50
 
 
 def build_ingredients():
     out = []
     for iid, price, perish, spoil, season, quality in PANTRY:
-        out.append(one_ingredient(iid, price, perish, spoil, season, quality, IKI, True))
+        out.append(one_ingredient(iid, price, perish, spoil, season, quality,
+                                  BOTH, True))
     for iid, price, perish, spoil, season, quality, cuisines in SPECIFIC:
         out.append(one_ingredient(iid, price, perish, spoil, season, quality, cuisines, False))
     return out
 
 
 def one_ingredient(iid, price, perish, spoil, season, quality, cuisines, shared):
-    ilk, yaz, son, kis = SEASON[season]
+    spring, summer, autumn, winter = SEASON[season]
     qp, qs = QUALITY[quality]
     return {
         "id": iid,
         "nameKey": "ingredient." + iid,
         "shared": shared,
         "cuisines": list(cuisines),
-        # Santi-sikke / kilogram. Butun malzemeler kg; tarif gramaji bolerek
-        # calisir, boylece maliyet tek bir tamsayi carpimiyla cikar.
+        # Centi-coin / kilogram. Every ingredient is in kg; the recipe's
+        # gram weight works by dividing, so the cost comes out of a single
+        # integer multiplication.
         "basePrice": price,
         "unit": "kg",
         "perishable": perish,
         "spoilDays": spoil,
-        "seasonModifierBp": {"ilkbahar": ilk, "yaz": yaz, "sonbahar": son, "kis": kis},
+        # The JSON field names stay as they are: content/ and the C#
+        # loader read them by these names.
+        "seasonModifierBp": {"ilkbahar": spring, "yaz": summer,
+                             "sonbahar": autumn, "kis": winter},
         "qualityPriceMultiplierBp": {"dusuk": qp[0], "standart": qp[1], "yuksek": qp[2]},
         "qualitySatisfactionCenti": {"dusuk": qs[0], "standart": qs[1], "yuksek": qs[2]},
     }
 
 
 def cost_milli(recipe, prices):
-    """Tarifin maliyeti, santi-sikke * 1000. Tamsayi kalsin diye bolmuyoruz."""
+    """The recipe's cost, centi-coin * 1000. We do not divide, so that it
+    stays an integer."""
     return sum(prices[iid] * grams for iid, grams in recipe)
 
 
 def unlock_days(rows):
-    """Mevsim icindeki acilis gunlerini dagitir.
+    """Spreads the unlock days out within the season.
 
-    Acilis menusu (mevsim alani 0) gun 1. Birinci mevsimin kalani 3..15
-    arasina, sonraki mevsimler kendi 15 gunluk penceresine yayilir.
-    docs/09: "ortalama iki gunde bir yeni yemek".
+    The opening menu (season field 0) is day 1. The rest of the first
+    season spreads over 3..15, later seasons over their own 15-day
+    window. docs/09: "a new dish every two days on average".
     """
     days = {}
     buckets = {1: [], 2: [], 3: [], 4: []}
@@ -525,20 +553,22 @@ def unlock_days(rows):
 
 
 # ---------------------------------------------------------------------------
-# prepMs turetme  (docs/23 8.3, docs/14 kapasite modeli)
+# Deriving prepMs  (docs/23 8.3, the capacity model in docs/14)
 # ---------------------------------------------------------------------------
-# Bir servis gunu 480.000 ms; asci kapasitesi gunde 28 KISI. Simulasyonda
-# her kisi bir tabak siparis ediyor, yani kisi basina mutfak butcesi:
-#     480.000 / 28 = 17.142 ms
-# Menunun ortalama prepMs'i bu sayiya esitlenir. Karmasiklik yalnizca
-# yemekler ARASINDAKI orani belirler, mutlak degeri degil.
+# A service day is 480,000 ms; a cook's capacity is 28 PEOPLE per day. In
+# the simulation each person orders one plate, so the kitchen budget per
+# person is:
+#     480,000 / 28 = 17,142 ms
+# The menu's average prepMs is set equal to that number. Complexity only
+# determines the ratio BETWEEN dishes, not the absolute value.
 SERVICE_DAY_MS = 480_000
 COOK_CAPACITY_PER_DAY = 28
 KITCHEN_MS_PER_PERSON = SERVICE_DAY_MS // COOK_CAPACITY_PER_DAY
 
-# Kisi basina kac TABAK pisiyor. Siparis modeli content/economy.json'da:
-# bir ana yemek kesin, yan ve icecek olasilikli.
-# Butce kisi basina; tabak basina sure buna bolunerek bulunur.
+# How many PLATES are cooked per person. The order model is in
+# content/economy.json: one main for certain, a side and a drink by
+# chance. The budget is per person; the time per plate is found by
+# dividing it.
 def _avg_dishes_per_person():
     path = os.path.join(CONTENT, "economy.json")
     try:
@@ -555,14 +585,14 @@ def _avg_dishes_per_person():
 AVG_DISHES_PER_PERSON = _avg_dishes_per_person()
 MS_PER_DISH = int(KITCHEN_MS_PER_PERSON / AVG_DISHES_PER_PERSON)
 
-# Karmasikliga gore goreli agirlik
+# Relative weight by complexity
 PREP_WEIGHT = {1: 70, 2: 100, 3: 150}
 
 
 def derive_prep_ms(dishes):
     """
-    Menunun ortalamasi KITCHEN_MS_PER_PERSON olacak sekilde prepMs atar.
-    Yerinde degistirir ve (min, ort, max) doner.
+    Assigns prepMs so that the menu's average is KITCHEN_MS_PER_PERSON.
+    Modifies in place and returns (min, average, max).
     """
     total_w = 0
     for d in dishes:
@@ -570,15 +600,15 @@ def derive_prep_ms(dishes):
     if total_w == 0:
         return (0, 0, 0)
 
-    # olcek = hedef_ortalama * adet / toplam_agirlik
+    # scale = target_average * count / total_weight
     n = len(dishes)
     lo, hi, tot = None, None, 0
     for d in dishes:
         w = PREP_WEIGHT[d["complexity"]]
         ms = (MS_PER_DISH * n * w) // total_w
-        ms = int(round(ms / 500.0)) * 500          # 500 ms'ye yuvarla
+        ms = int(round(ms / 500.0)) * 500          # round to 500 ms
         if ms < 3000:
-            ms = 3000                               # icecek bile bir sey aliyor
+            ms = 3000                               # even a drink takes something
         d["prepMs"] = ms
         tot += ms
         lo = ms if lo is None or ms < lo else lo
@@ -586,33 +616,36 @@ def derive_prep_ms(dishes):
     return (lo, tot // n, hi)
 
 
-# Kilit siniri. docs/34 4: yemek kilidi TAKVIM degil, ITIBAR + EKIPMAN.
-# Kural mutfagin KENDI dagilimina gore, cunku "karmasiklik 3 -> kademe 2"
-# gibi mutlak bir esik 32 fast food yemeginin 2'sini, 32 Turk yemeginin
-# 17'sini yakaliyordu. Yemekler (karmasiklik, fiyat) ile siralanip
-# boluuyor: alt %53 ekipman istemez, sonraki %28 kademe 1, ust %19 kademe 2.
-# 32 yemekte bu 17 / 9 / 6 sira demek. Sinirlar ondalik gorunuyor cunku
-# SAYIYA gore secildiler: dengeleme bu bolunmeyle yapildi ve bir yemegin
-# kademe atlamasi olcumu gorunur bicimde kaydiriyor (fast food'da tek bir
-# cizburger'in kademe 1'e gecmesi "makul oyuncu genisleyemiyor" ihlalini
-# doguruyordu).
+# The lock thresholds. docs/34 4: a dish is locked by REPUTATION +
+# EQUIPMENT, not by the CALENDAR. The rule works off the cuisine's OWN
+# distribution, because an absolute threshold such as "complexity 3 ->
+# tier 2" caught 2 of the 32 fast food dishes and 17 of the 32 Turkish
+# ones. The dishes are sorted by (complexity, price) and split: the
+# bottom 53% need no equipment, the next 28% tier 1, the top 19% tier 2.
+# On 32 dishes that means 17 / 9 / 6 places. The thresholds look like odd
+# decimals because they were chosen by the COUNT: the balancing was done
+# with this split, and one dish changing tier shifts the measurement
+# visibly (in fast food, a single cheeseburger moving to tier 1 produced
+# the "a reasonable player cannot expand" violation).
 TIER0_BP = 5300
 TIER1_BP = 8125
 
-# Itibar esigi gunle dogru orantili: acilis gunu 0, sonra gun basina
-# 0,9 puan. Altmisinci gunde 53,1 puan - yani son yemekler iyi yonetilen
-# bir lokantada acilir, kotu yonetilende hic acilmaz.
+# The reputation threshold is directly proportional to the day: 0 on
+# opening day, then 0.9 points per day. 53.1 points on day sixty - so the
+# last dishes open in a well-run restaurant and never open in a badly run
+# one.
 REP_PER_DAY_CENTI = 90
 
 
-# Istasyonun KAC KADEMESI var. equipment.json'dan turetilemez cunku o
-# dosya bu uretecin cikti zincirinin ILERISINDE; degerler docs/27 3.3
-# zirve tablosundan geliyor ve export.py orada dogruluyor.
+# HOW MANY TIERS a station has. It cannot be derived from
+# equipment.json, because that file is FURTHER DOWN this generator's
+# output chain; the values come from the peak table in docs/27 3.3 and
+# export.py verifies them there.
 #
-# Bu tablo olmadan uretec var olmayan bir kademe isteyebiliyor: uc fast
-# food tatlisi "firin kademe 2" istiyordu, firin merdiveni ise kademe
-# 1'de bitiyor - yani o uc yemek altmis gun boyunca ACILAMIYORDU ve
-# hicbir dogrulama bunu yakalamiyordu.
+# Without this table the generator can ask for a tier that does not
+# exist: three fast food desserts asked for "oven tier 2" while the oven
+# ladder ends at tier 1 - so those three dishes COULD NOT OPEN for sixty
+# days and no validation caught it.
 STATION_TIERS = {
     "ocak": 4,
     "izgara": 4,
@@ -622,7 +655,7 @@ STATION_TIERS = {
     "tatli": 2,
 }
 
-# Adlandirilmis mutfak ekipmani iki basamakli: yok / var.
+# Named kitchen equipment has two steps: absent / present.
 NAMED_STATION_TIERS = 2
 
 
@@ -632,11 +665,12 @@ def max_tier(station):
 
 def unlock_gates(rows, cuisine, dishes, days):
     """
-    requiresStationTier ve unlockReputationCenti'yi yerinde yazar.
+    Writes requiresStationTier and unlockReputationCenti in place.
 
-    Bu iki alan bir zamanlar dogrudan content/dishes/*.json icine elle
-    yazilmisti ve URETEC ONLARI BILMIYORDU: gen_dishes.py'yi calistirmak
-    butun kilit sistemini sessizce siliyordu. Artik burada uretiliyorlar.
+    These two fields were once written by hand straight into
+    content/dishes/*.json and THE GENERATOR DID NOT KNOW ABOUT THEM:
+    running gen_dishes.py silently wiped the entire lock system. They are
+    generated here now.
     """
     named = set(CUISINE_STATIONS.get(cuisine, ()))
     n = len(dishes)
@@ -652,20 +686,20 @@ def unlock_gates(rows, cuisine, dishes, days):
         else:
             tier = 2
 
-        # Adlandirilmis ekipman TAM OLARAK kademe 1 istiyor: o merdiven
-        # iki basamakli (yok / var), kademe 2 diye bir sey yok.
+        # Named equipment asks for EXACTLY tier 1: that ladder has two
+        # steps (absent / present), there is no such thing as tier 2.
         if d["station"] in named:
             tier = 1
 
-        # Acilis menusu hicbir sey istemez, yoksa oyun kilitli baslar.
+        # The opening menu asks for nothing, or the game starts locked.
         if d["unlockDay"] <= 1:
             if d["station"] in named:
                 raise AssertionError(
                     cuisine + "/" + d["id"] +
-                    ": adlandirilmis ekipman acilis menusunde olamaz")
+                    ": named equipment cannot be in the opening menu")
             tier = 0
 
-        # Istasyonun sahip OLDUGU en ust kademeyle sinirli.
+        # Capped at the highest tier the station actually HAS.
         top = max_tier(d["station"])
         if tier > top:
             tier = top
@@ -703,7 +737,7 @@ def build_dishes(rows, cuisine, prices):
 
 
 # ---------------------------------------------------------------------------
-# Denetim
+# Checks
 # ---------------------------------------------------------------------------
 class Report(object):
     def __init__(self):
@@ -714,11 +748,12 @@ class Report(object):
 
 
 def check_no_float(obj, path, rep):
-    """8.4: JSON'da ondalik nokta yok. bool sayidan once yakalanmali."""
+    """8.4: no decimal point in the JSON. bool must be caught before
+    number."""
     if isinstance(obj, bool):
         return
     if isinstance(obj, float):
-        rep.fail("ondalik deger: " + path)
+        rep.fail("decimal value: " + path)
     elif isinstance(obj, dict):
         for k, v in obj.items():
             check_no_float(v, path + "." + str(k), rep)
@@ -732,21 +767,22 @@ def check_ingredients(ings, rep):
     for ing in ings:
         iid = ing["id"]
         if not ID_RE.match(iid):
-            rep.fail("gecersiz malzeme id: " + iid)
+            rep.fail("invalid ingredient id: " + iid)
         if iid in seen:
-            rep.fail("tekrar eden malzeme id: " + iid)
+            rep.fail("duplicate ingredient id: " + iid)
         seen.add(iid)
         if ing["basePrice"] <= 0:
-            rep.fail("sifir fiyat: " + iid)
+            rep.fail("zero price: " + iid)
         if ing["perishable"] and ing["spoilDays"] <= 0:
-            rep.fail("bozulur ama spoilDays yok: " + iid)
+            rep.fail("perishable but no spoilDays: " + iid)
         if not ing["perishable"] and ing["spoilDays"] != 0:
-            rep.fail("bozulmaz ama spoilDays var: " + iid)
+            rep.fail("not perishable but has spoilDays: " + iid)
     return seen
 
 
 def check_dishes(dishes, cuisine, ing_ids, ing_by_id, prices, rep):
-    """Yemek basi kural denetimi. Malzeme orani raporunu da basar."""
+    """Checks the rules dish by dish. Also prints the ingredient ratio
+    report."""
     seen = set()
     ratios = []
     season_count = {1: 0, 2: 0, 3: 0, 4: 0}
@@ -756,95 +792,97 @@ def check_dishes(dishes, cuisine, ing_ids, ing_by_id, prices, rep):
 
     print("")
     print("--- " + cuisine + " ---")
-    print("id                     grup    mvs gun  fiyat  malzeme   oran   prepMs  k")
+    print("id                     group   sea day  price  ingred.  ratio   prepMs  c")
     for d in dishes:
         did = d["id"]
         if not ID_RE.match(did):
-            rep.fail(cuisine + " gecersiz yemek id: " + did)
+            rep.fail(cuisine + " invalid dish id: " + did)
         if did in seen:
-            rep.fail(cuisine + " tekrar eden yemek id: " + did)
+            rep.fail(cuisine + " duplicate dish id: " + did)
         seen.add(did)
 
         if (d["station"] not in STATIONS
                 and d["station"] not in CUISINE_STATIONS.get(cuisine, ())):
-            rep.fail(cuisine + "/" + did + " gecersiz istasyon: " + d["station"])
+            rep.fail(cuisine + "/" + did + " invalid station: " + d["station"])
         if d["plating"]["base"] not in BASES:
-            rep.fail(cuisine + "/" + did + " gecersiz tabak tabani")
+            rep.fail(cuisine + "/" + did + " invalid plate base")
         if len(d["plating"]["toppings"]) > 3:
-            rep.fail(cuisine + "/" + did + " ucten fazla ust parca")
+            rep.fail(cuisine + "/" + did + " more than three toppings")
         for t in d["plating"]["toppings"]:
             if t not in TOPPINGS:
-                rep.fail(cuisine + "/" + did + " gecersiz ust parca: " + t)
+                rep.fail(cuisine + "/" + did + " invalid topping: " + t)
         if d["complexity"] not in (1, 2, 3):
-            rep.fail(cuisine + "/" + did + " karmasiklik 1-3 disinda")
+            rep.fail(cuisine + "/" + did + " complexity outside 1-3")
         if d["unlockSeason"] not in (1, 2, 3, 4):
-            rep.fail(cuisine + "/" + did + " mevsim 1-4 disinda")
+            rep.fail(cuisine + "/" + did + " season outside 1-4")
 
-        # prepMs - karmasiklik bagi
+        # the prepMs - complexity tie
         cx, prep = d["complexity"], d["prepMs"]
         if cx == 1 and not prep < 90000:
-            rep.fail(cuisine + "/" + did + " karmasiklik 1 ama prepMs " + str(prep))
+            rep.fail(cuisine + "/" + did + " complexity 1 but prepMs " + str(prep))
         if cx == 2 and not (90000 <= prep <= 180000):
-            rep.fail(cuisine + "/" + did + " karmasiklik 2 ama prepMs " + str(prep))
+            rep.fail(cuisine + "/" + did + " complexity 2 but prepMs " + str(prep))
         if cx == 3 and not prep > 180000:
-            rep.fail(cuisine + "/" + did + " karmasiklik 3 ama prepMs " + str(prep))
+            rep.fail(cuisine + "/" + did + " complexity 3 but prepMs " + str(prep))
 
         recipe = [(x["id"], x["grams"]) for x in d["ingredients"]]
         if not recipe:
-            rep.fail(cuisine + "/" + did + " malzemesiz")
+            rep.fail(cuisine + "/" + did + " has no ingredients")
         for iid, grams in recipe:
             used.add(iid)
             if iid not in ing_ids:
-                rep.fail(cuisine + "/" + did + " bilinmeyen malzeme: " + iid)
+                rep.fail(cuisine + "/" + did + " unknown ingredient: " + iid)
             elif cuisine not in ing_by_id[iid]["cuisines"]:
-                rep.fail(cuisine + "/" + did + " malzeme bu mutfakta yok: " + iid)
+                rep.fail(cuisine + "/" + did +
+                         " ingredient not in this cuisine: " + iid)
             if grams <= 0:
-                rep.fail(cuisine + "/" + did + " sifir gramaj: " + iid)
+                rep.fail(cuisine + "/" + did + " zero grams: " + iid)
 
         cm = cost_milli(recipe, prices)
         ratio = cm * 10 // d["price"]
         ratios.append((ratio, did))
         if not (RATIO_MIN <= ratio <= RATIO_MAX):
-            rep.fail(cuisine + "/" + did + " malzeme orani bant disi: " + str(ratio) + " bp")
+            rep.fail(cuisine + "/" + did + " ingredient ratio outside the band: "
+                     + str(ratio) + " bp")
 
         season_count[d["unlockSeason"]] += 1
         if d["unlockDay"] == 1:
             day1 += 1
             day1_roles.add(GROUP_ROLE[d["group"]])
         if not (1 <= d["unlockDay"] <= 60):
-            rep.fail(cuisine + "/" + did + " gun 1-60 disinda")
+            rep.fail(cuisine + "/" + did + " day outside 1-60")
 
         print("{:22s} {:7s} {:>2d} {:>4d} {:>6d} {:>8d}  {:>4d}bp {:>7d}  {:d}".format(
             did, d["group"], d["unlockSeason"], d["unlockDay"], d["price"],
             cm // 1000, ratio, prep, cx))
 
     if len(dishes) != 32:
-        rep.fail(cuisine + " yemek sayisi 32 degil: " + str(len(dishes)))
+        rep.fail(cuisine + " the dish count is not 32: " + str(len(dishes)))
     if day1 != 6:
-        rep.fail(cuisine + " acilis menusu 6 degil: " + str(day1))
+        rep.fail(cuisine + " the opening menu is not 6: " + str(day1))
     for role in ("ana", "yan", "icecek"):
         if role not in day1_roles:
-            rep.fail(cuisine + " acilis menusunde " + role + " yok")
+            rep.fail(cuisine + " no " + role + " in the opening menu")
 
-    beklenen = {1: 13, 2: 8, 3: 6, 4: 5}
-    if season_count != beklenen:
-        rep.fail(cuisine + " mevsim dagilimi " + str(season_count) +
-                 " beklenen " + str(beklenen))
+    expected = {1: 13, 2: 8, 3: 6, 4: 5}
+    if season_count != expected:
+        rep.fail(cuisine + " season spread " + str(season_count) +
+                 " expected " + str(expected))
 
-    kum = 0
-    kums = []
+    running = 0
+    cumulative = []
     for s in (1, 2, 3, 4):
-        kum += season_count[s]
-        kums.append(kum)
-    print("mevsim dagilimi   : " + str([season_count[s] for s in (1, 2, 3, 4)]) +
-          "  gun1 = " + str(day1))
-    print("kumulatif menu    : 6 -> " + " -> ".join(str(k) for k in kums))
+        running += season_count[s]
+        cumulative.append(running)
+    print("season spread     : " + str([season_count[s] for s in (1, 2, 3, 4)]) +
+          "  day1 = " + str(day1))
+    print("cumulative menu   : 6 -> " + " -> ".join(str(k) for k in cumulative))
     ratios.sort()
-    print("malzeme orani     : en dusuk {:d}bp ({:s})  en yuksek {:d}bp ({:s})".format(
+    print("ingredient ratio  : lowest {:d}bp ({:s})  highest {:d}bp ({:s})".format(
         ratios[0][0], ratios[0][1], ratios[-1][0], ratios[-1][1]))
 
     perish = [i for i in used if ing_by_id[i]["perishable"]]
-    print("bozulabilir oran  : {:d}% ({:d}/{:d} malzeme)".format(
+    print("perishable ratio  : {:d}% ({:d}/{:d} ingredients)".format(
         len(perish) * 100 // len(used), len(perish), len(used)))
     return ratios, used
 
@@ -854,12 +892,13 @@ def write(path, obj):
     text = json.dumps(obj, ensure_ascii=False, indent=2)
     m = DECIMAL_RE.search(text)
     if m:
-        print("HATA: ondalik nokta var -> " + text[max(0, m.start() - 40):m.end() + 10])
+        print("ERROR: there is a decimal point -> "
+              + text[max(0, m.start() - 40):m.end() + 10])
         sys.exit(1)
     with io.open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
         f.write(u"\n")
-    print("yazildi: " + os.path.relpath(path, ROOT).replace("\\", "/"))
+    print("written: " + os.path.relpath(path, ROOT).replace("\\", "/"))
 
 
 def main():
@@ -881,29 +920,32 @@ def main():
     r2, u2 = check_dishes(tr, TR, ing_ids, ing_by_id, prices, rep)
 
     print("")
-    print("--- toplam ---")
-    print("malzeme           : {:d} ({:d} temel kiler, {:d} mutfaga ozel)".format(
+    print("--- totals ---")
+    print("ingredients       : {:d} ({:d} basic pantry, {:d} cuisine-specific)".format(
         len(ings), len(PANTRY), len(SPECIFIC)))
-    print("fast food yemek   : {:d}".format(len(ff)))
-    print("turk yemek        : {:d}".format(len(tr)))
-    hepsi = sorted(r1 + r2)
-    print("malzeme orani     : {:d}bp ({:s}) .. {:d}bp ({:s}), hedef bant {:d}-{:d}".format(
-        hepsi[0][0], hepsi[0][1], hepsi[-1][0], hepsi[-1][1], RATIO_MIN, RATIO_MAX))
-    print("ortalama oran     : {:d}bp".format(sum(r[0] for r in hepsi) // len(hepsi)))
+    print("fast food dishes  : {:d}".format(len(ff)))
+    print("turkish dishes    : {:d}".format(len(tr)))
+    all_ratios = sorted(r1 + r2)
+    print("ingredient ratio  : {:d}bp ({:s}) .. {:d}bp ({:s}), target band {:d}-{:d}".format(
+        all_ratios[0][0], all_ratios[0][1], all_ratios[-1][0], all_ratios[-1][1],
+        RATIO_MIN, RATIO_MAX))
+    print("average ratio     : {:d}bp".format(
+        sum(r[0] for r in all_ratios) // len(all_ratios)))
 
-    # Olu icerik denetimi: kilerin disindaki her malzeme, bulundugunu soyledigi
-    # mutfakta en az bir tarifte gecmeli. Tek istisna servis kalemleri.
+    # The dead-content check: every ingredient outside the pantry must
+    # appear in at least one recipe of the cuisine it claims to be in. The
+    # only exception is the service items.
     for ing in ings:
-        if ing["shared"] or ing["id"] in SERVIS_MALZEMESI:
+        if ing["shared"] or ing["id"] in SERVICE_INGREDIENTS:
             continue
         for cuisine, used in ((FF, u1), (TR, u2)):
             if cuisine in ing["cuisines"] and ing["id"] not in used:
-                rep.fail(cuisine + " mutfaginda hic tarifte gecmeyen malzeme: " +
+                rep.fail(cuisine + " ingredient in no recipe of this cuisine: " +
                          ing["id"])
 
     if rep.errors:
         print("")
-        print("--- DENGE HATASI ({:d}) ---".format(len(rep.errors)))
+        print("--- BALANCE ERROR ({:d}) ---".format(len(rep.errors)))
         for e in rep.errors:
             print("  " + e)
         sys.exit(1)
@@ -911,22 +953,23 @@ def main():
     ff_stats = derive_prep_ms(ff)
     tr_stats = derive_prep_ms(tr)
     print("")
-    print("prepMs turetildi (kapasite modelinden):")
-    print("  mutfak butcesi / kisi : {:d} ms".format(KITCHEN_MS_PER_PERSON))
-    print("  ortalama tabak / kisi : {:.2f}".format(AVG_DISHES_PER_PERSON))
-    print("  butce / tabak         : {:d} ms".format(MS_PER_DISH))
-    print("  fastfood  min/ort/max : {:d} / {:d} / {:d} ms".format(*ff_stats))
-    print("  turk      min/ort/max : {:d} / {:d} / {:d} ms".format(*tr_stats))
+    print("prepMs derived (from the capacity model):")
+    print("  kitchen budget / person : {:d} ms".format(KITCHEN_MS_PER_PERSON))
+    print("  average plates / person : {:.2f}".format(AVG_DISHES_PER_PERSON))
+    print("  budget / plate          : {:d} ms".format(MS_PER_DISH))
+    print("  fastfood  min/avg/max   : {:d} / {:d} / {:d} ms".format(*ff_stats))
+    print("  turk      min/avg/max   : {:d} / {:d} / {:d} ms".format(*tr_stats))
     for name, stats in (("fastfood", ff_stats), ("turk", tr_stats)):
         drift = abs(stats[1] - MS_PER_DISH)
         if drift * 100 > MS_PER_DISH * 3:
-            print("  HATA: {:s} ortalamasi butceden %3'ten fazla sapiyor".format(name))
+            print("  ERROR: {:s} average drifts more than 3% from the budget"
+                  .format(name))
             sys.exit(1)
 
     write(os.path.join(CONTENT, "ingredients.json"), ings)
     write(os.path.join(DISHES_DIR, "fastfood.json"), ff)
     write(os.path.join(DISHES_DIR, "turk.json"), tr)
-    print("butun denge kurallari gecti.")
+    print("every balance rule passed.")
 
 
 if __name__ == "__main__":

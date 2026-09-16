@@ -1,36 +1,39 @@
 namespace Lokanta.Core.Sim
 {
     /// <summary>
-    /// Yil sonu degerlendirmesi. docs/08-endgame.md.
+    /// The year-end evaluation. docs/08-endgame.md.
     ///
-    /// Tek sayi DEGIL yedi eksen: farkli oyun tarzlari farkli yollardan
-    /// iyi sonuc alabilsin. Bir oyuncu buyuyerek, bir baskasi kucuk ama
-    /// sevilen bir dukkan isleterek yuksek puan alabilmeli.
+    /// NOT a single number but seven axes: so that different playing styles
+    /// can reach a good result by different routes. One player should be
+    /// able to score highly by growing, another by running a small but
+    /// well-loved shop.
     ///
-    /// Yedincisi MUTFAGA OZEL ve imza mekanigini dogrudan odullendiriyor:
-    /// fast food'da bir gunde agirlanan en yuksek kisi sayisi, Turk
-    /// mutfaginda veresiye tahsilat orani. Mutfaklari birbirinden ayiran
-    /// sey yalnizca oynanista degil SONUCTA da gorunuyor.
+    /// The seventh is CUISINE-SPECIFIC and rewards the signature mechanic
+    /// directly: on fast food it is the highest number of people served in a
+    /// single day, on Turkish cuisine the tab collection rate. What sets the
+    /// cuisines apart from one another shows up not only in the play but in
+    /// the RESULT as well.
     ///
-    /// Her eksen 0-100. Puan tamsayi: butun cekirdek gibi (docs/23 2.2).
+    /// Each axis is 0-100. The score is an integer: like the whole core
+    /// (docs/23 2.2).
     /// </summary>
     public readonly struct SeasonScore
     {
-        /// <summary>Eksen sayisi. Arayuz bunlari sirayla geziyor.</summary>
+        /// <summary>The number of axes. The UI walks through them in order.</summary>
         public const int AxisCount = 7;
 
-        public readonly int Wealth;      // varlik
-        public readonly int Reputation;  // itibar
-        public readonly int Regulars;    // duzenli musteriler
-        public readonly int Crew;        // ekip
-        public readonly int Place;       // mekan
-        public readonly int Resilience;  // saglamlik
-        public readonly int Signature;   // mutfaga ozel
+        public readonly int Wealth;      // wealth
+        public readonly int Reputation;  // reputation
+        public readonly int Regulars;    // regular customers
+        public readonly int Crew;        // the crew
+        public readonly int Place;       // the place itself
+        public readonly int Resilience;  // resilience
+        public readonly int Signature;   // cuisine-specific
 
-        /// <summary>Yedi eksenin ortalamasi, 0-100.</summary>
+        /// <summary>The mean of the seven axes, 0-100.</summary>
         public readonly int Total;
 
-        /// <summary>Plaket kademesi 0-3. Metni arayuz cozuyor.</summary>
+        /// <summary>The plaque tier, 0-3. The UI resolves the text.</summary>
         public readonly int Plaque;
 
         public SeasonScore(int wealth, int reputation, int regulars, int crew,
@@ -47,10 +50,11 @@ namespace Lokanta.Core.Sim
             Total = (Wealth + Reputation + Regulars + Crew
                      + Place + Resilience + Signature) / AxisCount;
 
-            // Plaket esikleri: 40 / 60 / 80.
+            // The plaque thresholds: 40 / 60 / 80.
             //
-            // Ilk esik 40, cunku altmis gunu tamamlamak tek basina bir sey
-            // ifade etmeli - docs/08 "hicbir sey elinden alinmiyor".
+            // The first threshold is 40, because finishing sixty days should
+            // mean something on its own - docs/08, "nothing is taken away
+            // from you".
             Plaque = Total >= 80 ? 3 : Total >= 60 ? 2 : Total >= 40 ? 1 : 0;
         }
 
@@ -68,7 +72,7 @@ namespace Lokanta.Core.Sim
             }
         }
 
-        /// <summary>Eksenin metin anahtari. Arayuz Loc'tan cozuyor.</summary>
+        /// <summary>The axis's text key. The UI resolves it from Loc.</summary>
         public static string AxisKey(int i)
         {
             switch (i)

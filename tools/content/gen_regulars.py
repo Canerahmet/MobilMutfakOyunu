@@ -1,25 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-content/regulars/*.json uretir: mutfak basina on isimli duzenli musteri.
+Writes content/regulars/*.json: ten named regulars per cuisine.
 
-docs/09: "Her birinin adi, yuzu, meslegi ve uc ile dort sahnelik hikayesi
-var. Yeterince iyi hizmet verdikce acilir." docs/11: "isimli musteri tek
-bir kisidir, elle yazilmistir, hikayesi vardir ve hep ayni kisidir.
-Arketip ise binlerce musteri uretir."
+docs/09: "Each one has a name, a face, a job and a story of three or
+four beats. It opens as you serve them well enough." docs/11: "a named
+customer is one single person, written by hand, with a story, and always
+the same person. An archetype produces thousands of customers."
 
-Duzenli musteri bir ARKETIPI TABAN ALIR ve ustune kendi ozelliklerini
-ekler (docs/13). Boylece davranis kodu tek yol izliyor: sabir, grup
-buyuklugu, fiyat duyarliligi, gelis saati - hepsi arketipten geliyor.
-Duzenli musterinin kendine ait olan sey uc sey:
+A regular TAKES AN ARCHETYPE AS ITS BASE and adds its own properties on
+top (docs/13). That way the behaviour code follows one path: patience,
+group size, price sensitivity, arrival hour - all of it comes from the
+archetype. Three things belong to the regular alone:
 
-    favouriteDish     menude yoksa hayal kirikligi
-    arrivesFromDay    kampanyaya ne zaman girer
-    veresiyeEligible  Turk mutfaginda deftere yazilabilir mi
+    favouriteDish     disappointment when it is not on the menu
+    arrivesFromDay    when they enter the campaign
+    veresiyeEligible  whether they can go on the tab in Turkish cuisine
 
-Metin YOK, yalnizca anahtar (textKey). Yerellestirme dosyasi ayri; bu
-dosya yapisal ve uretilebilir kalmali.
+NO text here, only keys (textKey). The localisation file is separate;
+this file has to stay structural and generatable.
 
-Calistirma:
+The field name `veresiyeEligible` stays as it is: it is written into
+content/ and both tools/balance/export.py and the C# loader read it by
+that name. ("Veresiye" is the tab a neighbourhood restaurant keeps for
+its regulars - the signature mechanic of the Turkish cuisine.)
+
+Usage:
     python tools/content/gen_regulars.py
 """
 from __future__ import print_function
@@ -37,16 +42,18 @@ OUT_DIR = os.path.join(CONTENT, "regulars")
 
 ID_RE = re.compile(r"^[a-z0-9_]+$")
 
-# Kampanya 60 gun. Duzenli musteriler kampanyaya YAYILARAK giriyor:
-# hepsi ilk hafta gelirse ne tanidiklik duygusu olusuyor ne de "yeni biri
-# duzenlimiz oldu" ani. docs/09 ilerleme egrisiyle ayni fikir.
+# The campaign is 60 days. Regulars enter it SPREAD OUT: if they all
+# arrive in the first week there is neither a feeling of familiarity nor
+# the moment of "someone new has become a regular". Same idea as the
+# progression curve in docs/09.
 CAMPAIGN_DAYS = 60
 
 # ---------------------------------------------------------------------------
-# (id, arketip tabani, sevdigi yemek, geldigi gun, veresiye)
+# (id, archetype base, favourite dish, day they arrive, tab)
 #
-# Arketip secimi anlamli olmali: esnaf komsu veresiye defterinin ana adayi
-# (docs/11), denetim gorevlisi asla degil, yolcu zaten duzenli olmaz.
+# The choice of archetype has to mean something: the neighbouring
+# shopkeeper is the prime candidate for the tab (docs/11), the health
+# inspector never is, and a traveller does not become a regular at all.
 # ---------------------------------------------------------------------------
 TURK = [
     ("hasan_usta",      "esnaf_komsu",            "kuru_fasulye",     3,  True),
@@ -76,10 +83,10 @@ FASTFOOD = [
 
 CUISINES = [("turk", TURK), ("fastfood", FASTFOOD)]
 
-# Hikaye sahneleri. docs/09 "uc ile dort sahne" diyor; esik degerleri
-# HERKES ICIN AYNI cunku bunlar bir zorluk ayari degil, bir ANLATI temposu.
-# Ucuncu sahne 15 ziyaret istiyor: altmis gunde ancak duzenli olarak iyi
-# agirlanan biri oraya varir.
+# Story beats. docs/09 says "three or four beats"; the thresholds are
+# THE SAME FOR EVERYONE because they are not a difficulty setting, they
+# are a NARRATIVE tempo. The third beat asks for 15 visits: in sixty days
+# only someone served well and regularly gets there.
 STORY = [
     (1,  3, 7000),
     (2,  8, 7500),
@@ -127,49 +134,54 @@ def check(cuisine, rows, errors):
     for r in rows:
         rid = r["id"]
         if not ID_RE.match(rid):
-            errors.append(cuisine + " gecersiz kimlik: " + rid)
+            errors.append(cuisine + " invalid id: " + rid)
         if rid in seen:
-            errors.append(cuisine + " tekrarlanan kimlik: " + rid)
+            errors.append(cuisine + " duplicate id: " + rid)
         seen.add(rid)
 
         if r["archetypeBase"] not in arch:
-            errors.append(cuisine + "/" + rid + " olmayan arketip: " +
+            errors.append(cuisine + "/" + rid + " archetype does not exist: " +
                           r["archetypeBase"])
         if r["favouriteDish"] not in dishes:
-            errors.append(cuisine + "/" + rid + " olmayan yemek: " +
+            errors.append(cuisine + "/" + rid + " dish does not exist: " +
                           r["favouriteDish"])
         elif unlock[r["favouriteDish"]] > r["arrivesFromDay"]:
-            # Geldigi gun sevdigi yemek daha ACILMAMISSA mekanik ilk
-            # gunden haksiz calisir: oyuncunun elinde olmayan bir eksik.
+            # If their favourite dish has NOT OPENED YET on the day
+            # they arrive, the mechanic runs unfairly from day one: a
+            # shortfall the player could do nothing about.
             errors.append(
-                "%s/%s %d. gunde geliyor ama sevdigi yemek %d. gunde aciliyor"
+                "%s/%s arrives on day %d but their favourite dish opens on day %d"
                 % (cuisine, rid, r["arrivesFromDay"], unlock[r["favouriteDish"]]))
 
         d = r["arrivesFromDay"]
         if not (1 <= d <= CAMPAIGN_DAYS):
-            errors.append(cuisine + "/" + rid + " gecersiz gun: " + str(d))
+            errors.append(cuisine + "/" + rid + " invalid day: " + str(d))
         days.append(d)
 
         beats = [b["beat"] for b in r["story"]]
         if beats != sorted(beats) or len(set(beats)) != len(beats):
-            errors.append(cuisine + "/" + rid + " sahne sirasi bozuk")
+            errors.append(cuisine + "/" + rid + " the beat order is broken")
         visits = [b["requiresVisits"] for b in r["story"]]
         if visits != sorted(visits):
-            errors.append(cuisine + "/" + rid + " sahne ziyaret esikleri artmiyor")
+            errors.append(cuisine + "/" + rid +
+                          " the visit thresholds of the beats do not increase")
 
     if len(rows) != 10:
-        errors.append(cuisine + " on duzenli musteri olmali, " +
-                      str(len(rows)) + " var")
+        errors.append(cuisine + " must have ten regulars, there are " +
+                      str(len(rows)))
     if sorted(days) != days:
-        errors.append(cuisine + " gelis gunleri artan sirada olmali")
+        errors.append(cuisine + " the arrival days must be in increasing order")
 
-    # Turk mutfaginda veresiye ADAYI olmali; fast food'da olmamali.
-    # docs/07: veresiye Turk mutfaginin imza mekanigi, fast food'un degil.
+    # Turkish cuisine must have CANDIDATES for the tab; fast food must
+    # not. docs/07: the tab is the signature mechanic of the Turkish
+    # cuisine, not of fast food.
     credit = [r["id"] for r in rows if r["veresiyeEligible"]]
     if cuisine == "turk" and len(credit) < 4:
-        errors.append("turk: veresiye adayi az (" + str(len(credit)) + ")")
+        errors.append("turk: too few candidates for the tab (" +
+                      str(len(credit)) + ")")
     if cuisine == "fastfood" and credit:
-        errors.append("fastfood: veresiye Turk mutfaginin mekanigi, aday olmamali")
+        errors.append("fastfood: the tab is the Turkish cuisine's mechanic, "
+                      "there must be no candidates")
 
     return credit
 
@@ -177,7 +189,7 @@ def check(cuisine, rows, errors):
 def write(path, obj):
     text = json.dumps(obj, ensure_ascii=False, indent=2)
     io.open(path, "w", encoding="utf-8", newline="\n").write(text + "\n")
-    print("yazildi: " + os.path.relpath(path, ROOT).replace("\\", "/"))
+    print("written: " + os.path.relpath(path, ROOT).replace("\\", "/"))
 
 
 def main():
@@ -190,24 +202,24 @@ def main():
         credit = check(cuisine, rows, errors)
         print("")
         print("--- " + cuisine + " ---")
-        print("id                  arketip                  yemek              gun  veresiye")
+        print("id                  archetype                dish               day  tab")
         for r in rows:
             print("%-19s %-24s %-18s %3d  %s" % (
                 r["id"], r["archetypeBase"], r["favouriteDish"],
-                r["arrivesFromDay"], "evet" if r["veresiyeEligible"] else "-"))
-        print("veresiye adayi: %d" % len(credit))
+                r["arrivesFromDay"], "yes" if r["veresiyeEligible"] else "-"))
+        print("candidates for the tab: %d" % len(credit))
         if not errors:
             write(os.path.join(OUT_DIR, cuisine + ".json"), rows)
 
     if errors:
         print("")
-        print("--- HATA (%d) ---" % len(errors))
+        print("--- ERROR (%d) ---" % len(errors))
         for e in errors:
             print("  " + e)
         return 1
 
     print("")
-    print("butun kurallar gecti.")
+    print("every rule passed.")
     return 0
 
 

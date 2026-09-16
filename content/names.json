@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "_comment": "URETILEN DOSYA. tools/content/gen_names.py calistirin.",
+  "_comment": "GENERATED FILE. Run tools/content/gen_names.py.",
   "staff": [
     "Nurten",
     "Hasan",

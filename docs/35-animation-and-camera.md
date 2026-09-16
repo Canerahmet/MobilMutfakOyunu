@@ -1,244 +1,273 @@
-# 35 — Canlandırma katmanı, çalışan ekipman ve iki parmak kamera
+# 35 — The animation layer, working equipment and a two-finger camera
 
-Bu doküman, salonun **durağan bir diyoramadan** çalışan bir restorana dönüştüğü turu kaydediyor. Üç iş birbirine bağlı: figürler artık **yürüyor**, ekipman artık **çalıştığını gösteriyor**, ve oyuncu artık kamerayı **kendi** yönetiyor. Üçünün ortak sonucu: simülasyonun bildiği şeyler ekranda görünür hale geldi.
+This document records the round in which the hall turned from **a static diorama** into a working restaurant. Three jobs hang together: the figures now **walk**, the equipment now **shows that it is working**, and the player now drives the camera **themselves**. What all three add up to: the things the simulation knows became visible on screen.
 
-Önceki durum: simülasyon her an hangi masanın hangi aşamada olduğunu, hangi istasyonda kaç tabak piştiğini biliyordu; ekranda garson ile aşçı **olduğu yerde duruyordu**, müşteriler masalarında **bir anda beliriyordu**, fırın ile ocak **hiçbir zaman** çalıştığını belli etmiyordu.
+The state before: the simulation knew at every moment which table was at which stage and how many plates were cooking at which station; on screen the waiter and the cook **stood where they were**, customers **appeared out of nowhere** at their tables, and the oven and the stove **never** gave any sign of working.
 
 ---
 
-## 1. Yürüyüş katmanı
+## 1. The walking layer
 
-`Game/Walker.cs` + `Game/Paths.cs`. İkisi de yeni.
+`Game/Walker.cs` + `Game/Paths.cs`. Both new.
 
-**Yol bulma yok, koridor var.** Kat planı sabit, odalar dikdörtgen, herkes aynı iki şey arasında gidip geliyor. İki parçalı bir yol — önce ön koridora çık (`Paths.LaneZ = 0,55`), sonra hedefin hizasından yukarı — hem her masaya ulaşıyor hem de bakıldığında *"kapıdan girip masasına gitti"* diye okunuyor. A\* bu sahne için gereksiz. Çarpışma da yok: figürler birbirinin içinden geçebilir, ve bu, tıkanıp dönüp kalmalarından iyidir.
+**No pathfinding, there is a lane.** The floor plan is fixed, the rooms are rectangles, and everybody goes back and forth between the same two things. A two-part path — first come out onto the front lane (`Paths.LaneZ = 0.55`), then go up in line with the target — both reaches every table and, when looked at, reads as *"they came in through the door and went to their table"*. A\* is unnecessary for this scene. There are no collisions either: figures can pass through each other, and that is better than having them jam up and spin on the spot.
 
-| kim | nereden | nereye | ne zaman |
+| who | from | to | when |
 |---|---|---|---|
-| müşteri | `Paths.Outside` (z = −0,85, kapının dışı) | masası | grup oturunca |
-| müşteri | masası | `Paths.Outside` | grup kalkınca |
-| bekleyen grup | kapı | `Paths.QueueSpot(i)` | masa yokken |
-| garson | `Paths.SalonHome` (kasanın yanı) | `Paths.BesideTable` | sipariş / servis / hesap |
-| aşçı | `Paths.CookHome` | `Paths.Fridge` → `Paths.KitchenPost(istasyon)` | iş başlayınca |
+| customer | `Paths.Outside` (z = −0.85, outside the door) | their table | when the party is seated |
+| customer | their table | `Paths.Outside` | when the party gets up |
+| waiting party | the door | `Paths.QueueSpot(i)` | when there is no table |
+| waiter | `Paths.SalonHome` (beside the till) | `Paths.BesideTable` | order / service / bill |
+| cook | `Paths.CookHome` | `Paths.Fridge` → `Paths.KitchenPost(station)` | when a job starts |
 
-**Hız oyunun hızına bağlı.** `Walker.Speed = 1,15 m/sn` ×1'de. Simülasyon ×16'ya kadar hızlanıyor; yürüyüş **gerçek zamanda** kalırsa figür hâlâ yolun yarısındayken yemek gelmiş oluyor. Çarpan `GameApp`'ten her karede yazılıyor (`Paused ? 0 : TimeScale / BaseTimeScale`). Ama çarpanın tavanı var: ×4,5 üstünde yürüyüş okunmuyor, o yüzden **ışınlanıyor** — görülmeyecek kadar hızlı bir yürüyüş, yürüyüş değil titremedir.
+**The speed is tied to the game's speed.** `Walker.Speed = 1.15 m/s` at ×1. The simulation speeds up to ×16; if the walk stays in **real time**, the food arrives while the figure is still halfway along its path. The multiplier is written from `GameApp` every frame (`Paused ? 0 : TimeScale / BaseTimeScale`). But the multiplier has a ceiling: above ×4.5 a walk does not read, so the figure **teleports** — a walk too fast to see is not a walk, it is a flicker.
 
-**Duraklatınca yürüyüş de duruyor.** `GameSpeed = 0` → `Walker.Update` erken çıkıyor. Duraklatma ekranı açıkken salonun akmaya devam etmesi, duraklatmanın ne işe yaradığı sorusunu doğuruyordu.
+**Pausing stops the walking too.** `GameSpeed = 0` → `Walker.Update` returns early. Having the hall keep flowing while the pause screen is open raised the question of what the pause was for.
 
-**Garson yemeği taşıyor.** `RestaurantView.ShowPlate` tabağı garsonun eline bağlıyor, masaya varınca masaya bırakıyor. Tabak `Yemek/plate-deep` prefabı; taşıma ile servis arasında ayrı bir model yok.
-
----
-
-## 2. Çalışan ekipman
-
-`Game/Appliance.cs`. Yeni. Fırın/ocak başına bir bileşen.
-
-**Parçacık yok.** docs/19 düşük seviye bir Adreno hedefliyor ve parçacık sistemi o sınıf cihazlarda belgelenmiş bir doldurma darboğazı. Alev de lamba da **birer kutu**: emissive renkli, gölge atmayan, çarpışanı olmayan. Üç ocak için altı kutu — çizim çağrısı olarak ölçülemez.
-
-Dört ayrı hata üst üste düzeltildi, hepsi **görüntüyle** bulundu:
-
-| belirti | sebep | düzeltme |
-|---|---|---|
-| kapak fırının içine gömülüyor | model pivotu kapağın **ortasında** | menteşe alt kenara, kapak ona bağlandı (`OpenAngle = −72°`) |
-| lamba kapakla birlikte dönüyor | lamba menteşeye bağlıydı | gerçek fırında lamba gövdede durur → ama paketin kapak ağı **tamamen opak**, içerideki hiçbir şey camdan görünmüyor → lamba cam ile kapak yüzeyi **arasına** alındı |
-| lamba yana kaymış, iki ocağın arasında yanıyor | menteşe alt kenarda, kapak modelinin yerel x'i 0,268 — ofsetler o kaymayı miras alıyordu | konum `pivot.InverseTransformPoint(b.center)` ile **görsel merkezden** hesaplanıyor |
-| cam ve lamba beş kat küçük | menteşe modelin 0,204 ölçeğinin altında | `Panel()` boyutu ebeveynin `lossyScale`'ine bölüyor — çağıran taraf **metre** yazıyor |
-| cam opak | URP'de `_Surface = 1` yalnızca **denetçi** ayarı | çalışma zamanında `_SrcBlend` / `_DstBlend` da yazılıyor |
-| alev gözün önünde yanıyor | gözler ±%21 varsayılmıştı | **tepeden render edilip ölçüldü**: x simetrik (±%20,5), z **değil** — arka sıra +%20,4, ön sıra −%7,5 (ön kenardaki düğme sırası ızgarayı arkaya itmiş) |
-
-Ölçüm görüntüsü: `Lokanta/Figur olcek goruntusu` → `render/olcek_ocak_ustten.png`.
+**The waiter carries the food.** `RestaurantView.ShowCarry` binds the plate to the waiter's hand and puts it down on the table when they arrive. The plate is the `Food/plate-deep` prefab; there is no separate model for carrying versus serving.
 
 ---
 
-## 3. İki parmak: yakınlaştırma ve döndürme
+## 2. Working equipment
 
-`Game/CameraRig.cs` + `Game/Quality.cs` (yeni).
+`Game/Appliance.cs`. New. One component per oven/stove.
 
-| sınır | değer | neden |
+**No particles.** docs/19 targets a low-end Adreno, and the particle system is a documented fill-rate bottleneck on that class of device. The flame and the lamp are both **boxes**: emissive-coloured, casting no shadows, with no collider. Six boxes for three stoves — immeasurable as draw calls.
+
+Four separate bugs were fixed one after another, all of them found **by looking at an image**:
+
+| symptom | cause | fix |
 |---|---|---|
-| yakınlaştırma | 0,45 – 1,00 | 1,00 = docs/31'in ölçülmüş varsayılan çerçevesi. **Daha uzağa çıkılamıyor**: o çerçeve zaten her şeyi gösteriyor, uzaklaşmak yalnızca dokunma hedefini küçültür. 0,45 ≈ ×2,2 büyütme |
-| döndürme | ±35° | serbest bırakmak iki şeyi bozuyor: dokunma hedefi ölçümü belli bir açıda yapıldı, ve arkadan bakıldığında mutfak salonun önüne geçiyor |
+| the door sinks into the oven | the model's pivot is in the **middle** of the door | the hinge moved to the bottom edge and the door bound to it (`OpenAngle = −72°`) |
+| the lamp turns with the door | the lamp was bound to the hinge | in a real oven the lamp stays in the body → but the pack's door mesh is **completely opaque**, nothing inside is visible through the glass → the lamp was moved **between** the glass and the door surface |
+| the lamp has slid sideways and is burning between two stoves | the hinge is at the bottom edge and the door model's local x is 0.268 — the offsets were inheriting that shift | the position is computed **from the visual centre** with `pivot.InverseTransformPoint(b.center)` |
+| the glass and the lamp are five times too small | the hinge is under the model's 0.204 scale | `Panel()` divides the size by the parent's `lossyScale` — the caller writes **metres** |
+| the glass is opaque | in URP `_Surface = 1` is an **inspector** setting only | `_SrcBlend` / `_DstBlend` are written at runtime as well |
+| the flame burns in front of the eyes | the eyes had been assumed to be at ±21% | **rendered from above and measured**: x is symmetric (±20.5%), z is **not** — the back row +20.4%, the front row −7.5% (the row of knobs on the front edge has pushed the hob backwards) |
 
-**Görüş açısı daraltılmıyor, kamera yaklaşıyor.** FOV'u daraltmak da büyütürdü ama perspektifi değiştirir ve dokunma hedefi ölçümünün kullandığı hesabı geçersiz kılar.
+The measurement image: `Lokanta/Figur olcek goruntusu` → `render/scale_stove_ustten.png`.
 
-**Yaklaşınca çözünürlük yükseliyor.** Oyun 0,8 render ölçeğinde çiziliyor (piksel sayısı −%36, varsayılan çerçevede fark edilmiyor). ×2,2 büyütmede o yumuşaklık **görünür** oluyor; ayrıca yaklaşmış bir kamerada ekranda çok daha az şey var, yani tam çözünürlüğün bütçesi de var. Eşik 0,85 — küçük bir kaydırmada açılıp kapanmasın diye varsayılandan belirgin uzak.
+---
 
-**Genel görünüm ikisini de sıfırlıyor.** Oyuncunun her zaman bilinen bir yere dönebileceği bir yol olmalı.
+## 3. Two fingers: zoom and rotate
 
-### Parmak ile turun aynı yoldan geçmesi
+`Game/CameraRig.cs` + `Game/Quality.cs` (new).
 
-`ApplyGesture(zoomDelta, twist)` **tek** giriş noktası: hem `HandlePinch` hem otomatik tur oradan geçiyor. Ayrı bir giriş yolu bırakmak, denetimin hiçbir zaman gerçek kodu ölçmemesi demekti — tur dokunmatik üretemiyor ve sınırlarla ilgili her şey ölçülmeden kalırdı.
+| limit | value | why |
+|---|---|---|
+| zoom | 0.45 – 1.00 | 1.00 = docs/31's measured default frame. **You cannot go further out**: that frame already shows everything, and pulling back only shrinks the touch target. 0.45 ≈ ×2.2 magnification |
+| rotation | ±35° | leaving it free breaks two things: the touch-target measurement was made at a particular angle, and seen from behind the kitchen gets in front of the hall |
 
-### Turun yakaladığı gerçek hata: dönen kamera geri dönmüyordu
+**The field of view is not narrowed, the camera moves in.** Narrowing the FOV would magnify too, but it changes the perspective and invalidates the arithmetic the touch-target measurement uses.
 
-İlk yazımda tur şunu soruyordu:
+**The resolution goes up when you move in.** The game is drawn at a 0.8 render scale (36% fewer pixels, unnoticeable in the default frame). At ×2.2 magnification that softness becomes **visible**; and with the camera moved in there is far less on screen, so there is budget for full resolution too. The threshold is 0.85 — markedly far from the default so that it does not switch on and off on a small drag.
+
+**The general view resets both.** There has to be a way for the player to get back to a known place at any time.
+
+### The finger and the tour going down the same road
+
+`ApplyGesture(zoomDelta, twist)` is the **single** entry point: both `HandlePinch` and the automatic tour go through it. Leaving a separate entry route would have meant the check never measured the real code — the tour cannot produce touches, and everything to do with the limits would have gone unmeasured.
+
+### The real bug the tour caught: a rotated camera did not come back
+
+In its first version the tour asked this:
 
 ```csharp
 Note(Mathf.Approximately(Rig.Zoom, 1f) && Mathf.Approximately(Rig.YawOffset, 0f), ...)
 ```
 
-**Yeşildi ve yanlıştı.** Kayan geçiş yalnızca **konumu** taşıyordu; açıyı yalnızca parmak hareketi yazıyordu. Yani oyuncu kamerayı çevirip "genel görünüm"e bastığında kamera doğru yere gidiyor ama **yan bakmaya devam ediyordu** — çevirdiği kamerayı düzeltmenin çaresi kalmıyordu. Alanlar (`Zoom`, `YawOffset`) doğruyu söylüyor, kamera söylemiyordu.
+**It was green and it was wrong.** The sliding transition was carrying only the **position**; the angle was written only by the finger gesture. So when a player turned the camera and pressed "general view", the camera went to the right place but **kept looking sideways** — there was no cure for a camera you had turned. The fields (`Zoom`, `YawOffset`) were telling the truth, the camera was not.
 
-Düzeltme iki taraflı:
+The fix is two-sided:
 
-- `CameraRig.Begin()` geçişi başlatan **tek** yol oldu ve `_fromRot`'u da saklıyor; `Update` artık `Quaternion.Slerp(_fromRot, LookRotation, k)` uyguluyor.
-- Tur artık **kameranın kendisine** soruyor: `Quaternion.Angle(Rig.transform.rotation, CameraFit.Rotation) < 1°`.
+- `CameraRig.Begin()` became the **only** way to start a transition and it stores `_fromRot` too; `Update` now applies `Quaternion.Slerp(_fromRot, LookRotation, k)`.
+- The tour now asks **the camera itself**: `Quaternion.Angle(Rig.transform.rotation, CameraFit.Rotation) < 1°`.
 
-Doğrulandı: düzeltme geri alınınca kontrol **35,0 derece sapma** ile kırmızıya düşüyor.
+Verified: when the fix is reverted, the check goes red with a **35.0-degree** deviation.
 
-> Aynı ders, bu projede kaçıncı kez: bir kontrolün yeşil olması, doğru şeyi ölçtüğü anlamına gelmiyor.
-
----
-
-## 4. Mobilya ve karakter ölçekleri — yeniden
-
-Kullanıcının iki cümlesi: *"masa karakterlerin başına değiyor gibi"* ve *"karakterler niye masaların köşesine oturuyor"*. İkisi de doğruydu ve ikisinin de sebebi farklıydı.
-
-### Masa başa değiyordu
-
-Ölçüldü: oturan figürün başı masanın **0,37 m** üstündeydi; gerçekçi oran 0,51. Kök sebep: **mobilya gerçek ölçekte, karakterler yarı ölçekteydi**. Karakterleri büyütmek oyuncak görünümünü bozuyordu, o yüzden mobilya indi:
-
-| | önce | sonra |
-|---|---|---|
-| yemek masası | 0,74 m | **0,55 m** |
-| sandalye | 0,92 m | **0,68 m** |
-| `SitLift` | 0,35 | **0,26** |
-| baş – masa açıklığı | 0,37 m | **0,47 m** |
-
-Mutfak tezgâhları **bilerek** 0,92'de bırakıldı: ayakta çalışılan bir yüzey, oturulan bir masa değil.
-
-Ayrıca kullanıcının önerisiyle **gövde değil kafa** küçültüldü (`ArtPrefabs.HeadScale = 0,80`, `head` kemiği ölçekleniyor). Bu paketin figürleri boylarından çok **enleriyle** büyük — kafa gövdenin üçte biri; küçülteceğin şey de o.
-
-### Köşeye oturma: masa altıgendi
-
-`tableRound` bir **altıgen** ve köşeleri ±Z'de. Dört oturak 90°'de duruyor; 60°'lik kenarlarla hiçbir açıda hizalanamaz — misafirler zorunlu olarak köşeye düşüyordu.
-
-Kullanıcı kare seçti. `Mobilya/table` prefabı kullanılıyor ve kurulumda **kare yapılıyor**: `TableSquareZ()` renderer sınırlarını bir kez ölçüp `x/z` oranını `localScale.z`'ye yazıyor (0,25–4 arası kırpılı, önbellekli). Sabit bir sayı yazmak, model paketi değişince sessizce bozulurdu.
-
-**Dört yönde de aynı uzaklık:** `SeatRadius = 0,58 m` tek sabit.
-
-```
-0,58 = 0,41 (yarı en) + 0,17 payanda
-üst sınır, komşu masadan : 0,58 + figür eni/2 (0,32) = 0,90 ≤ 0,925  (hücre 1,85)
-boş sandalyeler Z'de     : 0,58 + 0,15               = 0,73 ≤ 0,85   (hücre 1,70)
-```
-
-Görsel doğrulama: `render/olcek_masa_ustten.png` (tepeden, dört sandalye eşit uzaklıkta) ve `render/olcek_masa_oyun.png` (oyun açısı). İkisi de `RestaurantView.SeatAt()`'i çağırıyor — ölçüm aracı hesabı **yeniden yazmıyor**, oyunun kendi kodunu kullanıyor.
-
-**İki misafir X çiftine oturuyor** (`SeatOrder` = 1, 3, 2, 0). Oyun kamerası bakışında X çifti yatay yayılıyor ve iki figür de tam görünüyor; Z çiftinde arkadaki, öndekinin ve masanın arkasına saklanıyordu. Dördü de çizilemiyor: hücre 1,85 × 1,70 m'de dört oturan figür hiçbir makul ölçekte sığmıyor (docs/31). Simülasyon etkilenmiyor — grup yine dört kişilik, fiş de öyle.
-
-### Oturma: figür minderin 7,4 cm altındaydı
-
-Kullanıcının iki cümlesi — *"sırt ve arka tarafları sandalyenin üstüne geliyor"* ve *"dizleri sandalyenin içine girmiş gibi"* — **aynı tek hatanın** iki belirtisiydi. `SitLift` hiç ölçülmemişti; göz kararı yazılmıştı.
-
-Ölçüm aracı bunun için yazıldı (`Editor/FigureShot` → `OTURMA` satırları). Üç yanlış yöntem denendi ve üçü de kaydedildi, çünkü her biri ayrı bir tuzak:
-
-| yöntem | neden çalışmadı |
-|---|---|
-| sınır kutusu | oturan figürün eni **1,01 m** çıktı — o **kollar**; kutunun altı bacak, arkası omuz olabiliyor |
-| köşe örnekleme | paketin mesh'leri **Read/Write kapalı** (`isReadable: 0`), `.vertices` boş dönüyor; okunabilse bile **düşük poligonda** kutu gövdenin yalnızca sekiz köşesi var, ortasında hiç köşe yok |
-| ışın — ama sandalyenin çarpışanı sahnede kalmış | ölçüm **sessizce sandalyeyi** okudu: figür 7,4 cm kaldırıldığında bile **aynı sayıyı** verdi. Değişmeyen bir ölçüm, ölçmediği şeyin habercisidir |
-
-Doğrusu: pozlanmış mesh `BakeMesh` ile alınıyor (o mesh **bizim**, paketin ayarı engel değil), geçici bir `MeshCollider`'a takılıyor, yüzeyler ışınla okunuyor — ve **sandalyenin çarpışanları önce kaldırılıyor**.
-
-Çıkan sayılar:
-
-| | önce | sonra |
-|---|---|---|
-| minder yüzeyi | 0,355 m | 0,355 m |
-| figürün leğen altı | 0,281 m | **0,355 m** |
-| sırtın arkası / sırtlığın önü | 0,108 m **içinde** | 0,042 m **önünde** |
-| ayaklar | — | yerden 0,14 m yukarıda, boşlukta |
-| `SitLift` | 0,26 | **0,316** |
-| `SitForward` (yeni) | — | **0,15** |
-| oturulan sandalyenin yarıçapı (yeni) | — | **0,65** (boş sandalye 0,58'de, masaya yapışık) |
-
-**Boş sandalye masaya yapışık, oturulan sandalye geride.** Gerçekte de oturmak için sandalye geri çekilir; burada ayrıca sırtlığa pay açıyor.
-
-### Dizden kırmak mümkün değil — ve gerekmiyor
-
-Bir tur, oturuşta bacak kemikleri dinlenme açısına (aşağı) yazıldı. Sonuç daha kötüydü: **iskelette diz yok** — bacak başına tek kemik var (`root, leg-left, leg-right, torso, arm-left, arm-right, head`), yani bacağı aşağı çevirmek uyluğu da çeviriyor ve uyluk minderin ön kenarını kesiyor.
-
-Ölçüm bunu kesinleştirdi: **kalça minderin üstünde duracaksa, dizden kırılamayan bir bacak minderin içinden geçmek zorunda.** Paketin kendi klibi bu yüzden uyluğu yatay tutuyor — bacak minderin üzerinde uzanıyor, ayaklar ön tarafta boşluğa sarkıyor. Chibi oranlarda doğru duruş bu.
-
-Kemik eklemek teknik olarak mümkün (bacak boyunca 22 ayrı köşe halkası var, yani yeni bir kemik gerçekten bükerdi) ama gerekmedi: asıl hata bacakta değil yükseklikteydi.
-
-### Karakter 0,95 → 1,00 m
-
-Kullanıcının isteği ("çok çok az büyütelim"). Komşu masa payı hâlâ tutuyor ve yerleşim denetimi iki mutfakta da **0 çakışma** veriyor. Baş artık masanın **0,57 m** üstünde (0,47'den): figür minderin içine gömülü olmaktan çıkıp gerçekten üstüne oturduğu için.
-
-> Hedef boy artık **tek yerde**: `ArtPrefabs.CharacterHeight`. Yerleşim denetimi onu okuyor — uzun süre "hedef 1,28" yazmıştı, hedef çoktan değişmişti.
-
-### Diz kemiği modele EKLENDİ
-
-Kullanıcının sorusu: *"Peki modele sen kemik ekleyip düzeltebilir misin?"* Evet — ve gerekiyordu.
-
-Paketin iskeleti: `root, leg-left, leg-right, torso, arm-left, arm-right, head`. **Bacak başına tek kemik, diz yok.** Sonucu ölçüldü: kalça minderin üstünde duracaksa, kalçadan aşağı inen tek parça bir bacak minderin içinden geçmek zorunda. Paketin kendi oturma klibi bu yüzden uyluğu yatay tutup ayakları öne uzatıyor — "sandalyede oturan insan" değil "yere bağdaş kurmuş insan".
-
-Kemik **üretim hattında** ekleniyor (`ArtPrefabs.AddKnees`), tek seferlik bir düzenleme olarak değil: bir sonraki "Model prefablarını üret" çalışması onu silerdi.
-
-| adım | ne yapılıyor |
-|---|---|
-| okunabilirlik | Karakter klasöründeki FBX'lerde `isReadable` açılıyor — paket kapalı geliyor ve `.vertices` boş dönüyordu |
-| ayırma düzlemi | Bacağın kendi köşelerinin ortasına en yakın **iki halkanın arası**. Halkanın *üzerinden* geçerse düz gölgeli modelde aynı noktadaki iki köşe farklı kemiğe düşer ve yüzey açılır; aralarından geçince yalnızca tek bir dörtgen geriliyor |
-| yeniden ağırlıklandırma | Düzlemin altındaki 64 köşe yeni kemiğe bağlanıyor, mesh **kopyası** varlık olarak kaydediliyor (paketin dosyası değişmiyor) |
-| bağlanma matrisi | `diz.worldToLocalMatrix * renderer.localToWorldMatrix` |
-
-**Bağlanma matrisi kendi kendini sınıyor:** aynı formül paketin *kendi* bacak kemiğine uygulanıp modelin getirdiği matrisle karşılaştırılıyor. Tutmazsa üretilen kemik de yanlış olurdu — ve bu, sessizce kayan bir mesh demek.
-
-Duruş `Figure.BendKnees` ile kuruluyor: **uyluk öne, baldır aşağı**. Hiçbir klip diz kemiğini oynatmıyor, yani bütün eski duruşlar aynen duruyor.
-
-Üç tuzak, üçü de ölçümle bulundu:
-
-- **Bağlanma açısı çalışma anında okunamaz.** İlk yazım ilk kullanımda okuyordu ve okuduğu şey bağlanma açısı değildi — klip pozu çoktan değiştirmişti. Açılar artık **prefab üretiminde** kaydediliyor (`Figure.LegRest` / `KneeRest`).
-- **Açıyla kurmak yerine yöne nişanla.** Uyluk ile baldırın kemik eksenleri aynı değil: uyluk beklendiği gibi dönerken baldır bambaşka yere gidiyordu. `Aim()` kemiğin bağlanma durumundaki "aşağı" eksenini bulup istenen yöne çeviriyor; eksenin nereye baktığını bilmek gerekmiyor.
-- **Değmeyen yüzey ölçülmüştü.** Leğenin *ortası* mindere oturtuluyordu ve sayı yeşildi, ama değen yüzey **uylukların altı** — o da kalça kemiğinin 9,4 cm altında. `SitLift` 0,316 → **0,410**, masa 0,55 → **0,58**. Ölçüt de düzeltildi.
-
-Sonuç: leğen sapması +0,094 (uylukların üstünde, doğru), **bacak payı 0,000** (uyluklar tam minderin üstünde), sırt payı 0,005 (sırtlığın önünde). Ayaklar yerden 0,23 m yukarıda boşlukta — bu paketin bacakları boyun %32'si (gerçekte %52) ve ayakları yere değdiren sandalye 0,24 m olurdu.
-
-### Aşçı artık iş yapıyor ve baktığı yöne dönüyor
-
-Üç ayrı hata:
-
-1. **Varışta açı sabit 180° yazılıyordu** — aşçı ne yaparsa yapsın aynı yöne bakıyor, ocağı arkası dönük kullanıyordu. Açı artık **ocağın kendi konumundan** geliyor (`Paths.FaceFrom(tezgah, StovePos(...))`), ve eşleme `UpdateAppliances` ile aynı — yani aşçı **yanan** ocağa dönüyor.
-2. **Boşta duran personel de sabit açıyla duruyordu.** Artık `float.NaN` geçiliyor: yürüdüğü yönde kalıyor.
-3. **Animator ~1 sn sonra kapanıyordu** — oturan müşteri için doğru (kıpırdamıyor), çalışan aşçı için yanlıştı: doğrama klibinin **ilk karesinde** donup kalıyordu. Çalışan figür artık `HoldAwake()` çağırıyor. Duruş sayısı yeşildi, görüntü ölüydü.
-
-Mutfak işleri paketin hazır kliplerinden kuruldu, yeni animasyon üretilmedi: `attack-melee-right` → doğrama (yukarıdan aşağı inen kol), `interact-left` → yıkama, `pick-up` → malzeme alma. İstasyona göre sabit dağıtılıyor, yani üç ocakta üç ayrı hareket var ama görüntü titremiyor.
-
-### Odaları ayıran saydam duvarlar
-
-Kat planı tek bir zemin levhası gibi okunuyordu; odaların sınırını yalnızca 4 cm'lik bir boşluk ve renk farkı söylüyordu.
-
-| karar | değer | neden |
-|---|---|---|
-| yükseklik | 1,15 m | karakter 1,00 m; oda hattını çiziyor ama 34°'lik bakışta içerisi görünüyor. Tam boy (2,4 m) ön sırayı tamamen kapatırdı |
-| alfa | 0,20 | duvar **orada** olduğu anlaşılsın, arkasındaki masayı ve aşçıyı gizlemesin |
-| ön kenar | çizilmiyor | kapı orada ve kamera oradan bakıyor |
-| çarpışan | yok | dokunma hedefi oda zemini (docs/31); duvara çarpan ışın oda seçimini bozardı |
-| gölge | kapalı | URP'nin gölge geçişi alfayı okumuyor — saydam duvar **opak** gölge düşürüp salona siyah şeritler çiziyordu |
-
-**Ortak kenar bir kez çiziliyor.** İki kez çizilseydi alfa üst üste biner ve o duvar diğerlerinden koyu olurdu — bakan kişi "orada daha kalın bir duvar var" diye bir anlam uydururdu. Anahtar, santimetreye yuvarlanmış uç noktalar.
-
-Yerleşim denetiminde duvarlar **hariç**: oda sınırında duruyorlar ve o sınıra dayalı her tezgâhla tanım gereği kesişiyorlar.
+> The same lesson, for the umpteenth time on this project: a check being green does not mean it is measuring the right thing.
 
 ---
 
-## Doğrulama
+## 4. Furniture and character scales — again
 
-| ne | sonuç |
+Two sentences from the user:
+
+> *"masa karakterlerin başına değiyor gibi"* and *"karakterler niye masaların köşesine oturuyor"*
+>
+> *("the table looks like it is touching the characters' heads" and "why are the characters sitting on the corners of the tables")*
+
+Both were true and each had a different cause.
+
+### The table was touching their heads
+
+Measured: a seated figure's head was **0.37 m** above the table; a realistic ratio is 0.51. The root cause: **the furniture was at real scale and the characters were at half scale**. Enlarging the characters broke the toy-like look, so the furniture came down:
+
+| | before | after |
+|---|---|---|
+| dining table | 0.74 m | **0.55 m** |
+| chair | 0.92 m | **0.68 m** |
+| `SitLift` | 0.35 | **0.26** |
+| head-to-table clearance | 0.37 m | **0.47 m** |
+
+The kitchen counters were **deliberately** left at 0.92: a surface you work at standing up, not a table you sit at.
+
+Also, on the user's suggestion, it was **the head and not the body** that was shrunk (`ArtPrefabs.HeadScale = 0.80`, the `head` bone is scaled). This pack's figures are large in their **width** rather than their height — the head is a third of the body; and that is the thing to shrink.
+
+### Sitting on the corner: the table was a hexagon
+
+`tableRound` is a **hexagon** and its corners are at ±Z. The four seats stand at 90°; they cannot be aligned with 60-degree edges at any angle — the guests necessarily landed on the corners.
+
+The user chose square. The `Furniture/table` prefab is used and it is **made square** at setup: `TableSquareZ()` measures the renderer bounds once and writes the `x/z` ratio into `localScale.z` (clamped between 0.25 and 4, cached). Writing a fixed number would have broken silently when the model pack changed.
+
+**The same distance in all four directions:** `SeatRadius = 0.58 m`, a single constant.
+
+```
+0.58 = 0.41 (half width) + 0.17 clearance
+upper bound, from the neighbouring table : 0.58 + figure width/2 (0.32) = 0.90 ≤ 0.925  (cell 1.85)
+empty chairs on Z                        : 0.58 + 0.15               = 0.73 ≤ 0.85   (cell 1.70)
+```
+
+Visual verification:
+
+- `render/scale_masa_ustten.png` (from above, four chairs at equal distance)
+- `render/scale_masa_oyun.png` (the game angle)
+
+Both of them call `RestaurantView.SeatAt()` — the measuring tool does **not rewrite** the arithmetic, it uses the game's own code.
+
+**Two guests sit on the X pair** (`SeatOrder` = 1, 3, 2, 0). In the game camera's view the X pair spreads horizontally and both figures are fully visible; on the Z pair the back one was hiding behind the front one and the table. All four cannot be drawn: four seated figures do not fit in a 1.85 × 1.70 m cell at any reasonable scale (docs/31). The simulation is not affected — the party is still four people, and so is the bill.
+
+### Sitting: the figure was 7.4 cm below the cushion
+
+Two sentences from the user:
+
+> *"sırt ve arka tarafları sandalyenin üstüne geliyor"* and *"dizleri sandalyenin içine girmiş gibi"*
+>
+> *("their back and their behind come out on top of the chair" and "their knees look as if they have gone inside the chair")*
+
+These were two symptoms of **the same single bug**. `SitLift` had never been measured; it had been written by eye.
+
+The measuring tool was written for this (`Editor/FigureShot` → the `OTURMA` lines). Three wrong methods were tried and all three were recorded, because each one is a separate trap:
+
+| method | why it did not work |
+|---|---|
+| the bounding box | the seated figure's width came out as **1.01 m** — that is the **arms**; the bottom of the box can be a leg and its back a shoulder |
+| vertex sampling | the pack's meshes have **Read/Write off** (`isReadable: 0`), `.vertices` comes back empty; and even if they were readable, on a **low-poly** box body there are only eight vertices, none of them in the middle |
+| a ray — but the chair's collider was left in the scene | the measurement **silently read the chair**: it gave **the same number** even when the figure was lifted by 7.4 cm. A measurement that does not change is a sign that it is not measuring the thing |
+
+The right way: the posed mesh is taken with `BakeMesh` (that mesh is **ours**, the pack's setting is no obstacle), attached to a temporary `MeshCollider`, and the surfaces are read with a ray — and **the chair's colliders are removed first**.
+
+The numbers that came out:
+
+| | before | after |
+|---|---|---|
+| cushion surface | 0.355 m | 0.355 m |
+| the figure's underside of the pelvis | 0.281 m | **0.355 m** |
+| the back's rear / the backrest's front | 0.108 m **inside** | 0.042 m **in front of** |
+| feet | — | 0.14 m above the floor, in mid-air |
+| `SitLift` | 0.26 | **0.316** |
+| `SitForward` (new) | — | **0.15** |
+| the radius of an occupied chair (new) | — | **0.65** (an empty chair is at 0.58, right up against the table) |
+
+**An empty chair is up against the table, an occupied chair is further back.** In reality a chair is pulled back to sit down too; here it also makes room for the backrest.
+
+### Bending at the knee is not possible — and is not needed
+
+For one round, in the sitting pose the leg bones were written to the rest angle (downwards). The result was worse: **there is no knee in the skeleton** — there is one bone per leg (`root, leg-left, leg-right, torso, arm-left, arm-right, head`), so turning the leg down turns the thigh too, and the thigh cuts through the cushion's front edge.
+
+The measurement made it definite: **if the hips are to sit on top of the cushion, a leg that cannot bend at the knee has to pass through it.** That is why the pack's own clip holds the thigh horizontal — the leg lies along the cushion and the feet dangle over the front edge. At chibi proportions that is the correct posture.
+
+Adding a bone is technically possible (there are 22 separate vertex rings along the leg, so a new bone really would bend it) but it was not needed: the real bug was not in the leg, it was in the height.
+
+### The character from 0.95 → 1.00 m
+
+The user's request:
+
+> *"çok çok az büyütelim"*
+>
+> *("let us make them very, very slightly bigger")*
+
+The neighbouring-table margin still holds and the placement audit gives **0 overlaps** in both cuisines. The head is now **0.57 m** above the table (up from 0.47): because the figure has stopped being sunk into the cushion and is really sitting on top of it.
+
+> The target height is now **in one place**: `ArtPrefabs.CharacterHeight`. The placement audit reads it — for a long time it said "target 1.28" while the target had changed long before.
+
+### A knee bone was ADDED to the model
+
+The user's question:
+
+> *"Peki modele sen kemik ekleyip düzeltebilir misin?"*
+>
+> *("So can you add a bone to the model and fix it?")*
+
+Yes — and it was needed.
+
+The pack's skeleton: `root, leg-left, leg-right, torso, arm-left, arm-right, head`. **One bone per leg, no knee.** The consequence was measured: if the hips are to sit on top of the cushion, a single-piece leg descending from the hip has to pass through it. That is why the pack's own sitting clip holds the thigh horizontal and stretches the feet forward — it is not "a person sitting on a chair" but "a person sitting cross-legged on the floor".
+
+The bone is added **in the production pipeline** (`ArtPrefabs.AddKnees`), not as a one-off edit: the next run of "produce the model prefabs" would have deleted it.
+
+| step | what happens |
+|---|---|
+| readability | `isReadable` is turned on for the FBXs in the character folder — the pack comes with it off and `.vertices` was coming back empty |
+| the split plane | **between the two rings** nearest the middle of the leg's own vertices. If it passed *through* a ring, two vertices at the same point would fall to different bones on a flat-shaded model and the surface would split open; passing between them stretches only a single quad |
+| re-weighting | the 64 vertices below the plane are bound to the new bone, and a **copy** of the mesh is saved as an asset (the pack's file is not changed) |
+| the bind matrix | `diz.worldToLocalMatrix * renderer.localToWorldMatrix` |
+
+**The bind matrix tests itself:** the same formula is applied to the pack's *own* leg bone and compared against the matrix the model ships with. If it does not match, the generated bone would be wrong too — and that means a mesh that slides silently.
+
+The pose is set up with `Figure.BendKnees`: **thigh forward, shin down**. No clip moves the knee bone, so all the old poses stay exactly as they were.
+
+Three traps, all three found by measurement:
+
+- **The bind angle cannot be read at runtime.** The first version read it on first use, and what it read was not the bind angle — the clip had already changed the pose. The angles are now recorded **during prefab production** (`Figure.LegRest` / `KneeRest`).
+- **Aim at a direction instead of setting an angle.** The thigh's and the shin's bone axes are not the same: the thigh turned as expected while the shin went somewhere else entirely. `Aim()` finds the bone's "down" axis in its bind state and turns it towards the wanted direction; you do not have to know where the axis points.
+- **A surface that does not touch had been measured.** The *middle* of the pelvis was being seated on the cushion and the number was green, but the surface that touches is **the underside of the thighs** — and that is 9.4 cm below the hip bone. `SitLift` 0.316 → **0.410**, the table 0.55 → **0.58**. The yardstick was corrected too.
+
+The result: the pelvis deviation +0.094 (above the thighs, correct), **leg margin 0.000** (the thighs sit exactly on the cushion), back margin 0.005 (in front of the backrest). The feet are 0.23 m above the floor, in mid-air — this pack's legs are 32% of its height (in reality 52%) and a chair that put its feet on the floor would be 0.24 m.
+
+### The cook does real work now and turns to face what they are looking at
+
+Three separate bugs:
+
+1. **On arrival the angle was written as a fixed 180°** — whatever the cook did they faced the same way, and they were using the stove with their back to it. The angle now comes **from the stove's own position** (`Paths.FaceFrom(target, lookAt)`), and the mapping is the same one `UpdateAppliances` uses — so the cook turns to the stove that is **lit**.
+2. **Idle staff were also standing at a fixed angle.** `float.NaN` is passed now: they stay facing the way they walked.
+3. **The Animator was switching off after ~1 s** — correct for a seated customer (they do not move), wrong for a working cook: they were freezing on the **first frame** of the chopping clip. A working figure now calls `HoldAwake()`. The pose count was green, the image was dead.
+
+The kitchen jobs were built from the pack's ready-made clips; no new animation was produced: `attack-melee-right` → chopping (an arm coming down from above), `interact-left` → washing, `pick-up` → picking up an ingredient. They are distributed by station in a fixed way, so there are three different movements on three stoves but the image does not flicker.
+
+### The transparent walls that separate the rooms
+
+The floor plan read as a single slab of floor; the only things marking a room's boundary were a 4 cm gap and a difference in colour.
+
+| decision | value | why |
+|---|---|---|
+| height | 1.15 m | the character is 1.00 m; it draws the room's line but at a 34-degree view you can see inside. Full height (2.4 m) would have hidden the front row completely |
+| alpha | 0.20 | let it be understood that the wall is **there**, without hiding the table and the cook behind it |
+| the front edge | not drawn | the door is there and the camera is looking from there |
+| collider | none | the touch target is the room floor (docs/31); a ray hitting the wall would break the room selection |
+| shadow | off | URP's shadow pass does not read alpha — a transparent wall was casting an **opaque** shadow and drawing black stripes across the hall |
+
+**A shared edge is drawn once.** If it were drawn twice the alpha would stack and that wall would be darker than the others — and whoever looked at it would invent a meaning, "there is a thicker wall there". The key is the endpoints rounded to the centimetre.
+
+The walls are **excluded** from the placement audit: they stand on a room boundary and by definition they intersect every counter set against that boundary.
+
+---
+
+## Verification
+
+| what | result |
 |---|---|
 | `tools/check.py` | 12/12 |
-| çekirdek testleri | 220 |
-| otomatik tur (gerçek Windows yapısı) | **57/57** |
-| yerleşim denetimi (`PlacementAudit`), iki mutfak | **0 çakışan çift** |
-| baş – masa açıklığı | 0,63 m |
-| oturma (`OTURMA SONUC`) | leğen +0,094 / bacak 0,000 / sırt 0,005 |
-| AAB | 31,1 MB, **0 uyarı** |
+| core tests | 220 |
+| the automatic tour (a real Windows build) | **57/57** |
+| the placement audit (`PlacementAudit`), both cuisines | **0 overlapping pairs** |
+| head-to-table clearance | 0.63 m |
+| sitting (`OTURMA SONUC`) | pelvis +0.094 / leg 0.000 / back 0.005 |
+| AAB | 31.1 MB, **0 warnings** |
 
-Yeniden ölçmek için:
+To re-measure:
 
 ```powershell
-tools\unity\shot.ps1 -Method "Lokanta.EditorTools.FigureShot.Capture"     # ölçek görüntüleri
-tools\unity\shot.ps1 -Method "Lokanta.EditorTools.PlacementAudit.Run"     # çakışma denetimi
-tools\unity\run.ps1  -Method "Lokanta.EditorTools.BuildPlayer.Windows"    # sonra otomatik tur
+tools\unity\shot.ps1 -Method "Lokanta.EditorTools.FigureShot.Capture"     # scale images
+tools\unity\shot.ps1 -Method "Lokanta.EditorTools.PlacementAudit.Run"     # the overlap audit
+tools\unity\run.ps1  -Method "Lokanta.EditorTools.BuildPlayer.Windows"    # then the automatic tour
 ```

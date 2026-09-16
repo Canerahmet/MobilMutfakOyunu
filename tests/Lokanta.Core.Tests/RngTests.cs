@@ -8,7 +8,7 @@ namespace Lokanta.Core.Tests
     public class RngTests
     {
         [Fact]
-        public void Ayni_tohum_ayni_diziyi_verir()
+        public void The_same_seed_gives_the_same_sequence()
         {
             Rng a = RngSeeder.Create(20260909UL, RngStream.Arrival);
             Rng b = RngSeeder.Create(20260909UL, RngStream.Arrival);
@@ -18,7 +18,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Farkli_akislar_farkli_dizi_verir()
+        public void Different_streams_give_different_sequences()
         {
             Rng arrival = RngSeeder.Create(20260909UL, RngStream.Arrival);
             Rng market = RngSeeder.Create(20260909UL, RngStream.Market);
@@ -27,18 +27,18 @@ namespace Lokanta.Core.Tests
             for (int i = 0; i < 500; i++)
                 if (arrival.Next() == market.Next()) same++;
 
-            Assert.True(same < 5, $"Akislar cakisiyor: 500 cekimde {same} ayni deger");
+            Assert.True(same < 5, $"The streams collide: {same} identical values in 500 draws");
         }
 
         [Fact]
-        public void Bir_akisa_cagri_eklemek_digerini_kaydirmaz()
+        public void Adding_calls_to_one_stream_does_not_shift_another()
         {
-            // docs/23 3.4: akis bagimsizlik testi.
+            // docs/23 3.4: the stream independence test.
             Rng arrivalBefore = RngSeeder.Create(7UL, RngStream.Arrival);
             uint[] expected = new uint[20];
             for (int i = 0; i < expected.Length; i++) expected[i] = arrivalBefore.Next();
 
-            // Baska bir akista bin cagri yap
+            // Make a thousand calls on a different stream
             Rng noisy = RngSeeder.Create(7UL, RngStream.Event);
             for (int i = 0; i < 1000; i++) noisy.Next();
 
@@ -48,12 +48,12 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Dogrudan_diziler_bagimsiz_referansla_esitr()
+        public void The_direct_sequences_match_the_independent_reference()
         {
-            // Beklenen degerler C# ciktisindan degil, ayri bir Python
-            // uygulamasindan geliyor (tools/balance/rng_reference.py).
-            // Bir testin beklenen degerini test ettigi koddan almasi
-            // hicbir sey kanitlamaz.
+            // The expected values come not from the C# output but from a
+            // separate Python implementation (tools/balance/rng_reference.py).
+            // A test that takes its expected value from the code it tests
+            // proves nothing at all.
             RngReference reference = RngReference.Load();
 
             foreach (RngDirectCase c in reference.Direct)
@@ -63,14 +63,14 @@ namespace Lokanta.Core.Tests
                 {
                     uint got = r.Next();
                     Assert.True(c.Values[i] == got,
-                        $"durum [{string.Join(",", c.State)}] cekim {i}: " +
-                        $"referans {c.Values[i]}, C# {got}");
+                        $"state [{string.Join(",", c.State)}] draw {i}: " +
+                        $"reference {c.Values[i]}, C# {got}");
                 }
             }
         }
 
         [Fact]
-        public void Tohumlanmis_akislar_bagimsiz_referansla_esitr()
+        public void The_seeded_streams_match_the_independent_reference()
         {
             RngReference reference = RngReference.Load();
 
@@ -81,13 +81,13 @@ namespace Lokanta.Core.Tests
                 {
                     uint got = r.Next();
                     Assert.True(c.Values[i] == got,
-                        $"akis {c.Stream} cekim {i}: referans {c.Values[i]}, C# {got}");
+                        $"stream {c.Stream} draw {i}: reference {c.Values[i]}, C# {got}");
                 }
             }
         }
 
         [Fact]
-        public void NextInt_bagimsiz_referansla_esitr()
+        public void NextInt_matches_the_independent_reference()
         {
             RngReference reference = RngReference.Load();
             Rng r = RngSeeder.Create(42UL, RngStream.Order);
@@ -96,21 +96,21 @@ namespace Lokanta.Core.Tests
             {
                 int got = r.NextInt(10);
                 Assert.True(reference.NextInt10[i] == got,
-                    $"NextInt(10) cekim {i}: referans {reference.NextInt10[i]}, C# {got}");
+                    $"NextInt(10) draw {i}: reference {reference.NextInt10[i]}, C# {got}");
             }
         }
 
         [Fact]
-        public void Hepsi_sifir_tohum_kilitlenmez()
+        public void An_all_zero_seed_does_not_lock_up()
         {
             Rng r = new Rng(0, 0, 0, 0);
             bool anyNonZero = false;
             for (int i = 0; i < 10; i++) if (r.Next() != 0) anyNonZero = true;
-            Assert.True(anyNonZero, "Sifir durum ureteci kilitledi");
+            Assert.True(anyNonZero, "The zero state locked the generator up");
         }
 
         [Fact]
-        public void NextInt_sinirlari_asmaz()
+        public void NextInt_does_not_exceed_its_bounds()
         {
             Rng r = RngSeeder.Create(42UL, RngStream.Order);
             for (int i = 0; i < 10000; i++)
@@ -121,7 +121,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void NextInt_araligi_dogru_calisir()
+        public void NextInt_handles_a_range_correctly()
         {
             Rng r = RngSeeder.Create(42UL, RngStream.Order);
             for (int i = 0; i < 10000; i++)
@@ -132,7 +132,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void NextInt_gecersiz_sinirda_atar()
+        public void NextInt_throws_on_an_invalid_bound()
         {
             Rng r = RngSeeder.Create(1UL, RngStream.Order);
             Assert.Throws<ArgumentOutOfRangeException>(() => r.NextInt(0));
@@ -140,7 +140,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Chance_uc_noktada_makul_davranir()
+        public void Chance_behaves_sensibly_at_three_points()
         {
             Rng r = RngSeeder.Create(99UL, RngStream.StaffError);
             Assert.False(r.Chance(0));
@@ -150,12 +150,12 @@ namespace Lokanta.Core.Tests
             const int n = 20000;
             for (int i = 0; i < n; i++) if (r.Chance(2500)) hits++;
 
-            // %25 bekleniyor; istatistiksel pay birakilarak
+            // 25% expected; with room left for statistical noise
             Assert.InRange(hits, (int)(n * 0.23), (int)(n * 0.27));
         }
 
         [Fact]
-        public void Dagilim_kaba_bir_tekduzelik_testini_gecer()
+        public void The_distribution_passes_a_rough_uniformity_test()
         {
             Rng r = RngSeeder.Create(20260910UL, RngStream.Archetype);
             int[] buckets = new int[10];
@@ -167,24 +167,24 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Butun_akislar_farkli_baslangic_durumu_alir()
+        public void Every_stream_gets_a_different_starting_state()
         {
             HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
             for (int i = 0; i < (int)RngStream.Count; i++)
             {
                 Rng r = RngSeeder.Create(20260909UL, (RngStream)i);
                 string key = $"{r.S0}-{r.S1}-{r.S2}-{r.S3}";
-                Assert.True(seen.Add(key), $"Akis {i} baska bir akisla ayni durumda basliyor");
+                Assert.True(seen.Add(key), $"Stream {i} starts in the same state as another stream");
             }
         }
 
         [Fact]
-        public void Durum_kayittan_geri_yuklenebilir()
+        public void The_state_can_be_restored_from_a_save()
         {
             Rng r = RngSeeder.Create(5UL, RngStream.Hiring);
             for (int i = 0; i < 37; i++) r.Next();
 
-            // Kayit dosyasina yazilan dort uint
+            // The four uints written into the save file
             Rng restored = new Rng(r.S0, r.S1, r.S2, r.S3);
 
             for (int i = 0; i < 50; i++)

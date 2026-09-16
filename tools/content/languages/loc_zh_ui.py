@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Cince ARAYUZ metinleri. loc_zh.py bunu okuyor.
+Chinese INTERFACE text. loc_zh.py reads it.
 
-BICIM NOTU: Cince'de sayilarla sozcukler arasinda bosluk YOK ve noktalama
-tam genislikte (，。？！). Ingilizce kaliplardan cevirirken en sik yapilan
-hata bu ikisi; burada olcunu yazim kullaniliyor.
+A NOTE ON FORM: in Chinese there is NO space between numbers and words,
+and the punctuation is full width (，。？！). Those two are the mistakes
+most often made when translating from English patterns; the standard
+typography is used here.
 
-YER TUTUCULAR {0} {1} olarak KALIYOR - kod onlari dolduruyor.
+THE PLACEHOLDERS {0} {1} STAY AS THEY ARE - the code fills them in.
 """
 
 UI = {
-    # --- nisanlar ---------------------------------------------------------
+    # --- badges -----------------------------------------------------------
     "badge.book_closed": "账本结清了",
     "badge.book_closed.note": "你把赊出去的账全都收了回来。",
     "badge.first_beat": "他们记住你了",
@@ -26,7 +27,7 @@ UI = {
     "badge.short_peak": "人手不齐也扛住了高峰",
     "badge.short_peak.note": "人手不够还照常做，而且没人从座位上生气离开。",
 
-    # --- bildirimler ------------------------------------------------------
+    # --- notices ----------------------------------------------------------
     "notice.angry": "一位客人走了——{0}",
     "notice.credit_given": "记在账上：{0}",
     "notice.credit_lost": "这笔账收不回来了：{0}",
@@ -62,7 +63,7 @@ UI = {
     "notice.why.table": "没等到位子",
     "notice.why.other": "等不下去了",
 
-    # --- yil sonu eksenleri -----------------------------------------------
+    # --- year-end axes ----------------------------------------------------
     "score.axis.combo": "套餐占比",
     "score.axis.credit": "收回的赊账",
     "score.crew": "团队",
@@ -73,7 +74,7 @@ UI = {
     "score.signature": "厨房",
     "score.wealth": "资产",
 
-    # --- ortak ------------------------------------------------------------
+    # --- common -----------------------------------------------------------
     "ui.badge.earned": "新徽章",
     "ui.badge.have": "已获得",
     "ui.badge.open": "还没有",
@@ -87,7 +88,7 @@ UI = {
     "ui.common.upgrade": "升级——{0}",
     "ui.common.yes": "确定",
 
-    # --- yapimci ----------------------------------------------------------
+    # --- credits ----------------------------------------------------------
     "ui.credits.audio": "音乐与音效",
     "ui.credits.audio_by": "游戏内合成",
     "ui.credits.author": "Ahmet Caner Akar",
@@ -99,7 +100,7 @@ UI = {
     "ui.credits.models": "3D 模型",
     "ui.credits.models_by": "Kenney (kenney.nl) — CC0",
 
-    # --- mutfak secimi ----------------------------------------------------
+    # --- cuisine choice ---------------------------------------------------
     "ui.cuisine.combo": "套餐：三样菜一起留在菜单上，客单价会涨——厨房的负担也会涨。",
     "ui.cuisine.credit": "赊账：现金流吃紧，但换来老主顾。",
     "ui.cuisine.fastfood_desc": "出餐快，单价低，人流大。菜单保持精简。",
@@ -108,7 +109,7 @@ UI = {
     "ui.cuisine.start": "开始",
     "ui.cuisine.turk_desc": "午市高峰猛，客单价高，街坊回头客多。",
 
-    # --- yil sonu ---------------------------------------------------------
+    # --- year end ---------------------------------------------------------
     "ui.end.continue": "继续自由经营",
     "ui.end.lede": "你经营了 {0} 天。年终评分：{1} / 100。",
     "ui.end.menu": "主菜单",
@@ -117,12 +118,12 @@ UI = {
     "ui.end.plaque2": "有人听说过的馆子",
     "ui.end.plaque3": "全城都在谈的馆子",
 
-    # --- hata -------------------------------------------------------------
+    # --- error ------------------------------------------------------------
     "ui.error.content": "读不了内容文件。这是内容错误；数值不完整时游戏不会启动。",
     "ui.error.save": "打不开这个存档。",
     "ui.error.title": "游戏无法启动",
 
-    # --- aksam raporu -----------------------------------------------------
+    # --- evening report ---------------------------------------------------
     "ui.evening.away": "有一阵子不会来了。",
     "ui.evening.gross": "毛利",
     "ui.evening.hall": "前厅",
@@ -149,7 +150,7 @@ UI = {
     "ui.evening.visits": "来过 {0} 次",
     "ui.evening.wages": "已付工资",
 
-    # --- genisleme --------------------------------------------------------
+    # --- expansion --------------------------------------------------------
     "ui.expand.buy": "扩店——{0}",
     "ui.expand.last": "已经是最后一级了。",
     "ui.expand.tables": "桌数",
@@ -158,7 +159,7 @@ UI = {
 
     "ui.game.title": "Lokanta",
 
-    # --- ipuclari ---------------------------------------------------------
+    # --- hints ------------------------------------------------------------
     "ui.hint.cap": "桌子只有这么多时，声誉最多到 {0}。想再往上走，前厅得更大。",
     "ui.hint.interventions": "催后厨、送茶、照应桌子共用一份额度：每天 {0} 次。没用掉的，收工就清零。",
     "ui.hint.menu": "菜单上什么都没有，客人到门口就会掉头走。当日报表里能看到有多少人。",
@@ -169,7 +170,7 @@ UI = {
     "ui.hint.service": "一旦开始营业，到晚上都不能采购。现在就把库存和菜单备好。",
     "ui.hint.staff": "人手能带来产能，但每周都要发工资。招人前先看看现金。",
 
-    # --- servis ekrani ustu -----------------------------------------------
+    # --- top of the service screen ----------------------------------------
     "ui.hud.angry": "气走的",
     "ui.hud.back": "返回",
     "ui.hud.cash": "现金",
@@ -188,7 +189,7 @@ UI = {
     "ui.hud.tables": "桌数",
     "ui.hud.today": "今天",
 
-    # --- defter -----------------------------------------------------------
+    # --- ledger -----------------------------------------------------------
     "ui.ledger.amount": "金额",
     "ui.ledger.chance_now": "现在就收的成功率",
     "ui.ledger.chance_wait": "等到期的成功率",
@@ -202,7 +203,7 @@ UI = {
     "ui.ledger.today": "今天",
     "ui.ledger.total": "账上 {0}",
 
-    # --- kredi ------------------------------------------------------------
+    # --- loan -------------------------------------------------------------
     "ui.loan.installment": "每周还款",
     "ui.loan.one_at_a_time": "同时只能有一笔贷款。",
     "ui.loan.open": "你有一笔贷款在还",
@@ -213,7 +214,7 @@ UI = {
     "ui.loan.weekly": "你每周的固定支出是 {0}",
     "ui.loan.weeks_left": "剩余周数",
 
-    # --- menu ekrani ------------------------------------------------------
+    # --- menu screen ------------------------------------------------------
     "ui.menu.add": "加进菜单",
     "ui.menu.continue": "继续游戏",
     "ui.menu.cost": "成本",
@@ -237,7 +238,7 @@ UI = {
     "ui.menu.unlock_day": "第 {0} 天开放",
     "ui.menu.vs_market": "对比市价",
 
-    # --- sabah ------------------------------------------------------------
+    # --- morning ----------------------------------------------------------
     "ui.morning.average_over": "高于均价 {0}%",
     "ui.morning.average_same": "均价",
     "ui.morning.average_under": "低于均价 {0}%",
@@ -272,7 +273,7 @@ UI = {
     "ui.morning.storage_none": "没有冷藏——易坏的今晚就废了",
     "ui.morning.storage_tier": "冷藏 {0} 级",
 
-    # --- duraklatma -------------------------------------------------------
+    # --- pause ------------------------------------------------------------
     "ui.pause.resume": "继续",
     "ui.pause.save_quit": "保存并退出",
     "ui.pause.season": "年终总结",
@@ -285,7 +286,7 @@ UI = {
     "ui.quality.1": "标准",
     "ui.quality.2": "高",
 
-    # --- servis -----------------------------------------------------------
+    # --- service ----------------------------------------------------------
     "ui.service.attention": "照应",
     "ui.service.close": "收工",
     "ui.service.close_sub": "营业结束",
@@ -311,7 +312,7 @@ UI = {
     "ui.service.target_auto": "最急的",
     "ui.service.tea": "上茶",
 
-    # --- ayarlar ----------------------------------------------------------
+    # --- settings ---------------------------------------------------------
     "ui.settings.back": "返回",
     "ui.settings.hints_reset": "重新显示提示",
     "ui.settings.language": "语言",
@@ -319,7 +320,7 @@ UI = {
     "ui.settings.sound": "音效",
     "ui.settings.title": "设置",
 
-    # --- kayit yuvasi -----------------------------------------------------
+    # --- save slot --------------------------------------------------------
     "ui.slot.broken": "存档损坏",
     "ui.slot.day": "第 {0} 天",
     "ui.slot.delete": "删除",
@@ -329,7 +330,7 @@ UI = {
     "ui.slot.title": "存档位",
     "ui.slot.unloadable": "读不出来",
 
-    # --- personel ---------------------------------------------------------
+    # --- staff ------------------------------------------------------------
     "ui.staff.busser": "收桌员",
     "ui.staff.candidates": "应聘者",
     "ui.staff.cap": "人数上限",
@@ -340,14 +341,14 @@ UI = {
     "ui.staff.fire_confirm": "辞退这个人？他的经验会清零。",
     "ui.staff.hire": "录用",
     "ui.staff.inherited": "脾气差——你接手时就在的厨子",
-    "ui.staff.inherited_salon": "接手时就在店里",
+    "ui.staff.inherited_hall": "接手时就在店里",
     "ui.staff.level": "等级",
     "ui.staff.morale": "士气",
     "ui.staff.no_candidate": "没有应聘者了。名单每三天换一批。",
     "ui.staff.normal": "一般",
-    "ui.staff.salon": "前厅",
-    "ui.staff.salon_needed": "前厅没人——今天需要 {0} 个人。",
-    "ui.staff.salon_none": "前厅没人。按今天的桌数，也不需要。",
+    "ui.staff.hall": "前厅",
+    "ui.staff.hall_needed": "前厅没人——今天需要 {0} 个人。",
+    "ui.staff.hall_none": "前厅没人。按今天的桌数，也不需要。",
     "ui.staff.sink": "洗碗岗",
     "ui.staff.sink_add": "派去洗碗",
     "ui.staff.sink_hint": "在水槽边的人不接待客人。那儿没人，干净盘子用完时厨房就得等。",
@@ -358,7 +359,7 @@ UI = {
     "ui.staff.wage": "工资",
     "ui.staff.weekend": "周末",
 
-    # --- istasyon ---------------------------------------------------------
+    # --- station ----------------------------------------------------------
     "ui.station.cuisine_only": "仅限本菜系",
     "ui.station.slots": "工位",
     "ui.station.too_low": "撑不起这么多桌",

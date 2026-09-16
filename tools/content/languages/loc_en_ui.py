@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Ingilizce ARAYUZ metinleri. loc_en.py bunu okuyor.
+English INTERFACE text. loc_en.py reads it.
 
-Icerik metinlerinden (yemek, malzeme, musteri) ayri tutuluyor cunku
-kaynaklari ayri: icerik metinleri content/*.json'dan turiyor, bunlar
-elle yaziliyor.
+It is kept apart from the content text (dishes, ingredients, customers)
+because their sources are different: content text is derived from
+content/*.json, these are written by hand.
 
-BICIMLEME YER TUTUCULARI ({0}, {1}) AYNEN korunuyor. Uretec ikisinde de
-ayni yer tutucularin bulundugunu dogruluyor: eksik bir {0} calisma
-aninda bicimleme hatasi degil, SESSIZ bir eksik metin veriyor.
+THE FORMATTING PLACEHOLDERS ({0}, {1}) ARE KEPT EXACTLY AS THEY ARE. The
+generator verifies that the same placeholders are present in both
+languages: a missing {0} is not a formatting error at run time, it gives
+a SILENT gap in the text.
 """
 
 UI = {
@@ -45,7 +46,8 @@ UI = {
     "ui.hud.reputation": "Reputation",
     "ui.hud.tables": "Tables",
     "ui.hud.served": "Served",
-    # Yeni arayuz. Etiketler KISA: kart dar, dugme alt satiri tek satir.
+    # New interface. The labels are SHORT: the card is narrow, and the
+    # second line of a button has to fit on one line.
     "ui.hud.today": "Today",
     "ui.hud.satisfaction": "Satisfaction",
     "ui.morning.checklist": "Opening checks",
@@ -55,9 +57,9 @@ UI = {
     "ui.service.combo_on": "Combo on",
     "ui.service.combo_off": "Combo off",
     "ui.evening.next_sub": "On to day {0}",
-    # Aksam seridi sarip tasiyordu: Ingilizce'de 230 dp, butce 220
-    # (Turkce 199). Sikisik bir ozette etiket KISA olmali - "Walked
-    # out" iki kelime ve iki satir demek.
+    # The evening strip was wrapping and overflowing: 230 dp in English
+    # against a budget of 220 (Turkish 199). In a summary that tight the
+    # label has to be SHORT - "Walked out" is two words, and so two lines.
     "ui.hud.angry": "Walkouts",
     "ui.service.none_station": "No station is backed up",
     "ui.service.none_table": "No table is waiting",
@@ -157,11 +159,11 @@ UI = {
     "ui.staff.level": "Level",
     "ui.staff.wage": "Wage",
     "ui.staff.cook": "Kitchen",
-    "ui.staff.salon": "Front of house",
+    "ui.staff.hall": "Front of house",
     "ui.staff.fire_confirm": "Let this person go? Their experience goes with them.",
-    "ui.staff.salon_none": "No front-of-house crew. At today's table count you "
-                           "do not need any.",
-    "ui.staff.salon_needed": "No front-of-house crew — you need {0} today.",
+    "ui.staff.hall_none": "No front-of-house crew. At today's table count you "
+                          "do not need any.",
+    "ui.staff.hall_needed": "No front-of-house crew — you need {0} today.",
     "ui.staff.cap": "Crew limit",
     "ui.staff.to_serve_all": "To serve everyone",
     "ui.staff.weekend": "weekend",
@@ -185,8 +187,9 @@ UI = {
     "ui.service.tea": "Tea",
     "ui.service.attention": "Attention",
     "ui.service.credit": "Tab",
-    # "most impatient" (14) TR "sabırsız"dan (8) UZUN ve serit tam
-    # sinirda: TR'de tasan kalip Ingilizce'de yeniden acilirdi.
+    # "most impatient" (14) is LONGER than the Turkish "sabırsız" (8) and
+    # the strip sits right on its limit: the wrapping that overflowed in
+    # TR would have opened up all over again in English.
     "ui.service.target_auto": "impatient",
     "ui.evening.title": "Day report",
     "ui.evening.revenue": "Takings",
@@ -195,8 +198,8 @@ UI = {
     "ui.evening.gross": "Gross profit",
     "ui.evening.rent_in": "{1} in {0} days",
     "ui.evening.rent_next": "Next rent",
-    # Deger zaten bir ortalama ve baglami gun raporu: "Average"
-    # kelimesi bilgi eklemeden iki satir aciyordu.
+    # The value is an average already and its context is the day report:
+    # the word "Average" opened a second line without adding information.
     "ui.evening.satisfaction": "Satisfaction",
     "ui.story.continue": "Continue",
     "ui.evening.next": "Next day",
@@ -361,5 +364,5 @@ UI = {
     "ui.menu.unlock_day": "Opens on day {0}",
     "ui.staff.days": "{0} ({1} days)",
     "ui.staff.inherited": "Bad-tempered — the cook you inherited",
-    "ui.staff.inherited_salon": "Came with the place",
+    "ui.staff.inherited_hall": "Came with the place",
 }

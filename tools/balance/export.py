@@ -1,24 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-Icerik ve altin veri yazicisi - Faz 0
+Content and golden-data writer - Phase 0
 ============================================================================
-model.py'deki parametreleri iki yere yazar:
+Writes the parameters from model.py into two places:
 
-  content/economy.json        oyunun okudugu sabitler, TAMSAYI birimlerle
-  content/staff-roles.json    rol kapasiteleri ve ucretler
-  tests/golden/weekly.json    sekiz haftalik tablo, TAM hassasiyetle
+  content/economy.json        the constants the game reads, in INTEGER units
+  content/staff-roles.json    role capacities and wages
+  tests/golden/weekly.json    the eight-week table, at FULL precision
 
-Ucuncusu C# testinin karsilastirdigi altin veri. Boylece Python modeli ile
-C# cekirdegi ayni kaynagi paylasir ve ayrisirlarsa test kirilir.
+The third is the golden data the C# test compares against. That way the
+Python model and the C# core share one source, and if they diverge the test
+breaks.
 
-Birimler docs/23-core-contract.md 2.2'ye gore:
-  para        santi-sikke  (1 sikke = 100)
-  oran        baz puan     (10000 = 1,0)
-  itibar      santi-puan   (0..10000)
-  sure        milisaniye
-  is gucu     mikro-is-gunu (1e-6)
+Units per docs/23-core-contract.md 2.2:
+  money       centi-coins   (1 coin = 100)
+  ratio       basis points  (10000 = 1.0)
+  reputation  centi-points  (0..10000)
+  duration    milliseconds
+  labour      micro-work-days (1e-6)
 
-Calistirma:  python export.py
+Running it:  python export.py
 """
 import io
 import json
@@ -32,13 +33,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 CONTENT = os.path.join(ROOT, "content")
 GOLDEN = os.path.join(ROOT, "tests", "golden")
 
-COIN = 100          # 1 sikke = 100 santi-sikke
-BP = 10_000         # 1,0 = 10000 baz puan
-MICRO = 1_000_000   # 1 is-gunu = 1.000.000 mikro-is-gunu
+COIN = 100          # 1 coin = 100 centi-coins
+BP = 10_000         # 1.0 = 10000 basis points
+MICRO = 1_000_000   # 1 work-day = 1,000,000 micro-work-days
 
 
 def rnd(x):
-    """Yarisi sifirdan uzaga yuvarla. Python'un banker's rounding'i kullanilmaz."""
+    """Round halves away from zero. Python's banker's rounding is not used."""
     return int(x + 0.5) if x >= 0 else -int(-x + 0.5)
 
 
@@ -52,10 +53,10 @@ def ensure(d):
 # ---------------------------------------------------------------------------
 def staff_roles():
     rows = [
-        ("asci",      "kitchen", model.CAP_ASCI,      model.WAGE["asci"],      ["ocak", "izgara", "firin"]),
-        ("garson",    "salon",   model.CAP_GARSON,    model.WAGE["garson"],    ["salon"]),
-        ("bulasikci", "salon",   model.CAP_BULASIKCI, model.WAGE["bulasikci"], ["bulasik"]),
-        ("kasiyer",   "salon",   model.CAP_KASIYER,   model.WAGE["kasiyer"],   ["kasa"]),
+        ("asci",      "kitchen", model.CAP_COOK,       model.WAGE["cook"],       ["ocak", "izgara", "firin"]),
+        ("garson",    "hall",    model.CAP_WAITER,     model.WAGE["waiter"],     ["hall"]),
+        ("bulasikci", "hall",    model.CAP_DISHWASHER, model.WAGE["dishwasher"], ["bulasik"]),
+        ("kasiyer",   "hall",    model.CAP_CASHIER,    model.WAGE["cashier"],    ["kasa"]),
     ]
     out = []
     for rid, pool, cap, wage, stations in rows:
@@ -64,9 +65,9 @@ def staff_roles():
             "nameKey": "role." + rid,
             "pool": pool,
             "capacityPerDay": cap,
-            # Bir musterinin bu role yukledigi is, mikro-is-gunu cinsinden.
-            # Cekirdek bunu kapasiteden turetebilir; burada yazmak testin
-            # iki tarafinin da ayni yuvarlamayi kullanmasini garanti ediyor.
+            # The work one customer loads onto this role, in micro-work-days.
+            # The core could derive this from the capacity; writing it here
+            # guarantees that both sides of the test use the same rounding.
             "workPerCustomerMicro": rnd(MICRO / float(cap)),
             "dailyWage": wage * COIN,
             "stations": stations,
@@ -79,20 +80,20 @@ def staff_roles():
 # content/economy.json
 # ---------------------------------------------------------------------------
 def economy():
-    # Itibar TAVANI kademeye bagli.
+    # The reputation CEILING depends on the tier.
     #
-    # Olculdu: 176 kosunun %85'i itibari 0-30 ya da 90-100 bandinda
-    # bitiriyordu; ortada yalnizca %15. Esik kimsenin gormedigi bir sayi
-    # (ortalama memnuniyet ~62) ve makul oyuncu onu 21-25. gunde asip
-    # kalan 35 gunu tavanda geciriyordu. O andan sonra cay, patron
-    # ilgisi, kaliteli malzeme, huy secimi ve iki imza mekanigi de
-    # MATEMATIKSEL OLARAK gorunmez oluyor: odul doymus bir eksene
-    # odeniyor.
+    # Measured: 85% of 176 runs ended with reputation in the 0-30 or 90-100
+    # band; only 15% were in between. The threshold is a number nobody sees
+    # (average satisfaction ~62) and a reasonable player crossed it on day
+    # 21-25 and spent the remaining 35 days at the ceiling. From that moment
+    # on, tea, the owner's attention, quality ingredients, trait selection and
+    # both signature mechanics become MATHEMATICALLY invisible: the reward is
+    # paid into a saturated axis.
     #
-    # Tavani kademeye baglamak iki sorunu birden cozuyor. Itibar
-    # doydugunda tek cikis yol BUYUMEK oluyor (plato kalkiyor), ve tavan
-    # altindaki bolgede memnuniyet calismasi yeniden olculebilir
-    # kaliyor. docs/08'in "genisleme ilerlemenin kendisi" fikri.
+    # Tying the ceiling to the tier solves two problems at once. When
+    # reputation saturates, the only way out is to GROW (the plateau is
+    # lifted), and below the ceiling the satisfaction work stays measurable.
+    # This is docs/08's idea that "expansion is progress itself".
     REP_CAP = [5500, 7500, 9000, 10000]
 
     tiers = []
@@ -103,53 +104,56 @@ def economy():
             "upgrade": t["upgrade"] * COIN,
             "staffCap": t["cap"],
             "reputationCapCenti": REP_CAP[i] if i < len(REP_CAP) else 10000,
-            # TABAK SAYISI: masa basina alti.
+            # PLATE COUNT: six per table.
             #
-            # Tabak sayili ve doniyor (temiz -> kullanimda -> kirli ->
-            # temiz). Temiz bitince asci pisen yemegi cikaramiyor ve
-            # servis duruyor - docs/14'un bulasikci darbogazi.
+            # Plates are counted and they circulate (clean -> in use -> dirty
+            # -> clean). When the clean ones run out the cook cannot plate up
+            # what has been cooked and service stops - docs/14's dishwasher
+            # bottleneck.
             #
-            # DORT: bir masa dolusu. OLCULEREK secildi, tahminle degil.
+            # FOUR: one tableful. Chosen BY MEASUREMENT, not by guesswork.
             #
-            # Ilk deneme masa basina ALTI idi ve darbogaz HIC isirmadi:
-            # on dort gun boyunca tabaksiz bekleme sifir tick, en az temiz
-            # 28/42. Sebebi fiziksel - ayni anda kullanilan tabak sayisini
-            # MASA SAYISI sinirliyor (masa basina en fazla dort kisi), yani
-            # tabak masa x 4'un ustundeyse tanim geregi hic bitmez.
+            # The first attempt was SIX per table and the bottleneck NEVER
+            # bit: over fourteen days, zero ticks waiting for a plate, lowest
+            # clean count 28/42. The reason is physical - the number of plates
+            # in use at any one time is limited by the TABLE COUNT (at most
+            # four people per table), so if plates are above tables x 4 they
+            # can never run out by definition.
             #
-            # Dort de isirmadi (yine sifir tick): masa basina en fazla
-            # dort kisi oturuyor ama ORTALAMA grup uc kisilik, yani dort
-            # kat tabak yine de fizigin ustunde kaliyor.
+            # Four did not bite either (again zero ticks): at most four people
+            # sit at a table but the AVERAGE party is three, so four times the
+            # plates still stays above physics.
             #
-            # UC KAT ARTI SEKIZ. Iki parcanin ikisi de olculerek geldi.
+            # THREE TIMES PLUS EIGHT. Both parts came from measurement.
             #
-            # "Uc kat" tek basina denendi ve OTOMATIK TUR birinci gunde
-            # lokantayi kilitledi: dort masaya on iki tabak, dort kisilik
-            # iki grup stogu tuketiyor, ucuncu grup tabak bekliyor, sabri
-            # bitiyor, gun kizgin musterilerle kapaniyor. Denge araci bunu
-            # gizledi cunku botlari hizla buyuyor ve ortalamalar birinci
-            # kademeyi yutuyor.
+            # "Three times" was tried on its own and the AUTOMATED TOUR locked
+            # the restaurant up on day one: four tables, twelve plates, two
+            # parties of four eat through the stock, a third party waits for a
+            # plate, its patience runs out and the day closes with angry
+            # customers. The balance tool hid this because its bots grow fast
+            # and averages swallow the first tier.
             #
-            # Sabit tampon YIKAMA BORUSUNUN payi ve masa sayisiyla
-            # buyumuyor: her an bir kismi kirlide, bir kismi lavaboda.
-            # O tampon sabit bir maliyet; masayla olceklemek birinci
-            # kademeyi tamponsuz birakiyordu.
+            # The fixed buffer is the WASHING PIPELINE's share and it does not
+            # grow with the table count: at any moment some are dirty and some
+            # are in the sink. That buffer is a fixed cost; scaling it with
+            # tables left the first tier with no buffer at all.
             #
-            # KATSAYI KUCUK, TAMPON BUYUK (2x + 12) ve bu bilincli:
-            # darbogaz KUCUK dukkanda degil BUYUK dukkanda olmali.
-            # Dort masali bir lokantanin tabak krizi yok; on dort masali
-            # bir lokantanin var, cunku tabak masayla dogrusal buyurken
-            # servis hizi masa x devir ile buyuyor. Taban 20 (birinci
-            # kademe rahat), tavan 40 (dorduncu kademede gercekten dar).
+            # SMALL COEFFICIENT, BIG BUFFER (2x + 12), and that is deliberate:
+            # the bottleneck should be in the BIG shop, not the SMALL one. A
+            # four-table restaurant has no plate crisis; a fourteen-table one
+            # does, because plates grow linearly with tables while service
+            # speed grows with tables x turnover. Floor 20 (the first tier is
+            # comfortable), ceiling 40 (genuinely tight at the fourth tier).
             #
-            # Basinc SUREDEN degil SAYIDAN geliyor. Yikama suresini
-            # buyutmek bulasikci payini IKI KEZ saymak olurdu: ClearMs
-            # (masa toplama) zaten o payi tasiyor (6.000 / 19.200 = %31,
-            # docs/14'te %28).
+            # The pressure comes from the COUNT, not the DURATION. Increasing
+            # the washing time would have counted the dishwasher's share
+            # TWICE: ClearMs (clearing the table) already carries that share
+            # (6,000 / 19,200 = 31%, and 28% in docs/14).
             "plates": t["tables"] * 2 + 6,
         })
 
-    # Deneyim zammi haftalik birikimli. Kampanya 60 gun = 9 hafta siniri.
+    # The experience rise compounds weekly. The campaign is 60 days = a limit
+    # of 9 weeks.
     weeks = 10
     mult = []
     for w in range(weeks):
@@ -174,10 +178,11 @@ def economy():
         "weekendMultiplierBp": model.WEEKEND_BP,
 
         "ingredientRateBp": rnd(model.INGREDIENT_RATE * BP),
-        # docs/23 1.3 ve docs/27: servis gunu 4.800 tick = 480.000 ms.
-        # Burada 120.000 yaziyordu; docs/27 gun uzunlugunu degistirdiginde
-        # icerik guncellenmemis ve kodla dort kat ayrisik kalmisti.
-        # Kod dogruydu, icerik eskiydi. tools/audit_content.py buldu.
+        # docs/23 1.3 and docs/27: the service day is 4,800 ticks = 480,000 ms.
+        # This said 120,000; when docs/27 changed the day length the content
+        # was not updated and stayed four times out of step with the code.
+        # The code was right, the content was stale. tools/audit_content.py
+        # found it.
         "serviceMs": 480_000,
         "interventionsPerDay": 4,
 
@@ -185,9 +190,10 @@ def economy():
         "loanWeeks": 8,
         "loanOptions": [5000 * COIN, 10000 * COIN, 20000 * COIN],
 
-        # Siparis modeli. Kisi basina bir ANA yemek kesin, yan ve icecek
-        # olasilikli. Ortalama tabak = 1 + yan + icecek.
-        # docs/07 kombo mekaniginin taban hali; kombo bu oranlari buyutuyor.
+        # The order model. One MAIN dish per head is certain, the side and the
+        # drink are probabilistic. Average plates = 1 + side + drink.
+        # This is the base state of the docs/07 combo mechanic; the combo
+        # raises these ratios.
         "order": {
             "sideChanceBp": model.SIDE_CHANCE_BP,
             "drinkChanceBp": model.DRINK_CHANCE_BP,
@@ -197,11 +203,13 @@ def economy():
             "kitchenMsPerPerson": 480_000 // 28,
         },
 
-        # Simulasyondan olculen gerceklesme orani. model.py ile ayni.
-        # Isimli duzenli musteriler. docs/11: arketip binlerce musteri
-        # uretir, duzenli musteri tek bir kisidir. Sayilar burada
-        # cunku mekanik kodda, sayilar veride (docs/23 8.2).
-# Moral. docs/14 "Moral" tablosu ve esikleri.
+        # The realisation rate measured from the simulation. The same as in
+        # model.py.
+        # Named regular customers. docs/11: an archetype produces thousands of
+        # customers, a regular is a single person. The numbers are here
+        # because the mechanic is in code and the numbers are in data
+        # (docs/23 8.2).
+# Morale. The docs/14 "Morale" table and its thresholds.
 "morale": {
     "starting": 70,
     "lowThreshold": 30,
@@ -211,57 +219,63 @@ def economy():
     "paidDelta": 5,
     "lateDelta": -25,
     "busyDelta": -3,
-    # docs/14 moral tablosu bir OLAY listesi, surukleniş modeli degil.
-    # Yalnizca olaylari uygulayinca merdiven tek yonlu asagi gidiyor ve
-    # iyi yonetilen bir dukkanda bile butun kadro bir ayda istifa ediyor -
-    # olcum bunu yakaladi. Sakin bir gun gercekten toparlatir.
+    # The docs/14 morale table is a list of EVENTS, not a drift model.
+    # Applying only the events makes the ladder go one way, downwards, and
+    # even in a well-run shop the whole crew resigns within a month -
+    # measurement caught this. A calm day really does let them recover.
     "recoveryDelta": 2,
 },
 
-# Patron mudahalesi. docs/12 5.4.
+# The owner's intervention. docs/12 5.4.
 #
-# Uc sayi da bir zamanlar KODDA duruyordu - ustelik EconomyConfig'in
-# WithMorale() kurucusunun icinde, yani adi bile yanlis bir yerde. Denge
-# araci icerige dokunabiliyor, koda dokunamiyor; oradayken bu uc sayi
-# calibrate.py icin YOK demekti ve tam da ayarlanmasi gerekenler onlardi.
+# All three numbers once sat IN THE CODE - and inside EconomyConfig's
+# WithMorale() constructor at that, so even the name was in the wrong place.
+# The balance tool can touch content but not code; while they were there
+# these three numbers DID NOT EXIST as far as calibrate.py was concerned,
+# and they were exactly the ones that needed tuning.
 "intervention": {
-    # Patron bizzat ilgilendi: memnuniyet, santi.
+    # The owner attended personally: satisfaction, in centi.
     #
-    # OLCULDU. Bu iki sayi (odul ve sabir kati) birlikte ayarlaniyor
-    # cunku bir TAKASI ayarliyorlar. Uc varyant kosuldu, 16 tohum:
+    # MEASURED. These two numbers (the reward and the patience multiplier)
+    # are tuned together because they are tuning a TRADE-OFF. Three
+    # variants were run, 16 seeds:
     #
-    #   sabir x3, odul 1200  ff servis -56 itibar -1,6 kasa -1.897
-    #                        tr servis +32 itibar +1,3 kasa   -120
-    #   sabir x1, odul 3000  ff servis -33 itibar -0,4 kasa   -312
-    #                        tr servis +102 itibar +5,2 kasa  +116
-    #   sabir x2, odul 2400  ff servis -32 itibar -0,4 kasa   -392
-    #                        tr servis +159 itibar +5,5 kasa +1.859  <-- secilen
+    #   patience x3, reward 1200  ff served -56 reputation -1.6 cash -1,897
+    #                             tr served +32 reputation +1.3 cash   -120
+    #   patience x1, reward 3000  ff served -33 reputation -0.4 cash   -312
+    #                             tr served +102 reputation +5.2 cash  +116
+    #   patience x2, reward 2400  ff served -32 reputation -0.4 cash   -392
+    #                             tr served +159 reputation +5.5 cash +1,859  <-- chosen
     #
-    # Sabir uzatmasi 3 kat iken mudahale eden oyuncu hic mudahale
-    # etmeyenden DAHA AZ musteri agirliyordu, cunku uzatma masayi
-    # isgal ediyor: kurtarilan grup, hizmet edilebilecek baskasinin
-    # yerini aliyor. Odul memnuniyete kaydirilinca takas duzeldi -
-    # memnuniyet ekseninde yer var (makul oyuncunun itibari 75, tavan
-    # degil), sabir ekseninde yok.
+    # With the patience extension at 3x, a player who intervened served
+    # FEWER customers than one who never did, because the extension
+    # occupies the table: the party you rescue takes the place of somebody
+    # else who could have been served. Moving the reward onto satisfaction
+    # fixed the trade-off - there is room on the satisfaction axis (a
+    # reasonable player's reputation is 75, not the ceiling), and none on
+    # the patience axis.
     "attentionSatisfactionCenti": 2400,
-    # Cay/ikram: memnuniyet, santi.
+    # Tea / a small treat: satisfaction, in centi.
     "treatSatisfactionCenti": 900,
-    # Acele ettirilen isin kalan suresinden silinen pay, baz puan.
+    # The share cut from the remaining duration of a rushed job, in basis points.
     "rushCutBp": 4000,
-    # Sabir uzatmasi, oturma-siparis suresinin kati olarak.
+    # The patience extension, as a multiple of the seat-to-order duration.
     #
-    # Bu sayi bir TAKAS ayarliyor: uzatma, gitmek uzere olan grubu
-    # tutuyor ama masayi da daha uzun isgal ediyor. Isgal edilen masa
-    # baskasina hizmet edilememesi demek, yani uzatmak BEDAVA DEGIL.
+    # This number tunes a TRADE-OFF: the extension holds a party that was
+    # about to leave, but it also occupies the table for longer. An
+    # occupied table means somebody else cannot be served, so extending is
+    # NOT FREE.
     "attentionPatienceMult": 2,
     "treatPatienceMult": 1,
 },
         "regulars": {
-            # Tanistiktan sonra bir gunde ugrama sansi: haftada ~3 gun.
+            # The chance of dropping in on a given day once you have met:
+            # about 3 days a week.
             "visitChanceBp": 4500,
-            # Sevdigi yemegi menude bulamazsa memnuniyet cezasi.
+            # The satisfaction penalty if they cannot find their favourite
+            # dish on the menu.
             "missedFavouriteCenti": 900,
-            # Bunun altinda ayrilirsa bir sure gelmiyor.
+            # Below this, if they leave they stay away for a while.
             "upsetCenti": 5000,
             "awayDays": 3,
         },
@@ -269,33 +283,36 @@ def economy():
 
         "priceVolatilityBp": 2500,
         "underpriceFloorBp": 8500,
-        # FIYATIN TALEBE DOGRUDAN ETKISI. 9000 = %10 zam -> ~%9 az
-        # musteri. Kanal eklenmeden once fiyatin talebe HIC yolu
-        # yoktu ve itibar tavanindaki oyuncu icin zam bedavaydi;
-        # olculdu, %10 zamlayan bot her stratejiyi geciyordu.
+        # THE DIRECT EFFECT OF PRICE ON DEMAND. 9000 = a 10% rise -> about 9%
+        # fewer customers. Before this channel was added, price had NO route
+        # to demand at all and a raise was free for a player at the
+        # reputation ceiling; it was measured, and a bot that raised prices
+        # by 10% beat every strategy.
         "priceElasticityBp": 9000,
-        # GUNLUK TALEP OYNAKLIGI. 1000 = -%10 ile +%10.
+        # DAILY DEMAND VOLATILITY. 1000 = -10% to +10%.
         #
-        # Talep tamamen belirlenimciydi: ayni itibar ve masadaki her sali
-        # birebir ayni musteriyi getiriyordu, yani hal onerisi HER ZAMAN
-        # tam dogruydu ve sabah stok karari bir yargi degil bir dugmeydi.
-        # Sapma YALNIZCA gerceklesende; tahmin beklentiyi gosteriyor.
+        # Demand was entirely deterministic: every Tuesday at the same
+        # reputation and table count brought exactly the same customers, so
+        # the market's suggestion was ALWAYS exactly right and the morning
+        # stock decision was a button, not a judgement. The deviation is ONLY
+        # in what is realised; the forecast shows the expectation.
         "demandVarianceBp": 1000,
-        # PATRON ILGILENINCE SIRADAKI SALON ISI YARIYA INIYOR.
+        # WHEN THE OWNER ATTENDS, THE NEXT PIECE OF HALL WORK IS HALVED.
         #
-        # Mudahale olculdugunde NOTR cikti: kadrosu duzgun lokantada
-        # kriz neredeyse hic olmuyor (gunde 0,8 mudahale), yani mekanik
-        # bir emniyet agiydi - oysa magaza metni onu ana mekanik diye
-        # satiyor. Eksik olan salon tarafiydi: ilgi sabri uzatip MUTFAGI
-        # hizlandiriyordu ama darbogaz cogu zaman salonda.
+        # When the intervention was measured it came out NEUTRAL: in a
+        # properly staffed restaurant a crisis almost never happens (0.8
+        # interventions a day), so the mechanic was a safety net - while the
+        # store text sells it as a core mechanic. What was missing was the
+        # hall side: attention extended patience and sped up the KITCHEN, but
+        # the bottleneck is usually in the hall.
         "attendWorkCutBp": 5000,
-        # Fiyat TAVANI: memnuniyet cezasi sifirda doyuyor ve talep
-        # fiyati hic gormuyor, yani tavan olmadan kar sinirsiz.
-        # 25000 = piyasanin 2,5 kati.
+        # The price CEILING: the satisfaction penalty saturates at zero and
+        # demand never sees the price, so without a ceiling profit is
+        # unbounded. 25000 = 2.5 times the market price.
         "overpriceCeilingBp": 25000,
 
         "staffing": {
-            "ownerPool": "salon",
+            "ownerPool": "hall",
             "ownerWorkMicro": rnd(model.OWNER_WORK * MICRO),
             "weeklyXpWageGrowthBp": rnd(model.XP_WAGE_GROWTH * BP),
             "weeklyWageMultiplierBp": mult,
@@ -307,49 +324,52 @@ def economy():
 # ---------------------------------------------------------------------------
 # content/cuisines/*.json
 # ---------------------------------------------------------------------------
-# docs/28-peak-decision.md Karar G: dilim PAYLARI degil dilim SURELERI
-# mutfaga gore degisiyor. Turk lokantasinin musterilerinin %60'i ogle
-# diliminde geliyor ve bu kimlik diregi; esit dilimde servis edilemiyordu.
-# Ogle dilimi gunun %48'ini kaplayinca ayni pay fizibil oluyor.
+# docs/28-peak-decision.md Decision G: it is the slot DURATIONS, not the slot
+# SHARES, that vary by cuisine. 60% of a Turkish restaurant's customers arrive
+# in the lunch slot and that is an identity pillar; it could not be served in
+# an equal slot. Once the lunch slot takes up 48% of the day the same share
+# becomes feasible.
 #
-# Gunluk kayip: fast food %3,15, Turk %5,08. Haftalik ciroya etkisi
-# %1,06 ve %1,70. Dogrulama: python tools/balance/timing.py --zirve
+# Daily loss: fast food 3.15%, Turkish 5.08%. The effect on weekly revenue is
+# 1.06% and 1.70%. To verify: python tools/balance/timing.py --peak
 #
-# MENU ROLLERI. Yemek gruplari mutfaga ozel (docs/13): fast food'da
-# ana/yan, Turk lokantasinda sulu/corba/pilav/izgara/meze. Cekirdek ise
-# siparisi ana + yan + icecek diye kuruyor, yani hangi grubun hangi rolu
-# oynadigini bilmek zorunda.
+# MENU ROLES. Dish groups are cuisine-specific (docs/13): main/side in fast
+# food, stew/soup/rice/grill/meze in a Turkish restaurant. The core, however,
+# builds an order as main + side + drink, so it has to know which group plays
+# which role.
 #
-# Bu eslesme yazilana kadar simulasyon fast food sozlugunu sabit
-# kodluyordu ve Turk mutfaginda HICBIR musteri ana yemek bulamiyordu:
-# sekiz stratejinin hepsi sifir musteriyle batiyordu.
-# DILIM SURELERI: GUNUN SIVRILIGI.
+# Until this mapping was written the simulation hard-coded the fast food
+# dictionary and NO customer in the Turkish cuisine could find a main dish:
+# all eight strategies went under with zero customers.
+# SLOT DURATIONS: THE SHARPNESS OF THE DAY.
 #
-# Bunlar pay degil SURE (docs/28 Karar G). Gelis agirliklari
-# arketiplerde duruyor; bir dilimin YOGUNLUGU = gelis payi / sure payi.
+# These are not shares but DURATIONS (docs/28 Decision G). The arrival weights
+# live in the archetypes; a slot's DENSITY = arrival share / duration share.
 #
-# Olculdu ve ikisi de neredeyse DUZDU: gunun en yogun ani ortalamanin
-# yalnizca 1,24-1,25 katiydi. Kadro gunluk TOPLAM ise gore kuruluyor
-# (StaffingModel.Required), dolayisiyla 1,25x'lik bir tepe rahatca
-# soguruluyordu - ve turun her kosusunda "0 kizgin, 0 kritik masa,
-# 0 bekleyen masa" cikiyordu. Mudahale, cay, kriz seridi ve imza
-# mekanikleri hep bu baskinin ustune kurulu; baski yoksa hepsi dekor.
+# Measured, and both were nearly FLAT: the busiest moment of the day was only
+# 1.24-1.25 times the average. The crew is sized against the TOTAL daily work
+# (StaffingModel.Required), so a 1.25x peak was absorbed comfortably - and
+# every run of the tour reported "0 angry, 0 critical tables, 0 waiting
+# tables". The intervention, the tea, the crisis strip and the signature
+# mechanics are all built on top of that pressure; with no pressure they are
+# all decoration.
 #
-# Turk icin ustelik icerik TASARIMLA CELISIYORDU: mutfagin kendi
-# tanimi "Sert ogle zirvesi" diyor, ama ogle gunun %48'ini kaplayan
-# EN UZUN dilimdi - yani zirve, yarim gune yayilmis bir duzluktu.
+# For the Turkish cuisine the content CONTRADICTED THE DESIGN as well: the
+# cuisine's own description says "a hard lunch peak", but lunch was the
+# LONGEST slot, taking up 48% of the day - so the peak was a flat stretch
+# spread over half a day.
 #
-# SURE degistiriliyor, AGIRLIK degil: gunluk musteri toplami aynen
-# kaliyor, yalnizca ayni musteriler daha dar bir pencereye siginiyor.
-# Bu onemli - kira ve marj kalibrasyonu (solve.py) gunluk TOPLAM
-# uzerinden cozuluyor ve boylece gecerli kaliyor.
+# The DURATION is what changes, not the WEIGHT: the daily customer total stays
+# exactly the same, only the same customers now squeeze into a narrower
+# window. This matters - the rent and margin calibration (solve.py) is solved
+# over the daily TOTAL, so it stays valid.
 #
-# Yeni yogunluklar (gelis payi / sure payi):
-#   fastfood  0,52 / 2,09 / 0,46 / 1,50   iki tepe: ogle ve aksam
-#   turk      0,88 / 2,12 / 0,40 / 0,82   tek sert ogle zirvesi
+# The new densities (arrival share / duration share):
+#   fastfood  0.52 / 2.09 / 0.46 / 1.50   two peaks: lunch and evening
+#   turk      0.88 / 2.12 / 0.40 / 0.82   one hard lunch peak
 #
-# Iki mutfak artik RITIM olarak da ayrisiyor: fast food gun boyu iki
-# kez kalabaliklaniyor, Turk ogle patlayip ogleden sonra oluyor.
+# The two cuisines now differ in RHYTHM as well: fast food fills up twice
+# across the day, the Turkish one explodes at lunch and dies in the afternoon.
 CUISINES = [
     ("fastfood", [2500, 1800, 3500, 2200], {
         "main":    ["ana"],
@@ -370,14 +390,14 @@ def cuisines():
     out = []
     for cid, slots, roles in CUISINES:
         assert len(slots) == 4, cid
-        assert sum(slots) == BP, cid + " dilim toplami " + str(sum(slots))
+        assert sum(slots) == BP, cid + " slot total " + str(sum(slots))
         ticks = 480_000 // 100
         for s in slots:
-            assert (ticks * s) % BP == 0, cid + " dilim tick'e tam bolunmuyor"
+            assert (ticks * s) % BP == 0, cid + " slot does not divide into whole ticks"
 
-        # Roller yemek dosyasindaki BUTUN gruplari kapsamali ve hicbir
-        # grup iki role birden dusmemeli. Bu kontrol olmadan bir grup
-        # sessizce siparis edilemez hale geliyor.
+        # The roles must cover EVERY group in the dish file, and no group may
+        # fall into two roles at once. Without this check a group quietly
+        # becomes impossible to order.
         path = os.path.join(CONTENT, "dishes", cid + ".json")
         if os.path.exists(path):
             dishes = json.load(io.open(path, encoding="utf-8"))
@@ -385,13 +405,13 @@ def cuisines():
             mapped = []
             for k in ("main", "side", "drink", "dessert"):
                 mapped.extend(roles[k])
-            assert len(mapped) == len(set(mapped)), cid + " grup iki role birden dusuyor"
+            assert len(mapped) == len(set(mapped)), cid + " a group falls into two roles"
             missing = have - set(mapped)
-            assert not missing, cid + " rolsuz grup: " + ", ".join(sorted(missing))
+            assert not missing, cid + " group with no role: " + ", ".join(sorted(missing))
             extra = set(mapped) - have
-            assert not extra, cid + " olmayan gruba rol verilmis: " + ", ".join(sorted(extra))
+            assert not extra, cid + " a role given to a group that does not exist: " + ", ".join(sorted(extra))
             assert any(d["group"] in roles["main"] and d.get("unlockDay", 0) <= 1
-                       for d in dishes), cid + " ilk gun acik ana yemek yok"
+                       for d in dishes), cid + " no main dish open on day one"
 
         out.append((cid, {
             "id": cid,
@@ -399,49 +419,55 @@ def cuisines():
             "_comment": "URETILEN DOSYA. tools/balance/export.py",
             "slotDurationsBp": slots,
             "eatMs": 38_000,
-            # SELF SERVIS: hizli yemekte masaya garson gelmiyor.
+            # SELF SERVICE: in fast food no waiter comes to the table.
             #
-            # Mutfaklari ayiran en buyuk YAPISAL fark. Gercekte de oyle:
-            # tezgahta siparis verilip orada odeniyor, tepsiyi musteri
-            # tasiyor, masasini kendi buluyor. Salonda kalan is tezgah +
-            # toplama + bulasik - yani garson degil TEMIZLIKCI.
+            # The biggest STRUCTURAL difference between the cuisines. It is
+            # true in real life too: you order at the counter and pay there,
+            # the customer carries the tray and finds their own table. The
+            # work left in the hall is counter + clearing + washing up - that
+            # is, not a waiter but a CLEANER.
             "selfService": cid == "fastfood",
-            # SALON ROLLERI MUTFAGA GORE.
+            # HALL ROLES BY CUISINE.
             #
-            # Hizli yemekte garson YOK - kasiyer tezgahta, temizlikci
-            # masalari topluyor. Turk lokantasinda ucu de var.
+            # In fast food there is NO waiter - the cashier is at the counter
+            # and the cleaner clears the tables. A Turkish restaurant has all
+            # three.
             #
-            # Bu yalnizca gorunus degil SAYI: garson musteri basina
-            # 38.462 mikro is demek, yani salon yukunun yarisindan
-            # fazlasi. Listeden cikinca kadro modeli de ucret de dusuyor.
-            "salonRoles": (["kasiyer", "bulasikci"] if cid == "fastfood"
+            # This is not just appearance but a NUMBER: a waiter means 38,462
+            # micro-work per customer, that is more than half of the hall
+            # load. Take them off the list and both the crew model and the
+            # wage bill fall.
+            "hallRoles": (["kasiyer", "bulasikci"] if cid == "fastfood"
                            else ["garson", "bulasikci", "kasiyer"]),
-            # HACIM: fast food ayni masaya daha cok insan getiriyor.
-            # %30 OLCUMLE secildi. 11500 ve 12000 da denendi ve ikisi de
-            # fast food'u DAHA zengin yapti (23.386 / 24.318 / 22.473):
-            # dusuk hacimde dukkan yalin kaliyor, yuksek hacimde
-            # genisleyip kira ve maas oduyor. Yani hacim toplam kasa icin
-            # bir denge kolu DEGIL - sekli degistiriyor. 13000 en ayrismis
-            # sekli veriyor: +%43 grup, 5 kisi kadro, 16 kayip.
+            # VOLUME: fast food brings more people to the same table.
+            # 30% was chosen BY MEASUREMENT. 11500 and 12000 were tried too
+            # and both made fast food RICHER (23,386 / 24,318 / 22,473): at
+            # low volume the shop stays lean, at high volume it expands and
+            # pays rent and wages. So volume is NOT a balance lever for total
+            # cash - it changes the shape. 13000 gives the most distinct
+            # shape: +43% party size, a crew of 5, 16 lost.
             "customerMultiplierBp": 13000 if cid == "fastfood" else 10000,
-            # KIRA: hacmin bedeli, ve kucuk bir zorluk artisi.
+            # RENT: the price of that volume, and a small increase in
+            # difficulty.
             #
-            # Gercekci: zincirler yuksek trafikli pahali yerlerde oturur.
+            # Realistic: chains sit in expensive, high-traffic places.
             #
-            # SUPURULDU (makul botu, Turk 17.351'e karsi):
-            #   carpansiz   22.473   fark +%29,5
-            #   x1,15       22.263   fark +%28,3   <- secilen
-            #   x1,25       23.493   fark +%35,4
+            # SWEPT (the reasonable bot, against Turkish 17,351):
+            #   no multiplier   22,473   difference +29.5%
+            #   x1.15           22,263   difference +28.3%   <- chosen
+            #   x1.25           23,493   difference +35.4%
             #
-            # Yani kirayi ARTIRMAK kasayi ARTIRIYOR: bot maliyete
-            # genislemeyerek cevap veriyor ve genislememek daha karli.
-            # Son kasa bu bot icin bir zorluk olcutu DEGIL; olcut iki
-            # mutfak arasindaki FARK ve o, en dar 11500'de.
+            # So RAISING the rent RAISES the cash: the bot answers the cost by
+            # not expanding, and not expanding is more profitable. Final cash
+            # is NOT a difficulty measure for this bot; the measure is the
+            # DIFFERENCE between the two cuisines, and that is narrowest at
+            # 11500.
             #
-            # Kalan fark iyi oyuncuda zaten +%13 (planci). Buyuk farklar
-            # TURK'UN zayifliklarindan geliyor: zayiat 14.121'e 5.487 ve
-            # veresiye para kaybettiriyor (docs/51 §7) - onlar ayri bir
-            # is, kirayla kapatilacak seyler degil.
+            # The remaining difference for a good player is already +13% (the
+            # planner). The big differences come from TURKISH's weaknesses:
+            # waste of 14,121 against 5,487, and the tab loses money
+            # (docs/51 §7) - those are separate work and not things to paper
+            # over with rent.
             "rentMultiplierBp": 11500 if cid == "fastfood" else 10000,
             "menuRoles": roles,
             "signature": SIGNATURE[cid],
@@ -450,80 +476,89 @@ def cuisines():
     return out
 
 
-# Yil sonu degerlendirmesinin MUTFAGA OZEL ekseni (docs/08).
+# The CUISINE-SPECIFIC axis of the year-end evaluation (docs/08).
 #
-# Neden mutfak basina ayri bir eksen: yedi eksenin altisi her mutfakta
-# ayni. Yalnizca bu sonuncusu imza mekanigini odullendiriyor, yani
-# mutfaklar birbirinden sadece OYNANISTA degil SONUCTA da ayrisiyor.
+# Why a separate axis per cuisine: six of the seven axes are the same in every
+# cuisine. Only this last one rewards the signature mechanic, which means the
+# cuisines differ from each other not only in PLAY but in OUTCOME.
 #
-# target: eksenin 100 puan verdigi deger.
+# target: the value at which the axis awards 100 points.
 #
-# FAST FOOD: ana yemek siparislerinin yuzde kaci komboya dondu, bin-puan.
+# FAST FOOD: what percentage of main-dish orders turned into a combo, in
+# per-mille.
 #
-# Eksen bir sure `peakCovers` (gunun en yuksek kuveri) idi ve OLCULDU ki
-# imzayi degil GENISLEMEYI izliyor: komboyu her sabah acan bot ile hic
-# acmayan bot ayni puani aliyordu (38 / 38), en yuksek puanlar en cok
-# masa acanlardaydi. Yani eksen "Mekan" ekseninin kopyasiydi ve docs/08
-# onun icin "imza mekanigini DOGRUDAN odullendirir" diyordu.
+# For a while the axis was `peakCovers` (the day's highest cover count) and it
+# was MEASURED to follow not the signature but EXPANSION: a bot that opened
+# the combo every morning and one that never opened it scored the same (38 /
+# 38), and the highest scores belonged to whoever opened the most tables. So
+# the axis was a copy of the "Venue" axis, while docs/08 said of it that it
+# "rewards the signature mechanic DIRECTLY".
 #
-# Hedef OLCUMDEN geliyor, uydurulmadi: komboyu her sabah acan bot
-# ana yemeklerin **%17,4**'unu komboya cevirdi (12 tohum, 60 gun);
-# acmayan herkeste %0. %15 tam puan veriyor, yani "cogu gun ac"
-# yetiyor - kombo mutfak yukunu de artirdigi icin zirvede kapatmak
-# mesru bir oyun ve eksen onu cezalandirmamali.
+# The target comes FROM MEASUREMENT, it was not invented: a bot that opened
+# the combo every morning turned **17.4%** of main dishes into combos (12
+# seeds, 60 days); everybody who did not open it scored 0%. 15% gives full
+# marks, so "open it most days" is enough - the combo also increases the
+# kitchen load, so closing it at the peak is a legitimate way to play and the
+# axis must not punish it.
 #
-# TURK: veresiye tahsilat orani, baz puan olarak; %90 tam puan, cunku
-# %100 ancak hic veresiye acmayarak tutturulur ve o da mekanigi hic
-# kullanmamak demek.
-# TURK: acilan veresiyenin yuzde kaci tahsil edildi, bin-puan.
+# TURKISH: the tab collection rate, in basis points; 90% is full marks,
+# because 100% can only be reached by never opening a tab at all, and that
+# means never using the mechanic.
+# TURKISH: what percentage of the tabs opened were collected, in per-mille.
 #
-# Hedef 9000 bir sure ANLAMSIZDI: tahsilat sansi sabit 8500 idi ve cay
-# primiyle 9500'e cikiyordu, yani defteri kullanan herkes ~100 aliyor,
-# hic kullanmayan 0 - eksen bir katilim rozetiydi.
+# The target of 9000 was MEANINGLESS for a while: the collection chance was a
+# flat 8500 and rose to 9500 with the tea bonus, so everybody who used the
+# ledger got about 100 and anybody who did not got 0 - the axis was a
+# participation badge.
 #
-# Sans artik musterinin ziyaret sayisina bagli (guven) ve tavani 9500.
-# Olculdu: herkese yazan bot 72 aliyor, yani hedef gercekten zor ve
-# eksen "kullandin mi" degil "IYI kullandin mi" diye soruyor.
+# The chance now depends on the customer's visit count (trust) and is capped
+# at 9500. Measured: a bot that gives credit to everybody scores 72, so the
+# target really is hard and the axis asks "did you use it WELL" rather than
+# "did you use it".
 #
-# FAST FOOD tarafinda eksen DUZ kaliyor ve bu artik bir eksiklik degil,
-# OLCULMUS bir sonuc (docs/53):
+# On the FAST FOOD side the axis stays FLAT, and that is no longer a
+# shortcoming but a MEASURED result (docs/53):
 #
-#   makul (kombo yok)   22.492 kasa | 2617 grup | kombo %0,0  | tabaksiz 846
-#   imzaci (hep acik)   22.163 kasa | 2559 grup | kombo %18,1 | tabaksiz 1018
-#   zirvede_kapat       23.474 kasa | 2564 grup | kombo %16,8 | tabaksiz 792
+#   reasonable (no combo)   22,492 cash | 2617 parties | combo 0.0%  | no plate 846
+#   signature (always on)   22,163 cash | 2559 parties | combo 18.1% | no plate 1018
+#   closed_at_peak          23,474 cash | 2564 parties | combo 16.8% | no plate 792
 #
-# Self servis salonu bosalttiktan sonra darbogaz mutfaga gecti ve kombonun
-# mutfak yuku ILK KEZ isiriyor: kombo 58 grup kaybettiriyor ve zirvede
-# kapatmak hep acik tutmayi +1.311 geciyor. Yani yukaridaki yorumun
-# "mesru" dedigi oyun artik EN IYI oyun.
+# After self service emptied the hall the bottleneck moved to the kitchen and
+# the combo's kitchen load bites for the FIRST TIME: the combo costs 58
+# parties, and closing it at the peak beats keeping it open by +1,311. That
+# is, the play the comment above calls "legitimate" is now the BEST play.
 #
-# Ve tam bu yuzden ORAN TABANLI hicbir hedef bu ekseni duzeltemez:
-# IYI OYUNUN PAYI DAHA DUSUK (%16,8 < %18,1). Hedefi yukseltmek daha kotu
-# oynayani odullendirirdi. Eksen bir katilim rozeti olarak BILEREK
-# kaliyor; beceri farki varlik ekseninde zaten goruluyor (74'e 71).
+# And this is exactly why no RATIO-BASED target can fix this axis: THE GOOD
+# PLAY HAS THE LOWER SHARE (16.8% < 18.1%). Raising the target would reward
+# the worse player. The axis stays a participation badge ON PURPOSE; the skill
+# difference is already visible on the net-worth axis (74 against 71).
 SCORE_AXIS = {
     "fastfood": {"kind": "comboShare", "nameKey": "score.axis.combo", "target": 1500},
     "turk": {"kind": "creditCollected", "nameKey": "score.axis.credit", "target": 9000},
 }
 
 
-# docs/23 8.2: mekanik kodda, SAYILAR VERIDE. Blok eksikse mutfak
-# yuklenmiyor - imza mekanigi bir mutfagi digerinden ayiran tek sey
-# (docs/07 "en onemli satir"), o yuzden sessiz varsayilani yok.
+# docs/23 8.2: the mechanic in code, THE NUMBERS IN DATA. If the block is
+# missing the cuisine does not load - the signature mechanic is the one thing
+# that separates one cuisine from another (docs/07's "most important line"),
+# so it has no silent default.
 SIGNATURE = {
-    # Kombo: dogru kurgu ortalama fisi yukseltir ama mutfak yukunu artirir.
-    # priceBp uc kalemin toplamina uygulanan indirim; kitchenLoadBp o uc
-    # isin asciyi ne kadar daha uzun bagladigi.
+    # The combo: the right composition raises the average ticket but
+    # increases the kitchen load. priceBp is the discount applied to the sum
+    # of the three items; kitchenLoadBp is how much longer those three jobs
+    # tie the cook up.
     #
-    # MUTFAK YUKU 12000 -> 13500. Olculdu (32 tohum): imzaci oyuncu
-    # makul oyuncuyu %35 geciyordu, hedef bant %90-%130. Bant iki
-    # yonlu ve sebebi var - alt sinir mekanigin TUZAK olmadigini,
-    # ust sinir MECBURIYET olmadigini siniyor. %35 ustte kalmak,
-    # kombo acmayan oyuncuyu cezalandirmak demek.
+    # KITCHEN LOAD 12000 -> 13500. Measured (32 seeds): a signature player was
+    # beating a reasonable player by 35%, with a target band of 90%-130%. The
+    # band is two-sided and there is a reason for it - the lower bound tests
+    # that the mechanic is not a TRAP, the upper bound that it is not
+    # COMPULSORY. Sitting 35% above means punishing a player who does not open
+    # the combo.
     #
-    # Ayarlanan sey INDIRIM degil YUK: indirimi derinlestirmek komboyu
-    # zayiflatirdi ama takasin yerini degistirmezdi. Yuk, komboyu tam
-    # da vaat ettigi yerden - mutfagin dar bogazindan - pahalilastiriyor.
+    # What was tuned was not the DISCOUNT but the LOAD: deepening the discount
+    # would have weakened the combo but not moved where the trade-off sits.
+    # The load makes the combo expensive at exactly the place it makes its
+    # promise - at the kitchen's bottleneck.
     "fastfood": {
         "kind": "combo",
         "combo": {
@@ -532,21 +567,23 @@ SIGNATURE = {
             "kitchenLoadBp": 13500,
         },
     },
-    # Veresiye: nakit akisini bozar, sadakati ve itibari yukseltir,
-    # kimin odeyecegi belirsizdir. docs/07 Turk mutfagi.
+    # The tab: it disrupts cash flow, raises loyalty and reputation, and who
+    # will pay is uncertain. docs/07, Turkish cuisine.
     "turk": {
         "kind": "credit",
         "credit": {
             "maxPerRegular": 300000,
             "dueDays": 7,
-            # SANS ARTIK KIME YAZDIGINA BAGLI.
+            # THE CHANCE NOW DEPENDS ON WHO YOU GIVE IT TO.
             #
-            # Sabit 8500 (cayla 9500) idi ve odeyen fisin %112'sini
-            # odiyordu: beklenen nakit 0,95 x 1,12 = 1,064 x fis, yani
-            # veresiye PESIN SATISTAN KARLIYDI. Reddetmek icin hicbir gun
-            # yoktu; mekanik bir defter degil, bedava bir prim dugmesiydi.
+            # It was a flat 8500 (9500 with tea) and whoever paid paid 112% of
+            # the bill: the expected cash was 0.95 x 1.12 = 1.064 x the bill,
+            # so a tab WAS MORE PROFITABLE THAN A CASH SALE. There was never a
+            # day to refuse; the mechanic was not a ledger but a free bonus
+            # button.
             #
-            # Taban artik "tanidigin ama yeni tanistigin biri" seviyesi.
+            # The base is now the level of "somebody you know but have only
+            # just met".
             "collectChanceBp": 6000,
             "teaCollectBonusBp": 1000,
             "defaultRepPenaltyCenti": 300,
@@ -554,23 +591,25 @@ SIGNATURE = {
             "teaCostCenti": 200,
             "loyaltyDemandBp": 60,
             "loyaltyCapBp": 1500,
-            # Veresiye isteme sansi. Duzenli musteri icerigi gelmeden once
-            # bu %12 idi ve aday kitle GENISTI (butun sik gelen arketipler).
-            # Artik aday yalnizca veresiyeye uygun ISIMLI musteri: yedi kisi,
-            # her biri gunlerin yarisinda ugruyor. Ayni oranla mekanik
-            # neredeyse hic islemiyordu - altmis gunde uc hesap.
+            # The chance of asking for a tab. Before the regulars content
+            # arrived this was 12% and the candidate pool was WIDE (every
+            # frequently arriving archetype). Now the only candidates are
+            # NAMED customers eligible for credit: seven people, each of whom
+            # drops in on half the days. At the same rate the mechanic barely
+            # fired at all - three accounts in sixty days.
             "askChanceBp": 4000,
             "refusedPenaltyCenti": 1200,
-            # 1200 -> 800: tek basina karli olmasin. Getirisi
-            # ustune koydugu para degil, SADAKAT ve memnuniyet.
+            # 1200 -> 800: it must not be profitable on its own. Its return is
+            # not the money it adds but LOYALTY and satisfaction.
             "repayBonusBp": 800,
-            # GUVEN: musterinin her ziyareti sansa 400 bp ekliyor,
-            # en fazla 3000. Yani yillardir gelen biri %90'a cikiyor,
-            # yeni tanistigin %60'ta kaliyor - ve soru "veresiye
-            # acayim mi" degil "BU ADAMA acayim mi" oluyor.
+            # TRUST: every visit by the customer adds 400 bp to the chance, up
+            # to 3000. So somebody who has been coming for years reaches 90%,
+            # and somebody you have only just met stays at 60% - and the
+            # question becomes not "shall I open a tab" but "shall I open one
+            # for THIS MAN".
             "trustPerVisitBp": 400,
             "trustCapBp": 3000,
-            # Tam kesinlik YOK: risksiz bir defter yine karar uretmez.
+            # NO total certainty: a risk-free ledger produces no decision either.
             "chanceCapBp": 9500,
         },
     },
@@ -582,12 +621,13 @@ SIGNATURE = {
 # ---------------------------------------------------------------------------
 def equipment():
     """
-    Istasyonlar ve ekipman merdiveni. docs/27 Karar D:
-      - prepMs yemegin duvar saati suresi, ekipman ona DOKUNMAZ
-      - asci mesguliyeti = prepMs x attendBp / 10000
-      - yukseltme ya yuva ekler ya attendBp dusurur
+    Stations and the equipment ladder. docs/27 Decision D:
+      - prepMs is the dish's wall-clock duration; equipment DOES NOT TOUCH it
+      - the cook's occupancy = prepMs x attendBp / 10000
+      - an upgrade either adds a slot or lowers attendBp
 
-    Fiyatlar model.equipment() icinde kiradan turetiliyor, elle konmuyor.
+    The prices are derived from the rent inside model.equipment(); they are
+    not entered by hand.
     """
     stations = []
     for st in model.equipment():
@@ -597,8 +637,8 @@ def equipment():
                 "tier": t["tier"],
                 "slots": t["slots"],
                 "attendBp": t["attend"],
-                "price": t["price"] * COIN,      # santi-sikke
-                "neededAtTables": t["needAt"],   # 0 = zorunlu degil
+                "price": t["price"] * COIN,      # centi-coins
+                "neededAtTables": t["needAt"],   # 0 = not compulsory
             })
         stations.append({
             "id": st["id"],
@@ -606,22 +646,23 @@ def equipment():
             "tiers": tiers,
         })
 
-    # Kademe 4 zirvesinde her istasyonun yuvasi docs/27 3.3 ile birebir
-    # olmali. Bu kontrol olmadan conc degerleri sessizce kayabilir.
+    # At the tier 4 peak every station's slot count has to match docs/27 3.3
+    # exactly. Without this check the conc values could quietly drift.
     want = {"ocak": 4, "izgara": 4, "firin": 2, "soguk": 1, "icecek": 1, "tatli": 1}
     for st in stations:
         top = max(t["slots"] for t in st["tiers"])
         assert top == want[st["id"]], (
-            "{}: en ust yuva {} ama docs/27 {} diyor".format(st["id"], top, want[st["id"]]))
-        # Fiyat merdiveni artan olmali
+            "{}: top slot count is {} but docs/27 says {}".format(st["id"], top, want[st["id"]]))
+        # The price ladder must increase
         prices = [t["price"] for t in st["tiers"]]
-        assert prices == sorted(prices), st["id"] + " fiyatlari artmiyor"
-        # attendBp hicbir basamakta artmamali
+        assert prices == sorted(prices), st["id"] + " prices do not increase"
+        # attendBp must not increase at any step
         att = [t["attendBp"] for t in st["tiers"]]
-        assert att == sorted(att, reverse=True), st["id"] + " attendBp artiyor"
+        assert att == sorted(att, reverse=True), st["id"] + " attendBp increases"
 
-    # Soguk hava merdiveni. keepBp: malzemenin KENDI raf omrunun yuzde
-    # kaci gecerli. t0 sifir, yani docs/12 3'un tasarlanmis temeli.
+    # The cold-storage ladder. keepBp: what percentage of an ingredient's OWN
+    # shelf life still applies. t0 is zero, i.e. the designed baseline of
+    # docs/12 3.
     storage_tiers = []
     for t in model.storage():
         storage_tiers.append({
@@ -629,19 +670,20 @@ def equipment():
             "keepBp": t["keep"],
             "price": t["price"] * COIN,
         })
-    assert storage_tiers[0]["keepBp"] == 0, "storage t0 keepBp sifir olmali"
-    assert storage_tiers[0]["price"] == 0, "storage t0 bedava olmali"
+    assert storage_tiers[0]["keepBp"] == 0, "storage t0 keepBp must be zero"
+    assert storage_tiers[0]["price"] == 0, "storage t0 must be free"
     for i in range(1, len(storage_tiers)):
         assert storage_tiers[i]["keepBp"] > storage_tiers[i - 1]["keepBp"]
         assert storage_tiers[i]["price"] > storage_tiers[i - 1]["price"]
 
-    # Mutfaga OZEL adlandirilmis ekipman. Paylasilan alti istasyondan
-    # farki: baslangicta YOK, satin alinana kadar bagli yemekler kilitli.
+    # Cuisine-SPECIFIC named equipment. What sets it apart from the six shared
+    # stations: it is NOT THERE at the start, and until it is bought the
+    # dishes attached to it are locked.
     cuisine_stations = {}
     for cid, _, _ in CUISINES:
-        # "opens" listesi TURETILIYOR: yemegin kendi station alani zaten
-        # hangi ekipmani istedigini soyluyor. Elle ikinci bir liste tutmak
-        # bu projede bir kez sessizce ayristi.
+        # The "opens" list is DERIVED: a dish's own station field already says
+        # which piece of equipment it wants. Keeping a second list by hand
+        # quietly diverged once already in this project.
         opens = {}
         dish_path = os.path.join(CONTENT, "dishes", cid + ".json")
         if os.path.exists(dish_path):
@@ -652,8 +694,8 @@ def equipment():
         for st in model.cuisine_stations(cid):
             if not opens.get(st["id"]):
                 raise AssertionError(
-                    cid + ": " + st["id"] + " hicbir yemek acmiyor; "
-                    "ya yemek yazilmali ya istasyon silinmeli")
+                    cid + ": " + st["id"] + " opens no dish at all; "
+                    "either a dish must be written or the station deleted")
             rows.append({
                 "id": st["id"],
                 "nameKey": "station." + st["id"],
@@ -696,11 +738,11 @@ def golden():
             "weekdayCustomers": r["weekday"],
             "weekendCustomers": r["weekend"],
             "weekCustomers": r["week_customers"],
-            "cooks": c["asci"],
-            "salon": c["salon"],
+            "cooks": c["cook"],
+            "hall": c["hall"],
             "crewTotal": c["total"],
             "staffCap": r["cap"],
-            # Para alanlari santi-sikke, tam hassasiyetten yuvarlanmis
+            # Money fields are centi-coins, rounded from full precision
             "revenue": rnd(r["revenue"] * COIN),
             "ingredients": rnd(r["ingredients"] * COIN),
             "wages": rnd(r["wages"] * COIN),
@@ -722,7 +764,7 @@ def write(path, obj):
     with io.open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(obj, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    print("yazildi: " + os.path.relpath(path, ROOT))
+    print("written: " + os.path.relpath(path, ROOT))
 
 
 def main():
@@ -733,26 +775,26 @@ def main():
     write(os.path.join(CONTENT, "equipment.json"), equipment())
     write(os.path.join(GOLDEN, "weekly.json"), golden())
     print("---")
-    print("salon is yuku / musteri : {:.6f} is-gunu".format(model.SALON_LOAD))
-    print("mikro toplam            : {}".format(
+    print("hall workload / customer : {:.6f} work-days".format(model.HALL_LOAD))
+    print("micro total              : {}".format(
         sum(rnd(MICRO / float(c)) for c in
-            (model.CAP_GARSON, model.CAP_BULASIKCI, model.CAP_KASIYER))))
-    print("salon gunluk ucret      : {:.4f} sikke".format(model.WAGE_SALON))
+            (model.CAP_WAITER, model.CAP_DISHWASHER, model.CAP_CASHIER))))
+    print("hall daily wage          : {:.4f} coins".format(model.WAGE_HALL))
     for cid, slots, _roles in CUISINES:
         ticks = [480_000 // 100 * s // BP for s in slots]
-        print("dilim tick {:<9}: {}".format(cid, ticks))
+        print("slot ticks {:<9}: {}".format(cid, ticks))
 
 
 def render_docs():
     """
-    Dokumanlardaki uretilen tablolari da tazeler.
+    Also refreshes the generated tables inside the documents.
 
-    export.py'ye ZINCIRLENDI cunku ikisi ayri calistiginda ayrisiyorlar ve
-    ayrisma sessiz: denetimde docs/12 ile content/economy.json bir
-    kalibrasyon kusagi farkla bulundu - belge 850/1.950/2.900/5.000 kira
-    ve 7000 gerceklesme anlatiyordu, icerikte 650/1.550/2.250/4.000 ve
-    6500 vardi. Tasarimin referans belgesi var olmayan bir ekonomiyi
-    anlatiyordu.
+    CHAINED to export.py because when the two are run separately they
+    diverge, and the divergence is silent: an audit found docs/12 and
+    content/economy.json a whole calibration generation apart - the document
+    described rents of 850/1,950/2,900/5,000 and a realisation of 7000, while
+    the content held 650/1,550/2,250/4,000 and 6500. The design's reference
+    document was describing an economy that did not exist.
     """
     import subprocess
     import sys as _sys

@@ -1,135 +1,135 @@
-# Ses Tasarımı
+# Audio Design
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddesi:** A12
-**Durum:** Yazıldı, karar bekliyor
-
----
-
-## Temel kural
-
-**Her sesin bir işi olacak.** Bilgi taşımayan ses eklenmeyecek.
-
-Bunun sebebi mobil gerçeği: oyuncuların büyük kısmı sessiz oynuyor. Ses süs olarak tasarlanırsa kimse kaçırdığını fark etmez. Ses bilgi taşırsa, sessiz oynayan oyuncu bilgiyi kaybeder.
-
-Bu yüzden ikinci kural: **her ses uyarısının görsel karşılığı olacak.** Sessiz oynamak oyunu zorlaştırmamalı, sadece daha az keyifli yapmalı.
+**Last updated:** 9 September 2026
+**Register item:** A12
+**Status:** Written, awaiting decision
 
 ---
 
-## Beş katman
+## The basic rule
 
-| Katman | İş | Sürekli mi |
+**Every sound will have a job.** No sound that carries no information will be added.
+
+The reason is a mobile reality: most players play with the sound off. If sound is designed as decoration, nobody notices what they are missing. If sound carries information, the player with the sound off loses that information.
+
+Hence the second rule: **every audio warning will have a visual counterpart.** Playing silently should not make the game harder, only less enjoyable.
+
+---
+
+## Five layers
+
+| Layer | Job | Continuous |
 |---|---|---|
-| Ortam | Mekânın kimliği | Sürekli |
-| Müzik | Aşamanın ruh hali | Sürekli |
-| Olay | Oyun durumu bildirimi | Anlık |
-| Arayüz | Dokunma geri bildirimi | Anlık |
-| Karakter | Konuşma yerine anlamsız hece | Anlık |
+| Ambience | The identity of the venue | Continuous |
+| Music | The mood of the phase | Continuous |
+| Event | A notification of game state | Momentary |
+| Interface | Touch feedback | Momentary |
+| Character | Nonsense syllables instead of speech | Momentary |
 
 ---
 
-## Ortam sesi
+## Ambient sound
 
-Mutfağa özel ve **servis yoğunluğuna göre yoğunlaşıyor.** Salon dolunca kalabalık uğultusu artıyor. Oyuncu ekrana bakmadan da işlerin yoğunlaştığını duyuyor.
+Cuisine-specific, and it **thickens with the intensity of the service.** As the hall fills, the murmur of the crowd rises. The player hears that things are getting busy without looking at the screen.
 
-| Mutfak | Ortam katmanları |
+| Cuisine | Ambient layers |
 |---|---|
-| Fast food | Fritöz cızırtısı, kasa bipleri, cam kapı, sokak trafiği |
-| Türk lokantası | Çay bardağı şıngırtısı, kepçe sesi, radyo, sıcak tezgâh buharı |
-| İtalyan | Çatal bıçak, kadeh, fırın kapağı, hafif akustik |
-| Japon ramen | Erişte süzme, kazan fokurtusu, buhar, kısa siparişler |
+| Fast food | The sizzle of the fryer, till beeps, the glass door, street traffic |
+| The Turkish lokanta | The clink of tea glasses, the sound of a ladle, a radio, steam off the hot counter |
+| Italian | Cutlery, glasses, the oven door, light acoustic |
+| Japanese ramen | Noodles being drained, the cauldron bubbling, steam, short orders |
 
-Mutfak başına üç ile dört katman. Bunlar bağımsız ses dosyaları ve yoğunluğa göre karışıyor.
+Three to four layers per cuisine. These are independent audio files and they mix according to the intensity.
 
 ---
 
-## Müzik
+## Music
 
-Aşamaya göre değişiyor. Mutfak başına dört parça artı ortak bir yıl sonu parçası.
+It changes with the phase. Four tracks per cuisine plus a shared end-of-year track.
 
-| Aşama | Karakter |
+| Phase | Character |
 |---|---|
-| Hal | Sakin, sabah, hafif. Karar verme müziği |
-| Tezgâh | Odaklı, ritmik ama sakin |
-| Servis | **Katmanlı.** Doluluk arttıkça enstrüman ekleniyor |
-| Hesap | Yumuşak, kapanış, biraz yorgun |
+| Market | Calm, morning, light. Decision-making music |
+| Counter | Focused, rhythmic but calm |
+| Service | **Layered.** As occupancy rises, instruments are added |
+| Accounts | Soft, closing, a little tired |
 
-**Servis müziğinin katmanlı olması önemli.** Salon boşken sade bir temel çalıyor. Masalar doldukça yeni katmanlar giriyor. Oyuncu baskıyı kulaktan hissediyor. Overcooked bunu yapıyor ve işe yarıyor.
+**The service music being layered matters.** While the hall is empty a plain base plays. As the tables fill, new layers come in. The player feels the pressure through their ears. Overcooked does this and it works.
 
-**Döngü süresi 60 ile 90 saniye.** Mobil oturum kısa, uzun parçalara gerek yok.
+**Loop length 60 to 90 seconds.** Mobile sessions are short; long tracks are not needed.
 
 ---
 
-## Olay sesleri
+## Event sounds
 
-Bunlar bilgi taşıyor. Listede olmayan hiçbir olay ses çıkarmıyor.
+These carry information. No event not on the list makes a sound.
 
-| Olay | Ton | Görsel karşılığı |
+| Event | Tone | Visual counterpart |
 |---|---|---|
-| Müşteri geldi | Nötr, kısa | Kapı animasyonu |
-| Sipariş verildi | Nötr | Masa üstü ikon |
-| Yemek hazır | Olumlu, kısa | İstasyonda parlama |
-| **Sabır kritik** | **Uyarı, belirgin** | Masa kenarı kırmızıya dönüyor |
-| **Malzeme tükendi** | **Uyarı, belirgin** | Stok çubuğu boş ve yanıp sönüyor |
-| Müşteri çıkıp gitti | Olumsuz | Masa üstünde kısa simge |
-| Ödeme alındı | Olumlu, para tınısı | Sikke ikonunda artış |
-| Yeni yemek açıldı | Olumlu, kutlama | Menü ekranında rozet |
-| Kira günü yaklaşıyor | Hatırlatma, günlük | Üst çubukta geri sayım |
-| Personel istifa etti | Olumsuz, ağır | Bildirim kartı |
+| A customer arrived | Neutral, short | A door animation |
+| An order was placed | Neutral | An icon over the table |
+| Food is ready | Positive, short | A glow at the station |
+| **Patience critical** | **A warning, distinct** | The edge of the table turns red |
+| **An ingredient ran out** | **A warning, distinct** | The stock bar is empty and flashing |
+| A customer walked out | Negative | A brief symbol over the table |
+| Payment taken | Positive, a money chime | An increase on the coin icon |
+| A new dish opened | Positive, celebratory | A badge on the menu screen |
+| Rent day approaching | A reminder, daily | A countdown in the top bar |
+| A staff member resigned | Negative, heavy | A notification card |
 
-**Kalın yazılanlar en kritik ikisi.** Sabır ve stok, oyuncunun anında müdahale etmesi gereken iki durum. Bu ikisi ses paletinde en ayırt edici yeri alıyor.
-
----
-
-## Arayüz sesleri
-
-Yaklaşık on iki adet, bütün mutfaklarda ortak. Dokunma, onay, iptal, hata, sürükleme başlangıcı ve bitişi, ekran geçişi.
-
-Kısa, yumuşak, tekrarlandığında rahatsız etmeyen. Oyuncu bunları günde elli kez duyacak.
+**The two in bold are the most critical.** Patience and stock are the two situations where the player has to intervene immediately. Those two take the most distinctive place in the sound palette.
 
 ---
 
-## Karakter sesi
+## Interface sounds
 
-**Seslendirme yok.** Bunun yerine anlamsız hece.
+Roughly twelve of them, shared across all cuisines. Tap, confirm, cancel, error, the start and end of a drag, a screen transition.
 
-- Her arketip bir ses tonu taşıyor: aceleci yüksek ve hızlı, emekli alçak ve yavaş.
-- Yirmi kadar hece örneği, tona göre değiştiriliyor.
-- Memnuniyete göre tonlama değişiyor.
-
-Üç sebep: maliyeti sıfıra yakın, yerelleştirme gerektirmiyor, ve karakter katıyor. Animal Crossing çizgisinde bir çözüm.
+Short, soft, not irritating when repeated. The player will hear these fifty times a day.
 
 ---
 
-## Sessizlik
+## Character sound
 
-Sessizlik de bir araç.
+**No voice acting.** Nonsense syllables instead.
 
-- Servis bittiğinde kısa bir boşluk, sonra hesap müziği giriyor.
-- Gün sonunda müşteri yorumları okunurken ortam sesi kısılıyor. Metne odak.
-- Yıl sonu değerlendirmesi tamamen sessizlikle açılıyor, sonra tek bir parça giriyor.
+- Every archetype carries a vocal tone: the one in a hurry is high and fast, the pensioner is low and slow.
+- Around twenty syllable samples, varied by tone.
+- The intonation changes with satisfaction.
+
+Three reasons: the cost is close to zero, it needs no localisation, and it adds character. A solution in the Animal Crossing line.
 
 ---
 
-## Üretim yükü
+## Silence
 
-| Kalem | Adet | Kapsam |
+Silence is a tool too.
+
+- When service ends there is a short gap, then the accounts music comes in.
+- While the customer reviews are read at the end of the day the ambience is turned down. Focus on the text.
+- The end-of-year evaluation opens in complete silence, then a single track comes in.
+
+---
+
+## Production load
+
+| Item | Count | Scope |
 |---|---|---|
-| Ortam katmanı | 3-4 | Mutfak başına |
-| Müzik parçası | 4 | Mutfak başına |
-| Yıl sonu parçası | 1 | Paylaşılan |
-| Olay sesi | ~40 | Paylaşılan |
-| Arayüz sesi | ~12 | Paylaşılan |
-| Karakter hecesi | ~20 | Paylaşılan, tonla çeşitleniyor |
+| Ambient layer | 3-4 | Per cuisine |
+| Music track | 4 | Per cuisine |
+| End-of-year track | 1 | Shared |
+| Event sound | ~40 | Shared |
+| Interface sound | ~12 | Shared |
+| Character syllable | ~20 | Shared, varied by tone |
 
-Çıkıştaki iki mutfak için toplam: sekiz müzik parçası, yedi ortam katmanı, artı paylaşılan yetmiş kadar kısa ses.
+Total for the two cuisines at launch: eight music tracks, seven ambient layers, plus roughly seventy shared short sounds.
 
-Kaynak kararı kütükte C4 maddesi olarak açık duruyor: ücretli yapay zeka aracı mı, kamu malı kütüphane mi.
+The decision about the source stands open in the register as item C4: a paid AI tool, or a public-domain library.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Details awaiting a decision
 
-1. Servis müziği katmanlı mı olmalı, yoksa tek parça mı yeterli
-2. Karakter hecesi mutfağa göre değişmeli mi
-3. Mutfak başına dört müzik parçası fazla mı
+1. Should the service music be layered, or is a single track enough
+2. Should the character syllables change with the cuisine
+3. Are four music tracks per cuisine too many

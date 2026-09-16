@@ -1,231 +1,239 @@
-# Restoran Yönetim Oyunu — Proje Dokümanları
+# Restaurant Management Game — Project Documents
 
-Mobil (iOS/Android) ve ileride Steam. 2.5D, yumuşak low-poly. Unity. Tek kişilik ve yapay zeka destekli üretim.
+Mobile (iOS/Android) and Steam later on. 2.5D, soft low-poly. Unity. A one-person, AI-assisted production.
 
-**Konsept:** Sen aşçı değil patronsun. Menüyü, fiyatı, tedariki ve ekibi sen kurarsın; servis sırasında sadece krizlere müdahale edersin; her hafta kira gününü karşılamak zorundasın.
+**The concept:** you are not the chef, you are the owner. You set the menu, the prices, the supply and the crew; during service you only step in when there is a crisis; and every week you have to meet rent day.
 
-**Yaklaşım:** Plan tamamlanmadan uygulamaya geçilmeyecek. Planın mevcut durumu için [06-plan-status.md](06-plan-status.md).
+**The approach:** implementation does not begin before the plan is complete. For the current state of the plan, see [06-plan-status.md](06-plan-status.md).
 
-## Konuya göre
+## By topic
 
-Dosyalar **kronolojik**: her numara bir işin kaydı. Aşağıdaki gruplar
-yalnızca ikinci bir kapı — numaralandırma ve sıra değişmiyor.
+The files are **chronological**: every number is the record of a piece of work.
+The groups below are only a second door — the numbering and the order do not
+change.
 
-**Buradan başla** — [06](06-plan-status.md) planın ve işin durumu · [02](02-design-proposal.md) oyunun ne olduğu · [04](04-architecture.md) katmanlar ve port sınırı · [23](23-core-contract.md) çekirdeğin değişmezleri
+**Start here** — [06](06-plan-status.md) the state of the plan and of the work · [02](02-design-proposal.md) what the game is · [04](04-architecture.md) layers and the port boundary · [23](23-core-contract.md) the core's invariants
 
-**Tasarım** — [07](07-cuisine-system.md) iki mutfak, imza mekanikleri · [08](08-endgame.md) altmışıncı gün ve yedi eksen · [09](09-content-inventory.md) 32 yemek · [11](11-customer-system.md) müşteri arketipleri · [34](34-progression-and-locks.md) kilit, mevsim, soran müşteri · [47](47-recognition-and-report-card.md) nişanlar ve haftalık karne · [53](53-pending-decisions.md) bulaşıkçı, kombo, personelin sesi
+**Design** — [07](07-cuisine-system.md) two cuisines, signature mechanics · [08](08-endgame.md) day sixty and seven axes · [09](09-content-inventory.md) 32 dishes · [11](11-customer-system.md) customer archetypes · [34](34-progression-and-locks.md) locks, seasons, the customer who asks · [47](47-recognition-and-report-card.md) badges and the weekly report card · [53](53-pending-decisions.md) the dishwasher, the combo, the staff's voice
 
-**Ekonomi ve denge** — [12](12-economy.md) sayılar, kira, maaş, formüller · [27](27-time-model.md) gün ve tick · [28](28-peak-decision.md) zirvenin şekli · [29](29-phase0-simulation.md) simülasyon ve denge aracı · [32](32-equipment-and-rebalance.md) istasyon yuvaları · [42](42-crew-and-intervention.md) kadro tavanı, müdahale bütçesi · [48](48-day-sharpness.md) günü sivriltmek · [52](52-split-and-rent.md) mutfak ayrımı ve kira
+**Economy and balance** — [12](12-economy.md) numbers, rent, wages, formulas · [27](27-time-model.md) the day and the tick · [28](28-peak-decision.md) the shape of the peak · [29](29-phase0-simulation.md) the simulation and the balance tool · [32](32-equipment-and-rebalance.md) station slots · [42](42-crew-and-intervention.md) the crew cap, the intervention budget · [48](48-day-sharpness.md) sharpening the day · [52](52-split-and-rent.md) the kitchen split and the rent
 
-**Çekirdek ve veri** — [03](03-technical-decisions.md) motor, platform, sanat tarzı · [13](13-data-schemas.md) JSON şemaları · [15](15-save-system.md) dört yuva, sürüm göçü · [19](19-technical-setup.md) proje kurulumu · [14](14-staff-system.md) roller, huylar, moral · [39](39-plate-cycle.md) sayılı tabak, bulaşık nöbeti · [51](51-self-service.md) fast food'un servis modeli · [33](33-second-cuisine.md) Türk mutfağı
+**Core and data** — [03](03-technical-decisions.md) engine, platform, art style · [13](13-data-schemas.md) JSON schemas · [15](15-save-system.md) four slots, version migration · [19](19-technical-setup.md) project setup · [14](14-staff-system.md) roles, traits, morale · [39](39-plate-cycle.md) counted plates, the washing-up shift · [51](51-self-service.md) fast food's service model · [33](33-second-cuisine.md) Turkish cuisine
 
-**Arayüz, sanat ve mekân** — [16](16-screens-and-tutorial.md) ekran akışı ve ilk on dakika · [41](41-ui-and-venue.md) kartlı HUD, renk rolleri · [24](24-art-pipeline.md) model hattı · [10](10-cuisine-identity.md) giydirme ve ortam kimliği · [30](30-venue-layout.md) kat planı · [31](31-rooms-and-camera.md) oda görünümü, kamera, URP · [35](35-animation-and-camera.md) canlandırma katmanı · [36](36-street-time-and-kitchen.md) sokak ve günün saati · [38](38-street-and-interior-light.md) gece ışığı · [50](50-kitchen-texture.md) doku üretimi · [17](17-audio-design.md) ses katmanları
+**Interface, art and venue** — [16](16-screens-and-tutorial.md) screen flow and the first ten minutes · [41](41-ui-and-venue.md) the card HUD, colour roles · [24](24-art-pipeline.md) the model pipeline · [10](10-cuisine-identity.md) wardrobe and environment identity · [30](30-venue-layout.md) the floor plan · [31](31-rooms-and-camera.md) the room view, the camera, URP · [35](35-animation-and-camera.md) the animation layer · [36](36-street-time-and-kitchen.md) the street and the time of day · [38](38-street-and-interior-light.md) night light · [50](50-kitchen-texture.md) texture generation · [17](17-audio-design.md) audio layers
 
-**Metin ve dil** — [18](18-story-and-text.md) hikâye yayları ve kelime bütçesi · [40](40-two-languages.md) tek üreteçten iki dil · [54](54-five-languages.md) beş dil, Arapça birleştirme, aynalama · [55](55-translation-review.md) dört agentli çeviri denetimi
+**Text and language** — [18](18-story-and-text.md) story arcs and the word budget · [40](40-two-languages.md) two languages from one generator · [54](54-five-languages.md) five languages, Arabic joining, mirroring · [55](55-translation-review.md) a four-agent translation review · [56](56-english-repository.md) the repository written in English
 
-**İnceleme ve ölçüm** — [22](22-answers-and-direction.md) sorular ve yön · [37](37-four-agent-review.md) dört agentli inceleme · [43](43-review-and-measurement.md) ölçümün yanılttığı yerler · [45](45-design-review.md) beş agentli tasarım turu · [49](49-unreachable-mechanics.md) oyuncuya ulaşmayan mekanikler · [46](46-shipped-binary.md) gönderilen ikili, link.xml
+**Review and measurement** — [22](22-answers-and-direction.md) questions and direction · [37](37-four-agent-review.md) the four-agent review · [43](43-review-and-measurement.md) where the measurement misled us · [45](45-design-review.md) the five-agent design pass · [49](49-unreachable-mechanics.md) mechanics that never reach the player · [46](46-shipped-binary.md) the shipped binary, link.xml
 
-**Yayın** — [05](05-production-plan.md) araçlar, lisanslar, maliyet · [20](20-production-decisions.md) üretim kararları · [21](21-business-and-release.md) yayın denetimi ve kalan işler · [44](44-store-texts.md) mağaza metinleri, gizlilik politikası · [25](25-game-name.md) ad kararı — AÇIK
+**Release** — [05](05-production-plan.md) tools, licences, cost · [20](20-production-decisions.md) production decisions · [21](21-business-and-release.md) the release audit and the work that is left · [44](44-store-texts.md) store texts, the privacy policy · [25](25-game-name.md) the name decision — OPEN
 
-## Dokümanlar
+## Documents
 
-| Dosya | İçerik | Durum |
+| File | Contents | Status |
 |---|---|---|
-| [research/01-market-research.md](research/01-market-research.md) | On oyunun incelenmesi, sevilen ve nefret edilen mekanikler, pazar verisi | Tamamlandı |
-| [02-design-proposal.md](02-design-proposal.md) | Oyun mekaniği, günün döngüsü, batma merdiveni, yol haritası | v0.1 |
-| [03-technical-decisions.md](03-technical-decisions.md) | Motor, ekip, sanat tarzı ve platform kararları | Güncel |
-| [04-architecture.md](04-architecture.md) | Katmanlı mimari, port sınırı, çekirdeğin motordan bağımsızlığı | Güncel |
-| [05-production-plan.md](05-production-plan.md) | Ne, ne ile yapılacak. Araçlar, lisanslar, maliyetler, yetenek sınırı | Güncel |
-| [06-plan-status.md](06-plan-status.md) | **37 plan kaleminin durumu ve kalan işin beş partisi** | Güncel |
-| [07-cuisine-system.md](07-cuisine-system.md) | Mutfak seçimi, imza mekanikleri, gelir modeli ve üç şart | Güncel |
-| [08-endgame.md](08-endgame.md) | Oyunun sonu: puanlanan yıl sonu değerlendirmesi | Onaylandı |
-| [09-content-inventory.md](09-content-inventory.md) | İçerik envanteri (v2, 32 yemek), paylaşılan taban ve altmış günlük ilerleme eğrisi | Güncel |
-| [10-cuisine-identity.md](10-cuisine-identity.md) | Karakter giydirme sistemi, mutfağa özel ortam ve karakter sayımı | Güncel |
-| [11-customer-system.md](11-customer-system.md) | Müşteri arketipleri (v2, 20 adet), sıklık kademeleri ve sekiz parametre | Güncel |
-| [12-economy.md](12-economy.md) | Ekonomi sayıları, kira, maaş, marj, kredi ve müşteri formülleri | Güncel |
-| [13-data-schemas.md](13-data-schemas.md) | On bir JSON şeması, dosya düzeni ve açılış doğrulaması | Güncel |
-| [14-staff-system.md](14-staff-system.md) | Dört rol, on iki huy, moral, deneyim ve işe alım | Güncel |
-| [15-save-system.md](15-save-system.md) | Dört yuva, bozulma koruması, sürüm göçü, bulut kaydı | Güncel |
-| [16-screens-and-tutorial.md](16-screens-and-tutorial.md) | On sekiz ekran, akış kuralları ve ilk on dakika planı | Güncel |
-| [17-audio-design.md](17-audio-design.md) | Beş ses katmanı, katmanlı servis müziği, üretim yükü | Güncel |
-| [18-story-and-text.md](18-story-and-text.md) | Hikaye yayları, şablonlu yorumlar, kelime bütçesi, yerelleştirme | Güncel |
-| [19-technical-setup.md](19-technical-setup.md) | Unity sürümü, URP ayarları, performans bütçeleri, kayıt formatı, girdi haritası | Güncel |
-| [20-production-decisions.md](20-production-decisions.md) | Model yolu, karakter hattı, ses kaynağı, yazı tipi, test planı | Güncel |
-| [21-business-and-release.md](21-business-and-release.md) | Fiyat, lansman aşamaları, ölçülecek metrikler, hukuki zorunlular | Güncel |
-| **[review/00-synthesis.md](review/00-synthesis.md)** | **Beş ajanlı değerlendirmenin sentezi: 3 onay, 21 düzelt, yedi partilik düzeltme planı, dokuz açık soru** | **Güncel** |
-| [review/01-05](review/) | Beş ham değerlendirme raporu: tasarım, mimari, kapsam, pazar, oyuncu deneyimi | Güncel |
-| **[22-answers-and-direction.md](22-answers-and-direction.md)** | **Dokuz soruya cevaplar, makine taraması, sıfır bütçe planı, açık iki karar için öneri** | **Güncel** |
-| **[23-core-contract.md](23-core-contract.md)** | **Parti B: determinizm, tamsayı durum, RNG, kültür, komut günlüğü, şema eklemeleri, kabul ölçütleri. Bağlayıcı** | **Bağlayıcı** |
-| **[24-art-pipeline.md](24-art-pipeline.md)** | **Render döngüsü, üç kademe, karakter planı, modüler tabaklama, zaman kutuları** | **Güncel** |
-| [25-game-name.md](25-game-name.md) | On ad adayı, mağaza çarpışma taraması, öneri | Karar bekliyor |
-| `../tools/balance/` | Denge modeli: `model.py` formüller, `solve.py` parametre arama, `render.py` dokümana yazma | Çalışıyor |
-| `../tools/art/` | Blender üretim betikleri; `gen_table.py` doğrulama örneği | Çalışıyor |
-| `../src/Lokanta.Core/` | Saf C# çekirdek: `Fx` tamsayı aritmetiği, `Rng`, talep ve kadro modelleri. Unity referansı yok | Faz 0, 1. dilim |
-| `../src/Lokanta.Content/` | JSON yükleme ve doğrulama. Newtonsoft yalnızca burada | Faz 0, 1. dilim |
-| `../tests/Lokanta.Core.Tests/` | 225 test: aritmetik, RNG çapraz doğrulama, kültür, kayan nokta yasağı, altın tablo, simülasyon | Hepsi geçiyor |
-| **[29-phase0-simulation.md](29-phase0-simulation.md)** | **Faz 0 ikinci dilim: simülasyon, denge aracı ve simülasyonun bulduğu altı tasarım hatası** | **Güncel** |
-| [27-time-model.md](27-time-model.md) | Servis günü, görev süreleri, hazırlama süresi türetmesi, eş zamanlılık, zirve doluluğu | Güncel |
-| [28-peak-decision.md](28-peak-decision.md) | Mutfak saat dağılımı ile kapasite çelişkisinin kararı | Güncel |
-| [30-venue-layout.md](30-venue-layout.md) | Arsa, oda ızgarası, kademe açılışı ve mobilya yerleşimi | Güncel |
-| **[31-rooms-and-camera.md](31-rooms-and-camera.md)** | **İki kademeli kamera, ölçülmüş dokunma hedefi, mobilya/karakter yön kuralı** | **Güncel** |
-| [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md) | İstasyon slotları, `attendBp` ve gerçekleşme oranının kalibrasyonu | Güncel |
-| [33-second-cuisine.md](33-second-cuisine.md) | Türk mutfağı: yemek grupları içerikten gelir, üç yerde doğrulanır | Güncel |
-| [34-progression-and-locks.md](34-progression-and-locks.md) | İlerleme kilidi, karmaşıklık, mevsim ve beş ölü içeriğin canlandırılması | Güncel |
-| **[35-animation-and-camera.md](35-animation-and-camera.md)** | **Yürüyüş katmanı, çalışan fırın/ocak, iki parmak yakınlaştırma ve kare masa** | **Güncel** |
-| **[36-street-time-and-kitchen.md](36-street-time-and-kitchen.md)** | **Odalar arası kapılar, sokak ve yoldan geçenler, günün saati, mutfağın aşamaları, tepsi** | **Güncel** |
-| **[37-four-agent-review.md](37-four-agent-review.md)** | **Dört agent incelemesi: fiyat tavanı, kombo açığı, sabır donması, yayın kapıları, kriz şeridi** | **Güncel** |
-| **[38-street-and-interior-light.md](38-street-and-interior-light.md)** | **Sokak lambalarının düzeni ve klasik fener modeli, gece ışığının üç katmanı, yaya çarpışması ve figür profili, iç tavan aydınlatması, kanatların kaldırılması** | **Güncel** |
-| **[39-plate-cycle.md](39-plate-cycle.md)** | **Devralınan kadro (aşçı + garson), sayılı tabak döngüsü, bulaşık nöbeti, ölüm sarmalını kıran oturtma eşiği** | **Güncel** |
-| **[40-two-languages.md](40-two-languages.md)** | **İngilizce yerelleştirme: tek üreteçten iki tablo, çeviri politikası, cihaz diline göre varsayılan, turun bulduğu iki hata** | **Güncel** |
-| **[41-ui-and-venue.md](41-ui-and-venue.md)** | **Oyun ekranının referansa göre yeniden tasarımı (kartlar, kapsüller, üç renk rolü), prosedürel süsleme ve mutfak kimliği** | **Güncel** |
-| **[42-crew-and-intervention.md](42-crew-and-intervention.md)** | **Pasif oyuncu artık batıyor; müdahale baskı altında kazandırıyor; kadro tavsiyesinin adı yanlıştı** | **Güncel** |
-| **[43-review-and-measurement.md](43-review-and-measurement.md)** | **Beş agentli inceleme: turun 107 kontrolü hiçbir şeyi kıramıyordu; vakumda yeşil kalan kontroller; ölçümün kendi kaynağını tüketmesi** | **Güncel** |
-| **[44-store-texts.md](44-store-texts.md)** | **Mağaza kısa/tam açıklaması (iki dil), gizlilik politikası metni ve mağaza çözünürlüğünde ekran görüntüsü üretimi** | **Güncel** |
-| **[45-design-review.md](45-design-review.md)** | **Beş agentli tasarım turu: fiyatın talebe kanalı yoktu (tavanda zam bedavaydı), müdahale salona da bağlandı, kombo ekseninin doygunluğu semptom çıktı** | **Güncel** |
-| **[46-shipped-binary.md](46-shipped-binary.md)** | **Emülatör neden işe yaramıyor (ARM64-only APK) ve `link.xml`: hiç koşturulmamış budama koruması mutasyonla ölçüldü — kaldırılınca oyun açılışta ölüyor** | **Güncel** |
-| **[47-recognition-and-report-card.md](47-recognition-and-report-card.md)** | **Günlük görev değil TANIMA: haftalık karne (tek başarı anı → dokuz) ve yedi nişan; birim hatası nişanı birinci günde dağıtıyordu** | **Güncel** |
-| **[48-day-sharpness.md](48-day-sharpness.md)** | **Baskı neden hiç ateşlenmiyordu: günün en yoğun anı ortalamanın 1,24 katıydı; süre sivriltildi, müdahalenin değeri +505 → +4.953** | **Güncel** |
-| **[49-unreachable-mechanics.md](49-unreachable-mechanics.md)** | **Yirmi komutun dort eksende taranmasi: malzeme kalitesi hicbir ekranda yoktu, "kovala" dugmesine kimse basmiyordu, erken tahsilat tuzak cikti** | **Güncel** |
-| **[50-kitchen-texture.md](50-kitchen-texture.md)** | **Mutfaga gore duvar yuzeyi (ahsap lambri / celik bant), zemin ve disarinin tonu; tur artik fast food da oynuyor ve kirpilma olcumu var olmayan bir hatayi ariyordu** | **Güncel** |
-| **[51-self-service.md](51-self-service.md)** | **Fast food self servis: garson yerine temizlikçi, salon rolleri mutfağa bağlandı, hacim +%43 fiş −%22; hacim toplam kasa için bir kol değil** | **Güncel** |
-| **[52-split-and-rent.md](52-split-and-rent.md)** | **Fast food kirası ×1,15 (kirayı artırmak botun kasasını *artırıyor* — ölçüldü); görüntü aracı self servisi hiç çizmiyordu, asılı menü panelleri arkasını kapatıyordu, mobilya laminata döndü** | **Güncel** |
-| **[53-pending-decisions.md](53-pending-decisions.md)** | **Bulaşıkçı açık kararı ölçümle kapandı (iki "düzeltme" denendi, ikisi de bozdu); kombo cevabı self servisle tersine döndü ve düğmesine tur hiç basmıyormuş; personele ilk kez ses verildi (`trait.*.voice`)** | **Güncel** |
-| **[54-five-languages.md](54-five-languages.md)** | **Beş dil (tr/en/es/zh/ar), varsayılan İngilizce; Arapça harf birleşmesi Gelişmiş Metin Üreticisi'yle çözüldü ve genişlik farkıyla ölçüldü (60 → 40 dp); yerleşim aynalandı; şerit bütçesi beş dilde ölçülüyor — en uzunu İspanyolca** | **Güncel** |
-| **[55-translation-review.md](55-translation-review.md)** | **Dört agentli çeviri denetimi: müdavim kadrosu es/zh/ar'da başka bir kadroydu; Çince yapı üç yerden bozukken yazı tipi denetimi yeşildi (isim havuzu + gömülü simgeler); yedi metin simülasyonu yalanlıyordu** | **Güncel** |
-| `../unity/` | Unity 6.3 LTS projesi, Android hedefli. Ayarlar `ProjectSetup.cs` ile kodla uygulanıyor | Kuruldu |
-| `../src/Lokanta.Harness/` | Denge aracı: beş strateji, çok tohumlu altmış günlük kampanya | Çalışıyor |
+| [research/01-market-research.md](research/01-market-research.md) | Ten games examined, the mechanics that are loved and hated, market data | Done |
+| [02-design-proposal.md](02-design-proposal.md) | Game mechanics, the daily loop, the collapse ladder, the roadmap | v0.1 |
+| [03-technical-decisions.md](03-technical-decisions.md) | Engine, team, art style and platform decisions | Current |
+| [04-architecture.md](04-architecture.md) | Layered architecture, the port boundary, the core's independence from the engine | Current |
+| [05-production-plan.md](05-production-plan.md) | What will be made, and with what. Tools, licences, costs, the skill limit | Current |
+| [06-plan-status.md](06-plan-status.md) | **The state of the 37 plan items and the five batches of remaining work** | Current |
+| [07-cuisine-system.md](07-cuisine-system.md) | Cuisine choice, signature mechanics, the revenue model and three conditions | Current |
+| [08-endgame.md](08-endgame.md) | The end of the game: a scored year-end evaluation | Approved |
+| [09-content-inventory.md](09-content-inventory.md) | The content inventory (v2, 32 dishes), the shared base and the sixty-day progression curve | Current |
+| [10-cuisine-identity.md](10-cuisine-identity.md) | The character wardrobe system, the cuisine-specific environment and the character count | Current |
+| [11-customer-system.md](11-customer-system.md) | Customer archetypes (v2, 20 of them), frequency tiers and eight parameters | Current |
+| [12-economy.md](12-economy.md) | Economy numbers, rent, wages, margin, credit and the customer formulas | Current |
+| [13-data-schemas.md](13-data-schemas.md) | Eleven JSON schemas, the file layout and start-up validation | Current |
+| [14-staff-system.md](14-staff-system.md) | Four roles, twelve traits, morale, experience and hiring | Current |
+| [15-save-system.md](15-save-system.md) | Four slots, corruption protection, version migration, cloud saves | Current |
+| [16-screens-and-tutorial.md](16-screens-and-tutorial.md) | Eighteen screens, the flow rules and the first-ten-minutes plan | Current |
+| [17-audio-design.md](17-audio-design.md) | Five audio layers, layered service music, the production load | Current |
+| [18-story-and-text.md](18-story-and-text.md) | Story arcs, templated reviews, the word budget, localisation | Current |
+| [19-technical-setup.md](19-technical-setup.md) | Unity version, URP settings, performance budgets, the save format, the input map | Current |
+| [20-production-decisions.md](20-production-decisions.md) | The model path, the character pipeline, the audio source, the typeface, the test plan | Current |
+| [21-business-and-release.md](21-business-and-release.md) | Price, launch stages, the metrics to measure, the legal must-haves | Current |
+| **[review/00-synthesis.md](review/00-synthesis.md)** | **The synthesis of the five-agent review: 3 approve, 21 revise, a seven-batch fix plan, nine open questions** | **Current** |
+| [review/01-05](review/) | The five raw review reports: design, architecture, scope, market, player experience | Current |
+| **[22-answers-and-direction.md](22-answers-and-direction.md)** | **Answers to the nine questions, the machine scan, the zero-budget plan, a recommendation for the two open decisions** | **Current** |
+| **[23-core-contract.md](23-core-contract.md)** | **Batch B: determinism, integer state, RNG, culture, the command log, schema additions, acceptance criteria. Binding** | **Binding** |
+| **[24-art-pipeline.md](24-art-pipeline.md)** | **The render loop, three tiers, the character plan, modular plating, time boxes** | **Current** |
+| [25-game-name.md](25-game-name.md) | Ten name candidates, a store collision scan, a recommendation | Open |
+| `../tools/balance/` | The balance model: `model.py` the formulas, `solve.py` the parameter search, `render.py` writing into the documents | Working |
+| `../tools/art/` | Blender generation scripts; `gen_table.py` is the validation example | Working |
+| `../src/Lokanta.Core/` | The pure C# core: `Fx` integer arithmetic, `Rng`, the demand and crew models. No Unity reference | Phase 0, slice 1 |
+| `../src/Lokanta.Content/` | JSON loading and validation. Newtonsoft only here | Phase 0, slice 1 |
+| `../tests/Lokanta.Core.Tests/` | 225 tests: arithmetic, RNG cross-validation, culture, the floating-point ban, the golden table, the simulation | All passing |
+| **[29-phase0-simulation.md](29-phase0-simulation.md)** | **Phase 0, second slice: the simulation, the balance tool and the six design bugs the simulation found** | **Current** |
+| [27-time-model.md](27-time-model.md) | The service day, task durations, deriving prep time, concurrency, peak occupancy | Current |
+| [28-peak-decision.md](28-peak-decision.md) | The decision on the contradiction between the kitchen's hour distribution and capacity | Current |
+| [30-venue-layout.md](30-venue-layout.md) | The plot, the room grid, tier unlocking and furniture placement | Current |
+| **[31-rooms-and-camera.md](31-rooms-and-camera.md)** | **A two-tier camera, a measured touch target, the furniture/character orientation rule** | **Current** |
+| [32-equipment-and-rebalance.md](32-equipment-and-rebalance.md) | Station slots, `attendBp` and the calibration of the realisation rate | Current |
+| [33-second-cuisine.md](33-second-cuisine.md) | Turkish cuisine: dish groups come from the content, validated in three places | Current |
+| [34-progression-and-locks.md](34-progression-and-locks.md) | The progression lock, complexity, seasons and bringing five pieces of dead content to life | Current |
+| **[35-animation-and-camera.md](35-animation-and-camera.md)** | **The walking layer, a working oven and stove, two-finger zoom and the square table** | **Current** |
+| **[36-street-time-and-kitchen.md](36-street-time-and-kitchen.md)** | **Doors between rooms, the street and passers-by, the time of day, the kitchen's stages, the tray** | **Current** |
+| **[37-four-agent-review.md](37-four-agent-review.md)** | **The four-agent review: the price ceiling, the combo gap, patience freezing, the release gates, the crisis strip** | **Current** |
+| **[38-street-and-interior-light.md](38-street-and-interior-light.md)** | **The layout of the street lamps and the classic lantern model, the three layers of night light, pedestrian collision and figure profile, interior ceiling lighting, removing the wings** | **Current** |
+| **[39-plate-cycle.md](39-plate-cycle.md)** | **The inherited crew (cook + waiter), the counted-plate cycle, the washing-up shift, the seating threshold that breaks the death spiral** | **Current** |
+| **[40-two-languages.md](40-two-languages.md)** | **English localisation: two tables from one generator, the translation policy, the default by device language, the two bugs the tour found** | **Current** |
+| **[41-ui-and-venue.md](41-ui-and-venue.md)** | **Redesigning the game screen against the reference (cards, capsules, three colour roles), procedural decoration and kitchen identity** | **Current** |
+| **[42-crew-and-intervention.md](42-crew-and-intervention.md)** | **The passive player now goes under; intervention pays off under pressure; the crew recommendation had the wrong name** | **Current** |
+| **[43-review-and-measurement.md](43-review-and-measurement.md)** | **The five-agent review: the tour's 107 checks could not break anything; checks that stay green in a vacuum; a measurement consuming its own source** | **Current** |
+| **[44-store-texts.md](44-store-texts.md)** | **The store's short/full description (in two languages), the privacy policy text and producing screenshots at store resolution** | **Current** |
+| **[45-design-review.md](45-design-review.md)** | **The five-agent design pass: price had no channel to demand (a rise at the ceiling was free), intervention was wired to the hall as well, the saturation of the combo axis turned out to be a symptom** | **Current** |
+| **[46-shipped-binary.md](46-shipped-binary.md)** | **Why the emulator does not help (an ARM64-only APK) and `link.xml`: trimming protection that had never been run was measured by mutation — with it removed, the game dies at start-up** | **Current** |
+| **[47-recognition-and-report-card.md](47-recognition-and-report-card.md)** | **Not a daily quest but RECOGNITION: the weekly report card (one moment of success → nine) and seven badges; a unit error was handing out a badge on day one** | **Current** |
+| **[48-day-sharpness.md](48-day-sharpness.md)** | **Why pressure never fired: the busiest moment of the day was 1.24 times the average; the durations were sharpened, and the value of intervention went from +505 to +4,953** | **Current** |
+| **[49-unreachable-mechanics.md](49-unreachable-mechanics.md)** | **Twenty commands scanned on four axes: ingredient quality was on no screen at all, nobody pressed the "chase" button, and early collection turned out to be a trap** | **Current** |
+| **[50-kitchen-texture.md](50-kitchen-texture.md)** | **Wall surfaces by cuisine (wood panelling / steel banding), the floor and the tone of the outside; the tour now plays fast food too, and the clipping measurement was hunting a bug that did not exist** | **Current** |
+| **[51-self-service.md](51-self-service.md)** | **Fast food self-service: a cleaner instead of a waiter, the hall roles wired to the kitchen, volume +43% and the bill −22%; volume is not a lever for the total till** | **Current** |
+| **[52-split-and-rent.md](52-split-and-rent.md)** | **Fast food rent ×1.15 (raising the rent *raises* the bot's till — measured); the screenshot tool was not drawing self-service at all, the hanging menu panels were covering what was behind them, and the furniture had turned to laminate** | **Current** |
+| **[53-pending-decisions.md](53-pending-decisions.md)** | **The open dishwasher decision was closed by measurement (two "fixes" were tried and both made it worse); the combo answer was reversed by self-service and the tour had never been pressing its button; the staff were given a voice for the first time (`trait.*.voice`)** | **Current** |
+| **[54-five-languages.md](54-five-languages.md)** | **Five languages (tr/en/es/zh/ar), English by default; Arabic letter joining solved with the Advanced Text Generator and measured by the width difference (60 → 40 dp); the layout mirrored; the strip budget is measured in five languages — the longest is Spanish** | **Current** |
+| **[55-translation-review.md](55-translation-review.md)** | **A four-agent translation review: the regulars' cast was a different cast in es/zh/ar; the Chinese build was broken in three places while the font check was green (the name pool + symbols embedded in code); seven strings contradicted the simulation** | **Current** |
+| **[56-english-repository.md](56-english-repository.md)** | **The whole repository moved to English (253 names, 860 identifiers, 16,515 prose lines to zero) and `check_english.py` now measures it; the checker itself was wrong five times, and the renames exposed a pool token, a sound folder and an editor path that nothing was testing** | **Current** |
+| `../unity/` | The Unity 6.3 LTS project, targeting Android. The settings are applied in code by `ProjectSetup.cs` | Set up |
+| `../src/Lokanta.Harness/` | The balance tool: five strategies, a multi-seed sixty-day campaign | Working |
 
-**Durum sütunu 16 Eylül 2026'da düzeltildi.** On üç satırda hâlâ "Karar
-bekliyor" yazıyordu; bu belgenin *kendi* alt bölümü ("Plan kütüğü — kapandı")
-aynı kalemlerin 9 Eylül'de kapandığını ve uygulamanın ondan sonra başladığını
-söylüyor. Yani tablo, altındaki bölümü yalanlıyordu. Tek istisna
-[25-game-name.md](25-game-name.md): ad ve marka taraması gerçekten açık.
+**The status column was corrected on 16 September 2026.** Thirteen rows still
+said "Open"; this document's *own* subsection ("The plan register — closed")
+says those same items were closed on 9 September and that implementation started
+after that. In other words, the table was contradicting the section below it. The
+one exception is [25-game-name.md](25-game-name.md): the name and the trademark
+scan really are open.
 
-*Sütun belgenin durumunu söylüyor, işin durumunu değil. Yayın öncesi kalan
-işler [21-business-and-release.md](21-business-and-release.md)'de.*
+*The column states the status of the document, not the status of the work. What
+is left before release is in
+[21-business-and-release.md](21-business-and-release.md).*
 
-## Yayınlanmış okunabilir sürümler
+## Published readable versions
 
-- Araştırma ve tasarım önerisi: https://claude.ai/code/artifact/409721e3-d115-4985-a498-f54b8720e47e
-- Sanat tarzı karşılaştırması: https://claude.ai/code/artifact/0e98e412-5ec7-4c99-95a8-d532384f161e
-- Katmanlı mimari: https://claude.ai/code/artifact/521351fd-1618-4372-a271-c9e72484bc42
-- Üretim planı ve eksikler kütüğü: https://claude.ai/code/artifact/e338ccdd-44d2-4547-ac96-1134f43fb943
-- Mutfak sistemi ve gelir modeli: https://claude.ai/code/artifact/a1ae2487-ed9b-4bf0-bfa4-32d05df221af
-- Oyunun sonu: https://claude.ai/code/artifact/23501b45-3584-406c-a7a6-10fb0760b760
-- İçerik envanteri ve ilerleme: https://claude.ai/code/artifact/c1201234-32b7-4cde-8342-4d3715d166c0
-- Mutfak kimliği ve karakter sistemi: https://claude.ai/code/artifact/ee1d0bfa-4654-4087-ac42-cffc9ca6fa1b
-- Müşteri arketipleri: https://claude.ai/code/artifact/51069155-7773-40aa-ab89-5bcf0fa8b63f
-- Ekonomi ve formüller: https://claude.ai/code/artifact/9cbe26ce-ddc4-4626-95a4-087d941eb13d
-- Sikke ikonu adayları: https://claude.ai/code/artifact/a90e6a88-de82-429b-b03c-f5552451a8f1
-- Personel sistemi: https://claude.ai/code/artifact/258d1c68-2b67-45b6-a3c7-922236b97004
-- Oyuncu deneyimi (öğretici, ses, metin): https://claude.ai/code/artifact/7971d53e-7ba6-4c70-b7ee-7545d94a6990
-- **Plan durumu ve gözden geçirme listesi: https://claude.ai/code/artifact/f4a38388-fa0f-44ac-b36e-fa3d65ce6a6b**
-- **Beş ajanlı değerlendirme sentezi: https://claude.ai/code/artifact/27dd1ec2-42d8-4b52-aeb1-88b7fe1f7901**
+- Research and design proposal: https://claude.ai/code/artifact/409721e3-d115-4985-a498-f54b8720e47e
+- Art style comparison: https://claude.ai/code/artifact/0e98e412-5ec7-4c99-95a8-d532384f161e
+- Layered architecture: https://claude.ai/code/artifact/521351fd-1618-4372-a271-c9e72484bc42
+- Production plan and the register of gaps: https://claude.ai/code/artifact/e338ccdd-44d2-4547-ac96-1134f43fb943
+- The cuisine system and the revenue model: https://claude.ai/code/artifact/a1ae2487-ed9b-4bf0-bfa4-32d05df221af
+- The end of the game: https://claude.ai/code/artifact/23501b45-3584-406c-a7a6-10fb0760b760
+- Content inventory and progression: https://claude.ai/code/artifact/c1201234-32b7-4cde-8342-4d3715d166c0
+- Cuisine identity and the character system: https://claude.ai/code/artifact/ee1d0bfa-4654-4087-ac42-cffc9ca6fa1b
+- Customer archetypes: https://claude.ai/code/artifact/51069155-7773-40aa-ab89-5bcf0fa8b63f
+- Economy and formulas: https://claude.ai/code/artifact/9cbe26ce-ddc4-4626-95a4-087d941eb13d
+- Coin icon candidates: https://claude.ai/code/artifact/a90e6a88-de82-429b-b03c-f5552451a8f1
+- The staff system: https://claude.ai/code/artifact/258d1c68-2b67-45b6-a3c7-922236b97004
+- Player experience (tutorial, audio, text): https://claude.ai/code/artifact/7971d53e-7ba6-4c70-b7ee-7545d94a6990
+- **Plan status and the review list: https://claude.ai/code/artifact/f4a38388-fa0f-44ac-b36e-fa3d65ce6a6b**
+- **The five-agent review synthesis: https://claude.ai/code/artifact/27dd1ec2-42d8-4b52-aeb1-88b7fe1f7901**
 
-## Plan tamamlanma durumu
+## How complete the plan is
 
-| Alan | Karar verildi | Karar bekliyor | Yazılmadı |
+| Area | Decided | Open | Not written |
 |---|---|---|---|
-| A. Tasarım | 5 | 11 | 0 |
-| B. Teknik | 2 | 5 | 0 |
-| C. Üretim | 3 | 5 | 0 |
-| D. İş | 3 | 3 | 0 |
-| **Toplam** | **13** | **24** | **0** |
+| A. Design | 5 | 11 | 0 |
+| B. Technical | 2 | 5 | 0 |
+| C. Production | 3 | 5 | 0 |
+| D. Business | 3 | 3 | 0 |
+| **Total** | **13** | **24** | **0** |
 
-Ayrıntı ve her kalemin açıklaması için [06-plan-status.md](06-plan-status.md).
+For the detail and the description of every item, see [06-plan-status.md](06-plan-status.md).
 
-## Verilmiş kararlar
+## Decisions made
 
-| Konu | Karar |
+| Topic | Decision |
 |---|---|
-| Motor | Unity |
-| Ekip ve üretim yöntemi | Tek kişi, yapay zeka destekli |
-| Sanat tarzı | Yumuşak low-poly, portreler pixel olabilir |
-| Platform | Mobil önce, Steam ileride, katmanlı planlama |
-| Mimari | Çekirdek saf C#, platform portların arkasında |
-| Doku | Palet atlası veya vertex color |
-| Sürüm kontrolü | Git artı Git LFS |
-| Yerelleştirme | Türkçe ve İngilizce, metin dosyalarda |
-| Gelir modeli | Mutfak içerik satın alması, güç satılmıyor |
-| Kapsam | Mekân genişletme dahil, ikinci şube hariç |
-| Mutfaklar | Fast food ücretsiz, Türk ücretli, İtalyan ve Japon güncelleme |
-| Oyunun sonu | 60. günde puanlanan değerlendirme, sonrası serbest oyun |
-| Para birimi | İsimsiz düz sikke yığını ikonu artı sayı. Gerçek para sembolü yok |
+| Engine | Unity |
+| Team and production method | One person, AI-assisted |
+| Art style | Soft low-poly, portraits may be pixel |
+| Platform | Mobile first, Steam later, layered planning |
+| Architecture | The core is pure C#, the platform sits behind ports |
+| Texturing | A palette atlas or vertex colour |
+| Version control | Git plus Git LFS |
+| Localisation | Turkish and English, the text in files |
+| Revenue model | Cuisine content purchases, no power for sale |
+| Scope | Venue expansion included, a second branch excluded |
+| Cuisines | Fast food free, Turkish paid, Italian and Japanese as updates |
+| The end of the game | A scored evaluation on day 60, free play after it |
+| Currency | A nameless plain stack-of-coins icon plus a number. No real currency symbol |
 
-## Nerede duruyoruz — 13 Eylül 2026
+## Where we stand — 13 September 2026
 
-**Oyun uçtan uca oynanıyor.** Ana menü, mutfak seçimi, dört kayıt yuvası,
-altmış günlük kampanya, yıl sonu değerlendirmesi ve serbest oyun; iki mutfak,
-iki dil, canlandırma katmanı, gündüz-gece ışığı ve Android paketi.
+**The game plays end to end.** The main menu, cuisine selection, four save
+slots, the sixty-day campaign, the year-end evaluation and free play; two
+cuisines, two languages, the animation layer, day-night lighting and an Android
+package.
 
-| ölçüt | durum |
+| measure | state |
 |---|---|
-| Çekirdek testleri | 225, hepsi geçiyor |
-| `tools/check.py` | 13 denetim, hepsi temiz |
-| Duman turu (gerçek Windows yapısı, 873×393 dp) | 114 kontrol, 0 hata |
-| Denge aracı | 20 strateji × 60 gün, mutabakat sıfır |
-| Android APK | 90,4 MB, 0 uyarı |
+| Core tests | 225, all passing |
+| `tools/check.py` | 13 checks, all clean |
+| Smoke tour (a real Windows build, 873×393 dp) | 114 checks, 0 failures |
+| Balance tool | 20 strategies × 60 days, zero reconciliation gap |
+| Android APK | 90.4 MB, 0 warnings |
 
-*Bu satırlar elle yazılmıyor: sayılar `dotnet test`, `tools/check.py`,
-`tools/unity/tour.ps1` ve `tools/balance` çıktılarından geliyor.*
+*These lines are not written by hand: the numbers come from the output of
+`dotnet test`, `tools/check.py`, `tools/unity/tour.ps1` and `tools/balance`.*
 
-### Yayına ne kaldı
+### What is left before release
 
-Teknik taraf hazır ([21](21-business-and-release.md) yayın denetimi paketin içinden
-doğruladı: izin yok, veri toplanmıyor, 64 bit, 16 KB hizalı, lisanslar
-derlemede). Kalanların çoğu **kullanıcının kararı** — parola, hesap, yasal form:
+The technical side is ready ([21](21-business-and-release.md)'s release audit
+verified it from inside the package: no permissions, no data collected, 64-bit,
+16 KB aligned, licences in the build). Most of what is left is **the user's
+decision** — a password, an account, a legal form:
 
-1. Yükleme anahtarı (keystore) üret ve **iki ayrı yerde yedekle**
-2. Ad kararı + marka taraması — paket adı ilk yüklemede kilitleniyor
-3. Play Console hesabı, ardından 14 günlük kapalı test
-4. Gizlilik politikası URL'si — metin hazır, [44](44-store-texts.md)
-5. Veri Güvenliği formu — cevap hazır: "veri toplanmıyor"
-6. IARC yaş derecelendirmesi
-7. **Para modeli.** Satın alma kodu yok; oyun bugün ücretsiz ve iki mutfak
-   açık olarak yayınlanabilir. Ücretsizden ücretliye geçiş imkânsız, yani
-   geri dönüşsüz bir karar
-8. Öne çıkan görsel (1024×500). Ekran görüntüleri otomatik:
-   `tools\unity\tour.ps1 -Magaza`
+1. Generate the upload key (keystore) and **back it up in two separate places**
+2. The name decision + a trademark scan — the package name is locked on the
+   first upload
+3. A Play Console account, then a 14-day closed test
+4. The privacy policy URL — the text is ready, [44](44-store-texts.md)
+5. The Data Safety form — the answer is ready: "no data collected"
+6. The IARC age rating
+7. **The money model.** There is no purchase code; the game can be released today
+   as free with both cuisines open. Going from free to paid is impossible, so
+   this is an irreversible decision
+8. The feature graphic (1024×500). Screenshots are automatic:
+   `tools\unity\tour.ps1 -Store`
 
-### İlk güncellemeden önce bilinmesi gereken — **kapandı**
+### What had to be known before the first update — **closed**
 
-`Simulation.SaveVersion` artarsa her oyuncunun altmış günlük kampanyasının
-gideceği yazıyordu. **Göç yolu yazıldı ve koştuğu kanıtlandı**
+It used to say that if `Simulation.SaveVersion` went up, every player's sixty-day
+campaign would be gone. **The migration path has been written and proven to run**
 ([53](53-pending-decisions.md) §8):
 
-- `Restore` artık `MinReadableVersion`–`SaveVersion` aralığını kabul ediyor.
-- Bir sürümde eklenen alanlar `if (version >= N)` kapısıyla okunuyor; daha
-  eski kayıtta atlanıp varsayılanda bırakılıyorlar.
-- `SaveTests.Eski_surum_kaydi_aciliyor` gerçek bir 21. sürüm kaydını alıp
-  21'de eklenen alanları siliyor, sürümü 20 yapıyor ve yüklüyor.
-  `Cok_eski_surum_reddediliyor` kapının hâlâ bir kapı olduğunu söylüyor.
+- `Restore` now accepts the range `MinReadableVersion`–`SaveVersion`.
+- Fields added in a given version are read behind an `if (version >= N)` gate; in
+  an older save they are skipped and left at their default.
+- `SaveTests.An_old_version_save_opens` takes a real version-21 save, deletes the
+  fields that were added in 21, makes the version 20 and loads it.
+  `A_version_that_is_too_old_is_rejected` says that the gate is still a gate.
 
-**Sonraki sürüm için:** alanları `if (version >= N)` ile oku, `SaveVersion`
-listesine bir satır yaz, teste bir kol ekle. Dosyanın eski kuralı (*"yeni
-alanlar `Has()` ile okunur"*) **geçersiz** — 126 okumanın ikisinde
-uygulanmıştı ve yanlış araçtı: `Has()` bir alanın yokluğunu her zaman meşru
-sayar, yani bozuk kayıtla eski kaydı ayırt edemez.
+**For the next version:** read the fields with `if (version >= N)`, write a line
+in the `SaveVersion` list, add an arm to the test. The file's old rule (*"new
+fields are read with `Has()`"*) is **void** — it had been applied in two of 126
+reads and it was the wrong tool: `Has()` always treats a missing field as
+legitimate, so it cannot tell a corrupt save from an old one.
 
-### Açık denge soruları
+### Open balance questions
 
-1. Soft launch pazarı hangisi olsun
-2. Mutfak fiyatı 4,99 bandı doğru mu (7. maddeye bağlı)
-3. Analitik hiç olmasın mı, yoksa asgari mi olsun
+1. Which market should the soft launch be in
+2. Is the 4.99 band right for the price of a cuisine (depends on item 7)
+3. Should there be no analytics at all, or a minimal one
 
 ---
 
-## Plan kütüğü — kapandı
+## The plan register — closed
 
-Otuz yedi kalem 9 Eylül 2026'da yazıldı, hepsi kapandı ve uygulama ondan sonra
-başladı. *"Kütüğün tamamı kapanmadan uygulamaya geçilmeyecek"* anlaşması
-tutuldu; bu bölüm tarihsel kayıt olarak duruyor.
+Thirty-seven items were written on 9 September 2026, all of them were closed, and
+implementation started after that. The agreement *"implementation will not begin
+before the whole register is closed"* was kept; this section stands as a
+historical record.
 
-1. ~~Kapsam ve tema kararı~~
-2. ~~Oyunun sonu~~ — puanlanan yıl sonu değerlendirmesi
-3. ~~İçerik envanteri~~ — 32 yemek
-4. ~~Mutfak kimliği~~ — karakter ve ortam sistemi
-5. ~~Müşteri arketipleri~~
-6. ~~Ekonomi sayıları ve müşteri formülleri~~ — dengelendi, bkz. [42](42-crew-and-intervention.md)
-7. ~~Parti 1~~ — veri şemaları, personel sistemi, kayıt sistemi
-8. ~~Parti 2~~ — ekranlar, öğretici, ses tasarımı, hikaye metinleri
-9. ~~Parti 3, 4 ve 5~~ — teknik kurulum, üretim kararları, iş ve yayın
+1. ~~The scope and theme decision~~
+2. ~~The end of the game~~ — a scored year-end evaluation
+3. ~~The content inventory~~ — 32 dishes
+4. ~~Cuisine identity~~ — the character and environment system
+5. ~~Customer archetypes~~
+6. ~~Economy numbers and the customer formulas~~ — balanced, see [42](42-crew-and-intervention.md)
+7. ~~Batch 1~~ — data schemas, the staff system, the save system
+8. ~~Batch 2~~ — screens, the tutorial, audio design, story texts
+9. ~~Batches 3, 4 and 5~~ — technical setup, production decisions, business and release

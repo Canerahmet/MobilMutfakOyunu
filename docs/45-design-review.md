@@ -1,550 +1,597 @@
-# 45 — Tasarım incelemesi ve ölçümler
+# 45 — Design review and measurements
 
-*13 Eylül 2026.* Beş agent oyunu beş tasarım ekseninden değerlendirdi:
-ekonomi/ilerleme, anlık karar kalitesi, ilk oturum ve okunabilirlik, mutfak
-kimliği, son oyun ve motivasyon. Hiçbiri dosya değiştirmedi; hepsi kanıt
-(dosya:satır) ve somut öneri verdi. Bu belge **ölçülen** ve **kapatılan**
-kısmı yazıyor.
+*13 September 2026.* Five agents assessed the game along five design axes:
+economy/progression, moment-to-moment decision quality, the first session and
+readability, cuisine identity, endgame and motivation. None of them changed a
+file; all of them gave evidence (`file:line`) and a concrete proposal. This
+document writes up the **measured** and **closed** part.
 
-Kural, bu projenin her yerinde olduğu gibi: *bir bulgunun teşhisi doğru,
-çaresi yanlış olabilir.* Her iddia kabul edilmeden önce ya koda ya ölçüme
-soruldu — ve bir tanesi ölçümle **çürüdü**.
+The rule, as everywhere in this project: *a finding's diagnosis can be right and
+its remedy wrong.* Every claim was put either to the code or to a measurement
+before it was accepted — and one of them was **refuted** by measurement.
 
 ---
 
-## 1. En büyük açık: itibar tavanındayken zam bedavaydı
+## 1. The biggest hole: raising prices at the reputation ceiling was free
 
-Fiyatın talebe **hiçbir doğrudan kanalı yoktu**. `DemandModel.CustomersPerDay`
-fiyat parametresi almıyordu; fiyatın tek yolu memnuniyet → itibar idi. İtibar
-ise masa kademesinin tavanına (55/75/90/100) **sert kırpılıyor**. Yani tavana
-dayanmış bir oyuncu için memnuniyet kaybı hiçbir şey satın almıyordu.
+Price had **no direct channel to demand at all**. `DemandModel.CustomersPerDay`
+took no price parameter; the only route price had was satisfaction → reputation.
+And reputation is **hard-clamped** to the table tier's ceiling (55/75/90/100). So
+for a player pressed against the ceiling, a loss of satisfaction bought nothing.
 
-Denge botları 8500 (ucuz), 13000, 23000 ve 24000 bp'de duruyordu — **10000 ile
-13000 arasında hiçbir ölçüm yoktu** ve açık tam orasıydı. Bandın içine bir bot
-kondu (`orta_fiyat`, 11000 bp):
+The balance bots sat at 8500 (cheap), 13000, 23000 and 24000 bp — **there was no
+measurement at all between 10000 and 13000**, and the hole was exactly there. A
+bot was placed inside the band (`orta_fiyat`, 11000 bp):
 
-| strateji | son kasa | itibar | masa | kadro |
+| strategy | end cash | rep | tabl | crew |
 |---|---:|---:|---:|---:|
-| makul | 18.670 | 79,3 | 7,9 | 4,3 |
-| plancı | 25.092 | 94,6 | 11,8 | 7,4 |
-| **orta_fiyat** | **27.849** | 75,0 | 7,0 | 4,0 |
-| yuksek_fiyat (+%30) | 380 | 0,0 | 4,0 | batıyor |
+| makul | 18,670 | 79.3 | 7.9 | 4.3 |
+| planci | 25,092 | 94.6 | 11.8 | 7.4 |
+| **orta_fiyat** | **27,849** | 75.0 | 7.0 | 4.0 |
+| yuksek_fiyat (+30%) | 380 | 0.0 | 4.0 | sinking |
 
-Sabah bir kez basılan bir düğme, oyunun en gelişmiş stratejisini **daha az masa
-ve daha az kadroyla** geçiyordu. Ceza yalnızca bandın dışında vardı.
+A button pressed once in the morning was beating the game's most sophisticated
+strategy **with fewer tables and a smaller crew**. The penalty existed only
+outside the band.
 
-**Düzeltme:** `priceElasticityBp` (9000) — fiyat sapması artık doğrudan talebi
-etkiliyor, taban ve tavanla sınırlı.
+**The fix:** `priceElasticityBp` (9000) — a price deviation now affects demand
+directly, bounded by a floor and a ceiling.
 
-| strateji | önce | sonra |
+| strategy | before | after |
 |---|---:|---:|
-| orta_fiyat | 27.849 | **19.393** |
-| makul | 18.670 | 18.670 |
-| plancı | 25.092 | 25.092 |
-| ucuz_fiyat | 12.498 | **15.059** |
+| orta_fiyat | 27,849 | **19,393** |
+| makul | 18,670 | 18,670 |
+| planci | 25,092 | 25,092 |
+| ucuz_fiyat | 12,498 | **15,059** |
 
-Piyasa fiyatıyla oynayan **her** strateji birebir aynı kaldı: kanal yalnızca
-sapmada devreye giriyor. Zam artık takas — `orta_fiyat` %4 önde ama 1659 kişi
-ağırlıyor (2034 yerine), itibarı 72,8 ve 6,9 masada kalıyor.
+**Every** strategy that plays at the market price stayed exactly the same: the
+channel only engages on a deviation. Raising prices is now a trade —
+`orta_fiyat` is 4% ahead but serves 1,659 people (instead of 2,034), its
+reputation is 72.8 and it stays at 6.9 tables.
 
-Beklenmeyen kazanç: **ucuz fiyat gerçek bir strateji oldu** (12.498 → 15.059,
-2044 → 2335 kişi). Hacim oyunu ile marj oyunu iki ayrı meşru yol; eskiden ucuz
-fiyat sadece kötüydü.
+An unexpected gain: **cheap pricing became a real strategy** (12,498 → 15,059,
+2,044 → 2,335 people). The volume game and the margin game are two separate
+legitimate paths; cheap pricing used to be simply bad.
 
-### Ağırlıklar ve tek kapı
+### Weights and a single gate
 
-Menü sapması, sipariş olasılıklarıyla ağırlıklandırılıyor — `RecommendedRestock`
-ile **birebir aynı** ağırlıklar. İki ayrı ağırlık olsaydı hal ekranı ile talep
-birbirini yalanlardı.
+The menu deviation is weighted by the order probabilities — **exactly the same**
+weights as `RecommendedRestock`. With two separate sets of weights the market
+screen and the demand would contradict each other.
 
-Talep altı ayrı yerde hesaplanıyordu (bugünkü kadro, yarınki kadro, zirve
-kadro, önerilen stok, beklenen kişi, geliş planı). Hepsi tek yardımcıdan
-geçiyor: birini atlamak, hal ekranının **gerçekte gelmeyecek müşteriye göre**
-stok önermesi demekti.
+Demand was being computed in six separate places (today's crew, tomorrow's crew,
+peak crew, recommended stock, expected people, arrival plan). They all go through
+a single helper: missing one of them would mean the market screen recommending
+stock **for customers who will not actually come**.
 
-Bunu **yapısal** bir test koruyor (`PricingTests.Talep_tek_kapidan_geciyor`):
-`Simulation` içinde `CustomersPerDay`'i yalnızca `ExpectedCustomers` çağırabilir.
-Önce davranışla ölçmeyi denedim, olmadı — kadro ve stok tamsayı ve 1. günde
-zaten tabanda, yani fark yuvarlanıp kayboluyor ve test vakumda yeşil kalıyordu.
-Canlılık kontrolü yakaladı. Taramanın kırılabildiği de doğrulandı: dışlama
-olmadan tam 1 çağrı buluyor.
+A **structural** test protects this
+(`PricingTests.Demand_passes_through_a_single_gate`): inside `Simulation`, only
+`ExpectedCustomers` may call `CustomersPerDay`. I first tried to measure it by
+behaviour and it did not work — the crew and the stock are integers and on day 1
+are already at the floor, so the difference rounds away and the test stayed green
+in a vacuum. The liveliness check caught it. That the scan can be broken was
+verified too: without the exclusion it finds exactly 1 call.
 
 ---
 
-## 2. Üç fiilden biri ölüydü: çay
+## 2. One of the three verbs was dead: the tea
 
-Çay her eksende patron ilgisinin altındaydı — memnuniyet 900'e karşı 2400,
-sabır ×1'e karşı ×2, mutfağı hızlandırmıyor — ve **üstelik kasadan para
-çıkarıyordu**; ilgi bedava. Aynı müdahale hakkını yaktıkları için çaya basmak
-için hiçbir gün yoktu. Projenin kendi denge botu da çaya hiç basmıyordu; bu,
-tespitin kanıtlarından biriydi.
+The tea was below the owner's attention on every axis — satisfaction 900 against
+2,400, patience ×1 against ×2, it does not speed up the kitchen — and **on top of
+that it took money out of the till**; attention is free. Since they burn the same
+intervention budget, there was no day on which to press the tea. The project's own
+balance bot never pressed the tea either; that was one of the pieces of evidence
+for the finding.
 
-**Düzeltme:** çay artık **salona** gidiyor — bekleyen herkese. İkisi farklı
-soruya cevap veriyor:
+**The fix:** the tea now goes to **the room** — to everyone waiting. The two
+answer different questions:
 
-| fiil | kime | ne zaman |
+| verb | to whom | when |
 |---|---|---|
-| İlgi | bir masaya, derin (×2 sabır + mutfağı öne alma) | krizdeki tek masa |
-| Çay | bekleyen herkese, sığ | salon toptan sabırsızken |
+| Attention | one table, deep (×2 patience + moving the kitchen job forward) | the single table in crisis |
+| Tea | everyone waiting, shallow | when the room as a whole is impatient |
 
-Bedeli de oradan: çay salondaki bütün bekleyenlerin kişi sayısı kadar tutuyor —
-kalabalıkta hem en değerli hem en pahalı. Bekleyen yoksa düğme kapalı.
+Its cost comes from the same place: the tea costs as many people as there are
+waiting in the room — in a crowd it is both the most valuable and the most
+expensive. If nobody is waiting, the button is disabled.
 
-İki hatayı test yakaladı: çay artık hedef istemiyor ama dal parti geçerlilik
-kontrolünün **altındaydı**, yani arayüzün seçim yokken yolladığı `-1` sessizce
-reddediliyordu — düğme hiçbir şey yapmıyordu.
+Two bugs were caught by the test: the tea no longer needs a target, but the branch
+was **below** the party validity check, so the `-1` the interface sends when
+nothing is selected was being silently rejected — the button did nothing.
 
 ---
 
-## 3. Ölçümle ÇÜRÜYEN iddia: "bot müdahaleleri kötü zamanlıyor"
+## 3. A claim REFUTED by measurement: "the bot times its interventions badly"
 
-Bulgu şuydu: bot haklarını her 20 sim-saniyede bir yakıyor, yani günde dört hak
-480 saniyelik günün ilk ~80 saniyesinde bitiyor; zirve ise ikinci dilimde.
-Yani "müdahale kazandırıyor mu" sorusu, oyuncunun verdiği **tek gerçek kararı**
-("şimdi mi, zirvede mi") sabit tutarak, üstelik en kötü değerinde ölçüyor
-olabilirdi. Teşhis makuldü.
+The finding was this: the bot burns its interventions every 20 sim-seconds, so
+four interventions a day are gone in the first ~80 seconds of a 480-second day,
+while the peak is in the second slot. So the question "does intervening pay" could
+have been measuring the player's **one real decision** ("now, or at the peak")
+held fixed — and fixed at its worst value. The diagnosis was plausible.
 
-Deney: `sabirli_mudahale` — aynı fiiller, aynı sıra, tek fark bir masa uyarı
-eşiğinin altına inmeden hiçbir hak harcamaması. Her tik soruluyor, çünkü kriz
-penceresi ~3 saniye ve yirmi saniyede bir bakan bir bot onu kaçırır; o zaman
-ölçüm "saklamak işe yaramıyor" derdi ama ölçtüğü şey kendi göz kırpması olurdu.
+The experiment: `sabirli_mudahale` — the same verbs, the same order, the only
+difference being that it spends nothing until a table drops below the warning
+threshold. It is asked on every tick, because the crisis window is ~3 seconds and
+a bot that looks every twenty seconds would miss it; then the measurement would
+say "saving them up does not help" but what it measured would be its own blink.
 
-| strateji | son kasa | harcanan müdahale |
+| strategy | end cash | interventions spent |
 |---|---:|---:|
-| makul (hiç yok) | 18.670 | 0 |
-| mudahaleci (hemen) | 18.869 | 5.784 |
-| sabirli_mudahale (zirveye saklar) | 18.777 | 1.186 |
+| makul (none at all) | 18,670 | 0 |
+| mudahaleci (immediately) | 18,869 | 5,784 |
+| sabirli_mudahale (saves for the peak) | 18,777 | 1,186 |
 
-**Saklamak kazandırmadı.** Sorun botun oynayışı değil, mekaniğin kendisi.
+**Saving them up did not pay.** The problem is not how the bot plays but the
+mechanic itself.
 
-Asıl bilgi sayının içinde: sabırlı kol 1440 günde 1186 müdahale yaptı — **günde
-0,8**. Çünkü kadrosu düzgün bir lokantada bir masa uyarı eşiğinin altına
-neredeyse hiç inmiyor. Müdahale, oyuncunun düzgün oynarken neredeyse hiç
-girmediği bir durumun kurtarma aracı; değeri o yüzden nötr.
+The real information is inside the number: the patient arm made 1,186
+interventions over 1,440 days — **0.8 a day**. Because in a restaurant with a
+proper crew a table almost never drops below the warning threshold. The
+intervention is a rescue tool for a situation the player almost never gets into
+while playing properly; that is why its value is neutral.
 
-**Bu oyunun vaadiyle çelişiyor.** Mağaza metni (docs/44) "SERVİS SIRASINDA SEN
-VARSIN" diyor ve dört müdahale hakkını ana mekaniklerden biri olarak satıyor.
-Ölçüm, mekaniğin bugün bir emniyet ağı olduğunu söylüyor.
+**This contradicts the game's promise.** The store text (docs/44) says
+"SERVİS SIRASINDA SEN VARSIN" ("SERVICE IS WHERE YOU ARE") and sells the four
+interventions as one of the main mechanics. The measurement says the mechanic is a
+safety net today.
 
-Açık karar — üç yol var, hiçbiri tek satırlık değil:
-1. Krizi yaygınlaştır (oyunu zorlaştır),
-2. Müdahaleye kriz **dışında** bir iş ver (bahşiş, müdavim yakınlığı, masa
-   devir hızı),
-3. Vaadi ölçüme uydur ve mağaza metnini değiştir.
+An open decision — there are three paths, none of them a one-liner:
+1. Make the crisis more widespread (make the game harder),
+2. Give the intervention a job **outside** a crisis (tips, regular closeness,
+   table turnover rate),
+3. Fit the promise to the measurement and change the store text.
 
-Hak sayısı bu arada masa sayısına bağlandı (4 masa 4, 8 masa 5, 12 masa 6):
-sabit dört, mekaniği **tam da en gerekli olduğu yerde** siliyordu. Tek başına
-sonucu değiştirmedi (18.859 → 18.869) ama yanlış olan bir şeyi düzeltti.
-
----
-
-## 4. Yalan söyleyen ölçüler
-
-**Olayın adı yanlış yemeği yazıyordu.** `StockOut` olayı `A` alanına PARTİ
-indisini yayıyordu, arayüz ise `A`'yı yemek indisi sanıp isim basıyordu — parti
-yuvaları küçük numaralardan dağıtıldığı için çoğu zaman **geçerli ama yanlış**
-bir yemek adı. Hiçbir şey hata vermiyordu. Olay zaten "malzeme bitti" de
-değildi: müşteri menüde yapabileceği ana yemek bulamayınca kapıdan dönüyor.
-Artık `TurnedAway` ve metni doğruyu söylüyor.
-
-**Dört ölü komut.** `SetDailySpecial`, `AssignStation`, `RefillBroth` tanımlıydı,
-hiçbir yerden gönderilmiyordu ve `Apply`'ın `switch`'inde de yoktu — enum üç
-mekanik vaadini var gösteriyordu. Silindi; sayılar yeniden numaralanmadı, çünkü
-komut türü kayıtlarda sayı olarak geçiyor. `InterventionKind.Apology` daha
-kötüsüydü: gönderilseydi **çayın parasını ödemeden çayın etkisini** alıyordu.
-Artık 0 `None` ve bilinmeyen tür açıkça reddediliyor.
-
-**`StockDaysLeft()` gün değil yemek sayıyordu** ve uyarı metni "Stok bugünü
-çıkarmaz" diyerek gün vaat ediyordu. Tik `>= 1` ile yeşile dönüyordu: altı
-yemeğin her birinden birer porsiyonu olan oyuncu "hazır" görünüp servisi
-açıyor, ilk on dakikada malı bitiyordu.
-
-Ad düzeldi (`MakeableDishCount`) ve satır artık günü ölçüyor
-(`StockCoverageBp`): **"Stok 8 / 13 kişiye yetiyor"**. Ölçüt **en kıt malzeme**,
-toplam değil — yirmi malzemesi bol biri bitmiş bir mutfak toplamda dolu görünür
-ama o malzemeyi isteyen her sipariş kapıdan döner. İhtiyaç hal ekranının kendi
-hesabından geliyor, yani iki ekran aynı kaynaktan konuşuyor.
-
-İlk metnim iki dilde de **kırpıldı** ve turun kırpma denetimi yakaladı.
+The number of interventions was meanwhile tied to the number of tables (4 tables
+4, 8 tables 5, 12 tables 6): a fixed four was erasing the mechanic **exactly where
+it is most needed**. On its own it did not change the result (18,859 → 18,869) but
+it fixed something that was wrong.
 
 ---
 
-## 5. Kampanyanın hedefi görünmüyordu
+## 4. Measures that lie
 
-Oyuna "altmış gün" diyen tek bir satır yoktu; yedi eksenli değerlendirme
-yalnızca 61. günde açılıyordu. Oyuncu 2,5 saat boyunca bitiş tarihi olmayan bir
-dükkân işletip hiç duymadığı bir karneyle karşılaşıyordu — hedef değil, sürpriz.
+**The event's name wrote the wrong dish.** The `StockOut` event was broadcasting
+the PARTY index in field `A`, while the interface took `A` for a dish index and
+printed a name — since party slots are handed out from low numbers, most of the
+time a **valid but wrong** dish name. Nothing raised an error. The event was not
+"ran out of stock" in the first place: the customer turns away at the door because
+there is no main dish on the menu that can be made. It is `TurnedAway` now and its
+text tells the truth.
 
-HUD'da artık aşamanın yanında **"40 / 60. gün"** yazıyor; serbest oyunda
-"serbest oyun"a dönüyor.
+**Four dead commands.** `SetDailySpecial`, `AssignStation` and `RefillBroth` were
+defined, were never sent from anywhere, and were not in `Apply`'s `switch` either
+— the enum made three mechanics look as though they were promised. They were
+deleted; the numbers were not renumbered, because the command type is stored in
+saves as a number. `InterventionKind.Apology` was worse: if it had been sent, it
+would have given **the tea's effect without paying for the tea**. Now 0 is `None`
+and an unknown type is explicitly rejected.
+
+**`StockDaysLeft()` counted dishes, not days**, and the warning text promised days
+by saying "Stok bugünü çıkarmaz" ("Stock will not last the day"). The tick turned
+green at `>= 1`: a player with one portion each of six dishes looked "ready", opened
+service, and ran out of goods in the first ten minutes.
+
+The name was fixed (`MakeableDishCount`) and the line now measures the day
+(`StockCoverageBp`): **"Stok 8 / 13 kişiye yetiyor"** ("Stock covers 8 of 13
+guests"). The yardstick is **the scarcest ingredient**, not the total — a kitchen
+with twenty plentiful ingredients and one exhausted one looks full in total, but
+every order wanting that ingredient turns away at the door. The requirement comes
+from the market screen's own calculation, so the two screens speak from the same
+source.
+
+My first version of the text was **clipped** in both languages, and the tour's
+clipping check caught it.
 
 ---
 
-## 6. Aynı etiket, üç farklı sayı
+## 5. The campaign's goal was invisible
 
-`ui.hud.angry` üç yerde kullanılıyordu: servis kartında (TOPLAM kayıp), akşam
-şeridinde (TOPLAM), gün raporunda (yalnızca MASADAN kalkan). Oyuncu aynı gün,
-aynı kelimenin altında iki farklı sayı görüyordu. Sayılar zaten ayrılmıştı;
-eksik olan **adların** ayrılmasıydı — artık "Kaybedilen" / "Masadan kalkan" /
-"Kapıdan dönen".
+There was not a single line in the game saying "sixty days"; the seven-axis
+evaluation only opened on day 61. The player ran a shop with no end date for
+2.5 hours and then met a report card they had never heard of — a surprise, not a
+goal.
 
-Kapıdan dönen müşteri ayrıca **servis sırasında** da görünüyor artık. İlk
-haftanın en sık ölüm biçimi bu ve sayı yalnızca gün raporundaydı, yani oyuncu
-onu ancak düzeltmesi imkânsızken görüyordu.
+The HUD now says **"40 / 60. gün"** ("Day 40 of 60") next to the phase; in free
+play it turns into "serbest oyun" ("free play").
 
 ---
 
-## 8. Veresiye bir defter oldu, prim düğmesi değil
+## 6. The same label, three different numbers
 
-Ödeyen fişin **%112'sini** ödüyordu ve şans herkes için sabit %85'ti (çayla
-%95). Beklenen nakit **1,064 × fiş** — yani veresiye peşin satıştan *kârlı*.
-"Hayır" demek için hiçbir gün yoktu.
+`ui.hud.angry` was used in three places: on the service card (TOTAL lost), on the
+evening strip (TOTAL), and in the day report (only those who LEFT A TABLE). On the
+same day, under the same word, the player saw two different numbers. The numbers
+had already been separated; what was missing was separating the **names** — now
+"Kaybedilen" / "Masadan kalkan" / "Kapıdan dönen" ("Lost" / "Left the table" /
+"Turned away").
 
-Daha derin kusur şuydu: **defter kimin borcu olduğunu tutmuyordu**
-(`_tabAmount`, `_tabDueDay`, `_tabTea` — müdavim bağı yok). Tahsilat şansı
-herkes için aynı olduğundan "kime yazayım" diye bir soru **doğamıyordu bile**.
+Customers turned away at the door are also visible **during service** now. It is
+the commonest way to die in the first week and the number was only in the day
+report, so the player only saw it when it was impossible to fix.
 
-Düzeltme:
+---
 
-| | önce | sonra |
+## 8. The tab became a book, not a bonus button
+
+Whoever paid, paid **112%** of the bill, and the chance was a fixed 85% for
+everybody (95% with tea). The expected cash was **1.064 × bill** — that is, a tab
+was *more profitable* than a cash sale. There was no day on which to say "no".
+
+The deeper defect was this: **the book did not record whose debt it was**
+(`_tabAmount`, `_tabDueDay`, `_tabTea` — no link to a regular). Since the
+collection chance was the same for everyone, the question "who should I write it
+for" **could not even arise**.
+
+The fix:
+
+| | before | after |
 |---|---:|---:|
-| taban şans | 8500 | **6000** |
-| güven (ziyaret başına) | — | **400 bp, tavan 3000** |
-| çay primi | 1000 | 1000 |
-| şans tavanı | 10000 (kesinlik) | **9500** |
-| ödeme primi | 1200 | **800** |
+| base chance | 8500 | **6000** |
+| trust (per visit) | — | **400 bp, capped at 3000** |
+| tea bonus | 1000 | 1000 |
+| chance ceiling | 10000 (certainty) | **9500** |
+| payment bonus | 1200 | **800** |
 
-Yeni tanıştığın biri %60'ta, yıllardır gelen %90'da, çayla +%10. Tavan tam
-kesinlik değil — risksiz bir defter yine karar üretmeyen bir prim düğmesidir.
+Somebody you have just met is at 60%, somebody who has been coming for years is
+at 90%, with tea +10%. The ceiling is not full certainty — a risk-free book is
+again a bonus button that produces no decision.
 
-**Ölçüm (24 tohum, 60 gün, türk):**
+**Measurement (24 seeds, 60 days, turk):**
 
-| strateji | son kasa | defterde | yıl sonu puanı |
+| strategy | end cash | tab | year-end score |
 |---|---:|---:|---:|
-| makul (defteri hiç açmıyor) | 20.822 | — | 61 |
-| imzacı (herkese yazıyor) | 18.408 | 2.501 | 71 |
-| **seçici (yalnızca 5+ ziyaretli)** | **19.289** | 2.519 | 71 |
+| makul (never opens the book) | 20,822 | — | 61 |
+| imzaci (writes for everyone) | 18,408 | 2,501 | 71 |
+| **secici_veresiye (only 5+ visits)** | **19,289** | 2,519 | 71 |
 
-İki iç içe karar çıktı: *defteri kullanayım mı* (nakit ↔ yıl sonu puanı) ve
-*kime yazayım* (seçici olmak aynı puanla **+881 sikke**). Eskiden tek cevap
-vardı: herkese evet.
+Two nested decisions came out: *should I use the book at all* (cash ↔ year-end
+score) and *who should I write it for* (being selective is **+881 coins** at the
+same score). There used to be one answer: yes, to everyone.
 
-Seçici kol (`secici_veresiye`) bilerek ayrı bir strateji olarak yazıldı —
-aynı kalıp müdahalede kullanılmış ve orada beklenenin **tersini** söylemişti,
-o yüzden tahmin edilmedi, ölçüldü.
+The selective arm (`secici_veresiye`) was deliberately written as a separate
+strategy — the same pattern had been used on the intervention and there it said
+**the opposite** of what was expected, so this was not guessed, it was measured.
 
-İki sessiz tuzak kapandı: `_tabRegular` dizisinin varsayılanı 0'dı ve 0
-geçerli bir müdavim indisi — boş bir hesap hiç tanımadığı birinin güvenini
-kullanırdı. Ve `content/cuisines/turk.json` **üretilen** bir dosya; elle
-düzenleseydim ilk denetimde sessizce geri alınırdı.
+Two silent traps were closed: the default of the `_tabRegular` array was 0, and 0
+is a valid regular index — an empty account would have used the trust of somebody
+it had never met. And `content/cuisines/turk.json` is a **generated** file; if I
+had edited it by hand it would have been silently reverted on the first audit.
 
 `SaveVersion` 17 → 18.
 
 ---
 
-## 9. Varlık ekseni yatırımı cezalandırıyordu
+## 9. The wealth axis was punishing investment
 
-`worth = kasa + defter` idi: sahip olunan ekipman ve masalar **hiç
-sayılmıyordu**. Yani ekipman aldıkça "Varlık" çubuğu kısalıyor — oyunun teşvik
-ettiği şey karnede ceza olarak dönüyordu, ve oyuncu doğru oynadıkça puanının
-neden düştüğünü hiçbir ekranda göremiyordu.
+It was `worth = cash + tab`: the equipment and the tables owned
+were **not counted at all**. So the more equipment you bought, the shorter your
+"Wealth" bar got — the thing the game encourages came back as a penalty on the
+report card, and the player could not see on any screen why their score was
+falling as they played well.
 
-Sahip olunanların değeri, katalogun tamamından **kalanı çıkararak** bulunuyor.
-Ayrı bir toplama yazılmadı bilerek: iki ayrı hesap bir gün birbirinden ayrılır
-ve hangisinin doğru olduğu anlaşılmaz — bu dosyada aynı hata bir kez yaşandı
-(iki "geriye ne kaldı" fonksiyonundan biri soğuk havayı sayıyor, öteki
-saymıyordu).
+The value of what is owned is found by **subtracting what remains** from the whole
+catalogue. Writing a separate sum was deliberately avoided: two separate
+calculations will drift apart one day and it will be impossible to tell which is
+right — this file has already lived that mistake once (of two "what is left"
+functions, one counted the cold store and the other did not).
 
-| strateji | varlık (önce) | varlık (sonra) | toplam puan |
+| strategy | wealth (before) | wealth (after) | total score |
 |---|---:|---:|---:|
-| genişlemeyen | 12 | 22 | 46 |
+| genislemeyen | 12 | 22 | 46 |
 | makul | 25 | **54** | 64 |
-| plancı | 32 | **76** | 73 |
-| imzacı | 27 | **57** | **78** |
+| planci | 32 | **76** | 73 |
+| imzaci | 27 | **57** | **78** |
 
-Eksen artık ayırt ediyor: büyüyüp yatırım yapan, parayı yastık altında tutandan
-yüksek alıyor. Yan etki: en üst plaketin eşiği 80 ve ölçülen hiçbir strateji
-oraya yaklaşamıyordu — yani oyuncunun peşine düşeceği tepe muhtemelen boştu.
-İmzacı 78'e çıktı; tepe artık var ve zor.
-
----
-
-## 10. DOKUNULMAYAN bir eksen: kombo hedefi
-
-Kombo ekseninin de katılım rozeti olduğu doğru: `imzaci` %17,0 payla **100**
-alıyor, hedef %15, yani tavanda ve eğim yok.
-
-Ama hedefin gerekçesi `export.py` içinde **zaten yazılmış**: *"kombo mutfak
-yükünü de artırdığı için zirvede kapatmak meşru bir oyun ve eksen onu
-cezalandırmamalı."* Hedefi yükseltmek tam da o kararı bozar — eksen kombo
-**payına** baktığı sürece "açık tut" ile "zirvede kapat" zıt yönlerdir.
-
-Düzeltmesi hedefi değil **ölçülen şeyi** değiştirmeyi gerektiriyor (örneğin
-kızgın müşteri başına kombo cirosu). Bu bir tasarım kararı, bir sayı ayarı
-değil; yazılı bir gerekçeyi kendi zevkimle bozmamak için dokunulmadı.
-
-> **14 Eylül eki — gerekçe çürüdü.** Bu bölüm yazılı bir gerekçeyi koruyordu:
-> "zirvede kapatmak meşru bir oyun". §18 o oyunu ölçtü ve `zirvede_kapat` ile
-> `imzaci` **birebir aynı 2016 grubu** ağırladı. [48](48-day-sharpness.md)
-> günü sivrilttikten sonra ikinci kez ölçüldü: 19.048'e 19.268, servis 1923'e
-> 1919 — yine aynı oyun.
->
-> İki farklı gün şeklinde, iki ayrı ölçüm: **korunacak alternatif strateji
-> yok.** Eksen, var olmayan bir oyunu korumak için düz bırakılmış.
->
-> Aynı ölçüm kombonun kendisinin sağlam olduğunu da söyledi: fastfood'da
-> `makul` 17.909, `imzaci` 19.268 — kombo **+1.359 değerinde**. Mekanik
-> çalışıyor; kusur yalnızca eksenin neyi ölçtüğünde.
-
-Veresiye ekseni ise **kendiliğinden düzeldi**: tahsilat artık güvene bağlı
-olduğu için herkese yazan bot 100 değil **72** alıyor. Eksen "kullandın mı"
-değil "iyi kullandın mı" diye soruyor.
+The axis now discriminates: someone who grows and invests scores higher than
+someone who keeps the money under the mattress. A side effect: the top plaque's
+threshold is 80 and no measured strategy could get near it — meaning the summit
+the player would chase was probably empty. `imzaci` reached 78; the summit now
+exists and is hard.
 
 ---
 
-## 12. İtibar tavanına taşma kabı
+## 10. An axis left UNTOUCHED: the combo target
 
-Tavan doğru bir fikir — dört masalık bir dükkân semtin konuştuğu lokanta
-olamaz — ama taşan değeri **silmek** bir şey daha yapıyordu: tavandaki oyuncu
-için mükemmel bir gün ile idare eden bir gün arasında **ölçülebilir hiçbir fark
-kalmıyordu**. Ölçüm (docs/06): iyi oynayan yedi masada 75'e dayanıp otuz iki
-gün orada duruyor — kampanyanın yarısından fazlası karşılıksız.
+It is true that the combo axis is also a participation badge: `imzaci` scores
+**100** with a 17.0% share, the target is 15%, so it is at the ceiling and there
+is no slope.
 
-Bu, §1'deki kuralın ters yönü. Orada *tavanın üstünde ödenen bedel bedavaydı*;
-burada *tavanın üstünde kazanılan da bedava veriliyordu.*
+But the target's reasoning is **already written** inside `export.py`: *"the combo
+also increases the kitchen load, so closing it at the peak is a legitimate way to
+play and the axis must not punish it."* Raising the target breaks exactly that
+decision — as long as the axis looks at the combo **share**, "keep it open" and
+"close it at the peak" point in opposite directions.
 
-Taşan itibar artık `_reputationOverflowCenti` içinde birikiyor ve
-**genişlendiğin gün ödeniyor**. Kap bir kademe kadar: sonsuz birikim,
-genişleme gününde itibarı doğrudan tavana fırlatır ve yeni kademenin kendi
-emeğini anlamsız kılardı.
+Fixing it requires changing not the target but **the thing being measured** (for
+example combo revenue per angry customer). That is a design decision, not a number
+tweak; it was left untouched so as not to break a written rationale on my own
+taste.
 
-**Ölçüm (24 tohum, 60 gün, fast food):**
+> **14 September addendum — the rationale was refuted.** This section was
+> protecting a written rationale: "closing it at the peak is a legitimate way to
+> play". §18 measured that way of playing, and `zirvede_kapat` and `imzaci` served
+> **exactly the same 2,016 parties**. After [48](48-day-sharpness.md) sharpened
+> the day it was measured a second time: 19,048 against 19,268, served 1,923
+> against 1,919 — the same game again.
+>
+> Two separate measurements, on two differently shaped days: **there is no
+> alternative strategy to protect.** The axis has been left flat in order to
+> protect a way of playing that does not exist.
+>
+> The same measurement also said that the combo itself is sound: in fastfood
+> `makul` is 17,909, `imzaci` 19,268 — the combo is **worth +1,359**. The mechanic
+> works; the defect is only in what the axis measures.
 
-| strateji | kasa (önce → sonra) | itibar | masa |
+The tab axis, on the other hand, **fixed itself**: because collection now depends
+on trust, the bot that writes for everyone scores 72 rather than 100. The axis
+asks "did you use it well", not "did you use it".
+
+---
+
+## 12. An overflow vessel for the reputation ceiling
+
+The ceiling is a correct idea — a four-table shop cannot be the restaurant the
+neighbourhood talks about — but **erasing** the overflow did one more thing: for a
+player at the ceiling there was **no measurable difference at all** between a
+perfect day and a day of muddling through. The measurement (docs/06): a good
+player hits 75 at seven tables and stays there for thirty-two days — more than
+half the campaign unrewarded.
+
+This is the reverse direction of the rule in §1. There, *the price paid above the
+ceiling was free*; here, *what was earned above the ceiling was being given away
+free too.*
+
+Overflow reputation now accumulates in `_reputationOverflowCenti` and **is paid
+out on the day you expand**. The vessel holds one tier's worth: unlimited
+accumulation would fling reputation straight to the ceiling on expansion day and
+make the new tier's own effort meaningless.
+
+**Measurement (24 seeds, 60 days, fast food):**
+
+| strategy | cash (before → after) | rep | tabl |
 |---|---|---:|---:|
-| makul | 18.670 → 18.820 | 79,3 → 79,4 | 7,9 |
-| plancı | 25.092 → **23.921** | 94,6 → 95,0 | 11,8 → **12,0** |
-| imzacı | 20.427 → 20.595 | 79,4 | 7,9 |
+| makul | 18,670 → 18,820 | 79.3 → 79.4 | 7.9 |
+| planci | 25,092 → **23,921** | 94.6 → 95.0 | 11.8 → **12.0** |
+| imzaci | 20,427 → 20,595 | 79.4 | 7.9 |
 
-Yön beklenen: itibar sıçrayınca talep de sıçrıyor, kadro ve stok maliyeti onu
-takip ediyor — plancı daha çok büyüyor ama nakdi düşüyor. **Kayda değer yan
-etki:** `kredisiz` kolu (kredi almayı reddeden bot) 56. günde borca giriyor;
-daha hızlı büyüyünce fazla uzanıyor. Ayarlanmadı, kaydedildi — ayarlamak kendi
-ölçüm turunu ister.
+The direction is as expected: when reputation jumps, demand jumps too and the crew
+and stock costs follow it — `planci` grows more but its cash falls. **A side effect
+worth recording:** the `kredisiz` arm (the bot that refuses to take a loan) goes
+into debt on day 56; growing faster, it overreaches. It was not tuned, it was
+recorded — tuning it wants a measurement round of its own.
 
-### Testi yazarken üç kez yanıldım
+### I got the test wrong three times while writing it
 
-1. Dükkân kadrosuz oynuyordu → itibar 40 günde **3459'da dondu**.
-2. Kadro + genişleme eklendi → 120 günde **3730'da dondu**, tavan 7500.
+1. The shop was playing without a crew → reputation **froze at 3,459** in 40 days.
+2. Crew + expansion added → **froze at 3,730** in 120 days, ceiling 7,500.
 
-Sebep servis değil **ölçek**: dört masada günde yedi grup ağırlanıyor, günlük
-itibar kazancı günlük erimeyle dengeleniyor ve denge noktası ~34,6 çıkıyor —
-tavan ise 55. Yani o kademede tavan **hiç bağlayıcı değil** ve taşma diye bir
-şey oluşmuyor. Tavana dayanmak için testin harness botu kadar iyi oynaması,
-yani **testin içine bir bot yazmak** gerekirdi.
+The cause was not the service but the **scale**: at four tables seven parties are
+served a day, the daily reputation gain balances the daily decay and the
+equilibrium comes out at ~34.6 — while the ceiling is 55. So at that tier the
+ceiling is **not binding at all** and no overflow forms. To press against the
+ceiling, the test would have had to play as well as the harness bot, that is,
+**write a bot inside the test**.
 
-Doğru çözüm tavanı **içerikten** düşürmek oldu (`EconomyConfig.WithTiers`,
-dosyanın kendi `With...` ailesine uyan bir ekleme): kural aynı kural, yalnızca
-görünür olduğu eşik yaklaştırıldı. Arka kapı yok, setter yok.
+The right solution turned out to be lowering the ceiling **from the content**
+(`EconomyConfig.WithTiers`, an addition that fits the file's own `With...`
+family): the rule is the same rule, only the threshold at which it becomes visible
+was brought closer. No back door, no setter.
 
 `SaveVersion` 18 → 19.
 
 ---
 
-## 13. Yapılmayan iki madde ve nedenleri
+## 13. Two items not done, and why
 
-İki açık madde, koda bakınca **dayanaksız** çıktı. İkisi de aynı sınıftan: kod
-zaten o kararı vermiş ve gerekçesini yazmış.
+Two open items turned out to be **groundless** when the code was looked at. Both
+are of the same class: the code had already made that decision and written down
+its reasoning.
 
-**Mevsimin talebe etkisi.** Bulgu "docs/34 kış en yoğun diyor, kod yalnızca
-malzeme fiyatını değiştiriyor" diyordu. docs/34 §2 okununca: mevsim zaten bir
-**karar** olarak uygulanmış — sonbaharda ucuza alıp soğuk odada saklayıp kışa
-taşımak — ve ölçülmüş (`plancı` %9 kazanıyor, 17.722 → 19.327). "Kış en yoğun
-dönem" cümlesi mevsim çarpanı değil, kampanya sonunda dükkânın zaten büyük
-olması; yanında "yapısal bir yan etki ve **kasıtlı bırakıldı**" yazıyor.
+**The season's effect on demand.** The finding said "docs/34 says winter is the
+busiest, the code only changes ingredient prices". Reading docs/34 §2: the season
+is already implemented as a **decision** — buy cheap in autumn, store it in the
+cold room, carry it into winter — and it has been measured (`planci` gains 9%,
+17,722 → 19,327). The sentence "winter is the busiest period" is not a seasonal
+multiplier but the fact that the shop is already large at the end of the campaign;
+next to it is written "a structural side effect and **deliberately left**".
 
-Talebe mevsim çarpanı eklemek boşluk kapatmak değil, **yeni bir mekanik icat
-etmek** olurdu.
+Adding a seasonal multiplier to demand would not be closing a gap, it would be
+**inventing a new mechanic**.
 
-**`model.py`'de ekipman kalemi.** `week_pnl` içindeki yorum zaten şöyle
-diyor: *"EKIPMAN BU LEDGERDE YOK, ve bu bilinçli bir karar. Denendi ve battı:
-... model 73.000 sikke borca düşüyordu. Doğru yer simülasyon."* Ekipman
-fiyatları kapalı form modelle değil harness ölçümüyle ayarlanıyor.
+**The equipment line in `model.py`.** The comment inside `week_pnl` already says:
+*"EQUIPMENT IS NOT IN THIS LEDGER, and that is a deliberate decision. It was tried
+and it sank: … the model went 73,000 coins into debt. The right place is the
+simulation."* Equipment prices are tuned with harness measurement, not with the
+closed-form model.
 
-### Ama içinde iki gerçek madde vardı
+### But there were two real items inside it
 
-**`REALISATION_BP` iki dosyada iki değerdi** — `model.py` 7000 (oyunun
-içeriğine yazılan), `solve.py` 9335. Kalibrasyon bozuk değildi: `solve_for()`
-taramada her aday için `solve.py`'yi yamıyor, tarama bitince orada **son
-denenen** aday kalıyor. Ama docs/12'nin tarif ettiği elle akışta
-(`python solve.py`) bu **yanlış kira** üretirdi. `calibrate.py` artık seçilen
-oranı `solve.py`'ye de geri yazıyor, ve dosyada değerin nereden geldiği yazılı.
+**`REALISATION_BP` was two values in two files** — `model.py` 7000 (the one
+written into the game's content), `solve.py` 9335. The calibration was not broken:
+`solve_for()` patches `solve.py` for each candidate during the sweep, and when the
+sweep ends the **last candidate tried** is left in there. But in the manual flow
+docs/12 describes (`python solve.py`) this would have produced **the wrong rent**.
+`calibrate.py` now writes the chosen rate back into `solve.py` too, and where the
+value comes from is written down in the file.
 
-**`MARGIN_TARGETS` "net marj" diye okunuyordu.** Adının yanına ne olduğu
-yazıldı: **sermaye gideri öncesi** marj. Ekipman merdiveni 14 masada ~37.600
-sikke ve bu defterde yok.
+**`MARGIN_TARGETS` was being read as "net margin".** What it is was written next to
+its name: the margin **before capital expenditure**. The equipment ladder is
+~37,600 coins at 14 tables and it is not in this ledger.
 
 ---
 
-## 15. Talep artık oynuyor — ama yalnızca gerçekleşen
+## 15. Demand now plays — but only the realised kind
 
-Talep tamamen belirlenimciydi: aynı itibar ve masa sayısındaki her salı
-**birebir aynı** sayıda müşteri getiriyordu. Sonucu, sabah stok kararının bir
-yargı değil bir düğme olmasıydı — hal önerisi her zaman tam doğruydu ve yeni
-eklenen "Stok 8 / 13 kişiye yetiyor" satırı hiçbir zaman kırmızıya dönmüyordu.
+Demand was entirely deterministic: every Tuesday at the same reputation and table
+count brought **exactly the same** number of customers. The consequence was that
+the morning stock decision was a button rather than a judgement — the market's
+recommendation was always exactly right and the newly added line "Stok 8 / 13
+kişiye yetiyor" ("Stock covers 8 of 13 guests") never turned red.
 
-Mekaniğin tamamı **ayrımda**:
+The whole mechanic is **in the distinction**:
 
-| | ne veriyor | kim kullanıyor |
+| | what it gives | who uses it |
 |---|---|---|
-| `ExpectedCustomers` | beklenti | kadro önerisi, hal önerisi, beklenen kişi |
-| `ActualCustomers` | gerçek | **yalnızca** geliş planı |
+| `ExpectedCustomers` | the expectation | crew recommendation, market recommendation, expected people |
+| `ActualCustomers` | the reality | **only** the arrival plan |
 
-Sapma tahmine de yansısaydı oyuncu yine kesin bilgiye sahip olurdu ve oynaklık
-dekor kalırdı.
+If the deviation were reflected in the expectation too, the player would again
+have exact knowledge and the volatility would be decoration.
 
-Üç şey korundu: çekiliş `_rngEvent` akışından (zaten vardı, kayda giriyordu,
-hiç kullanılmıyordu) olduğu için **tekrar oynatma birebir aynı**; altın hafta
-testi `WeeklyPlanner`'ı ölçtüğü için etkilenmedi; sapma tamsayı aritmetiğiyle
-çekiliyor (çekirdekte kayan nokta yasak).
+Three things were preserved: because the draw comes from the `_rngEvent` stream
+(it already existed, it went into the save, it was never used), **a replay is
+bit-identical**; the golden week test measures `WeeklyPlanner` so it was
+unaffected; and the deviation is drawn with integer arithmetic (floating point is
+banned in the core).
 
-**Ölçüm dürüst okunmalı.** ±%10 sapma, hal önerisinin **%20 emniyet payının**
-içinde kalıyor — `makul` 18.820 → 19.085, zayiat 4.960 → 4.829, yani fark
-gürültü içinde. Yarattığı karar "önerileni al" oyuncusu için değil, stoktan
-**kısan** oyuncu için: eskiden kısmak hesaplanabilir bir bahisti, artık gerçek
-bir bahis. Daha sert ısırması istenirse kaldıraç oynaklık değil emniyet payı.
+**The measurement has to be read honestly.** A ±10% deviation stays inside the
+market recommendation's **20% safety margin** — `makul` 18,820 → 19,085, spoilage
+4,960 → 4,829, so the difference is within the noise. The decision it creates is
+not for the "buy what is recommended" player but for the player who **cuts** the
+stock: cutting used to be a computable bet, now it is a real one. If it is wanted
+to bite harder, the lever is not the volatility but the safety margin.
 
-Küçük bir yan not: `RecommendedRestock`'un yorumu zaten *"talep dalgalanıyor"*
-diyordu — o cümle bugüne kadar **doğru değildi**.
+A small footnote: `RecommendedRestock`'s comment already said *"demand
+fluctuates"* — that sentence **was not true** until today.
 
 ---
 
-## 16. Müdahale artık salonda da çalışıyor
+## 16. The intervention now works in the room too
 
-§3'ün açık bıraktığı karar buydu: ölçüm mekaniğin bir emniyet ağı olduğunu
-söylüyordu (kadrosu düzgün lokantada günde 0,8 müdahale), mağaza metni ise onu
-ana mekanik diye satıyor. Üç yoldan **"müdahaleye kriz dışında bir iş ver"**
-seçildi, çünkü tek başına zorluk eğrisine dokunmuyor ve vaadi koruyor.
+This was the decision §3 left open: the measurement said the mechanic is a safety
+net (0.8 interventions a day in a properly staffed restaurant), while the store
+text sells it as a main mechanic. Of the three paths, **"give the intervention a
+job outside a crisis"** was chosen, because on its own it does not touch the
+difficulty curve and it preserves the promise.
 
-Eksik olan **salon tarafıydı**. İlgi sabrı uzatıyor ve *mutfağı* hızlandırıyordu
-(`HurryPartyJob`) ama salona hiç dokunmuyordu — oysa darboğaz çoğu zaman orada.
-"Patron kendi ilgileniyor" tam olarak siparişi/hesabı onun alması demek.
+What was missing was the **hall side**. Attention extended patience and sped up
+*the kitchen* (`HurryPartyJob`) but never touched the hall — whereas the
+bottleneck is usually there. "The owner attends to it himself" means exactly that
+he takes the order or the payment.
 
-Artık ilgilenilen masanın **sıradaki salon işi yarıya iniyor**
-(`attendWorkCutBp = 5000`) ve işaret kullanılınca tükeniyor: ilgi bir **adım**,
-sürekli bir hâl değil — yoksa bir kez ilgilenilen masa gün boyu ayrıcalıklı
-olurdu.
+Now the attended table's **next hall job is halved** (`attendWorkCutBp = 5000`)
+and the mark is consumed once it is used: attention is a **step**, not a permanent
+state — otherwise a table attended once would be privileged for the whole day.
 
-**Ölçüm (24 tohum, 60 gün, fast food):**
+**Measurement (24 seeds, 60 days, fast food):**
 
-| strateji | önce | sonra | ağırlanan grup |
+| strategy | before | after | parties served |
 |---|---:|---:|---:|
-| baskılı (kadro eksik, müdahale yok) | 21.665 | 21.612 | 1955 |
-| **baskılı + müdahale** | 21.685 | **22.195** | 1978 |
-| **fark** | **+20** | **+583** | **+23** |
+| baskili (short crew, no interventions) | 21,665 | 21,612 | 1955 |
+| **baskili_mudahale** | 21,685 | **22,195** | 1978 |
+| **difference** | **+20** | **+583** | **+23** |
 
-Kadrosu eksik oyuncu için müdahalenin 60 günlük getirisi +20'den +583'e çıktı.
+For a player with a short crew, the intervention's sixty-day return went from +20
+to +583.
 
-**Rahat kadroyla oynayan için hâlâ ödemiyor** (`makul` 19.085, `mudahaleci`
-18.979) ve bu doğru: parayla kadro alıp ihtiyacı satın almışsın. Ortaya gerçek
-bir takas çıktı — *bir kişi eksik çalış, serviste sen koş* — ve
-`baskili_mudahale` artık plancıdan sonraki en iyi strateji.
+**For someone playing with a comfortable crew it still does not pay** (`makul`
+19,085, `mudahaleci` 18,979) and that is right: you paid money for a crew and
+bought away the need. A real trade appeared — *work one person short, and run the
+service yourself* — and `baskili_mudahale` is now the best strategy after
+`planci`.
 
-**Mağaza metni güncellenmeli** (docs/44): "günde dört müdahale hakkın var"
-cümlesi artık iki yerden yanlış — hak sayısı masayla büyüyor ve çay tek masaya
-değil salona gidiyor.
+**The store text must be updated** (docs/44): the sentence "you get four
+interventions a day" is now wrong in two places — the number grows with the tables
+and the tea goes to the room, not to a single table.
 
 ---
 
-## 18. Kombo ekseni: doygunluk semptom, sebep başka
+## 18. The combo axis: the saturation is a symptom, the cause is elsewhere
 
-§10'da eksene dokunmamıştım çünkü hedefin gerekçesi yazılıydı. Bu kez ölçtüm
-ve **sebep çıktı**.
+In §10 I had not touched the axis because the target's rationale was written down.
+This time I measured, and **the cause came out**.
 
-### Önce bir ölçüm hatası düzeldi
+### First a measurement error was fixed
 
-`_mainOrders` koşulsuz sayıyordu, oysa kombo **16. günde** açılıyor: payda,
-payın yapısal olarak sıfır olduğu on beş günü de içeriyordu. Eksen gerçek
-kullanımı üçte bir oranında eksik gösteriyordu.
+`_mainOrders` was counting unconditionally, whereas the combo opens on **day 16**:
+the denominator included the fifteen days on which the numerator was structurally
+zero. The axis was showing real usage a third short.
 
-Payda artık yalnızca mekanik açıkken sayıyor. Ölçü adıyla doğruyu söylüyor:
-*komboya dönebilecek siparişlerin yüzde kaçı komboya döndü.* Hep-açık botun
-payı **%17,0 → %20,8**.
+The denominator now counts only while the mechanic is open. The measure tells the
+truth by its name: *what percentage of the orders that could have become combos
+did.* The always-open bot's share: **17.0% → 20.8%**.
 
-### Sonra hedefi ölçmeye çalıştım ve mekaniği buldum
+### Then I tried to measure the target and found the mechanic
 
-Hedefi koymak için tasarımın **meşru** dediği oyunu ölçmek gerekiyordu
-("zirvede kapatmak meşru bir oyun ve eksen onu cezalandırmamalı"). O oyunu
-oynayan bot yoktu, yani hedef ancak uydurulabilirdi — ve kodun kendi uyarısı
-bunu yasaklıyor.
+To set the target, the way of playing the design calls **legitimate** had to be
+measured ("closing it at the peak is a legitimate way to play and the axis must
+not punish it"). There was no bot that played that way, so the target could only
+have been invented — and the code's own warning forbids that.
 
-`zirvede_kapat` kolu yazıldı: salon yarısı dolunca kombo kapanıyor, düşünce
-açılıyor.
+The `zirvede_kapat` arm was written: when the room is half full the combo closes,
+when it drops the combo opens.
 
-| strateji | kombo payı | son kasa | ağırlanan grup |
+| strategy | combo share | end cash | parties served |
 |---|---:|---:|---:|
-| imzacı (hep açık) | %20,8 | 21.157 | 2016 |
-| zirvede_kapat | %20,0 | 20.836 | **2016** |
+| imzaci (always open) | 20.8% | 21,157 | 2016 |
+| zirvede_kapat | 20.0% | 20,836 | **2016** |
 
-**İkisi aynı oyun.** Pay 0,8 puan düşüyor, ağırlanan grup **birebir aynı**,
-kasa biraz azalıyor.
+**The two are the same game.** The share drops 0.8 points, the parties served are
+**exactly the same**, the cash falls slightly.
 
-### Sebep: kombonun mutfak yükü ısırmıyor
+### The cause: the combo's kitchen load does not bite
 
-Kombo sipariş başına üç iş üretiyor (tek ana yemekte beklenen 1,7) ve her işi
-`kitchenLoadBp = 13500` ile %35 uzatıyor. Kâğıt üzerinde aşçının bağlı kaldığı
-süre ~2,4 kat. Ama **servis edilen grup sayısı iki kolda da 2016** — yani
-mutfakta boşluk var ve ek yük soğuruluyor. Darboğaz salonda (§16'daki müdahale
-düzeltmesinin kazandığı yer de orası).
+A combo produces three jobs per order (the expectation for a single main dish is
+1.7) and lengthens each job by 35% with `kitchenLoadBp = 13500`. On paper the time
+the cook is tied up is ~2.4×. But **the number of parties served is 2,016 in both
+arms** — that is, there is slack in the kitchen and the extra load is absorbed. The
+bottleneck is in the hall (which is also where §16's intervention fix made its
+gain).
 
-Bu yüzden hedefe **dokunulmadı**: ölçülen aralık 20,0–20,8 ve hangi hedef
-konursa konsun iki meşru oyun da aynı puanı alır. **Eksen beceriyi ölçemiyor
-çünkü ortada ölçülecek bir beceri farkı yok.**
+That is why the target was **left alone**: the measured range is 20.0–20.8 and
+whatever target is set, both legitimate ways of playing score the same. **The axis
+cannot measure skill because there is no skill difference to measure.**
 
-Düzeltmesi hedefi değil dengeyi değiştirmeyi gerektiriyor — kombonun mutfak
-yükünü gerçekten acıtmak (ör. `kitchenLoadBp` yükseltmek ya da kombo işlerini
-tek istasyonda yığmak). Bu bir **zorluk kararı**, kullanıcıya ait.
+Fixing it requires changing not the target but the balance — making the combo's
+kitchen load genuinely hurt (e.g. raising `kitchenLoadBp` or piling the combo's
+jobs onto a single station). That is a **difficulty decision** and belongs to the
+user.
 
-### Bu turda ikinci kez aynı tuzağa düştüm
+### I fell into the same trap a second time this round
 
-İlk `zirvede_kapat` eşiğim **%75 doluluk** idi ve hiç tetiklenmedi — doluluk o
-seviyeye pratikte çıkmıyor (14 masanın 8-10'u dolu = %57-71). Kol `imzaci` ile
-**birebir aynı** sonucu verdi ve bunu ancak iki satırın aynı olması söyledi.
+My first `zirvede_kapat` threshold was **75% occupancy** and it never fired —
+occupancy does not reach that level in practice (8–10 of 14 tables full = 57–71%).
+The arm gave **exactly the same** result as `imzaci`, and the only thing that told
+me so was two identical lines.
 
-*Bir ölçüm kolunun çalışmaması ile "çalıştı, fark etmedi" dışarıdan aynı
-görünüyor.* Eşik %50'ye indirilince fark belirdi (20,0 / 20,8) — ve o fark
-asıl cevabı verdi.
+*A measurement arm that does not run and "it ran, it made no difference" look the
+same from the outside.* When the threshold was lowered to 50% the difference
+appeared (20.0 / 20.8) — and that difference gave the real answer.
 
 ---
 
-## 19. Kapatılmayanlar
+## 19. Not closed
 
-Beş agent ~40 bulgu verdi; bu belge en taşıyıcı olanları kapatıyor. Açık
-kalanlar, sırasıyla değeri yüksek olanlar:
+The five agents gave ~40 findings; this document closes the load-bearing ones.
+What is left open, in order of value:
 
-1. ~~Müdahalenin vaadi~~ — **KAPANDI** (§16): salon işini de üstleniyor,
-   kadrosu eksik oyuncu için getirisi +20'den +583'e çıktı.
-2. ~~Veresiye defteri ekranda yok~~ — **KAPANDI.** `LedgerScreen` yazıldı:
-   her hesap için kim, tutar, vade ve kararın kendisi olan iki sayı
-   (*beklersen* / *şimdi kovalarsan* ödeme şansı). Şans simülasyonun kullandığı
-   sayının ta kendisi (`TabChanceBp` tek yerde). `CollectCredit` ilk kez oyunda.
-   Turda ölçülüyor.
-3. **Kombo ekseni** — ölçüm hatası düzeldi (§18: payda artık mekanik açıkken
-   sayıyor, %17,0 → %20,8). Doygunluk ise semptom: ölçüldü ki "zirvede kapat"
-   ile "hep açık tut" **aynı oyun** (2016 grup, ikisinde de) çünkü kombonun
-   mutfak yükü ısırmıyor. Düzeltmesi hedef değil DENGE — bir zorluk kararı.
-4. ~~İtibar tavanı taşma kabı~~ — **KAPANDI** (§12).
-5. ~~Mevsimin talebe etkisi~~ — **DAYANAKSIZ**, bulgu belgeyi yanlış okumuş (§13).
-6. ~~`model.py`'de ekipman kalemi~~ — **BİLİNÇLİ KARAR**, denenmiş ve battığı
-   yazılı (§13). İçindeki iki gerçek madde kapatıldı.
+1. ~~The intervention's promise~~ — **CLOSED** (§16): it takes on the hall work
+   too, and for a player with a short crew its return went from +20 to +583.
+2. ~~The tab book is not on screen~~ — **CLOSED.** `LedgerScreen` was written: for
+   every account, who, how much, when it is due, and the two numbers that are the
+   decision itself (the payment chance *if you wait* / *if you chase it now*). The
+   chance is the very number the simulation uses (`TabChanceBp` in one place).
+   `CollectCredit` is in the game for the first time. It is measured in the tour.
+3. **The combo axis** — the measurement error is fixed (§18: the denominator now
+   counts while the mechanic is open, 17.0% → 20.8%). The saturation, though, is a
+   symptom: it was measured that "close at the peak" and "keep it always open" are
+   **the same game** (2,016 parties in both) because the combo's kitchen load does
+   not bite. Fixing it is not the target but the BALANCE — a difficulty decision.
+4. ~~The reputation ceiling's overflow vessel~~ — **CLOSED** (§12).
+5. ~~The season's effect on demand~~ — **GROUNDLESS**, the finding had misread the
+   document (§13).
+6. ~~The equipment line in `model.py`~~ — **A DELIBERATE DECISION**, it was tried
+   and it sank and that is written down (§13). The two real items inside it were
+   closed.
 
-~~Talep tamamen belirlenimci~~ — **KAPANDI** (§15).
+~~Demand is entirely deterministic~~ — **CLOSED** (§15).
 
-~~**Kalan:** kombo ekseni ve mağaza metni~~ — **ikisi de kapandı.** Mağaza
-metni [44](44-store-texts.md)'te güncellendi (müdahale cümlesi üç yerden
-eskimişti). Kombo ekseni §18'de ölçüldü: hedef **bilerek** değişmedi, çünkü
-ölçüm sorunun eksende değil dengede olduğunu gösterdi.
+~~**Left:** the combo axis and the store text~~ — **both closed.** The store text
+was updated in [44](44-store-texts.md) (the intervention sentence had gone stale in
+three places). The combo axis was measured in §18: the target **deliberately** did
+not change, because the measurement showed the problem is not in the axis but in
+the balance.
 
-**Kalan tek şey bir zorluk kararı:** kombonun mutfak yükünü gerçekten
-acıtmak. O olmadan eksen beceriyi ölçemiyor — ölçülecek bir beceri farkı
-yok. Kullanıcıya ait.
+**The only thing left is a difficulty decision:** making the combo's kitchen load
+genuinely hurt. Without it the axis cannot measure skill — there is no skill
+difference to measure. It belongs to the user.

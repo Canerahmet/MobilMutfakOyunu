@@ -1,215 +1,232 @@
-# 51 — Fast food self servis oldu
+# 51 — Fast food became self service
 
-*15 Eylül 2026.* Kullanıcının önerisi:
+*15 September 2026.* The user's proposal:
 
 > *"Fast food ve diğer mutfakları ayıran en büyük ayrım garson olabilir. Çünkü
 > fast food restoranlarda genellikle self servis olur. Fast food için garson
 > kısmını kaldıralım, temizlikçi olsun; o da insanların yemek yedikten sonra
 > masada bıraktığı tabakları toplasın."*
+>
+> *("The biggest thing separating fast food from the other cuisines could be the
+> waiter. Because fast food restaurants are usually self service. Let's remove the
+> waiter for fast food and have a cleaner instead; they can collect the plates
+> people leave on the table after eating.")*
 
-Ve ardından:
+And then:
 
 > *"Fast food tarafına gelen müşteri sayısını artırıp baskıyı artırabiliriz,
-> ayrıca fast food birim başına daha az kazanç modeline sahip olabilir —
-> sonuç olarak gerçekte de fast food zincirler daha ucuz olur."*
+> ayrıca fast food birim başına daha az kazanç modeline sahip olabilir — sonuç
+> olarak gerçekte de fast food zincirler daha ucuz olur."*
+>
+> *("We could raise the number of customers coming to the fast food side and raise
+> the pressure, and fast food could also have a lower earnings-per-unit model —
+> after all, in real life fast food chains are cheaper too.")*
 
-İkisi de uygulandı. Bu belge **neyin ölçüldüğünü** ve iki mutfağın artık
-nerede ayrıştığını yazıyor.
+Both were implemented. This document records **what was measured** and where the
+two cuisines now diverge.
 
 ---
 
-## 1. Akış: iki adım düştü
+## 1. The flow: two steps dropped
 
-Müşteri durumu makinesi masa servisine göre kuruluydu:
+The customer state machine was built around table service:
 
 ```
-masa bekliyor → sipariş bekliyor → yemek bekliyor → yiyor → ödeme bekliyor
+waiting for a table -> waiting to order -> waiting for food -> eating -> waiting to pay
 ```
 
-Self serviste iki adım **personel işi olmaktan çıkıyor**:
+Under self service two steps **stop being staff work**:
 
-| adım | masa servisi | self servis |
+| step | table service | self service |
 |---|---|---|
-| sipariş | garson masaya gelir | tezgâhta (kasiyer) |
-| **servis** | garson yemeği getirir | müşteri tepsisini taşır — **düştü** |
-| **ödeme** | garson masadan alır | tezgâhta peşin — **düştü** |
-| toplama | garson toplar | **temizlikçinin ana işi** |
+| order | the waiter comes to the table | at the counter (cashier) |
+| **serving** | the waiter brings the food | the customer carries their tray — **dropped** |
+| **payment** | the waiter takes it at the table | cash up front at the counter — **dropped** |
+| clearing | the waiter clears | **the cleaner's main job** |
 
-**Muhasebeye dokunulmadı.** `CompletePayment` hâlâ çağrılıyor: memnuniyet,
-itibar, müdavim kaydı, ciro ve **masanın kirli bırakılması** orada. Yani
-temizlikçinin toplayacağı tepsi masada duruyor. Değişen tek şey, oyuncunun
-bir garsonu masaya göndermesinin *gerekmemesi*.
+**The accounting was not touched.** `CompletePayment` is still called:
+satisfaction, reputation, the regular's record, revenue and **leaving the table
+dirty** all live there. So the tray the cleaner will collect is sitting on the
+table. The only thing that changed is that the player no longer *needs* to send a
+waiter to the table.
 
-## 2. Sayı: garson ücreti de düştü
+## 2. The number: the waiter's wage dropped too
 
-Akışı değiştirmek tek başına **tutarsız** olurdu. `StaffingModel.Required`
-küresel salon yükünü kullanıyordu (garson + bulaşıkçı + kasiyer = 73.581
-mikro/müşteri), yani oyuncu **işi olmayan bir garsonun ücretini** ödemeye
-devam ederdi ve oyun yanlış sebepten kolaylaşırdı.
+Changing the flow on its own would have been **inconsistent**.
+`StaffingModel.Required` used a global hall load (waiter + dishwasher + cashier =
+73,581 micro/customer), so the player would go on paying **the wage of a waiter
+with no job** and the game would get easier for the wrong reason.
 
-Salon rolleri artık mutfağa ait (`cuisines/*.json: salonRoles`):
+Hall roles now belong to the cuisine (`cuisines/*.json: hallRoles`):
 
-| | salon havuzu | mikro/müşteri |
+| | hall pool | micro/customer |
 |---|---|---:|
-| fast food | kasiyer + bulaşıkçı | **35.119** |
-| Türk | garson + bulaşıkçı + kasiyer | 73.581 |
+| fast food | cashier + dishwasher | **35,119** |
+| Turkish | waiter + dishwasher + cashier | 73,581 |
 
-Sonuç: `makul` botunun kadrosu **4,0 → 2,0**, maaşı **25.617 → 18.881**.
+The result: the `makul` bot's crew **4.0 → 2.0**, its wage bill **25,617 →
+18,881**.
 
-Ekranda da adı değişti: fast food'da salon çalışanı **"Temizlikçi"**.
-Anahtarı `role.*` değil `ui.*` ailesinde — `role.*` adları içerikten geliyor
-(`staff-roles.json: nameKey`) ve orada temizlikçi diye bir rol yok; seçilen
-şey rolün kendisi değil oyuncuya **gösterilen ad**.
+The name on screen changed too: in fast food the hall worker is
+**"Temizlikçi"** ("Cleaner"). Its key is in the `ui.*` family, not `role.*` —
+`role.*` names come from the content (`staff-roles.json: nameKey`) and there is
+no cleaner role there; what is being chosen is not the role itself but the name
+**shown** to the player.
 
 ---
 
-## 3. Hacim ve marj: vaat sayılarda yoktu
+## 3. Volume and margin: the promise was not in the numbers
 
-[44](44-store-texts.md) "fast food: düşük fiş, kalabalık" diye satıyor.
-Ölçüm **tersini** gösterdi:
+[44](44-store-texts.md) sells it as "fast food: small ticket, a crowd". The
+measurement showed **the opposite**:
 
-| | grup | fiş | brüt marj |
+| | parties | ticket | gross margin |
 |---|---:|---:|---:|
-| fastfood | 1945 | 56,7 | **%64** |
-| turk | 1819 | 67,5 | %56 |
+| fastfood | 1945 | 56.7 | **64%** |
+| turk | 1819 | 67.5 | 56% |
 
-Yani ucuz diye satılan mutfak hem daha kârlıydı hem hacmi aynıydı.
+So the cuisine sold as the cheap one was both more profitable and at the same
+volume.
 
-İki kol da bağlandı:
+Both arms were wired up:
 
-- **Hacim** — `customerMultiplierBp` mutfağa ait ve **tek kapıdan** geçiyor
-  (`ExpectedCustomers`), yani kadro önerisi, hal önerisi ve geliş planı aynı
-  sayıyı görüyor. Fast food 13000 (+%30).
-- **Marj** — `gen_dishes.py`'deki malzeme oranı hedefi fast food'da bandın
-  üst ucuna çekildi. [12](12-economy.md) bandı **%28–36** yazıyor; uydurulan
-  bir sayı yok, yazılı sınırın içinde kalındı.
+- **Volume** — `customerMultiplierBp` belongs to the cuisine and passes through
+  **a single gate** (`ExpectedCustomers`), so the crew suggestion, the market
+  suggestion and the arrival plan all see the same number. Fast food 13000
+  (+30%).
+- **Margin** — the ingredient-ratio target in `gen_dishes.py` was pulled to the
+  top end of the band for fast food. [12](12-economy.md) writes the band as
+  **28–36%**; no number was invented, it stayed inside the written limit.
 
-Sonuç:
+The result:
 
-| | grup | fiş | kadro | kaybedilen |
+| | parties | ticket | crew | lost |
 |---|---:|---:|---:|---:|
-| fastfood | **2597** | **52,5** | 5,0 | **16** |
-| turk | 1819 | 67,5 | 4,0 | 6 |
+| fastfood | **2597** | **52.5** | 5.0 | **16** |
+| turk | 1819 | 67.5 | 4.0 | 6 |
 
-Hacim +%43, fiş −%22, kaybedilen müşteri neredeyse üç katı. "Kalabalık,
-düşük fiş, daha çok baskı" ilk kez sayılarda.
-
----
-
-## 4. İki kez yanlış yaptım, ikisini de sayı yakaladı
-
-**Sorulmamış enflasyon.** Bandı ikiye açarken Türk'ün malzeme oranını da
-düşürdüm, yani marjını *yükselttim*: `makul` 17.351 → 22.257. İstenen şey
-fast food'un birim kazancının düşmesiydi; Türk'e dokunulması istenmemişti.
-
-**Paylaşılan grup.** Geri alınca Türk eski değerine **dönmedi** (16.009).
-Sebep: iki mutfak `icecek` ve `tatli` gruplarını **paylaşıyor**, yani grup
-başına tek bir hedef ikisini birden kaydırıyor. Hedef artık **mutfak + grup**
-anahtarlı.
-
-Doğrulama ölçütü harness sayısı değil, **dosyanın kendisi**:
-`content/dishes/turk.json` değişmemiş dosyalar arasında — yalnızca
-`fastfood.json` değişti.
+Volume +43%, ticket −22%, customers lost almost three times as many. "A crowd, a
+small ticket, more pressure" is in the numbers for the first time.
 
 ---
 
-## 5. Hacim, toplam kasa için bir kol değil
+## 4. I got it wrong twice, and the numbers caught both
 
-Çarpanı düşürünce fast food **zenginleşti**:
+**Inflation nobody asked for.** While opening the band in two directions I also
+lowered Turkish's ingredient ratio, that is, *raised* its margin: `makul` 17,351 →
+22,257. What was wanted was fast food's per-unit earnings to fall; nobody asked
+for Turkish to be touched.
 
-| çarpan | kasa | kadro | masa | kaybedilen |
+**A shared group.** When I reverted it Turkish **did not** return to its old value
+(16,009). The reason: the two cuisines **share** the `icecek` and `tatli` groups,
+so a single per-group target shifts both at once. The target is now keyed by
+**cuisine + group**.
+
+The verification yardstick is not a harness number but **the file itself**:
+`content/dishes/turk.json` is among the unchanged files — only `fastfood.json`
+changed.
+
+---
+
+## 5. Volume is not a lever for total cash
+
+Lowering the multiplier made fast food **richer**:
+
+| multiplier | cash | crew | tabl | lost |
 |---:|---:|---:|---:|---:|
-| 11500 | 23.386 | 3,3 | 7,8 | 10 |
-| 12000 | 24.318 | 3,8 | 8,1 | 11 |
-| **13000** | 22.473 | 5,0 | 10,3 | **16** |
+| 11500 | 23,386 | 3.3 | 7.8 | 10 |
+| 12000 | 24,318 | 3.8 | 8.1 | 11 |
+| **13000** | 22,473 | 5.0 | 10.3 | **16** |
 
-Sebep: yüksek hacimde bot genişliyor, kira ve maaş artıyor, müşteri
-kaybediyor; düşük hacimde dükkân yalın kalıp daha çok kâr ediyor. Yani
-hacim **şekli** değiştiriyor, toplamı değil. En ayrışmış şekli verdiği için
-13000'de kalındı.
-
----
-
-## 6. Bir testin premisi çöktü — ve haklıydı
-
-`PlateTests.Bulasikci_salonu_lavabodan_kurtariyor` fast food koşuyordu ve iki
-kolu **birebir aynı** çıktı (32/32, tabaksız bekleme 0): self serviste salonun
-işi yarıya indiği için tabak darboğazı artık oluşmuyor.
-
-Testin kendi yorumu eskiden de böyle boş ölçtüğünü ve bunun bir kez
-düzeltildiğini yazıyordu; bu değişiklik aynı boşluğu geri getirmişti.
-
-Çare testi zayıflatmak değil **doğru yere taşımak** oldu: soru, garsonun hem
-masaya hem lavaboya koştuğu **masa servisli** mutfakta anlamlı. Türk
-içeriğine taşındı ve geçiyor.
+The reason: at high volume the bot expands, rent and wages rise, customers are
+lost; at low volume the shop stays lean and makes more profit. So volume changes
+the **shape**, not the total. 13000 was kept because it gives the most
+differentiated shape.
 
 ---
 
-## 7. Açık kalan denge sorusu
+## 6. A test's premise collapsed — and it was right
 
-Fast food toplamda hâlâ önde: `makul` 22.473'e karşı Türk 17.351. Sebep
-yapısal ve gerçekçi — fast food'un **zayiatı üçte bir** (5.487'ye 14.121) ve
-self servis salon maliyetini yarıya indirdi. Gerçek hayatta da zincirler bu
-yüzden ucuz işletilir.
+`PlateTests.A_dishwasher_rescues_the_hall_from_the_sink` was running fast food and
+its two arms came out **identical** (32/32, zero waiting with no plate): under
+self service the hall's work halves, so the plate bottleneck no longer forms.
 
-Ama oyun ekonomisinde bu şu anlama geliyor: **ücretsiz/başlangıç mutfağı,
-ücretli olandan daha çok kazandırıyor.** Ödül sıralaması ters.
+The test's own comment recorded that it had measured emptily like this before and
+that it had been fixed once; this change had brought the same gap back.
 
-Üç yol var ve hangisinin doğru olduğu bir tasarım kararı:
-
-1. **Kabul et** — fast food kolay başlangıç, Türk farklı bir oyun (imza
-   mekaniği, yüksek fiş, daha az baskı).
-2. **Kirayı ayır** — gerçekte de zincirler yüksek trafikli, pahalı yerlerde
-   oturur. Kira şu an kademeye bağlı ve mutfaktan bağımsız.
-3. **Türk'ü güçlendir** — ama bu, §4'te geri aldığım sorulmamış enflasyonun
-   kendisi olur; ancak istenirse yapılmalı.
-
-Sayılar burada; karar kullanıcının.
+The cure was not to weaken the test but **to move it to the right place**: the
+question is meaningful in a **table-service** cuisine, where the waiter runs both
+to the table and to the sink. It was moved onto the Turkish content and it passes.
 
 ---
 
-## 8. Mekanik doğruydu, ekran yanlıştı — iki kez
+## 7. An open balance question
 
-Simülasyon değişikliği bittikten sonra **görünür tarafta iki gerçek kusur**
-kaldı. İkisini de tur yakaladı ve ikisi de aynı sınıftan: *oyun doğru
-çalışıyor, oyuncunun gördüğü yanlış.*
+Fast food is still ahead overall: `makul` 22,473 against Turkish 17,351. The
+reason is structural and realistic — fast food's **spoilage is a third**
+(5,487 against 14,121) and self service halved the hall cost. In real life chains
+are cheap to run for the same reason.
 
-### "Temizlikçi" hiçbir yerde yazmıyordu
+But in the game's economy this means: **the free/starting cuisine earns more than
+the paid one.** The reward ordering is inverted.
 
-Personel kartı **adı** gösteriyor; rol adı yalnızca ad yoksa yedek olarak
-çıkıyordu. Personelin adı olduğu için (Sevgi, Nurten…) "Temizlikçi" hiç
-görünmüyordu — yani oyuncu salondaki kişinin garson **değil** temizlikçi
-olduğunu öğrenemiyordu.
+There are three paths, and which one is right is a design decision:
 
-"Ekranda Temizlikçi yazıyor" diye yazmıştım ve **görmemiştim**. Rol adı artık
-her kartta, huyun yanında: *"Temizlikçi · Huysuz"*.
+1. **Accept it** — fast food is the easy start, Turkish is a different game
+   (signature mechanic, high ticket, less pressure).
+2. **Split the rent** — in reality chains do sit in high-traffic, expensive spots.
+   Rent is currently tied to the tier and independent of the cuisine.
+3. **Strengthen Turkish** — but that is exactly the unasked-for inflation I
+   reverted in §4; it should only be done if it is asked for.
 
-### Bulaşık cümlesi olmayan bir rolden bahsediyordu
+The numbers are here; the decision is the user's.
+
+---
+
+## 8. The mechanic was right, the screen was wrong — twice
+
+After the simulation change was finished, **two real faults on the visible side**
+remained. The tour caught both and both are of the same class: *the game works
+correctly, what the player sees is wrong.*
+
+### "Temizlikçi" was written nowhere
+
+The staff card shows the **name**; the role name only appeared as a fallback when
+there was no name. Because staff have names (Sevgi, Nurten…), "Temizlikçi" was
+never visible — so the player could not learn that the person in the hall was a
+cleaner and **not** a waiter.
+
+I had written "the screen says Temizlikçi" and I **had not looked**. The role name
+is now on every card, next to the trait: *"Temizlikçi · Huysuz"* ("Cleaner ·
+Bad-tempered").
+
+### The washing-up sentence talked about a role that does not exist
 
 ```
 ui.staff.sink_none = "Kimse lavaboda değil — bulaşık birikince garson geçer"
 ```
 
-Fast food'da garson yok. İki dilde de role-nötr yapıldı ("salondan biri" /
+("Nobody at the sink — the waiter steps in when the plates pile up.") There is no
+waiter in fast food. It was made role-neutral in both languages ("salondan biri" /
 "someone from the floor").
 
-**Bunu bulan şey, kontrolü iki yönlü yazmaktı:** doğru etiketin varlığını *ve*
-yanlış olanın yokluğunu arıyor. Yalnızca birincisini sorsaydı geçerdi; ikincisi
-olduğu için rol adıyla ilgisi olmayan bir cümlede saklanan tutarsızlığı
-yakaladı.
+**What found this was writing the check in both directions:** it looks for the
+presence of the right label *and* the absence of the wrong one. Had it asked only
+the first, it would have passed; because the second was there it caught an
+inconsistency hiding in a sentence that has nothing to do with the role name.
 
 ---
 
-## 9. Mağaza görüntüsü: barı düşürmemek
+## 9. The store image: not lowering the bar
 
-Self servis masa devrini hızlandırıyor (servis ve ödeme beklemesi yok), yani
-aynı anda dolu masa sayısı düşüyor. Mağaza görüntüsünün kalite kapısı
-("masaların yarısı dolu") bir koşuda **4/14**'te süreye takıldı.
+Self service speeds up table turnover (no waiting for service or payment), so the
+number of tables occupied at any one time falls. The store image's quality gate
+("half the tables full") ran out of time at **4/14** on one run.
 
-Barı düşürmek cazipti ve **yanlış olurdu**: mağaza görselinin işi dolu bir
-lokanta göstermek; "self serviste zaten boş olur" demek, görüntüyü oyunun en
-sakin anına razı etmek olurdu.
+Lowering the bar was tempting and **would have been wrong**: the store image's job
+is to show a full restaurant; saying "it is empty under self service anyway" would
+have been settling the image for the game's quietest moment.
 
-Üstelik eşik ulaşılabilirdi — aynı yapıda başka koşular 8/14 ve 13/14 gördü.
-Eksik olan bar değil **sabır**: arama 30 → 75 saniyeye çıkarıldı ve sonuç
-**13/14** oldu.
+Besides, the threshold was reachable — other runs of the same build saw 8/14 and
+13/14. What was missing was not the bar but **patience**: the search was raised
+from 30 to 75 seconds and the result was **13/14**.

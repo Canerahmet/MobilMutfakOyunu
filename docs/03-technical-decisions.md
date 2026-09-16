@@ -1,104 +1,104 @@
-# Teknik Kararlar ve Üretim Koşulları
+# Technical Decisions and Production Conditions
 
-**Son güncelleme:** 9 Eylül 2026
+**Last updated:** 9 September 2026
 
-Bu dosya verilmiş kararların kaydıdır. Bir karar değişirse burada güncellenir ve gerekçesi yazılır.
-
----
-
-## Verilmiş kararlar
-
-### Motor: Unity ✅ karar verildi
-
-**Gerekçe (kullanıcı):** Animasyon kalitesi ve görsel sonuç daha iyi. Çapraz platform desteği sayesinde App Store, Google Play ve ileride Steam için tek kaynaktan sürüm çıkarılabilir.
-
-**Sonuçları:**
-- Mobil reklam, uygulama içi satın alma ve analitik kütüphaneleri hazır geliyor.
-- Steam sürümü gerçekçi bir ikinci hedef. Bu, araştırmadaki en başarılı örneklerin (Dave the Diver, Supermarket Simulator) bulunduğu pazar.
-- Steam hedefi varsa dokunmatik ve fare/klavye girdisi baştan ayrı katman olarak tasarlanmalı. Sonradan eklemek pahalıdır.
-
-### Ekip: tek kişi, tamamen yapay zeka destekli ✅ karar verildi
-
-**Gerekçe (kullanıcı):** Ekip yok, oyun tamamen yapay zeka kullanılarak üretilecek.
-
-**Sonuçları:**
-- Bu, sanat tarzı kararını teknik bir karara dönüştürüyor. Bkz. aşağıdaki bölüm.
-- Yol haritasındaki süreler tek kişiye göre yeniden değerlendirilmeli. Sanat üretimi fazı yapay zeka ile kısalır ama entegrasyon ve tutarlılık denetimi uzar.
-- Kapsam disiplini kritik hale geliyor. Araştırmadaki en büyük risk maddesi olan kapsam patlaması, tek kişilik bir projede en sık görülen ölüm sebebi.
-- Yapay zeka ile üretilen varlıkların lisansı yayın öncesi netleştirilmeli. Bazı araçların ücretsiz çıktıları atıf zorunluluğu taşıyor.
+This file is the record of the decisions that have been made. If a decision changes, it is updated here and the reason is written down.
 
 ---
 
-### Sanat tarzı: yumuşak low-poly ✅ karar verildi
+## Decisions made
 
-Karşılaştırma sonrası önerilen yön seçildi. Melez yaklaşım geçerli: sahne ve karakterler low-poly, diyalog portreleri ve arayüz ikonları pixel art olabilir.
+### Engine: Unity ✅ decided
 
-### Steam sürümü: planlanan hedef ✅ karar verildi
+**Reason (from the user):** the animation quality and the visual result are better. Thanks to cross-platform support, one source can produce releases for the App Store, Google Play and later Steam.
 
-**Gerekçe (kullanıcı):** Oyun ileride Steam üzerinde de yayınlanacak. Bu yüzden proje katmanlar halinde planlanacak ki ileride değişiklik yapmak hem maliyet hem zaman olarak avantajlı olsun.
+**Consequences:**
+- The mobile ads, in-app purchase and analytics libraries come ready.
+- A Steam release is a realistic second target. That is the market where the most successful examples in the research (Dave the Diver, Supermarket Simulator) live.
+- If Steam is a target, touch and mouse/keyboard input must be designed as separate layers from the start. Adding it later is expensive.
 
-**Sonuçları:**
-- Girdi katmanı baştan iki şemalı kurulur: dokunmatik ve masaüstü.
-- Platforma bağlı her yetenek port arayüzlerinin arkasına konur.
-- Mimari kararların tamamı [04-architecture.md](04-architecture.md) dosyasında.
-- Steam gerçeklemeleri ilk üç adımda yazılmaz, sadece portlar tanımlı tutulur.
+### Team: one person, entirely AI-assisted ✅ decided
+
+**Reason (from the user):** there is no team, the game will be produced entirely using AI.
+
+**Consequences:**
+- This turns the art style decision into a technical decision. See the section below.
+- The durations in the roadmap have to be re-evaluated for one person. The art production phase gets shorter with AI, but integration and consistency checking get longer.
+- Scope discipline becomes critical. Scope explosion, the biggest risk item in the research, is the most common cause of death in a one-person project.
+- The licensing of AI-generated assets has to be cleared up before release. The free output of some tools carries an attribution requirement.
 
 ---
 
-## Sanat tarzı gerekçesi
+### Art style: soft low-poly ✅ decided
 
-Karşılaştırma sayfası: https://claude.ai/code/artifact/0e98e412-5ec7-4c99-95a8-d532384f161e
+After the comparison, the recommended direction was chosen. A hybrid approach is valid: the scene and the characters low-poly, the dialogue portraits and the interface icons possibly pixel art.
 
-Aynı restoran sahnesi iki tarzda çizildi ve telefon boyutunda karşılaştırılabiliyor.
+### Steam release: a planned target ✅ decided
 
-### Belirleyici bulgu
+**Reason (from the user):** the game will also be released on Steam later. For that reason the project will be planned in layers, so that making changes later is advantageous in both cost and time.
 
-Yapay zeka destekli üretimde **2D sprite oyunları 3D'den daha zordur.** Sebep, sprite tabanlı bir oyunda paylaşılan bir nesne olmamasıdır. Her kare bağımsız üretilmiş bir piksel haritasıdır. Yürüme döngüsünün ikinci karesi birinci karesinden farklı bir karakter çıkabilir, ışık kaynağı kareler arasında yer değiştirir, oranlar kayar.
+**Consequences:**
+- The input layer is set up with two schemes from the start: touch and desktop.
+- Every platform-dependent capability goes behind port interfaces.
+- All of the architectural decisions are in [04-architecture.md](04-architecture.md).
+- The Steam implementations are not written in the first three steps, only the ports are kept defined.
 
-3D'de tek bir model vardır ve her açıdan tutarlıdır.
+---
 
-### Karşılaştırma
+## The reasoning for the art style
 
-| Boyut | Pixel art | Yumuşak low-poly |
+Comparison page: https://claude.ai/code/artifact/0e98e412-5ec7-4c99-95a8-d532384f161e
+
+The same restaurant scene was drawn in two styles and can be compared at phone size.
+
+### The finding that decided it
+
+In AI-assisted production, **2D sprite games are harder than 3D.** The reason is that in a sprite-based game there is no shared object. Every frame is an independently generated pixel map. The second frame of a walk cycle can come out as a different character from the first, the light source moves between frames, proportions drift.
+
+In 3D there is a single model and it is consistent from every angle.
+
+### The comparison
+
+| Dimension | Pixel art | Soft low-poly |
 |---|---|---|
-| Yapay zeka ile üretim | Zayıf, her sprite bağımsız | Güçlü, temiz ve kaplaması hazır mesh |
-| Animasyon | Altı durum × 8-16 kare, elle düzeltme şart | Otomatik iskelet ve hazır animasyon kütüphanesi |
-| Yeni mobilya | Her açı için yeniden çizim | Modeli sahneye koy |
-| Kamera | Sabit açı zorunlu | Döndürme ve yakınlaşma serbest |
-| Küçük ekran | Detay gürültüye dönüşebilir | Silüet her ölçekte net |
-| Ayırt edicilik | Yüksek | Orta, palet ve ışıkla telafi edilir |
-| Unity uyumu | Piksel hizalama ayarı ister | Doğrudan |
+| Production with AI | Weak, every sprite independent | Strong, a clean mesh ready for texturing |
+| Animation | Six states × 8-16 frames, hand correction mandatory | Automatic rigging and a ready animation library |
+| New furniture | Redraw for every angle | Put the model in the scene |
+| Camera | A fixed angle is mandatory | Rotation and zoom are free |
+| Small screen | Detail can turn into noise | The silhouette is clear at every scale |
+| Distinctiveness | High | Medium, compensated with palette and light |
+| Fit with Unity | Wants pixel alignment settings | Direct |
 
-### Seçilen yön: yumuşak low-poly
+### The direction chosen: soft low-poly
 
-Mekân genişletme oyunun ana mekaniklerinden biri. Her yeni mobilyanın her açı için elle çizilmesi, tek kişilik bir projede zamanla katlanan bir maliyet.
+Expanding the venue is one of the game's main mechanics. Drawing every new piece of furniture by hand for every angle is a cost that compounds over time in a one-person project.
 
-**Melez çözüm:** Sahne low-poly, diyalog portreleri ve arayüz ikonları pixel art olabilir. Portre tek bir sabit görüntü olduğu için animasyon tutarlılığı sorunu doğurmaz. Böylece pixel sanatın sıcaklığı, hikaye anlatımının olduğu yerde korunur.
+**The hybrid solution:** the scene low-poly, the dialogue portraits and the interface icons possibly pixel art. Because a portrait is a single fixed image, it raises no animation consistency problem. That way the warmth of pixel art is kept exactly where the storytelling is.
 
-### Ayırt edicilik nasıl sağlanır
+### How distinctiveness is achieved
 
-Low-poly'nin tek zayıf tarafı jenerik görünme riski. Kapatma yolu:
-- Sıcak akşam ışığı ve güçlü gölge kontrastı
-- Sınırlı ve kararlı bir renk paleti
-- Hafif kalınlaştırılmış, okunur silüetler
-- Elle hazırlanmış karakter portreleri
-
----
-
-## Üretim hattı taslağı (low-poly seçilirse)
-
-1. **Sahne ve mobilya.** Masa, sandalye, tezgâh, ocak, raf. Metinden 3D üreten araçlar veya hazır düşük poligonlu paketler. Hepsi tek bir stil kılavuzuna bağlı.
-2. **Karakterler.** İnsansı temel model üret, otomatik iskeletleme servisine yükle, hazır animasyonları al. Yürüme, oturma, servis, bekleme.
-3. **Işık ve palet.** Ayırt ediciliğin geldiği yer. Modellerden çok bu belirler.
-4. **Portreler ve arayüz.** Tek kare oldukları için tutarlılık sorunu yok.
-5. **Lisans denetimi.** Yayın öncesi tüm üretilmiş varlıkların kullanım hakkı doğrulanır.
-
-**Uyarı:** Yapay zeka üretim araçlarının isimleri ve yetenekleri hızla değişiyor. Bu hattı kurmadan önce güncel durum doğrulanmalı.
+Low-poly's only weak side is the risk of looking generic. The way to close it:
+- Warm evening light and strong shadow contrast
+- A limited and steady colour palette
+- Slightly thickened, readable silhouettes
+- Hand-prepared character portraits
 
 ---
 
-## Hâlâ cevap bekleyen sorular
+## Draft production pipeline (if low-poly is chosen)
 
-1. **İlk sürüm kapsamı nereye kadar.** Öneri: menü, personel, tedarik ve mekân genişletme dahil; ikinci şube hariç.
-2. **Tema ve mutfak kimliği.** Öneri: belirli bir kimlik, örneğin bir esnaf lokantası.
-3. **Gelir modeli.** Öneri: mobilde ücretsiz artı tek seferlik kilit açma, Steam'de peşin satış. Port sınırı sayesinde bu karar mimariyi etkilemiyor.
+1. **Scene and furniture.** Table, chair, counter, stove, shelf. Text-to-3D tools or ready low-polygon packs. All tied to a single style guide.
+2. **Characters.** Generate a humanoid base model, upload it to an automatic rigging service, take the ready animations. Walking, sitting, serving, waiting.
+3. **Light and palette.** This is where distinctiveness comes from. It decides more than the models do.
+4. **Portraits and interface.** No consistency problem, because they are single frames.
+5. **Licence audit.** Before release, the right to use every generated asset is verified.
+
+**Warning:** the names and the capabilities of AI generation tools change fast. The current state has to be verified before this pipeline is built.
+
+---
+
+## Questions still awaiting an answer
+
+1. **How far the first release's scope goes.** Recommendation: menu, staff, supply and venue expansion included; a second branch excluded.
+2. **Theme and cuisine identity.** Recommendation: a specific identity, for example a tradesman's lokanta.
+3. **Revenue model.** Recommendation: on mobile, free plus a one-time unlock; on Steam, sold up front. Thanks to the port boundary this decision does not affect the architecture.

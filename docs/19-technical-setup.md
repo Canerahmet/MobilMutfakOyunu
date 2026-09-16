@@ -1,257 +1,261 @@
-# Teknik Kurulum
+# Technical Setup
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddeleri:** B4 sürüm ve render hattı, B5 performans hedefleri, B6 kayıt dosyası formatı, B7 girdi eylem haritası
-**Durum:** Yazıldı, karar bekliyor
-
----
-
-## B4. Unity sürümü ve render hattı
-
-### Sürüm: Unity 6.3 LTS
-
-> **9 Eylül 2026 notu.** Makinede kurulu sürüm 6000.5.8f1, yani Unity 6.5 teknoloji akışı, LTS değil. **Karar 9 Eylül 2026:** Hub'dan 6.3 LTS kurulacak, proje onunla açılacak. Bkz. [22-answers-and-direction.md](22-answers-and-direction.md) §2. Ayrıca ilk sürüm sadece Android; iOS ve Metal satırları Mac olunca geçerli.
-
-| Neden | Açıklama |
-|---|---|
-| LTS zorunlu | Uzun ömürlü bir oyun yapıyoruz. Deneysel sürüm üstünde canlı oyun tutulmaz |
-| Destek süresi | Aralık 2027'ye kadar destekleniyor. Geliştirme artı ilk canlı yılı kapsıyor |
-| Sonrası | Unity 6.7 LTS 2026 sonunda geliyor. Geçiş, ilk sürüm yayınlandıktan sonra değerlendirilir |
-
-**Kural: sürüm üretim başladıktan sonra değişmez.** Sadece güvenlik ve mağaza uyumluluğu yamaları alınır.
-
-### Render hattı: URP
-
-| Seçenek | Karar |
-|---|---|
-| **URP** | ✅ Seçildi. Mobil için tasarlanmış, low-poly stilize sahne için fazlasıyla yeterli |
-| Built-in | Hayır. Unity'nin gelişim yönü artık orada değil |
-| HDRP | Hayır. Masaüstü ve konsol için, mobilde kullanılamaz |
-
-### Ayarlar
-
-| Ayar | Değer | Gerekçe |
-|---|---|---|
-| Renk uzayı | Linear | Yumuşak ışık ve gölge için gerekli |
-| Android grafik API | Vulkan öncelikli, OpenGL ES 3.1 yedek | Eski cihaz kapsamı |
-| iOS grafik API | Metal | Tek seçenek |
-| Doku sıkıştırma | ASTC | Mobilde standart |
-| Ek ışık gölgeleri | Kapalı | GPU ve bellek tasarrufu |
-| Store Actions | Auto veya Discard | Düşük seviye cihazlarda bant genişliği tasarrufu |
-| SRP Batcher | Açık | Çizim çağrısı CPU maliyetini düşürüyor |
-| **GPU Resident Drawer** | **Açık** | Unity 6 özelliği. Nesne yoğun sahnelerde render CPU maliyetini yarıya kadar düşürebiliyor |
-
-**GPU Resident Drawer bizim için özellikle önemli.** Restoran sahnesi nesne yoğun: masalar, sandalyeler, tabaklar, müşteriler, dekor. Tam olarak bu özelliğin hedeflediği durum.
-
-### Işıklandırma
-
-- Sabit nesnelerin ışığı **pişirilmiş** (baked). Duvar, zemin, mobilya.
-- Sadece bir yönlü ışık gerçek zamanlı.
-- Karakterler ışık probu ile aydınlanıyor.
-- Ağır son işlem yok. En fazla hafif bir renk derecelendirme tablosu.
-
-Mutfak kimliğini taşıyan sıcak akşam ışığı, pişirilmiş ışıkla ve renk derecelendirmesiyle sağlanıyor. Gerçek zamanlı gölgeye ihtiyaç yok.
-
-### Paketler
-
-| Paket | İş |
-|---|---|
-| Input System | İki girdi şeması |
-| Localization | Türkçe ve İngilizce |
-| Addressables | İçerik yükleme ve indirme boyutu yönetimi |
-| TextMeshPro | Türkçe karakter desteği olan yazı |
-| Unity IAP | Mutfak satın alması |
-| Analytics veya Firebase | Port arkasında |
+**Last updated:** 9 September 2026
+**Register items:** B4 version and render pipeline, B5 performance targets, B6 save file format, B7 input action map
+**Status:** Written, awaiting decision
 
 ---
 
-## B5. Performans hedefleri
+## B4. Unity version and render pipeline
 
-### Desteklenen cihazlar
+### Version: Unity 6.3 LTS
 
-| Platform | En düşük |
+> **Note, 9 September 2026.** The version installed on the machine is 6000.5.8f1, that is the Unity 6.5 tech stream, not LTS. **Decision 9 September 2026:** 6.3 LTS will be installed from the Hub and the project opened with it. See [22-answers-and-direction.md](22-answers-and-direction.md) §2. Also, the first release is Android only; the iOS and Metal rows apply once there is a Mac.
+
+| Why | Explanation |
 |---|---|
-| Android | Android 10, 3 GB RAM, Vulkan veya OpenGL ES 3.1 |
-| iOS | iOS 16, iPhone SE 2. nesil ve üstü |
+| LTS is mandatory | We are making a long-lived game. A live game is not kept on an experimental version |
+| Support period | Supported until December 2027. Covers development plus the first live year |
+| Afterwards | Unity 6.7 LTS arrives at the end of 2026. The move is assessed after the first release ships |
 
-Bu eşiğin altındaki cihazlar desteklenmiyor. Kapsamı genişletmek her şeyi yavaşlatır ve o kesim zaten küçük.
+**The rule: the version does not change once production has started.** Only security and store-compatibility patches are taken.
 
-### Kare hızı
+### Render pipeline: URP
 
-| Cihaz sınıfı | Hedef |
+| Option | Decision |
 |---|---|
-| Orta ve üst seviye | 60 fps |
-| En düşük desteklenen | 30 fps **garantili** |
+| **URP** | ✅ Chosen. Designed for mobile, more than enough for a low-poly stylised scene |
+| Built-in | No. Unity's direction of development is no longer there |
+| HDRP | No. For desktop and console, unusable on mobile |
 
-30 fps taban garanti. Oyun refleks oyunu olmadığı için 30 fps oynanabilirliği bozmuyor. Ama düşüşler bozuyor, bu yüzden hedef sabit kare hızı.
+### Settings
 
-### Bütçeler
-
-| Kalem | Hedef | En düşük cihazda |
+| Setting | Value | Reasoning |
 |---|---|---|
-| Çizim çağrısı | Kare başına 100 altı | 60 altı |
-| Görünür üçgen | 100 bin altı | 60 bin altı |
-| Bellek | 700 MB altı | 500 MB altı |
-| İndirme boyutu | **200 MB altı** | Aynı |
-| Sürekli oynama | 30 dakika ısınma kısıtlaması olmadan | Aynı |
+| Colour space | Linear | Needed for soft light and shadow |
+| Android graphics API | Vulkan first, OpenGL ES 3.1 as fallback | Coverage of older devices |
+| iOS graphics API | Metal | The only option |
+| Texture compression | ASTC | The standard on mobile |
+| Additional light shadows | Off | Saves GPU and memory |
+| Store Actions | Auto or Discard | Saves bandwidth on low-end devices |
+| SRP Batcher | On | Lowers the CPU cost of draw calls |
+| **GPU Resident Drawer** | **On** | A Unity 6 feature. In object-dense scenes it can halve the CPU cost of rendering |
 
-**200 MB kritik bir eşik.** Hem Google Play hem App Store, bu boyutun üstündeki uygulamaları hücresel veriyle indirirken uyarı gösteriyor. Uyarı görmek kurulum oranını düşürüyor.
+**The GPU Resident Drawer matters especially for us.** The restaurant scene is object-dense: tables, chairs, plates, customers, decor. Exactly the case that feature targets.
 
-Bunun altında kalmak için: mutfak varlıkları Addressables ile ayrılıyor, satın alınan mutfak indirilirken çekiliyor. Böylece ilk indirme sadece fast food içeriyor.
+### Lighting
 
-### Ölçülen (13 Eylül 2026)
+- The light on static objects is **baked**. Walls, floor, furniture.
+- Only one directional light is real-time.
+- Characters are lit by light probes.
+- No heavy post-processing. At most a light colour grading table.
 
-Sahne yeniden tasarlandıktan sonra (arka duvar, zemin deseni, servis bankosu,
-teras, masalarda yemek, ocak üstü kaplar) ölçüldü. Bir önceki tablo sarkıt
-lambalar ve ön sıra tezgâhları **çıkarılmadan önce** alınmıştı ve "ölçüm"
-etiketi taşımaya devam ediyordu — yani bugünkü sahneyi ölçmüyordu.
+The warm evening light that carries the cuisine's identity is provided by baked light and colour grading. There is no need for real-time shadows.
 
-| sahne | çizici | üçgen | toplu çizim dışı |
+### Packages
+
+| Package | Job |
+|---|---|
+| Input System | Two input schemes |
+| Localization | Turkish and English |
+| Addressables | Content loading and download size management |
+| TextMeshPro | Type with Turkish character support |
+| Unity IAP | The cuisine purchase |
+| Analytics or Firebase | Behind a port |
+
+---
+
+## B5. Performance targets
+
+### Supported devices
+
+| Platform | Minimum |
+|---|---|
+| Android | Android 10, 3 GB RAM, Vulkan or OpenGL ES 3.1 |
+| iOS | iOS 16, iPhone SE 2nd generation and above |
+
+Devices below this threshold are not supported. Widening the coverage slows everything down, and that segment is small anyway.
+
+### Frame rate
+
+| Device class | Target |
+|---|---|
+| Mid and high end | 60 fps |
+| The lowest supported | 30 fps **guaranteed** |
+
+30 fps is the guaranteed floor. Because the game is not a reflex game, 30 fps does not break playability. But drops do, so the target is a stable frame rate.
+
+### Budgets
+
+| Item | Target | On the lowest device |
+|---|---|---|
+| Draw calls | Under 100 per frame | Under 60 |
+| Visible triangles | Under 100 thousand | Under 60 thousand |
+| Memory | Under 700 MB | Under 500 MB |
+| Download size | **Under 200 MB** | The same |
+| Continuous play | 30 minutes with no thermal throttling | The same |
+
+**200 MB is a critical threshold.** Both Google Play and the App Store show a warning when an app above that size is downloaded over cellular data. Seeing that warning lowers the install rate.
+
+To stay under it: the cuisine assets are separated with Addressables and pulled down when a purchased cuisine is downloaded. That way the first download contains only fast food.
+
+### Measured (13 September 2026)
+
+Measured after the scene was redesigned (the back wall, the floor pattern, the
+service counter, the terrace, food on the tables, pots on the stove). The
+previous table had been taken **before** the pendant lamps and the front-row
+counters were removed, and it was still carrying the "measurement" label — that
+is, it was not measuring today's scene.
+
+| scene | renderers | triangles | outside batching |
 |---|---:|---:|---:|
-| Türk, açılış (4 masa) | 175 | 25.088 | 65 |
-| Türk, genel (10 masa) | 243 | 38.205 | 83 |
-| Hızlı yemek, açılış | 196 | 28.308 | 64 |
-| Hızlı yemek, genel | 272 | 44.372 | 84 |
+| Turkish, opening (4 tables) | 175 | 25,088 | 65 |
+| Turkish, general (10 tables) | 243 | 38,205 | 83 |
+| Fast food, opening | 196 | 28,308 | 64 |
+| Fast food, general | 272 | 44,372 | 84 |
 
-**Üçüncü sütun yeni.** `MaterialPropertyBlock` yazılan bir çizici SRP toplu
-çizimine giremiyor; bir denetim bunun 160 civarında olabileceğini tahmin etti
-(rozet, kıyafet, ocak üstü, köpük, tepsi). Ölçüldü: **84**. Tahmin ile ölçüm
-arasındaki fark iki kat — ve tahmin, gereksiz bir iyileştirmeyi haklı
-gösterecek yöndeydi.
+**The third column is new.** A renderer that has a `MaterialPropertyBlock`
+written to it cannot enter SRP batching; a review estimated that this could be
+around 160 (badges, clothing, stove tops, foam, trays). Measured: **84**. The
+gap between the estimate and the measurement is a factor of two — and the
+estimate leaned in the direction that would have justified an unnecessary
+optimisation.
 
-**Çizici ≠ çizim çağrısı:** SRP toplu çizimi aynı malzemeyi paylaşanları
-birleştiriyor, yani gerçek çağrı sayısı bunun altında. Bu tablo bir **üst sınır**
-ve asıl işi regresyonu yakalamak — sahneye sessizce yüz nesne ekleyen bir
-değişiklik burada görünür.
+**A renderer ≠ a draw call:** SRP batching merges the ones that share the same
+material, so the real call count is below this. This table is an **upper bound**
+and its actual job is to catch regressions — a change that quietly adds a
+hundred objects to the scene shows up here.
 
-### Eşikler nerede ve neden bütçeden farklı
+### Where the thresholds are and why they differ from the budget
 
-Bu iki sayıyı **iki ayrı araç** ölçüyor ve uzun süre ikisi de hiçbir şeyi
-kırmıyordu:
+These two numbers are measured by **two separate tools**, and for a long time
+neither of them was breaking anything:
 
-| araç | neyi ölçüyor | eşik |
+| tool | what it measures | threshold |
 |---|---|---:|
-| duman turu (`Autopilot`) | **taban** sahne, 4 masa — tur hiç genişlemiyor | 400 çizici / 80 bin üçgen |
-| `GameShot` | **tavan** sahne, bütün odalar açık | 360 çizici / 70 bin üçgen / 220 toplu-çizim-dışı |
+| the smoke tour (`Autopilot`) | the **floor** scene, 4 tables — the tour never expands | 400 renderers / 80 thousand triangles |
+| `GameShot` | the **ceiling** scene, every room open | 360 renderers / 70 thousand triangles / 220 outside batching |
 
-Eşikler yukarıdaki bütçe satırından (100 / 60 bin) **büyük**, ve bu kasıtlı:
-bütçe satırı *çizim çağrısını* sayıyor, bu iki araç *çizici* sayıyor ve toplu
-çizim ikisi arasındaki farkı kapatıyor. Eşikler bugünkü ölçümün üzerine pay
-bırakacak şekilde seçildi — küçük eklemeler kırmasın, **sessiz bir şişme**
-yakalansın.
+The thresholds are **larger** than the budget row above (100 / 60 thousand), and
+that is deliberate: the budget row counts *draw calls*, these two tools count
+*renderers*, and batching closes the gap between the two. The thresholds were
+chosen to leave headroom over today's measurement — so that small additions do
+not break them and a **silent bloat** is caught.
 
-**Üçüncü sayı yeni:** *toplu çizim dışı çizici*. `MaterialPropertyBlock` yazılan
-bir çizici SRP toplu çizimine giremiyor; proje bunu defalarca yazıp zemini ve
-oda ışığını ona göre tasarlamıştı, ama üç yeni sistem (rozet, kıyafet, ocak üstü)
-aynı bedeli ödemeye devam ediyordu ve **hiç ölçülmüyordu**. Ölçülmediği için de
-kimse fark etmiyordu.
+**The third number is new:** *renderers outside batching*. A renderer that has a
+`MaterialPropertyBlock` written to it cannot enter SRP batching; the project had
+written this down repeatedly and designed the floor and the room light around it,
+but three new systems (badges, clothing, stove tops) went on paying the same cost
+and were **never measured**. And because they were not measured, nobody noticed.
 
-Tavan eşiği turda değil `GameShot`'ta, çünkü tur dört masada kalıyor: on dört
-masalık sahne bütçeyi aşsa turdaki eşik hiçbir zaman kırılamazdı. *Bir eşik,
-kırılamayacağı yerde durursa eşik değildir.*
+The ceiling threshold is in `GameShot`, not in the tour, because the tour stays
+at four tables: if a fourteen-table scene went over budget, the threshold in the
+tour could never be broken. *A threshold that stands where it cannot be broken is
+not a threshold.*
 
-Tur da aynı iki sayıyı ölçüyor ama **dört masada**: altmış günü oynuyor,
-genişlemiyor. İlk yazımında yorum "kampanya sonunda restoran en büyük" diyordu
-ve tanı onu çürüttü — *ölçünün adı neyi ölçtüğünü söylemeli.*
+The tour measures the same two numbers, but **at four tables**: it plays sixty
+days and does not expand. When it was first written the comment said "the
+restaurant is at its biggest at the end of the campaign" and the diagnosis
+disproved it — *the name of a measure should say what it measures.*
 
-### Ölçüm
+### Measurement
 
-- Her sürümde gerçek cihazda profil çıkarılıyor, editörde değil.
-- En az iki cihazda test: bir üst seviye, bir en düşük seviye.
-- Bütçe aşımı, özellik eklemeden önce çözülüyor.
+- A profile is taken on a real device every release, not in the editor.
+- Tested on at least two devices: one high end, one at the minimum.
+- A budget overrun is solved before a feature is added.
 
 ---
 
-## B6. Kayıt dosyası formatı
+## B6. Save file format
 
-### Format
+### The format
 
-| Karar | Değer |
+| Decision | Value |
 |---|---|
-| Biçim | JSON |
-| Sıkıştırma | gzip |
-| Bütünlük | Sağlama toplamı, dosya sonunda |
-| Şifreleme | **Yok** |
-| Hedef boyut | Kayıt başına 200 KB altı |
+| Format | JSON |
+| Compression | gzip |
+| Integrity | A checksum, at the end of the file |
+| Encryption | **None** |
+| Target size | Under 200 KB per save |
 
-### Neden JSON
+### Why JSON
 
-Okunabilir, hata ayıklaması kolay, sürüm göçü yazması kolay. Sıkıştırıldıktan sonra boyut sorunu kalmıyor.
+Readable, easy to debug, easy to write version migrations for. After compression, size is not a problem.
 
-İkili biçim biraz daha küçük olurdu ama göç fonksiyonu yazmak ve bir oyuncunun bozuk kaydını incelemek çok daha zor olurdu.
+A binary format would be slightly smaller, but writing the migration function and inspecting a player's corrupt save would be far harder.
 
-### Neden şifreleme yok
+### Why there is no encryption
 
-Bu tek oyunculu bir oyun. Skor tablosu yok, çok oyunculu yok, rekabet yok. Kaydını düzenleyen biri sadece kendi oyununu etkiliyor.
+This is a single-player game. There is no leaderboard, no multiplayer, no competition. Somebody who edits their save affects only their own game.
 
-Şifreleme karşılığında ne veriyor: destek zorlaşıyor, hata ayıklama zorlaşıyor, ve kararlı bir oyuncu zaten aşıyor. **Kazancı yok, maliyeti var.**
+What encryption gives in return: support gets harder, debugging gets harder, and a determined player breaks it anyway. **No gain, and a cost.**
 
-### Dosya düzeni
+### File layout
 
 ```
 saves/
-  slot_1.save      güncel
-  slot_1.bak       bir önceki
+  slot_1.save      current
+  slot_1.bak       the previous one
   slot_2.save
   slot_2.bak
   ...
 ```
 
-Yazma sırası: geçici dosyaya yaz, sağlamayı doğrula, güncel dosyayı yedeğe taşı, geçici dosyayı güncel yap. Bu sıra yarım dosya oluşmasını imkânsız kılıyor.
+The write order: write to a temporary file, verify the checksum, move the current file to the backup, make the temporary file the current one. That order makes a half-written file impossible.
 
 ---
 
-## B7. Girdi eylem haritası
+## B7. Input action map
 
-Unity Input System kullanılıyor. **Oyun kodu ham cihaz girdisini asla okumuyor**, sadece niyeti okuyor.
+Unity's Input System is used. **The game code never reads raw device input**, only intent.
 
-### İki kontrol şeması
+### Two control schemes
 
-| Şema | Cihaz | Ne zaman |
+| Scheme | Device | When |
 |---|---|---|
-| Touch | Dokunmatik ekran | Mobil, varsayılan |
-| Desktop | Fare ve klavye | Steam sürümü |
+| Touch | Touchscreen | Mobile, the default |
+| Desktop | Mouse and keyboard | The Steam version |
 
-Oyun kolu şeması ileride eklenebilir, ama ilk sürümde yok.
+A gamepad scheme can be added later, but it is not in the first release.
 
-### Eylem haritaları
+### Action maps
 
-| Harita | Ne zaman aktif |
+| Map | When it is active |
 |---|---|
-| UI | Menülerde ve ekranlarda |
-| Service | Servis aşamasında |
-| Layout | Yerleşim düzenlemede |
-| Camera | Servis ve yerleşimde, UI ile birlikte |
+| UI | In menus and screens |
+| Service | In the service phase |
+| Layout | In layout editing |
+| Camera | In service and layout, together with UI |
 
-Aynı anda birden fazla harita aktif olabiliyor. Örneğin serviste hem Service hem Camera açık.
+More than one map can be active at once. For example, in service both Service and Camera are open.
 
-### Eylemler
+### Actions
 
-| Eylem | Touch | Desktop |
+| Action | Touch | Desktop |
 |---|---|---|
-| Point | Parmak konumu | Fare konumu |
-| Select | Tek dokunuş | Sol tık |
-| Drag | Basılı tut ve sürükle | Sol tık ve sürükle |
-| Intervene | Masaya dokunma | Sağ tık veya sol tık |
-| Pan | İki parmak kaydırma | Orta tık sürükleme veya WASD |
-| Zoom | İki parmak sıkıştırma | Fare tekerleği |
-| Pause | Duraklat düğmesi | Boşluk tuşu veya Esc |
-| Cancel | Geri düğmesi | Esc |
-| Confirm | Onay düğmesi | Enter |
+| Point | Finger position | Mouse position |
+| Select | A single tap | Left click |
+| Drag | Press and drag | Left click and drag |
+| Intervene | Touching the table | Right click or left click |
+| Pan | Two-finger swipe | Middle-click drag or WASD |
+| Zoom | Two-finger pinch | Mouse wheel |
+| Pause | The pause button | Space or Esc |
+| Cancel | The back button | Esc |
+| Confirm | The confirm button | Enter |
 
-**Hassas nişan hiçbir şemada yok.** Dokunmatikte olmayan bir yetenek masaüstünde de kullanılmıyor, çünkü iki sürüm arasında oynanış farkı olmamalı.
+**Precise aiming is in neither scheme.** An ability that does not exist on touch is not used on desktop either, because there should be no gameplay difference between the two versions.
 
-### Neden baştan iki şema
+### Why two schemes from the start
 
-Steam ileride hedefleniyor. Girdi soyutlaması sonradan eklenirse bütün etkileşim kodunu yeniden yazmak gerekir. Şimdi kurmanın maliyeti neredeyse sıfır.
+Steam is targeted later. If the input abstraction is added afterwards, all the interaction code has to be rewritten. The cost of building it now is close to zero.
 
 ---
 
-## Geliştirme makinesi tuzagı: Smart App Control
+## The development machine's trap: Smart App Control
 
-Bu makinede **Smart App Control zorunlu modda** (Windows 11, CI politikası
-`{0283ac0f-fff1-49ae-ada1-8a933130cad6}`). Taze yazılmış, imzasız bir
-derlemenin *yüklenmesini* engelleyebiliyor:
+On this machine **Smart App Control is in enforced mode** (Windows 11, CI policy
+`{0283ac0f-fff1-49ae-ada1-8a933130cad6}`). It can block a freshly built, unsigned
+assembly from *loading*:
 
 ```
 System.IO.FileLoadException: Could not load file or assembly
@@ -259,90 +263,94 @@ System.IO.FileLoadException: Could not load file or assembly
 this file. (0x800711C7)
 ```
 
-**Hangi yapılandırmanın engellendiği zamanla değişiyor:** bir gün `Debug`
-bloke, ertesi gün `Release`. 11 Eylül sabahı önce `Debug` çalışıyordu, birkaç
-saat sonra aynı komut `Debug`'da bloke olup `Release`'de geçti. Engel dosyanın
-**karmasına** bağlı: çekirdek değişmediği sürece sorun çıkmıyor, değiştiği
-anda çıkabiliyor.
+**Which configuration is blocked changes over time:** one day `Debug` is blocked,
+the next day `Release`. On the morning of 11 September `Debug` worked first, and
+a few hours later the same command was blocked in `Debug` and passed in
+`Release`. The block depends on the file's **hash**: as long as the core does not
+change there is no problem; the moment it changes there can be.
 
-Belirti yanıltıcı. Bir kere 213 testin 206'sı birden kırıldı ve
-`Fx.MulDiv_sifira_bolmede_atar` gibi **saf matematik** testleri
-`DivideByZeroException` yerine `FileLoadException` verdi — hepsi aynı
-sebepten. Kodda aranacak bir şey yok.
+The symptom is misleading. On one occasion 206 of 213 tests broke together and **pure
+maths** tests like `Fx.MulDiv_sifira_bolmede_atar` gave a `FileLoadException`
+instead of a `DivideByZeroException` — all for the same reason. There is nothing
+to look for in the code.
 
-### Neden bazen geçiyor, bazen geçmiyor
+### Why it sometimes passes and sometimes does not
 
-Engel dosyanın **karmasına** bağlı. Çekirdek ve içerik
-`<Deterministic>true</Deterministic>` ile derleniyor, yani **aynı kaynak her
-zaman aynı ikiliyi** üretiyor. Sonuç: bir kez engellenen derleme, yeniden
-derlemekle **düzelmiyor** — aynı dosya, aynı engel, sonsuza kadar. Kaynak
-değişene kadar o hedef kilitli kalıyor.
+The block depends on the file's **hash**. The core and the content are compiled
+with `<Deterministic>true</Deterministic>`, that is, **the same source always
+produces the same binary**. The consequence: a build that is blocked once is
+**not fixed** by rebuilding — same file, same block, forever. That target stays
+locked until the source changes.
 
-Bu yüzden "bir gün Debug bloke, ertesi gün Release" görünüyor: aslında
-değişen şey gün değil, o yapılandırmanın ikilisinin en son ne zaman
-değiştiği.
+That is why it looks like "Debug blocked one day, Release the next": what changes
+is not the day but when that configuration's binary last changed.
 
-### Doğru tepki
+### The right response
 
-1. `Microsoft-Windows-CodeIntegrity/Operational` günlüğüne bak (olay
-   3033/3077/3118). Orada görünmeyen bir şey SAC değildir. **Kodda arama.**
+1. Look at the `Microsoft-Windows-CodeIntegrity/Operational` log (events
+   3033/3077/3118). Anything that does not appear there is not SAC. **Do not go
+   looking in the code.**
 
-2. **`python tools/dotnet_retry.py <args>`** ile koş. Araç üç şeyi birden
-   yapıyor ve üçü de gerekli — her biri ayrı ayrı denendi ve yetmedi:
+2. Run it with **`python tools/dotnet_retry.py <args>`**. The tool does three
+   things at once and all three are necessary — each was tried on its own and was
+   not enough:
 
-   | ne | neden gerekli |
+   | what | why it is necessary |
    |---|---|
-   | `-p:Deterministic=false` | derleyici her seferinde yeni bir modül kimliği gömsün |
-   | `--no-incremental` | **bayrak tek başına hiçbir şey yapmıyor**: kaynak değişmediyse MSBuild derlemeyi güncel sayıp atlıyor ve aynı engelli ikiliyi geri veriyor. Ölçüldü — altı deneme, altı aynı engel |
-   | yeniden deneme | taze bir karma da engellenebiliyor; engel olasılıklı |
+   | `-p:Deterministic=false` | so the compiler embeds a new module id every time |
+   | `--no-incremental` | **the flag does nothing on its own**: if the source has not changed, MSBuild considers the build up to date, skips it and hands back the same blocked binary. Measured — six attempts, six identical blocks |
+   | the retry | a fresh hash can be blocked too; the block is probabilistic |
 
-3. **`dotnet run` için derleme AYRI adım olmalı.** `run` `--no-incremental`
-   bayrağını tanımıyor ve **uygulamaya geçiriyor**; harness de haklı olarak
-   "bilinmeyen bayrak" diye reddediyor. Önce `dotnet build … --no-incremental`,
-   sonra `dotnet run --no-build`.
+3. **For `dotnet run` the build has to be a SEPARATE step.** `run` does not
+   recognise the `--no-incremental` flag and **passes it to the application**;
+   the harness then rightly rejects it as an "unknown flag". First
+   `dotnet build … --no-incremental`, then `dotnet run --no-build`.
 
-`tools/check.py` ve `tools/balance/calibrate.py` bunu kendiliğinden yapıyor ve
-ikisi de boş tablo döndürmek yerine **hata fırlatıyor** — sessizce boş dönmek
-bütün adayları eşitliyor ve kalibrasyon rastgele birini "en iyi" seçiyordu.
+`tools/check.py` and `tools/balance/calibrate.py` do this by themselves, and both
+of them **throw an error** instead of returning an empty table — returning empty
+silently levels all the candidates and the calibration was picking one of them
+at random as "the best".
 
-Determinizm yalnızca **yerel koşu** için kapatılıyor, projede açık kalıyor.
+Determinism is switched off only for the **local run**; it stays on in the
+project.
 
-**Smart App Control kapatılmadı ve kapatılmamalı:** Windows'ta tek yönlü bir
-kapı — kapatıldıktan sonra yeniden açmak işletim sistemini yeniden kurmayı
-gerektiriyor. Bu bir geliştirme makinesi ayarı, proje kararı değil.
+**Smart App Control was not turned off and must not be:** on Windows it is a
+one-way door — once it is off, turning it back on requires reinstalling the
+operating system. This is a development machine setting, not a project decision.
 
-### Üç yanlış teşhis, sırayla
+### Three wrong diagnoses, in order
 
-Bu tuzak 11 Eylül'de üç kez yanlış teşhis edildi ve her biri saatler aldı.
-Kayda geçiyor ki dördüncüsü olmasın:
+This trap was misdiagnosed three times on 11 September and each one cost hours.
+It is written down so that there is not a fourth:
 
-1. **"netstandard2.1 engelleniyor, net10.0 geçiyor."** Yanlış — aynı net10.0
-   DLL birkaç saat sonra engellendi. (Çok hedefli derleme yine de tutuldu,
-   ama başka bir gerekçeyle; aşağıya bak.)
-2. **"yapılandırma dönüşümlü: bir gün Debug, bir gün Release."** Yanlış —
-   değişen şey gün değil, o yapılandırmanın ikilisinin en son ne zaman
-   değiştiği.
-3. **"`-p:Deterministic=false` çözer."** Eksik — MSBuild yeniden derlemiyor.
+1. **"netstandard2.1 is blocked, net10.0 passes."** Wrong — the same net10.0 DLL
+   was blocked a few hours later. (The multi-target build was kept anyway, but
+   for a different reason; see below.)
+2. **"The configuration alternates: Debug one day, Release the next."** Wrong —
+   what changes is not the day but when that configuration's binary last changed.
+3. **"`-p:Deterministic=false` solves it."** Incomplete — MSBuild is not
+   rebuilding.
 
-### İki hedef: ayrı bir karar
+### Two targets: a separate decision
 
-`Lokanta.Core` ve `Lokanta.Content`
-`<TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>` taşıyor. Bu
-**SAC geçişi değil** — bir süre öyle sanıldı ve yanlıştı. Gerçek gerekçe:
+`Lokanta.Core` and `Lokanta.Content` carry
+`<TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>`. This is **not an
+SAC workaround** — it was thought to be for a while and that was wrong. The real
+reasoning:
 
-- `netstandard2.1` Unity'nin API yüzeyi. Çekirdek onun dışına çıkarsa
-  derleme **burada** kırılır. Hiç yüklenmiyor, yalnızca derleniyor.
-- `net10.0` testlerin ve denge aracının yüklediği derleme.
+- `netstandard2.1` is Unity's API surface. If the core steps outside it, the
+  build breaks **here**. It is never loaded, only compiled.
+- `net10.0` is the assembly the tests and the balance tool load.
 
-O koruma yalnızca derlendiğinde işe yarıyor ve kimse onu yüklemediği için
-kendiliğinden derlenmiyor: `tools/check.py` her iki hedefi de ayrı bir
-denetim olarak koşuyor.
+That guard only works when it is compiled, and because nobody loads it, it does
+not get compiled on its own: `tools/check.py` runs both targets as a separate
+check.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Details awaiting a decision
 
-1. En düşük Android sürümü 10 mu olmalı, daha aşağı inilmeli mi
-2. 30 fps tabanı yeterli mi
-3. Oyun kolu desteği ilk sürüme girmeli mi
-4. Mutfak varlıklarının indirilebilir olması ilk sürümde mi yapılmalı
+1. Should the minimum Android version be 10, or should it go lower
+2. Is a 30 fps floor enough
+3. Should gamepad support go into the first release
+4. Should downloadable cuisine assets be built in the first release

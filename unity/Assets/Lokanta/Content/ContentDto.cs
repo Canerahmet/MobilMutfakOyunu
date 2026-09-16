@@ -1,10 +1,11 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace Lokanta.Content
 {
-    // docs/23-core-contract.md 8.3: her yemek dort zorunlu parametre
-    // tasir. Alan adlari acikca isaretli; yansima ad turetmiyor.
+    // docs/23-core-contract.md 8.3: every dish carries four mandatory
+    // parameters. Field names are marked explicitly; no name is derived by
+    // reflection.
 
     public sealed class DishIngredientDto
     {
@@ -30,17 +31,17 @@ namespace Lokanta.Content
         [JsonProperty("complexity")] public int Complexity { get; set; }
         [JsonProperty("unlockSeason")] public int UnlockSeason { get; set; }
         [JsonProperty("unlockDay")] public int UnlockDay { get; set; }
-        /// <summary>Bu yemek icin istasyonun en az kaci kademesi gerekli.</summary>
+        /// <summary>The minimum station tier this dish needs.</summary>
         [JsonProperty("requiresStationTier")] public int RequiresStationTier { get; set; }
-        /// <summary>Kilidin acilmasi icin gereken itibar, santi-puan.</summary>
+        /// <summary>The reputation needed to unlock it, in centi-points.</summary>
         [JsonProperty("unlockReputationCenti")] public int UnlockReputationCenti { get; set; }
         [JsonProperty("ingredients")] public List<DishIngredientDto> Ingredients { get; set; }
         [JsonProperty("plating")] public PlatingDto Plating { get; set; }
     }
 
     /// <summary>
-    /// Isimli duzenli musteri. docs/11: "isimli musteri tek bir kisidir,
-    /// elle yazilmistir, hikayesi vardir ve hep ayni kisidir."
+    /// A named regular customer. docs/11: "a named customer is one single
+    /// person, hand-written, with a story, and always the same person."
     /// </summary>
     public sealed class RegularDto
     {
@@ -51,7 +52,7 @@ namespace Lokanta.Content
         [JsonProperty("archetypeBase")] public string ArchetypeBase { get; set; }
         [JsonProperty("favouriteDish")] public string FavouriteDish { get; set; }
         [JsonProperty("arrivesFromDay")] public int ArrivesFromDay { get; set; }
-        [JsonProperty("veresiyeEligible")] public bool VeresiyeEligible { get; set; }
+        [JsonProperty("veresiyeEligible")] public bool TabEligible { get; set; }
         [JsonProperty("story")] public List<StoryBeatDto> Story { get; set; }
     }
 
@@ -63,14 +64,14 @@ namespace Lokanta.Content
         [JsonProperty("textKey")] public string TextKey { get; set; }
     }
 
-    /// <summary>docs/23 8.2: mekanik kodda, sayilar veride.</summary>
-    /// <summary>Personel isim havuzu. content/names.json.</summary>
+    /// <summary>docs/23 8.2: the mechanic lives in code, the numbers in data.</summary>
+    /// <summary>The staff name pool. content/names.json.</summary>
     public sealed class NamesDto
     {
         [JsonProperty("staff")] public string[] Staff { get; set; }
     }
 
-    /// <summary>Yil sonu mutfak ekseni. docs/13 cuisines/*.json.</summary>
+    /// <summary>The cuisine's year-end axis. docs/13 cuisines/*.json.</summary>
     public sealed class ScoreAxisDto
     {
         [JsonProperty("kind")] public string Kind { get; set; }
@@ -117,50 +118,53 @@ namespace Lokanta.Content
         [JsonProperty("nameKey")] public string NameKey { get; set; }
         [JsonProperty("signature")] public SignatureDto Signature { get; set; }
         [JsonProperty("scoreAxis")] public ScoreAxisDto ScoreAxis { get; set; }
-        /// <summary>Dort dilimin suresi, baz puan, toplami 10000.</summary>
+        /// <summary>The duration of the four slots, in basis points, summing to 10000.</summary>
         [JsonProperty("slotDurationsBp")] public List<int> SlotDurationsBp { get; set; }
         [JsonProperty("eatMs")] public int EatMs { get; set; }
 
         /// <summary>
-        /// SELF SERVIS MI. Fast food'da masaya garson gelmiyor.
+        /// IS IT SELF SERVICE? In fast food no waiter comes to the table.
         ///
-        /// Mutfaklari ayiran en buyuk yapisal fark bu: hizli yemekte
-        /// musteri tezgahta siparis verip PARASINI ORADA odiyor, tepsisini
-        /// kendi tasiyor, masasini kendi buluyor. Salonda garson yok -
-        /// olan kisi TEMIZLIKCI: birakilan tepsileri topluyor.
+        /// This is the biggest structural difference between the cuisines:
+        /// in fast food the customer orders at the counter and PAYS THERE,
+        /// carries their own tray and finds their own table. There is no
+        /// waiter in the hall - the person there is the CLEANER, collecting
+        /// the trays that are left behind.
         /// </summary>
         [JsonProperty("selfService")] public bool SelfService { get; set; }
 
         /// <summary>
-        /// Bu mutfakta salon havuzunda HANGI roller var.
+        /// WHICH roles are in the hall pool for this cuisine.
         ///
-        /// Bos ya da yoksa economy.json'daki butun salon rolleri gecerli
-        /// (eski davranis). Hizli yemekte garson YOK: kasiyer + temizlik.
+        /// If it is empty or missing, every hall role in economy.json
+        /// applies (the old behaviour). In fast food there is NO waiter:
+        /// cashier + cleaning.
         /// </summary>
-        [JsonProperty("salonRoles")] public List<string> SalonRoles { get; set; }
+        [JsonProperty("hallRoles")] public List<string> HallRoles { get; set; }
 
         /// <summary>
-        /// Bu mutfagin talep carpani, baz puan. 10000 = degisiklik yok.
+        /// This cuisine's demand multiplier, in basis points. 10000 = no change.
         ///
-        /// Fast food HACIM oyunu: ayni masa sayisina daha cok insan
-        /// geliyor. Olculdu ki bu vaat sayilarda YOKTU - iki mutfak
-        /// neredeyse ayni sayida grup agirliyordu (1945'e 1819).
+        /// Fast food is a game of VOLUME: more people come to the same
+        /// number of tables. It was measured that this promise WAS NOT in
+        /// the numbers - the two cuisines were serving almost the same
+        /// number of groups (1945 against 1819).
         /// </summary>
         [JsonProperty("customerMultiplierBp")] public int CustomerMultiplierBp { get; set; }
 
         /// <summary>
-        /// Bu mutfagin kira carpani, baz puan. 10000 = degisiklik yok.
+        /// This cuisine's rent multiplier, in basis points. 10000 = no change.
         ///
-        /// Gercekte de zincirler YUKSEK TRAFIKLI, pahali yerlerde oturur -
-        /// hacmin bedeli kira.
+        /// In real life too, chains sit in HIGH-TRAFFIC, expensive places -
+        /// rent is the price of volume.
         ///
-        /// Ama etkisi sezgisel degil: kirayi artirmak denge botunun bitis
-        /// kasasini ARTIRIYOR, cunku bot maliyete genislemeyerek cevap
-        /// veriyor (docs/52 §1). Bu kolun olcutu toplam kasa degil, iki
-        /// mutfak arasindaki FARK.
+        /// But the effect is not intuitive: raising the rent RAISES the
+        /// balance bot's closing cash, because the bot answers a cost by
+        /// not expanding (docs/52 §1). The yardstick for this lever is not
+        /// total cash but the DIFFERENCE between the two cuisines.
         /// </summary>
         [JsonProperty("rentMultiplierBp")] public int RentMultiplierBp { get; set; }
-        /// <summary>Hangi yemek gruplari hangi rolu oynuyor. docs/13.</summary>
+        /// <summary>Which dish groups play which role. docs/13.</summary>
         [JsonProperty("menuRoles")] public MenuRolesDto MenuRoles { get; set; }
     }
 
@@ -182,7 +186,7 @@ namespace Lokanta.Content
         [JsonProperty("unit")] public string Unit { get; set; }
         [JsonProperty("perishable")] public bool Perishable { get; set; }
         [JsonProperty("spoilDays")] public int SpoilDays { get; set; }
-        /// <summary>ilkbahar / yaz / sonbahar / kis -> baz puan carpani.</summary>
+        /// <summary>spring / summer / autumn / winter -> basis point multiplier.</summary>
         [JsonProperty("seasonModifierBp")]
         public Dictionary<string, int> SeasonModifierBp { get; set; }
         [JsonProperty("qualityPriceMultiplierBp")]

@@ -3,34 +3,36 @@ using System;
 namespace Lokanta.Core
 {
     /// <summary>
-    /// Cekirdegin TEK aritmetik yardimcisi.
-    /// docs/23-core-contract.md 2.3: Math.Round, Math.Floor ve (int) ile
-    /// kesme yasak. Butun bolme ve yuvarlama buradan gecer.
+    /// The core's ONE arithmetic helper.
+    /// docs/23-core-contract.md 2.3: Math.Round, Math.Floor and truncation
+    /// with (int) are banned. Every division and every rounding goes
+    /// through here.
     ///
-    /// Yuvarlama kurali: yarisi SIFIRDAN UZAGA. Banker's rounding kullanilmaz,
-    /// cunku .NET'in varsayilani odur ve iki gelistirici ikisini karistirir.
+    /// The rounding rule: half AWAY FROM ZERO. Banker's rounding is not used,
+    /// because it is .NET's default and two developers will mix the two up.
     /// </summary>
     public static class Fx
     {
-        /// <summary>1,0 baz puan cinsinden. Oran ve carpanlarin olcegi.</summary>
+        /// <summary>1.0 in basis points. The scale for ratios and multipliers.</summary>
         public const int One = 10_000;
 
-        /// <summary>1 is-gunu, mikro-is-gunu cinsinden. Personel yuku bu olcekte.</summary>
+        /// <summary>One person-day, in micro person-days. Staff workload is on this scale.</summary>
         public const int Micro = 1_000_000;
 
-        /// <summary>Birikimli carpanlar icin ic hassasiyet. Disariya sizmaz.</summary>
+        /// <summary>Internal precision for compounding multipliers. It never leaks outwards.</summary>
         public const long Nano = 1_000_000_000L;
 
-        /// <summary>1 sikke, santi-sikke cinsinden. Butun para bu olcekte.</summary>
+        /// <summary>One coin, in centi-coins. All money is on this scale.</summary>
         public const int Coin = 100;
 
         /// <summary>
-        /// a * b / c, yarisi sifirdan uzaga yuvarlanmis.
-        /// Ara carpim checked: sessiz tasma, yanlis sonuctan daha kotudur.
+        /// a * b / c, rounded half away from zero.
+        /// The intermediate product is checked: a silent overflow is worse
+        /// than a wrong result.
         /// </summary>
         public static long MulDiv(long a, long b, long c)
         {
-            if (c == 0) throw new DivideByZeroException("Fx.MulDiv: c sifir");
+            if (c == 0) throw new DivideByZeroException("Fx.MulDiv: c is zero");
 
             long p;
             checked { p = a * b; }
@@ -50,13 +52,13 @@ namespace Lokanta.Core
             return q;
         }
 
-        /// <summary>Degeri baz puan carpaniyla olcekler. bp = One ise degismez.</summary>
+        /// <summary>Scales a value by a basis-point multiplier. If bp = One it is unchanged.</summary>
         public static long Bp(long value, int bp)
         {
             return MulDiv(value, bp, One);
         }
 
-        /// <summary>Yukari yuvarlayan tamsayi bolme. Negatif b desteklenmez.</summary>
+        /// <summary>Integer division rounding upwards. A negative b is not supported.</summary>
         public static int CeilDiv(int a, int b)
         {
             if (b <= 0) throw new ArgumentOutOfRangeException(nameof(b));
@@ -64,7 +66,7 @@ namespace Lokanta.Core
             return (a + b - 1) / b;
         }
 
-        /// <summary>Yukari yuvarlayan tamsayi bolme, long.</summary>
+        /// <summary>Integer division rounding upwards, long.</summary>
         public static long CeilDivL(long a, long b)
         {
             if (b <= 0) throw new ArgumentOutOfRangeException(nameof(b));
@@ -73,9 +75,9 @@ namespace Lokanta.Core
         }
 
         /// <summary>
-        /// baseNano'nun exp. kuvveti, nano olceginde.
-        /// Birikimli zam icin. Baz puanla ussalmak %0,03 sapma uretiyordu,
-        /// bu da sekizinci haftada birkac sikkeye denk geliyor.
+        /// baseNano raised to the power exp, on the nano scale.
+        /// For compounding rises. Exponentiating in basis points produced a
+        /// 0.03% drift, which by the eighth week comes to a few coins.
         /// </summary>
         public static long PowNano(long baseNano, int exp)
         {
@@ -86,7 +88,7 @@ namespace Lokanta.Core
             return r;
         }
 
-        /// <summary>Baz puan cinsinden bir orani nano olcegine tasir.</summary>
+        /// <summary>Carries a basis-point ratio up to the nano scale.</summary>
         public static long BpToNano(int bp)
         {
             return (long)bp * (Nano / One);

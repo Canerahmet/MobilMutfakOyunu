@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-Gerceklesme orani kalibrasyonu - Faz 0
+Realisation rate calibration - Phase 0
 ============================================================================
-Iki model birbirine bagli ve tek atisla uzlasmiyorlar:
+Two models depend on each other and will not agree in a single shot:
 
-  kapali form model  ->  gerceklesme oraniyla kira, kapasite, genisleme cozer
-  simulasyon         ->  o parametrelerle kac musterinin agirlandigini olcer
-                         ve gerceklesme oranini YENIDEN belirler
+  the closed-form model  ->  solves rent, capacity and expansion from the
+                             realisation rate
+  the simulation         ->  measures how many customers are actually served
+                             with those parameters, and RE-DETERMINES the
+                             realisation rate
 
-Yani oran parametreleri, parametreler orani degistiriyor. Tek seferlik olcum
-yaniltici: 10 Eylul 2026'da simulasyon %93,35 olctu, ama o olcum ESKI ucuz
-kiralarla alinmisti. Yeni kiralar uygulaninca ayni strateji genisleyemedi ve
-oran cokdu.
+So the rate changes the parameters and the parameters change the rate. A
+one-off measurement is misleading: on 10 September 2026 the simulation
+measured 93.35%, but that measurement was taken with the OLD cheap rents. Once
+the new rents were applied, the same strategy could not expand and the rate
+collapsed.
 
-Bu betik sabit noktayi ARIYOR: bir aday oran icin butun zinciri kosuyor
-(solve -> model -> export -> simulasyon) ve tasarim hedeflerine gore puanlar.
+This script SEARCHES for the fixed point: for each candidate rate it runs the
+whole chain (solve -> model -> export -> simulation) and scores it against the
+design targets.
 
-Calistirma:  python calibrate.py            butun adaylari dener
-             python calibrate.py 8000        tek adayi dener ve uygular
+Running it:  python calibrate.py            tries every candidate
+             python calibrate.py 8000        tries a single candidate and applies it
 """
 from __future__ import print_function
 
@@ -34,7 +38,8 @@ SOLVE = os.path.join(HERE, "solve.py")
 
 sys.path.insert(0, HERE)
 
-# Denenecek gerceklesme oranlari. Alt sinir eski olcum, ust sinir yeni olcum.
+# The realisation rates to try. The lower bound is the old measurement, the
+# upper bound the new one.
 CANDIDATES = [6500, 7000, 7500, 8000, 8500, 9000, 9335]
 
 
@@ -44,13 +49,13 @@ def patch(path, pairs):
     for pat, sub in pairs:
         s2, n = re.subn(pat, sub, s, count=1, flags=re.M)
         if n != 1:
-            raise AssertionError("desen bulunamadi: " + pat)
+            raise AssertionError("pattern not found: " + pat)
         s = s2
     io.open(path, "w", encoding="utf-8", newline="\n").write(s)
 
 
 def solve_for(bp):
-    """solve.py'yi verilen oranla calistirir ve en iyi parametreleri doner."""
+    """Runs solve.py at the given rate and returns the best parameters."""
     patch(SOLVE, [(r"^REALISATION_BP = \d+$", "REALISATION_BP = %d" % bp)])
 
     import importlib
@@ -75,22 +80,22 @@ def solve_for(bp):
     return best
 
 
-# Baslangic kasasi ARTIK SERBEST PARAMETRE DEGIL, kiradan turuyor.
+# The starting cash IS NO LONGER A FREE PARAMETER, it is derived from the rent.
 #
-# Kullanici kurali: hicbir sey yapmayan oyuncu ilk haftayi gecemesin. Ilk
-# kira ve maas gunun 7'sinde tek seferde odeniyor, yani kural sudur:
+# The user's rule: a player who does nothing must not get through the first
+# week. The first rent and wages are paid in one go on day 7, so the rule is:
 #
-#     baslangic kasasi  <  ilk hafta sabit gideri
+#     starting cash  <  the first week's fixed cost
 #
-# Hicbir sey yapmayan oyuncunun geliri sifir, dolayisiyla o odemeyi
-# karsilayamaz ve 7. gunde borca duser. Calisan oyuncu ise gun icinde
-# ciro urettigi icin ayni odemeyi kaldirabiliyor.
-START_CASH_BP = 8_500      # ilk hafta giderinin yuzde kaci
+# A player who does nothing has zero income and therefore cannot cover that
+# payment, and falls into debt on day 7. A player who works, on the other
+# hand, produces revenue during the day and can carry the same payment.
+START_CASH_BP = 8_500      # what percentage of the first week's cost
 
 
 def start_cash_for(rent4):
-    """Dort masalik kira ve tek ascinin haftaligindan turetilen kasa."""
-    week1 = rent4 + 7 * 140          # kira + asci gunluk ucreti
+    """The cash derived from the four-table rent and one cook's weekly wage."""
+    week1 = rent4 + 7 * 140          # rent + the cook's daily wage
     return int(week1 * START_CASH_BP / 10_000)
 
 
@@ -109,21 +114,22 @@ def apply_to_model(bp, s, o, e, rents):
     tiers = re.sub(r"upgrade=(\d+) ", lambda m: "upgrade=%s, " % m.group(1), tiers)
     tiers += "]"
 
-    # SECILEN ORAN SOLVE'A DA GERI YAZILIYOR.
+    # THE CHOSEN RATE IS WRITTEN BACK INTO SOLVE AS WELL.
     #
-    # solve_for() taramada her aday icin SOLVE'u yamiyor, yani tarama
-    # bitince orada SON DENENEN aday kaliyor - secilen degil. Iki dosya
-    # ayni adli sabiti farkli degerlerle tasiyordu (9335 / 7000) ve
-    # docs/12'nin tarif ettigi ELLE akista (python solve.py) bu yanlis
-    # kira uretirdi. Kalibrasyon bozuk degildi; artik yaniltiyordu.
+    # solve_for() patches SOLVE for every candidate during the sweep, so when
+    # the sweep finishes the LAST CANDIDATE TRIED is left there - not the
+    # chosen one. Two files carried the same constant with different values
+    # (9335 / 7000) and, in the MANUAL flow docs/12 describes (python
+    # solve.py), that would have produced the wrong rent. The calibration was
+    # not broken; it had started to mislead.
     patch(SOLVE, [(r"^REALISATION_BP = \d+$", "REALISATION_BP = %d" % bp)])
 
     patch(MODEL, [
         (r"^REALISATION_BP = \d+$", "REALISATION_BP = %d" % bp),
-        (r"^CAP_ASCI = \d+$", "CAP_ASCI = %d" % caps["asci"]),
-        (r"^CAP_GARSON = \d+$", "CAP_GARSON = %d" % caps["garson"]),
-        (r"^CAP_BULASIKCI = \d+$", "CAP_BULASIKCI = %d" % caps["bulasikci"]),
-        (r"^CAP_KASIYER = \d+$", "CAP_KASIYER = %d" % caps["kasiyer"]),
+        (r"^CAP_COOK = \d+$", "CAP_COOK = %d" % caps["cook"]),
+        (r"^CAP_WAITER = \d+$", "CAP_WAITER = %d" % caps["waiter"]),
+        (r"^CAP_DISHWASHER = \d+$", "CAP_DISHWASHER = %d" % caps["dishwasher"]),
+        (r"^CAP_CASHIER = \d+$", "CAP_CASHIER = %d" % caps["cashier"]),
         (r"^OWNER_WORK = [\d.]+", "OWNER_WORK = %s" % o),
         (r"^TIERS = \[\n(?:.*\n)*?\]$", tiers),
     ])
@@ -131,10 +137,10 @@ def apply_to_model(bp, s, o, e, rents):
 
 def run(cmd, cwd=ROOT, check=True):
     """
-    Cikis kodu ONEMLI. Eskiden yutuluyordu ve iki ayri hatayi bir gunde
-    gizledi: harness'in hic calismamasi, ve export.py'nin dosyalari
-    yazdiktan SONRA cokmesi. Ikisinde de kalibrasyon sakin sakin yanlis
-    bir cevap yaziyordu.
+    The exit code MATTERS. It used to be swallowed, and that hid two separate
+    faults in a single day: the harness never running at all, and export.py
+    crashing AFTER it had written the files. In both cases the calibration
+    calmly wrote down a wrong answer.
     """
     p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, shell=False)
@@ -142,37 +148,38 @@ def run(cmd, cwd=ROOT, check=True):
     text = out.decode("utf-8", "replace")
     if check and p.returncode != 0:
         sys.stderr.write(text[-2000:] + chr(10))
-        raise RuntimeError("komut basarisiz (%d): %s" % (p.returncode, " ".join(cmd)))
+        raise RuntimeError("command failed (%d): %s" % (p.returncode, " ".join(cmd)))
     return text
 
 
-# | strateji | son kasa | defter | itibar | masa | kadro | servis | kayip
-# | bosaldi | ilk borc | onemsiz |
+# | strategy | final cash | ledger | reputation | tables | crew | served | lost
+# | emptied | first debt | trivial |
 ROW = re.compile(r"^\|\s*(\w+)\s*\|\s*([-\d,]+)\s*\|\s*([-\d,]+)\s*\|"
                  r"\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|"
                  r"\s*([\d.]+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*([-\d]+)\s*\|"
                  r"\s*([-\d]+)\s*\|\s*([-\d.]+)\s*\|", re.M)
 
 
-# Gelir tablosu satiri: | strateji | ciro | malzeme | maas | kira | net | ...
+# An income-statement row: | strategy | revenue | ingredients | wages | rent | net | ...
 INCOME = re.compile(r"^\|\s*(\w+)\s*\|\s*([\d,]+)\s*\|\s*([\d,]+)\s*\|"
                     r"\s*([\d,]+)\s*\|\s*([\d,]+)\s*\|\s*([-\d,]+)\s*\|", re.M)
 
 
 def measured_bp(out):
     """
-    Simulasyonun URETTIGI gerceklesme orani: plancinin altmis gunluk
-    cirosu, kapali form modelin ayni takvimdeki TALEP cirosuna bolunmus.
+    The realisation rate the simulation PRODUCES: the planner's sixty-day
+    revenue divided by the closed-form model's DEMAND revenue over the same
+    calendar.
 
-    DIKKAT: bu sayi %100'u ASABILIYOR ve asmasi hata degil. Kapali form
-    modelin talebi, PLAN egrisindeki itibar ve fis varsayimlarina bagli.
-    Simulasyonda planci itibari 100'e cikariyor, modelin planladigi 88'i
-    geciyor ve daha cok musteri geliyor. Yani sayi iki seyi birden
-    tasiyor: "talebin ne kadari agirlandi" ve "oyuncu plan egrisini
-    gecti mi".
+    CAREFUL: this number CAN GO ABOVE 100% and that is not an error. The
+    closed-form model's demand depends on the reputation and ticket
+    assumptions in the PLAN curve. In the simulation the planner pushes
+    reputation to 100, beats the 88 the model planned for, and more customers
+    arrive. So the number carries two things at once: "how much of the demand
+    was served" and "did the player beat the plan curve".
 
-    Bu yuzden RAPORLANIYOR ama SECIM OLCUSU DEGIL. Beraberlikte secim
-    tasarim gerekcesine gore yapiliyor; asagiya bak.
+    That is why it is REPORTED but IS NOT THE SELECTION CRITERION. Ties are
+    broken on design grounds; see below.
     """
     import importlib
     import model
@@ -188,41 +195,42 @@ def measured_bp(out):
     return 0
 
 
-# Butun mutfaklar. docs/33: tek mutfakla olcmek Turk lokantasinin sekiz
-# stratejide de sifir musteriyle battigini altmis gun boyunca gizledi.
+# Every cuisine. docs/33: measuring with one cuisine hid, for sixty days, the
+# fact that the Turkish restaurant went under with zero customers in all eight
+# strategies.
 CUISINES = ["fastfood", "turk"]
 
 
 def harness(cuisine="fastfood", seeds=None):
-    # Bu makinede Windows "Application Control" politikasi taze yazilan
-    # derlemeleri engelliyor, ve HANGI yapilandirmayi engelledigi zamanla
-    # degisiyor: bir gun Debug bloke, ertesi gun Release. Ilk yazimda
-    # "-c Release sart" diye sabitlenmisti ve bir sonraki blok kalibrasyonu
-    # tamamen durdurdu.
+    # On this machine the Windows "Application Control" policy blocks
+    # freshly written assemblies, and WHICH configuration it blocks changes
+    # over time: Debug is blocked one day, Release the next. The first
+    # version pinned it as "-c Release is required" and the next block
+    # stopped the calibration completely.
     #
-    # Dogrusu SABITLEMEK degil DENEMEK: hangisi calisiyorsa o. Ikisi de
-    # calismiyorsa hata firlatiliyor - sessizce bos tablo dondurmek,
-    # kalibrasyonun butun adaylari esitlemesine yol aciyordu.
+    # The right answer is not to PIN but to TRY: whichever works. If neither
+    # works an error is raised - quietly returning an empty table opened the
+    # way for the calibration to treat all candidates as equal.
     extra = ["--seeds", str(seeds)] if seeds else []
     out = ""
-    # Once normal, sonra KARMA DEGISTIREREK ve YENIDEN DERLEYEREK.
+    # First the normal way, then BY CHANGING THE HASH and REBUILDING.
     #
-    # Ikisi birden gerekiyor ve bu iki kez yanlis yazildi:
-    # -p:Deterministic=false tek basina hicbir sey yapmiyor, cunku
-    # kaynak degismediyse MSBuild derlemeyi guncel sayip ATLIYOR ve
-    # ayni engelli ikili tekrar kullaniliyor. --no-incremental
-    # derlemeyi gercekten tekrarlatiyor; ancak o zaman her deneme yeni
-    # bir modul kimligi ve yeni bir sans oluyor.
+    # Both are needed, and this was written wrongly twice:
+    # -p:Deterministic=false on its own does nothing, because if the source
+    # has not changed MSBuild considers the build up to date and SKIPS it,
+    # and the same blocked binary is used again. --no-incremental really does
+    # repeat the build; only then does each attempt get a new module identity
+    # and a new chance.
     #
-    # Uc deneme: taze bir karma da engellenebiliyor.
+    # Three attempts: a fresh hash can be blocked too.
     for attempt in range(3):
         if attempt > 0:
-            # YENIDEN DERLEME AYRI ADIM.
+            # THE REBUILD IS A SEPARATE STEP.
             #
-            # "dotnet run --no-incremental" ise yaramiyor: run o bayragi
-            # tanimiyor ve UYGULAMAYA geciriyor, harness de bilinmeyen
-            # bayrak diye reddediyor (dogru davranis). Derlemeyi ayri
-            # cagirmak gerekiyor.
+            # "dotnet run --no-incremental" is no use: run does not recognise
+            # that flag and passes it on TO THE APPLICATION, and the harness
+            # rejects it as an unknown flag (the correct behaviour). The build
+            # has to be invoked separately.
             run(["dotnet", "build", "src/Lokanta.Harness",
                  "-c", "Release", "-v", "q", "--nologo",
                  "-p:Deterministic=false", "--no-incremental"], check=False)
@@ -230,7 +238,7 @@ def harness(cuisine="fastfood", seeds=None):
         out = run(["dotnet", "run", "--project", "src/Lokanta.Harness",
                    "-c", "Release", "-v", "q", "--nologo"]
                   + (["--no-build"] if attempt > 0 else [])
-                  + ["--", "--mutfak", cuisine] + extra, check=False)
+                  + ["--", "--cuisine", cuisine] + extra, check=False)
         if ROW.search(out):
             break
 
@@ -240,7 +248,7 @@ def harness(cuisine="fastfood", seeds=None):
         book = m.group(3).replace(",", "")
         rows[name] = dict(
             cash=int(m.group(2).replace(",", "")),
-            # Defterde kalan veresiye: kasada degil ama kaybolmus da degil.
+            # Credit still on the books: not in the till, but not lost either.
             book=0 if book == "-" else int(book),
             rep=float(m.group(4)),
             tables=float(m.group(5)),
@@ -252,19 +260,21 @@ def harness(cuisine="fastfood", seeds=None):
             trivial=m.group(11),
         )
     if not rows:
-        # Tek satir bile okunmadiysa sorun dengede degil, kosuda. Ceza
-        # verip devam etmek yanlis: butun adaylar esitlenir ve calibrate
-        # rastgele birini "en iyi" diye yazar.
+        # If not even a single row could be read then the problem is not in
+        # the balance but in the run. Applying a penalty and carrying on is
+        # wrong: all the candidates come out equal and calibrate writes down
+        # one of them at random as "the best".
         sys.stderr.write(out[-2000:] + chr(10))
-        raise RuntimeError("harness ciktisi bos: " + cuisine)
+        raise RuntimeError("harness output is empty: " + cuisine)
     return rows, out
 
 
 # ---------------------------------------------------------------------------
 def evaluate(rows):
     """
-    Tasarim hedefleri, docs/12 8 ve docs/29. Ihlal basina ceza.
-    Hedefler SIRALAMA hedefi: mutlak sayi degil, stratejiler arasi duzen.
+    The design targets, docs/12 8 and docs/29. A penalty per violation.
+    The targets are ORDERING targets: not an absolute number, but the order
+    between the strategies.
     """
     pen, notes = 0.0, []
 
@@ -279,183 +289,199 @@ def evaluate(rows):
             "mudahaleci", "imzaci"]
     for n in need:
         if n not in rows:
-            return 999.0, ["strateji okunamadi: " + n]
+            return 999.0, ["strategy could not be read: " + n]
 
-    # "Batmak" artik SON KASANIN EKSI OLMASI DEGIL.
+    # "Going under" IS NO LONGER "ENDING WITH NEGATIVE CASH".
     #
-    # Batma merdiveni yazildiktan sonra kasa eksiye gomulup kalmiyor:
-    # ekipman satiliyor, dukkan kuculuyor, kalan borc itibar bedeliyle
-    # siliniyor. Yani kotu oynayan biri de sifirin ustunde bitiriyor - ve
-    # eski olcut bunu "batmadi" sayip her seferinde ceza veriyordu.
+    # Since the bankruptcy ladder was written, cash does not stay buried below
+    # zero: equipment is sold, the shop shrinks, and the remaining debt is
+    # cleared at the cost of reputation. So even somebody who plays badly
+    # finishes above zero - and the old criterion counted that as "did not go
+    # under" and applied a penalty every time.
     #
-    # Dogru soru artik "MERDIVENE INDI MI": borca dusmek, bedeli olan bir
-    # olay. "defter" sutunu ilk borc gununu tasiyor; "-" hic dusmedi demek.
-    # bad() KOSULU ISTENEN DURUM: yanlissa ceza yaziyor.
-    bad(rows["pasif"]["debt"] != "-", 12, "pasif oyuncu hic borca dusmuyor")
-    bad(rows["atilgan"]["debt"] != "-", 10, "pervasiz genisleyen hic borca dusmuyor")
-    bad(rows["makul"]["cash"] > 0, 12, "makul oyuncu batiyor")
-    bad(rows["planci"]["cash"] > 0, 8, "planci batiyor")
-    bad(rows["genislemeyen"]["cash"] > 0, 6, "genislemeyen batiyor")
+    # The right question now is "DID IT GO DOWN THE LADDER": falling into debt
+    # is an event with a price. The "debt" column carries the first day of
+    # debt; "-" means it never happened.
+    # THE bad() CONDITION IS THE DESIRED STATE: if it is false a penalty is
+    # recorded.
+    bad(rows["pasif"]["debt"] != "-", 12, "the passive player never falls into debt")
+    bad(rows["atilgan"]["debt"] != "-", 10, "the reckless expander never falls into debt")
+    bad(rows["makul"]["cash"] > 0, 12, "the reasonable player goes under")
+    bad(rows["planci"]["cash"] > 0, 8, "the planner goes under")
+    bad(rows["genislemeyen"]["cash"] > 0, 6, "the non-expander goes under")
 
-    # Buyumek odullendirmeli: docs/12 "uc kat, on bir degil"
+    # Growth has to be rewarded: docs/12 "three times, not eleven"
     g = rows["genislemeyen"]["cash"]
     m = rows["makul"]["cash"]
     ratio = (m / float(g)) if g > 0 else 0.0
-    bad(1.8 <= ratio <= 4.0, 10, "buyume carpani %.2f (hedef 1,8-4,0)" % ratio)
+    bad(1.8 <= ratio <= 4.0, 10, "growth multiplier %.2f (target 1.8-4.0)" % ratio)
 
-    # Pasiflik acikca kaybetmeli. "sadece_hal" hicbir sey yapmiyor: ne ise
-    # aliyor, ne menu yonetiyor, ne genisliyor, ne ekipman aliyor.
+    # Passivity has to lose visibly. "sadece_hal" does nothing at all: it does
+    # not hire, does not manage the menu, does not expand, does not buy
+    # equipment.
     #
-    # Esik "genislemeyenden az" DEGIL, bilincli olarak. Dort masada kadro
-    # HAFTA SONU ZIRVESINE gore kuruluyor (docs/12 5.1) ve o ikinci kisi
-    # kendini cikarmiyor; yani genislemeyen oyuncu modeli dogru izledigi
-    # halde az kazaniyor. Bu gercek bir ekonomik ifade, hata degil.
-    # Olculmesi gereken sey pasifligin IYI OYUNU yenmemesi.
+    # The threshold is deliberately NOT "less than the non-expander". At four
+    # tables the crew is sized against the WEEKEND PEAK (docs/12 5.1) and that
+    # second person does not pay for themselves; so a non-expanding player
+    # earns little even though they are following the model correctly. That is
+    # a genuine economic statement, not a fault. What needs measuring is that
+    # passivity does not beat GOOD PLAY.
     #
-    # Esik "%60" olarak denendi ve keyfi oldugu anlasildi: sonuc tam o
-    # cizginin iki yaninda salindi (fast food %59, Turk %61). Olculmesi
-    # gereken sey bir yuzde degil bir SIRALAMA: hicbir sey yapmayan
-    # oyuncu, tam plani uygulayani gecmemeli.
+    # A threshold of "60%" was tried and turned out to be arbitrary: the
+    # result oscillated right on that line (fast food 59%, Turkish 61%). What
+    # needs measuring is not a percentage but an ORDER: a player who does
+    # nothing must not beat one who follows the plan exactly.
     bad(rows["sadece_hal"]["cash"] < rows["planci"]["cash"], 10,
-        "sadece_hal (%d) planciyi (%d) geciyor"
+        "sadece_hal (%d) beats the planner (%d)"
         % (rows["sadece_hal"]["cash"], rows["planci"]["cash"]))
     bad(rows["sadece_hal"]["cash"] < rows["makul"]["cash"], 6,
-        "sadece_hal iyi oyunu geciyor")
+        "sadece_hal beats good play")
     bad(rows["fazla_kadro"]["cash"] < rows["makul"]["cash"], 4,
-        "fazla kadro iyi oyunu geciyor")
+        "overstaffing beats good play")
 
-    # Malzemeden kismak TUZAK olmali: birim maliyeti dusuruyor ama itibari
-    # cokertiyor, musteri azaliyor, buyume duruyor. Icerik en hassas alti
-    # malzemeyi ET yaptigi icin zincir menuye gore agirlasiyor.
+    # Skimping on ingredients has to be a TRAP: it lowers the unit cost but
+    # wrecks the reputation, customers fall away and growth stops. Because the
+    # content makes the six most sensitive ingredients MEAT, the chain bites
+    # harder on a menu-wide basis.
     bad(rows["ucuz_malzeme"]["cash"] < rows["makul"]["cash"], 6,
-        "ucuz malzeme (%d) iyi oyunu (%d) geciyor"
+        "cheap ingredients (%d) beat good play (%d)"
         % (rows["ucuz_malzeme"]["cash"], rows["makul"]["cash"]))
 
-    # docs/02 cekirdek dongusu: "servis sirasinda sadece krizlere mudahale
-    # edersin". Mudahale hakki sinirli ve cay ikrami parayla, ama yine de
-    # ISE YARAMALI; yoksa oyuncunun servis sirasinda yapabilecegi tek sey
-    # zarar demektir.
+    # The docs/02 core loop: "during service you only intervene in crises".
+    # Interventions are limited and offering tea costs money, but it still has
+    # to BE WORTH SOMETHING; otherwise the only thing the player can do during
+    # service is lose money.
     #
-    # Olcu SON KASA DEGIL, ve bu bilincli. Once kasayla olculdu ve Turk
-    # mutfaginda "mudahale zarar ediyor" cikti: 24.058'e karsi 28.638.
-    # Ama ayni kosuda mudahalecinin itibari 81,3 (makul 56,5), masasi 11
-    # (8,4) ve agirladigi 2.152 (1.998) idi. Yani daha kucuk degil DAHA
-    # BUYUK bir isletme calistiriyordu; kasasi az cunku genişlemeye ve
-    # kadroya harcamisti.
+    # The measure is NOT FINAL CASH, and that is deliberate. It was first
+    # measured with cash and in the Turkish cuisine it came out as
+    # "intervening loses money": 24,058 against 28,638. But in the same run
+    # the intervener's reputation was 81.3 (reasonable 56.5), tables 11 (8.4)
+    # and customers served 2,152 (1,998). That is, they were running a BIGGER
+    # business, not a smaller one; their cash was lower because they had spent
+    # it on expansion and staff.
     #
-    # Mudahalenin dogrudan etkiledigi sey itibar ve agirlanan musteri.
-    # Kasa, stratejinin o itibarla NE YAPTIGINA bagli ve bu mekanigin
-    # olcusu olamaz.
-    # Imza mekanigi bir SECENEK olmali: kullanmak tuzak da olmamali,
-    # mecburiyet de. docs/07 mekanigi mutfagi mutfaktan ayiran sey diye
-    # tarif ediyor; her kosuda kaybettiren bir mekanik ayirt etmez, her
-    # kosuda kazandiran bir mekanik ise karar degil dugmedir.
+    # What the intervention directly affects is reputation and customers
+    # served. Cash depends on what the strategy DOES with that reputation and
+    # cannot be the measure of this mechanic.
+    # The signature mechanic has to be a CHOICE: using it must be neither a
+    # trap nor an obligation. docs/07 describes the mechanic as the thing that
+    # separates one cuisine from another; a mechanic that loses in every run
+    # does not distinguish anything, and a mechanic that wins in every run is
+    # not a decision but a button.
     #
-    # Olcu KASA + DEFTER: veresiye altmisinci gunde tahsil edilmemis para
-    # birakiyor ve o para kaybolmus degil (docs/08 net varlik).
+    # The measure is CASH + LEDGER: a tab leaves money uncollected on the
+    # sixtieth day and that money is not lost (docs/08, net worth).
     im = rows["imzaci"]["cash"] + rows["imzaci"]["book"]
     mk = rows["makul"]["cash"]
     ratio = (im / float(mk)) if mk > 0 else 0.0
     bad(0.90 <= ratio <= 1.30, 6,
-        "imza mekanigi dengesiz: imzaci/makul %.2f (hedef 0,90-1,30)" % ratio)
-    bad(rows["imzaci"]["debt"] == "-", 6, "imzaci borca dusuyor")
+        "the signature mechanic is unbalanced: imzaci/makul %.2f (target 0.90-1.30)" % ratio)
+    bad(rows["imzaci"]["debt"] == "-", 6, "imzaci falls into debt")
 
-    # Tolerans 3 puan, ve sebebi ITIBAR TAVANI.
+    # The tolerance is 3 points, and the reason is THE REPUTATION CEILING.
     #
-    # Bu kontrol, makul oyuncunun itibari 56 iken yazildi; o zaman
-    # mudahalenin yukseltecek yeri vardi. Personel huylari gelince
-    # makul kendi kadrosunu duzeltmeyi ogrendi ve fast food'da 99,3'e
-    # cikti - yani mudahale icin tavan kalmadi ve mekanik "ise
-    # yaramiyor" gorundu. Ayni kosuda Turk mutfaginda mudahaleci 100,0,
-    # makul 96,1: bosluk olan yerde mekanik CALISIYOR.
+    # This check was written when the reasonable player's reputation was 56;
+    # back then the intervention had room to raise it. Once staff traits
+    # arrived, the reasonable player learned to fix its own crew and reached
+    # 99.3 in fast food - that is, there was no headroom left for the
+    # intervention and the mechanic LOOKED like it "does not work". In the
+    # same run, in the Turkish cuisine, the intervener was at 100.0 and the
+    # reasonable player at 96.1: where there is room, the mechanic WORKS.
     #
-    # Dogru kontrol "her zaman daha iyi" degil, "hicbir zaman daha
-    # kotu degil" - bir mekanigi, oyuncunun zaten doymus oldugu bir
-    # eksende olcmek onu haksiz yere mahkum eder (docs/34 18).
+    # The right check is not "always better" but "never worse" - measuring a
+    # mechanic on an axis where the player is already saturated condemns it
+    # unfairly (docs/34 18).
     bad(rows["mudahaleci"]["rep"] >= rows["makul"]["rep"] - 3.0, 6,
-        "mudahale itibari dusuruyor (%.1f vs %.1f)"
+        "the intervention lowers reputation (%.1f vs %.1f)"
         % (rows["mudahaleci"]["rep"], rows["makul"]["rep"]))
     bad(rows["mudahaleci"]["served"] >= rows["makul"]["served"] * 0.98, 4,
-        "mudahale musteri sayisini dusuruyor (%d vs %d)"
+        "the intervention lowers the customer count (%d vs %d)"
         % (rows["mudahaleci"]["served"], rows["makul"]["served"]))
     bad(rows["mudahaleci"]["debt"] == "-", 6,
-        "mudahaleci %s. gunde borca dusuyor" % rows["mudahaleci"]["debt"])
+        "mudahaleci falls into debt on day %s" % rows["mudahaleci"]["debt"])
 
-    # DAR MENU BASKIN OLMAMALI. Bir kabul testi, bir denge hedefi degil.
+    # A NARROW MENU MUST NOT DOMINATE. An acceptance test, not a balance
+    # target.
     #
-    # Menuden cikarilan yemek uzun sure "sorulmus" sayilmiyordu, yani
-    # daraltmanin talep tarafinda SIFIR bedeli vardi. Olculdu: menude
-    # tek ana yemek tutan oyuncu makul oyuncuyu fast food'da %12, Turk
-    # mutfaginda %38 geciyordu. Soguk hava deposunun ikinci odulu
-    # (menu genisligi tasiyabilmek) boylece degersizdi ve otuz iki
-    # yemeklik envanterin var olma sebebi ortadan kalkiyordu.
+    # For a long time a dish taken off the menu was not counted as "asked
+    # for", which meant narrowing had ZERO cost on the demand side. Measured:
+    # a player keeping a single main dish on the menu beat the reasonable
+    # player by 12% in fast food and 38% in the Turkish cuisine. The cold
+    # store's second reward (being able to carry menu width) was therefore
+    # worthless, and the reason for a thirty-two dish inventory to exist
+    # disappeared.
     #
-    # Bu satir o hatanin bir daha geri gelmemesi icin duruyor.
+    # This line stands so that that mistake never comes back.
     if "tek_yemek" in rows:
         bad(rows["tek_yemek"]["cash"] <= rows["makul"]["cash"], 12,
-            "dar menu baskin: tek_yemek %d, makul %d"
+            "a narrow menu dominates: tek_yemek %d, makul %d"
             % (rows["tek_yemek"]["cash"], rows["makul"]["cash"]))
 
-    # KULLANICI KURALI: gerekli yatirimlari ZAMANINDA yapan oyuncu itibarini
-    # 80 uzerine cikarmali. "Yoksa is yapmanin manasi yok."
+    # THE USER'S RULE: a player who makes the necessary investments ON TIME
+    # must push their reputation above 80. "Otherwise there is no point doing
+    # business."
     #
-    # Olcu "makul" degil "planci". Ikisi farkli oyuncular: makul ancak
-    # rahatca karsilayabildiginde genisliyor, yani temkinli; planci
-    # takvimi izliyor, ekipmani aliyor, kadroyu kuruyor. Kullanicinin
-    # tarifi ikincisi. Olcum farki buyuk: fast food'da makul 77,4, planci
-    # 94,2.
+    # The measure is not "makul" but "planci". They are different players:
+    # the reasonable one expands only when it can comfortably afford to, i.e.
+    # cautiously; the planner follows the calendar, buys the equipment and
+    # builds the crew. The user's description is the second one. The
+    # difference in measurement is large: in fast food makul is 77.4, planci
+    # 94.2.
     bad(rows["planci"]["rep"] >= 80.0, 10,
-        "zamaninda yatirim yapanin itibari %.1f (hedef 80+)" % rows["planci"]["rep"])
+        "the on-time investor's reputation is %.1f (target 80+)" % rows["planci"]["rep"])
 
-    # KULLANICI KURALI, iki yonlu ve ikisi birden tutmali:
+    # THE USER'S RULE, two-sided, and both sides have to hold:
     #
-    #   "hicbir sey yapmayan"  ilk haftayi GECEMESIN
-    #   "kotu yoneten"         ilk haftayi ZOR DA OLSA gecsin
+    #   "somebody who does nothing"  MUST NOT get through the first week
+    #   "somebody who manages badly" MUST get through it, with difficulty
     #
-    # Olcu BATMA gunu DEGIL, BOSALMA gunu. Iki sebep:
+    # The measure is NOT the day of going under but the day of EMPTYING. Two
+    # reasons:
     #
-    # 1. docs/08 kapanisi reddediyor: "kayit silinmez, oyun bitmez". Batma
-    #    bir son degil, bir merdiven. Yani "ilk haftayi gecememek" oyunun
-    #    bitmesi olamaz.
-    # 2. Hicbir sey yapmayan oyuncunun cirosu SIFIR; batma gunu saf
-    #    aritmetik (kasa / haftalik gider = 42. gun) ve onu yediye cekmenin
-    #    tek yolu kasayi bir haftalik gidere indirmek. Olculdu: o zaman
-    #    planci -18.976'ya, iyi oyuncunun itibari 16'ya dusuyor.
+    # 1. docs/08 rejects closure: "the save is not deleted, the game does not
+    #    end". Going under is not an ending but a ladder. So "not getting
+    #    through the first week" cannot mean the game ending.
+    # 2. A player who does nothing has ZERO revenue; the day they go under is
+    #    pure arithmetic (cash / weekly cost = day 42) and the only way to
+    #    pull it back to seven is to cut the cash down to one week's cost.
+    #    Measured: at that point the planner drops to -18,976 and a good
+    #    player's reputation to 16.
     #
-    # Olculebilir ve dogru olan sey: DUKKAN NE ZAMAN BOSALDI. Talep egrisi
-    # 20 puanin altinda dikleseyor, yani itibar oraya inince restoran
-    # gorunur bicimde bosaliyor. Oyuncu isin bittigini o gun goruyor;
-    # kasadaki para yalnizca cenazeyi geciktiriyor.
+    # The thing that is both measurable and correct: WHEN DID THE SHOP EMPTY.
+    # The demand curve steepens below 20 points, so when reputation falls
+    # there the restaurant visibly empties out. That is the day the player
+    # sees it is over; the money in the till only delays the funeral.
     empty = rows["pasif"]["collapse"]
     bad(empty != "-" and float(empty) <= 7, 12,
-        "hicbir sey yapmayanin dukkani %s. gunde bosaliyor (hedef ilk hafta)" % empty)
+        "the do-nothing player's shop empties on day %s (target: the first week)" % empty)
 
     lazy = rows["sadece_hal"]["debt"]
     bad(lazy == "-" or float(lazy) > 8, 10,
-        "kotu yoneten ilk haftayi gecemiyor (%s. gun)" % lazy)
+        "the bad manager cannot get through the first week (day %s)" % lazy)
 
-    # Iyi oyunun dukkani hic bosalmamali. Olcu "makul": dikkatli ve
-    # kazandigini olcerek harcayan oyuncu.
+    # A good player's shop must never empty. The measure is "makul": a careful
+    # player who spends by measuring what they earn.
     bad(rows["makul"]["collapse"] == "-", 8,
-        "iyi oyuncunun dukkani %s. gunde bosaliyor" % rows["makul"]["collapse"])
+        "the good player's shop empties on day %s" % rows["makul"]["collapse"])
 
-    # "planci" farkli bir sey olcuyor: kapali form modelin TAKVIMI
-    # karsilanabiliyor mu. Kasaya bakmadan genisledigi icin bilerek sinirda
-    # yasiyor; gec bir sarsinti mesru, erken bir cokus degil.
+    # "planci" measures something different: whether the closed-form model's
+    # CALENDAR can be afforded. It expands without looking at the cash, so it
+    # deliberately lives on the edge; a late shock is legitimate, an early
+    # collapse is not.
     pc = rows["planci"]["collapse"]
     bad(pc == "-" or float(pc) > 30, 6,
-        "planci %s. gunde bosaliyor (ilk yaride cokmemeli)" % pc)
+        "planci empties on day %s (it must not collapse in the first half)" % pc)
 
-    bad(rows["makul"]["tables"] >= 7, 6, "makul oyuncu genisleyemiyor")
-    bad(rows["planci"]["tables"] >= 13, 6, "planci takvimi tutturamiyor")
-    bad(rows["fazla_kadro"]["cash"] < rows["makul"]["cash"], 4, "fazla kadro cezalandirilmiyor")
-    bad(rows["yuksek_fiyat"]["cash"] < rows["makul"]["cash"], 4, "yuksek fiyat cezalandirilmiyor")
+    bad(rows["makul"]["tables"] >= 7, 6, "the reasonable player cannot expand")
+    bad(rows["planci"]["tables"] >= 13, 6, "planci cannot keep to the calendar")
+    bad(rows["fazla_kadro"]["cash"] < rows["makul"]["cash"], 4, "overstaffing is not punished")
+    bad(rows["yuksek_fiyat"]["cash"] < rows["makul"]["cash"], 4, "high prices are not punished")
 
-    # Para sekizinci haftadan once onemsizlesmemeli
+    # Money must not stop mattering before the eighth week
     for n in ("makul", "planci"):
         t = rows[n]["trivial"]
         if t != "-":
-            bad(float(t) >= 8.0, 5, "%s: para %s. haftada onemsizlesiyor" % (n, t))
+            bad(float(t) >= 8.0, 5, "%s: money stops mattering in week %s" % (n, t))
 
     return pen, notes
 
@@ -466,7 +492,7 @@ def main():
     for bp in only:
         best = solve_for(bp)
         if best is None:
-            print("%5d  solve cozum bulamadi" % bp)
+            print("%5d  solve found no solution" % bp)
             continue
         pen0, s, o, e, rents, fails = best
         apply_to_model(bp, s, o, e, rents)
@@ -481,56 +507,59 @@ def main():
                 got = measured_bp(out)
         drift = abs(got - bp)
         results.append((pen, drift, bp, s, o, e, rents, notes))
-        print("%5d  s=%.2f o=%.1f e=%.1f  kira %s  ceza %.0f  olculen %5d  %s" % (
+        print("%5d  s=%.2f o=%.1f e=%.1f  rent %s  penalty %.0f  measured %5d  %s" % (
             bp, s, o, e, [rents[t] for t in (4, 7, 10, 14)], pen, got,
-            "; ".join(notes) if notes else "IKI MUTFAK DA TEMIZ"))
+            "; ".join(notes) if notes else "BOTH CUISINES CLEAN"))
 
     if not results:
         return
-    # Once ceza. Beraberlikte EN YUKSEK oran, yani en yuksek kira.
+    # Penalty first. On a tie, the HIGHEST rate, which means the highest rent.
     #
-    # Gerekce docs/12 2: kira bilincli olarak baskin sabit gider, "baski
-    # metronomu". Butun tasarim hedefleri tutuyorsa daha yuksek kira daha
-    # cok gerilim demek ve gerilim istenen sey. Sabit noktadan sapma
-    # raporlaniyor ama secmiyor: o sayi %100'u asabiliyor ve astiginda
-    # olcugu sey gerceklesme degil, oyuncunun plan egrisini gecmesi.
+    # The reasoning is docs/12 2: the rent is deliberately the dominant fixed
+    # cost, the "metronome of pressure". If all the design targets hold, a
+    # higher rent means more tension, and tension is what is wanted. The drift
+    # from the fixed point is reported but does not decide: that number can go
+    # above 100%, and when it does what it measures is not realisation but the
+    # player beating the plan curve.
     results.sort(key=lambda r: (r[0], -r[2]))
     pen, drift, bp, s, o, e, rents, notes = results[0]
     print()
     print("=" * 70)
-    print("EN IYI: gerceklesme %d, ceza %.0f, sabit noktadan sapma %d" % (bp, pen, drift))
+    print("BEST: realisation %d, penalty %.0f, drift from the fixed point %d" % (bp, pen, drift))
     print("=" * 70)
     apply_to_model(bp, s, o, e, rents)
     run([sys.executable, os.path.join(HERE, "export.py")])
-    print("model.py ve content/ bu ayara gore yazildi.")
+    print("model.py and content/ have been written to this setting.")
 
-    # KAZANANI YUKSEK TOHUMLA YENIDEN OLC.
+    # RE-MEASURE THE WINNER WITH MORE SEEDS.
     #
-    # Tarama sekiz tohumla kosuyor ve bu ARAMA icin dogru: adaylar
-    # arasindaki ceza farki onlarca puan, gurultu onu bozmuyor. Ama
-    # kontrollerin bir kismi YUZDE IKI toleransli ve o olcekte sekiz
-    # tohum gurultuden ibaret. Olculdu - ayni ayar, ayni icerik:
+    # The sweep runs with eight seeds and that is right FOR THE SEARCH: the
+    # penalty difference between candidates is tens of points and the noise
+    # does not disturb it. But some of the checks have a TWO PER CENT
+    # tolerance, and at that scale eight seeds are nothing but noise. It was
+    # measured - same setting, same content:
     #
-    #     tohum    makul   mudahaleci   oran
-    #         8     1922         1828   %95,1   (kontrol KIRILIYOR)
-    #        16     1953         1921   %98,4   (geciyor)
-    #        32     1969         1941   %98,6   (geciyor)
+    #     seeds    makul   mudahaleci   ratio
+    #         8     1922         1828   95.1%   (the check BREAKS)
+    #        16     1953         1921   98.4%   (passes)
+    #        32     1969         1941   98.6%   (passes)
     #
-    # Yani arac, gecmesi gereken bir dengeyi kirmizi gosteriyordu ve
-    # o kirmiziyi kovalamak var olmayan bir sorunu kovalamak olurdu.
+    # That is, the tool was showing a balance that ought to pass as red, and
+    # chasing that red would have meant chasing a problem that does not exist.
     #
-    # Ucuz ARAMA, titiz DOGRULAMA: sweep sekizle, kazanan otuz ikiyle.
+    # Cheap SEARCH, careful VERIFICATION: sweep with eight, the winner with
+    # thirty-two.
     print()
     print("=" * 70)
-    print("DOGRULAMA (32 tohum)")
+    print("VERIFICATION (32 seeds)")
     vpen, vnotes = 0.0, []
     for cuisine in CUISINES:
         vrows, _vout = harness(cuisine, seeds=32)
         p2, n2 = evaluate(vrows)
         vpen += p2
         vnotes.extend(cuisine + ": " + x for x in n2)
-    print("ceza %.0f  %s" % (
-        vpen, "; ".join(vnotes) if vnotes else "IKI MUTFAK DA TEMIZ"))
+    print("penalty %.0f  %s" % (
+        vpen, "; ".join(vnotes) if vnotes else "BOTH CUISINES CLEAN"))
     print("=" * 70)
 
 

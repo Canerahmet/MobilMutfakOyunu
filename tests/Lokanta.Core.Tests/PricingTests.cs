@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Lokanta.Content;
 using Lokanta.Core.Content;
@@ -10,24 +10,25 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// FIYATIN TALEBE DOGRUDAN ETKISI.
+    /// THE PRICE'S DIRECT EFFECT ON DEMAND.
     ///
-    /// Bu kanal bir zamanlar HIC YOKTU ve oyunun en buyuk tasarim
-    /// acigiydi. Fiyatin tek yolu memnuniyet -> itibar idi; itibar da
-    /// masa kademesinin tavanina KIRPILIYOR. Yani tavana dayanmis bir
-    /// oyuncu icin memnuniyet kaybi hicbir sey satin almiyordu ve kucuk
-    /// bir zam BEDAVAYDI.
+    /// This channel once DID NOT EXIST AT ALL and it was the game's biggest design
+    /// hole. The price's only route was satisfaction -> reputation; and reputation
+    /// is CLAMPED to the table tier's ceiling. So for a player sitting at the
+    /// ceiling a loss of satisfaction bought nothing at all, and a small markup
+    /// was FREE.
     ///
-    /// Denge harness'i olctu (24 tohum, 60 gun, fast food): piyasanin
-    /// %10 ustunde fiyatlayan bot 27.849 sikke ile bitiriyordu; oyunun
-    /// en gelismis stratejisi 25.092, taban strateji 18.670. Sabah bir
-    /// kez basilan bir dugme, DAHA AZ masa ve DAHA AZ kadroyla her seyi
-    /// geciyordu. Ceza yalnizca bandin disinda vardi (%30 zamda itibar
-    /// sifirlaniyor ve dukkan batiyor); arasi bostu.
+    /// The balance harness measured it (24 seeds, 60 days, fast food): the bot
+    /// pricing 10% above the market finished on 27,849 coins; the game's most
+    /// developed strategy on 25,092 and the baseline strategy on 18,670. A button
+    /// pressed once in the morning beat everything with FEWER tables and a SMALLER
+    /// crew. The penalty existed only outside the band (at a 30% markup the
+    /// reputation is wiped out and the place goes under); in between there was
+    /// nothing.
     ///
-    /// Bu dosya o kanalin KOSTUGUNU sinar. Kanal silinirse ya da bir
-    /// cagri yeri dogrudan DemandModel.CustomersPerDay'e donerse
-    /// testlerin biri kirilir.
+    /// This file tests that the channel RUNS. If the channel is deleted, or if a
+    /// call site goes back to DemandModel.CustomersPerDay directly, one of these
+    /// tests breaks.
     /// </summary>
     public sealed class PricingTests
     {
@@ -50,15 +51,15 @@ namespace Lokanta.Core.Tests
         private static Simulation NewSim() =>
             new Simulation(Economy(), Content(), Timing(), Seed);
 
-        /// <summary>Acilmis butun yemekleri menuye koyar.</summary>
-        private static void MenuyuAc(Simulation sim)
+        /// <summary>Puts every unlocked dish on the menu.</summary>
+        private static void OpenTheMenu(Simulation sim)
         {
             for (int i = 0; i < sim.DishCount; i++)
                 if (sim.IsUnlocked(i))
                     sim.Apply(new Command(sim.TickIndex, CommandKind.SetMenuSlot, i, 1));
         }
 
-        /// <summary>Menudeki her yemegi piyasanin verilen orani kadarina ceker.</summary>
+        /// <summary>Pulls every dish on the menu to the given ratio of the market price.</summary>
         private static void PriceAll(Simulation sim, int markupBp)
         {
             for (int i = 0; i < sim.DishCount; i++)
@@ -71,317 +72,323 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Zam_talebi_dusuruyor()
+        public void A_markup_lowers_demand()
         {
-            Simulation taban = NewSim();
-            int piyasa = taban.ExpectedPeopleToday();
+            Simulation baseline = NewSim();
+            int atMarket = baseline.ExpectedPeopleToday();
 
-            Simulation zamli = NewSim();
-            PriceAll(zamli, 11000);                 // piyasanin %10 ustu
-            int zamliTalep = zamli.ExpectedPeopleToday();
+            Simulation dearer = NewSim();
+            PriceAll(dearer, 11000);                // 10% above the market
+            int dearerDemand = dearer.ExpectedPeopleToday();
 
-            _out.WriteLine($"piyasa {piyasa} kisi, %10 zamli {zamliTalep} kisi");
+            _out.WriteLine($"at market {atMarket} people, 10% dearer {dearerDemand} people");
 
-            // ONCE CANLILIK: taban talep sifir olsaydi asagidaki
-            // karsilastirma vakumda yesil kalirdi.
-            Assert.True(piyasa > 0, "taban talep sifir - olcum kosmamis");
-            Assert.True(zamliTalep < piyasa,
-                $"zam talebi dusurmuyor ({piyasa} -> {zamliTalep})");
+            // LIVENESS FIRST: if the baseline demand were zero the comparison
+            // below would stay green in a vacuum.
+            Assert.True(atMarket > 0, "the baseline demand is zero - the measurement did not run");
+            Assert.True(dearerDemand < atMarket,
+                $"a markup does not lower demand ({atMarket} -> {dearerDemand})");
         }
 
         [Fact]
-        public void Indirim_talebi_yukseltiyor()
+        public void A_discount_raises_demand()
         {
-            Simulation taban = NewSim();
-            int piyasa = taban.ExpectedPeopleToday();
+            Simulation baseline = NewSim();
+            int atMarket = baseline.ExpectedPeopleToday();
 
-            Simulation ucuz = NewSim();
-            PriceAll(ucuz, 9000);                   // piyasanin %10 alti
-            int ucuzTalep = ucuz.ExpectedPeopleToday();
+            Simulation cheaper = NewSim();
+            PriceAll(cheaper, 9000);                // 10% below the market
+            int cheaperDemand = cheaper.ExpectedPeopleToday();
 
-            _out.WriteLine($"piyasa {piyasa} kisi, %10 indirimli {ucuzTalep} kisi");
+            _out.WriteLine($"at market {atMarket} people, 10% cheaper {cheaperDemand} people");
 
-            Assert.True(piyasa > 0, "taban talep sifir - olcum kosmamis");
-            Assert.True(ucuzTalep > piyasa,
-                $"indirim talebi yukseltmiyor ({piyasa} -> {ucuzTalep})");
+            Assert.True(atMarket > 0, "the baseline demand is zero - the measurement did not run");
+            Assert.True(cheaperDemand > atMarket,
+                $"a discount does not raise demand ({atMarket} -> {cheaperDemand})");
         }
 
         /// <summary>
-        /// TALEP TEK KAPIDAN GECIYOR.
+        /// DEMAND PASSES THROUGH A SINGLE GATE.
         ///
-        /// Gunluk musteri sayisi ALTI ayri yerde soruluyor: bugunku
-        /// kadro, yarinki kadro, zirve kadro, onerilen stok, beklenen
-        /// kisi ve gelis plani. Fiyat kanali eklenirken bunlardan birini
-        /// atlamak, o ekranin GERCEKTE GELMEYECEK musteriye gore tavsiye
-        /// vermesi demekti - orn. hal, zam yapmis bir lokantaya hala
-        /// kalabalik gune gore stok onerirdi ve oyuncunun parasi cope
-        /// giderdi. Sessiz, ve hicbir ekranda gorunmez.
+        /// The daily customer count is asked for in SIX separate places: today's
+        /// crew, tomorrow's crew, the peak crew, the recommended stock, the
+        /// expected people and the arrival plan. Missing one of them while adding
+        /// the price channel would mean that screen giving advice based on
+        /// customers WHO WILL NOT ACTUALLY COME - e.g. the market would still
+        /// recommend stock for a busy day to a restaurant that had raised its
+        /// prices, and the player's money would go in the bin. Silent, and visible
+        /// on no screen.
         ///
-        /// KOSULU DAVRANISLA OLCMEYI DENEDIM, OLMADI: kadro ve stok
-        /// tamsayi ve 1. gunde zaten tabanda (zirve kadro 1+0, acilis
-        /// stogu genis menuyu bile karsiliyor), yani fark yuvarlanip
-        /// kayboluyor ve test VAKUMDA yesil kaliyordu. Degismezin
-        /// kendisi zaten yapisal: "Simulation icinde CustomersPerDay'i
-        /// yalnizca ExpectedCustomers cagirir". Onu dogrudan kaynakta
-        /// olcmek hem kesin hem kirilabilir.
+        /// I TRIED MEASURING THE CONDITION THROUGH BEHAVIOUR AND IT DID NOT WORK:
+        /// the crew and the stock are integers and on day 1 they are already at
+        /// the floor (peak crew 1+0, the opening stock covers even a wide menu),
+        /// so the difference rounds away and the test stayed green IN A VACUUM.
+        /// The invariant itself is structural: "inside Simulation, only
+        /// ExpectedCustomers calls CustomersPerDay". Measuring that directly in
+        /// the source is both exact and breakable.
         /// </summary>
         [Fact]
-        public void Talep_tek_kapidan_geciyor()
+        public void Demand_passes_through_a_single_gate()
         {
-            string yol = Path.Combine(Paths.Root, "unity", "Assets", "Lokanta",
-                                      "Core", "Sim", "Simulation.cs");
-            Assert.True(File.Exists(yol), "Simulation.cs bulunamadi: " + yol);
+            string path = Path.Combine(Paths.Root, "unity", "Assets", "Lokanta",
+                                       "Core", "Sim", "Simulation.cs");
+            Assert.True(File.Exists(path), "Simulation.cs not found: " + path);
 
-            string[] satirlar = File.ReadAllLines(yol);
+            string[] lines = File.ReadAllLines(path);
 
-            // TARAMA GERCEKTEN OLDU MU: dosya bos okunsa test "ihlal yok"
-            // diye yesil kalirdi.
-            Assert.True(satirlar.Length > 1000,
-                $"Simulation.cs yalnizca {satirlar.Length} satir okundu - yol yanlis olabilir");
+            // DID THE SCAN ACTUALLY HAPPEN: if the file read empty the test would
+            // stay green saying "no violations".
+            Assert.True(lines.Length > 1000,
+                $"only {lines.Length} lines of Simulation.cs were read - the path may be wrong");
 
-            List<string> ihlal = new List<string>();
-            bool yardimcidaMiyiz = false;
+            List<string> violations = new List<string>();
+            bool insideHelper = false;
 
-            for (int i = 0; i < satirlar.Length; i++)
+            for (int i = 0; i < lines.Length; i++)
             {
-                string satir = satirlar[i];
+                string line = lines[i];
 
-                if (satir.Contains("private int ExpectedCustomers(")) yardimcidaMiyiz = true;
-                else if (yardimcidaMiyiz && satir.StartsWith("        }")) yardimcidaMiyiz = false;
+                if (line.Contains("private int ExpectedCustomers(")) insideHelper = true;
+                else if (insideHelper && line.StartsWith("        }")) insideHelper = false;
 
-                // Yorum satirlari sayilmiyor: gerekce metni icinde adi geciyor.
-                string kirp = satir.TrimStart();
-                if (kirp.StartsWith("//") || kirp.StartsWith("///")) continue;
+                // Comment lines do not count: the name appears in the reasoning.
+                string trimmed = line.TrimStart();
+                if (trimmed.StartsWith("//") || trimmed.StartsWith("///")) continue;
 
-                if (satir.Contains("DemandModel.CustomersPerDay") && !yardimcidaMiyiz)
-                    ihlal.Add($"satir {i + 1}: {kirp}");
+                if (line.Contains("DemandModel.CustomersPerDay") && !insideHelper)
+                    violations.Add($"line {i + 1}: {trimmed}");
             }
 
-            Assert.True(ihlal.Count == 0,
-                "Talep ExpectedCustomers disindan hesaplaniyor - fiyat kanali "
-                + "o cagri yerinde CALISMAZ: " + string.Join("; ", ihlal));
+            Assert.True(violations.Count == 0,
+                "Demand is computed outside ExpectedCustomers - the price channel "
+                + "DOES NOT RUN at that call site: " + string.Join("; ", violations));
         }
 
         /// <summary>
-        /// PIYASA FIYATINDA KANAL SESSIZ.
+        /// AT THE MARKET PRICE THE CHANNEL IS SILENT.
         ///
-        /// Sapma yoksa carpan tam 1 olmali. Olmazsa kanal butun dengeyi
-        /// kaydirir ve bunu hicbir sey soylemez: harness'taki piyasa
-        /// fiyatli stratejilerin hepsi ayni anda, ayni yonde kayardi.
+        /// With no deviation the multiplier must be exactly 1. If it is not, the
+        /// channel shifts the whole balance and nothing says so: every
+        /// market-priced strategy in the harness would drift at the same time, in
+        /// the same direction.
         /// </summary>
         [Fact]
-        public void Piyasa_fiyatinda_talep_degismiyor()
+        public void At_the_market_price_demand_does_not_change()
         {
-            Simulation taban = NewSim();
-            int piyasa = taban.ExpectedPeopleToday();
+            Simulation baseline = NewSim();
+            int atMarket = baseline.ExpectedPeopleToday();
 
-            Simulation ayni = NewSim();
-            PriceAll(ayni, 10000);                  // tam piyasa
-            int ayniTalep = ayni.ExpectedPeopleToday();
+            Simulation same = NewSim();
+            PriceAll(same, 10000);                  // exactly the market
+            int sameDemand = same.ExpectedPeopleToday();
 
-            Assert.True(piyasa > 0, "taban talep sifir - olcum kosmamis");
-            Assert.Equal(piyasa, ayniTalep);
+            Assert.True(atMarket > 0, "the baseline demand is zero - the measurement did not run");
+            Assert.Equal(atMarket, sameDemand);
         }
 
         /// <summary>
-        /// CAY SALONA GIDIYOR, TEK MASAYA DEGIL.
+        /// THE TEA GOES TO THE WHOLE HALL, NOT TO A SINGLE TABLE.
         ///
-        /// Eski hali uc fiilden birini OLU birakiyordu: cay her eksende
-        /// patron ilgisinin altindaydi (memnuniyet 900'e karsi 2400,
-        /// sabir x1'e karsi x2, mutfagi hizlandirmiyor) ve ustelik
-        /// kasadan para cikariyordu - ilgi bedava. Ayni hakki yaktiklari
-        /// icin caya basmak icin hicbir gun yoktu.
+        /// The old version left one of the three actions DEAD: the tea was below
+        /// the owner's attention on every axis (900 satisfaction against 2400,
+        /// patience x1 against x2, it does not speed the kitchen up) and on top of
+        /// that it took money out of the till - attention is free. Because they
+        /// burn the same budget there was no day at all on which to press the tea.
         ///
-        /// Bu test yeni isini olcuyor: TEK bir cay, BIRDEN COK bekleyen
-        /// masanin sabrini uzatmali. Cay yine tek masaya giderse sayi 1
-        /// kalir ve test kirilir.
+        /// This test measures its new job: ONE tea must extend the patience of
+        /// SEVERAL waiting tables. If the tea goes back to a single table the
+        /// number stays at 1 and the test breaks.
         /// </summary>
         [Fact]
-        public void Cay_butun_bekleyenlere_gidiyor()
+        public void The_tea_goes_to_everyone_waiting()
         {
             Simulation sim = NewSim();
-            MenuyuAc(sim);
+            OpenTheMenu(sim);
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
 
-            // Salon dolana kadar ilerlet: en az iki masa BEKLIYOR olmali,
-            // yoksa "hepsine gitti" ile "birine gitti" ayirt edilemez ve
-            // olcum VAKUMDA yesil kalir.
-            int bekleyen = 0;
-            for (int t = 0; t < 4000 && bekleyen < 2; t++)
+            // Advance until the hall fills: at least two tables must be WAITING,
+            // otherwise "it went to all of them" cannot be told apart from "it went
+            // to one of them" and the measurement stays green IN A VACUUM.
+            int waiting = 0;
+            for (int t = 0; t < 4000 && waiting < 2; t++)
             {
                 sim.Tick();
-                bekleyen = sim.WaitingParties;
+                waiting = sim.WaitingParties;
             }
 
-            Assert.True(bekleyen >= 2,
-                $"iki bekleyen masa olusmadi ({bekleyen}) - olcum kosmamis");
+            Assert.True(waiting >= 2,
+                $"two waiting tables never formed ({waiting}) - the measurement did not run");
 
-            int hakOnce = sim.InterventionsLeft;
-            int uzayan = sim.PartiesWithTea;
+            int budgetBefore = sim.InterventionsLeft;
+            int extendedBefore = sim.PartiesWithTea;
             sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
                                   -1, (int)InterventionKind.FreeTea));
 
-            Assert.True(sim.InterventionsLeft < hakOnce, "cay hak yakmadi - komut reddedildi");
-            _out.WriteLine($"{bekleyen} bekleyen masa, cay alan {sim.PartiesWithTea - uzayan}");
-            Assert.True(sim.PartiesWithTea - uzayan >= 2,
-                $"cay yalnizca {sim.PartiesWithTea - uzayan} masaya gitti, {bekleyen} bekliyordu");
+            Assert.True(sim.InterventionsLeft < budgetBefore,
+                "the tea burnt no budget - the command was rejected");
+            _out.WriteLine($"{waiting} waiting tables, {sim.PartiesWithTea - extendedBefore} got tea");
+            Assert.True(sim.PartiesWithTea - extendedBefore >= 2,
+                $"the tea went to only {sim.PartiesWithTea - extendedBefore} tables, {waiting} were waiting");
         }
 
         /// <summary>
-        /// TAVANDA KAZANILAN ITIBAR SILINMIYOR, BIRIKIYOR.
+        /// REPUTATION EARNED AT THE CEILING IS NOT DELETED, IT BANKS UP.
         ///
-        /// Tavan dogru bir fikir ama tasan degeri silmek, tavandaki
-        /// oyuncu icin MUKEMMEL bir gun ile IDARE EDEN bir gunu ayni
-        /// yapiyordu - ve iyi oynayan kampanyanin yarisindan fazlasini
-        /// tavanda geciriyor.
+        /// A ceiling is the right idea, but deleting the overflow made a PERFECT
+        /// day and a day that merely COPED identical for a player at the ceiling -
+        /// and someone playing well spends more than half the campaign there.
         ///
-        /// Test tavana DAYATIYOR ve birikimin olustugunu, sonra
-        /// genislemede ODENDIGINI olcuyor. Birikim silinirse ya da
-        /// genislemede odenmezse kiriliyor.
+        /// The test FORCES the ceiling, measures that the bank forms, and then that
+        /// it is PAID OUT on expansion. It breaks if the bank is deleted, or if it
+        /// is not paid out on expansion.
         /// </summary>
         [Fact]
-        public void Tavanda_kazanilan_itibar_genislemede_odeniyor()
+        public void Reputation_earned_at_the_ceiling_is_paid_out_on_expansion()
         {
-            // TAVAN ICERIKTEN DUSURULUYOR.
+            // THE CEILING IS LOWERED FROM THE CONTENT.
             //
-            // Gercek icerikte dort masada tavan 55 ve kucuk bir dukkanin
-            // dogal denge noktasi ~34,6: tavan orada HIC baglayici degil,
-            // yani tasma diye bir sey olusmuyor. Once bunu kadro ve
-            // genislemeyle asmayi denedim - itibar 120 gunde 3730'da
-            // dondu, tavan 7500. Tavana dayanmak icin testin harness
-            // botu kadar iyi oynamasi gerekirdi, yani testin icine bir
-            // bot yazmak.
+            // In the real content the ceiling at four tables is 55 and a small
+            // restaurant's natural equilibrium is ~34.6: the ceiling is NOT binding
+            // there at all, so no overflow ever forms. I first tried to get past
+            // that with crew and expansion - the reputation stalled at 3730 over
+            // 120 days against a ceiling of 7500. Reaching the ceiling would have
+            // meant the test playing as well as the harness bot, that is, writing a
+            // bot inside the test.
             //
-            // Kural ayni kural; yalnizca gorunur oldugu esik
-            // yaklastiriliyor. Tavan 32 puana cekiliyor (denge ~34,6'nin
-            // ALTINDA), ikinci kademe 60'ta - odemenin gorulebilmesi icin.
-            EconomyConfig taban = Economy();
-            TierConfig[] kademe = new TierConfig[taban.TierCount];
-            for (int i = 0; i < kademe.Length; i++)
+            // The rule is the same rule; only the threshold at which it becomes
+            // visible is brought closer. The ceiling is pulled down to 32 points
+            // (BELOW the ~34.6 equilibrium) and the second tier to 60 - so that the
+            // payout can be seen.
+            EconomyConfig baseEconomy = Economy();
+            TierConfig[] tiers = new TierConfig[baseEconomy.TierCount];
+            for (int i = 0; i < tiers.Length; i++)
             {
-                TierConfig t = taban.TierAt(i);
-                kademe[i] = new TierConfig(t.Tables, t.Rent, t.Upgrade, t.StaffCap,
-                                           i == 0 ? 3200 : 6000, t.Plates);
+                TierConfig t = baseEconomy.TierAt(i);
+                tiers[i] = new TierConfig(t.Tables, t.Rent, t.Upgrade, t.StaffCap,
+                                          i == 0 ? 3200 : 6000, t.Plates);
             }
 
-            Simulation sim = new Simulation(taban.WithTiers(kademe), Content(), Timing(), Seed);
-            MenuyuAc(sim);
+            Simulation sim = new Simulation(baseEconomy.WithTiers(tiers), Content(), Timing(), Seed);
+            OpenTheMenu(sim);
             sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, 0));
 
-            int gun = 0;
-            while (gun < 40 && sim.ReputationOverflowCenti <= 0)
+            int day = 0;
+            while (day < 40 && sim.ReputationOverflowCenti <= 0)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
                 while (!sim.ServiceComplete) sim.Tick();
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
-                gun++;
+                day++;
             }
 
-            _out.WriteLine($"{gun}. gun: itibar {sim.ReputationCenti}, "
-                           + $"tavan {sim.ReputationCapCenti}, "
-                           + $"birikim {sim.ReputationOverflowCenti}");
+            _out.WriteLine($"day {day}: reputation {sim.ReputationCenti}, "
+                           + $"ceiling {sim.ReputationCapCenti}, "
+                           + $"banked {sim.ReputationOverflowCenti}");
 
-            // CANLILIK: birikim hic olusmadiysa asagisi vakumda yesil kalirdi.
+            // LIVENESS: if no bank ever formed, everything below would stay green in
+            // a vacuum.
             Assert.True(sim.ReputationOverflowCenti > 0,
-                $"{gun} gunde tavanda birikim olusmadi - olcum kosmamis "
-                + $"(itibar {sim.ReputationCenti}, tavan {sim.ReputationCapCenti})");
+                $"no bank formed at the ceiling in {day} days - the measurement did not run "
+                + $"(reputation {sim.ReputationCenti}, ceiling {sim.ReputationCapCenti})");
             Assert.Equal(sim.ReputationCapCenti, sim.ReputationCenti);
 
-            int birikim = sim.ReputationOverflowCenti;
-            int oncekiTavan = sim.ReputationCapCenti;
+            int banked = sim.ReputationOverflowCenti;
+            int ceilingBefore = sim.ReputationCapCenti;
 
             sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, 1));
 
-            Assert.True(sim.ReputationCapCenti > oncekiTavan,
-                $"genisleme tavani acmadi - olcum kosmamis (kasa {sim.Cash})");
+            Assert.True(sim.ReputationCapCenti > ceilingBefore,
+                $"the expansion did not raise the ceiling - the measurement did not run (till {sim.Cash})");
             Assert.Equal(0, sim.ReputationOverflowCenti);
-            Assert.True(sim.ReputationCenti > oncekiTavan,
-                $"birikmis {birikim} santi odenmedi (itibar {sim.ReputationCenti})");
+            Assert.True(sim.ReputationCenti > ceilingBefore,
+                $"the banked {banked} centi were not paid out (reputation {sim.ReputationCenti})");
         }
 
         /// <summary>
-        /// GUNLUK TALEP BEKLENTIDEN SAPIYOR - ama tahmin sapmiyor.
+        /// THE DAILY DEMAND DEVIATES FROM THE EXPECTATION - but the forecast does not.
         ///
-        /// Talep tamamen belirlenimciydi: ayni itibar ve masa sayisindaki
-        /// her sali birebir ayni musteriyi getiriyordu. Sonucu, sabah
-        /// stok kararinin bir YARGI degil bir dugme olmasiydi - hal
-        /// onerisi her zaman tam dogruydu.
+        /// The demand used to be entirely deterministic: every Tuesday with the
+        /// same reputation and table count brought exactly the same customers. The
+        /// result was that the morning stock decision was a button rather than a
+        /// JUDGEMENT - the market's recommendation was always exactly right.
         ///
-        /// Testin olctugu sey AYRIM: gerceklesen sapiyor, tahmin
-        /// sapmiyor. Sapma tahmine de yansisaydi oyuncu yine kesin
-        /// bilgiye sahip olurdu ve oynaklik dekor kalirdi.
+        /// What the test measures is the DISTINCTION: what happens deviates, the
+        /// forecast does not. If the deviation showed up in the forecast too the
+        /// player would again have certain knowledge and the volatility would stay
+        /// decoration.
         /// </summary>
         [Fact]
-        public void Gunluk_talep_beklentiden_sapiyor()
+        public void The_daily_demand_deviates_from_the_expectation()
         {
             Simulation sim = NewSim();
-            MenuyuAc(sim);
+            OpenTheMenu(sim);
 
-            int sapanGun = 0, olculenGun = 0;
-            long toplamFark = 0;
+            int deviatingDays = 0, measuredDays = 0;
+            long totalGap = 0;
 
             for (int g = 0; g < 20; g++)
             {
-                int beklenen = sim.ExpectedPeopleToday();
+                int expected = sim.ExpectedPeopleToday();
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
 
-                int gercek = sim.PlannedPeopleToday;
-                if (beklenen > 0)
+                int actual = sim.PlannedPeopleToday;
+                if (expected > 0)
                 {
-                    olculenGun++;
-                    if (gercek != beklenen) sapanGun++;
-                    toplamFark += gercek - beklenen;
+                    measuredDays++;
+                    if (actual != expected) deviatingDays++;
+                    totalGap += actual - expected;
                 }
 
                 while (!sim.ServiceComplete) sim.Tick();
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
             }
 
-            _out.WriteLine($"{olculenGun} gun olculdu, {sapanGun} gun sapti, "
-                           + $"toplam fark {toplamFark} kisi");
+            _out.WriteLine($"{measuredDays} days measured, {deviatingDays} days deviated, "
+                           + $"total gap {totalGap} people");
 
-            // CANLILIK: hic gun olculmediyse asagisi vakumda yesil kalirdi.
-            Assert.True(olculenGun >= 15, $"yalnizca {olculenGun} gun olculdu");
+            // LIVENESS: if no day was measured, everything below would stay green in
+            // a vacuum.
+            Assert.True(measuredDays >= 15, $"only {measuredDays} days were measured");
 
-            // Gunlerin cogu sapmali; hepsi degil (sifir sapma da gecerli bir
-            // cekilis).
-            Assert.True(sapanGun >= olculenGun / 2,
-                $"{olculenGun} gunun yalnizca {sapanGun}'inde sapma var - "
-                + "oynaklik islemiyor olabilir");
+            // Most of the days should deviate; not all of them (zero deviation is a
+            // valid draw too).
+            Assert.True(deviatingDays >= measuredDays / 2,
+                $"only {deviatingDays} of {measuredDays} days deviate - "
+                + "the volatility may not be running");
         }
 
         /// <summary>
-        /// OYNAKLIK BELIRLENIMCILIGI BOZMUYOR.
+        /// THE VOLATILITY DOES NOT BREAK DETERMINISM.
         ///
-        /// Ayni tohum ayni sonucu vermeli; yoksa tekrar oynatma ve
-        /// altin veri kirilir (docs/23 2.5). Cekilis _rngEvent akisindan
-        /// geliyor ve o akis kayda giriyor.
+        /// The same seed must give the same result; otherwise replay and the golden
+        /// data break (docs/23 2.5). The draw comes from the _rngEvent stream and
+        /// that stream goes into the save.
         /// </summary>
         [Fact]
-        public void Oynaklik_ayni_tohumda_ayni()
+        public void The_volatility_is_the_same_for_the_same_seed()
         {
-            int[] Kosu()
+            int[] Run()
             {
                 Simulation sim = NewSim();
-                MenuyuAc(sim);
-                int[] gunler = new int[10];
-                for (int g = 0; g < gunler.Length; g++)
+                OpenTheMenu(sim);
+                int[] days = new int[10];
+                for (int g = 0; g < days.Length; g++)
                 {
                     sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
                     sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
-                    gunler[g] = sim.PlannedPeopleToday;
+                    days[g] = sim.PlannedPeopleToday;
                     while (!sim.ServiceComplete) sim.Tick();
                     sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
                 }
-                return gunler;
+                return days;
             }
 
-            int[] a = Kosu();
-            int[] b = Kosu();
+            int[] a = Run();
+            int[] b = Run();
 
-            Assert.True(a[0] > 0, "ilk gun sifir kisi - olcum kosmamis");
+            Assert.True(a[0] > 0, "zero people on day one - the measurement did not run");
             Assert.Equal(a, b);
         }
     }

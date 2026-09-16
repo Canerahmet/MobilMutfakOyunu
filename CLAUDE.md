@@ -23,11 +23,21 @@ Turkish is one of the five languages the **game** ships in. Turkish that is
 | `content/loc/tr.json` | the Turkish string table the player reads |
 | `tools/content/languages/loc_tr*.py` | the source of that table |
 | dish and person names (`Lahmacun`, `Hasan Usta`) in **all** tables | proper nouns |
-| quoted user requests inside `docs/` | a quotation is a record, not prose |
+| quoted user requests inside `docs/` | a quotation is a record; it is kept verbatim **and** an English rendering follows it |
 | `vendor/` | third-party files, left exactly as received |
 
 Everything else — including the *keys* of those tables, the code that reads
 them, and the comments explaining them — is English.
+
+A Turkish quotation left alone is a wall for the reader this rule exists for, so
+`docs/` keeps the original words and puts the English underneath:
+
+> *"oyuna ingilizce ispanyolca cince ve arapca ekle"*
+>
+> *("add English, Spanish, Chinese and Arabic to the game")*
+
+Turkish game text quoted as an example works the same way: keep the string the
+player sees, gloss it where the point depends on the wording.
 
 ### Writing the English
 

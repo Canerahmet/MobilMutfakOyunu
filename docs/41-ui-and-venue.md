@@ -1,407 +1,469 @@
-# 41 — Arayüzün yeniden tasarımı ve mekânın kimliği
+# 41 — Redesigning the interface, and the identity of the venue
 
-*12 Eylül 2026.* Kullanıcı üç referans görsel getirdi ve isteği kademeli büyüdü:
+*12 September 2026.* The user brought three reference images, and the request
+grew in stages:
 
 > **"Oyun arayüzünü baştan tasarlamanı istiyorum, referanstaki görsel gibi bir
 > arayüz olsun."**
 >
+> *("I want you to redesign the game's interface from scratch; make it an
+> interface like the one in the reference image.")*
+
 > **"Farklı mutfaklar için şöyle bir referans tasarım var."** (dört mutfak yan
 > yana: burger, Türk, İtalyan, Japon)
 >
+> *("Here is a reference design for the different cuisines." — four cuisines
+> side by side: burger, Turkish, Italian, Japanese)*
+
 > **"Sadece buton ve şeyler değil; tüm restoran, karakterler, mutfak, mobilyalar,
 > modeller, ışıklar — kısacası her şey referanstaki gibi olsun. Gerekirse sıfırdan
 > modelleri vs. her şeyi yap. Oyun arka plan mantığı kalsın."**
+>
+> *("Not just the buttons and such; the whole restaurant, the characters, the
+> kitchen, the furniture, the models, the lights — in short, make everything
+> like the reference. Redo the models and everything from scratch if you have
+> to. Keep the game's background logic.")*
 
-Son cümle işin sınırını da çiziyor: **çekirdek simülasyon dokunulmaz, görünüm
-katmanı yeniden kurulabilir.** Bu belge o çalışmanın birinci ve ikinci dilimini
-yazıyor.
+The last sentence also draws the boundary of the work: **the core simulation is
+untouchable, the view layer may be rebuilt.** This document writes up the first
+and second slices of that work.
 
 ---
 
-## 1. Referans ne söylüyor
+## 1. What the reference says
 
-Dört kare yan yana konunca ortak olan ve değişen şeyler net ayrılıyor:
+Put the four frames side by side and what stays the same separates cleanly from
+what changes:
 
-| değişmeyen | değişen |
+| unchanging | changing |
 |---|---|
-| kamera açısı, arayüz yerleşimi, renk rolleri | duvarın rengi ve malzemesi |
-| rozet + çubuk, kapsüller, dört düğme, yeşil eylem | tabelanın ışığı |
-| kartların yeri ve biçimi | yerdeki halı, saksılar, tabela rengi |
+| camera angle, interface layout, colour roles | the colour and material of the wall |
+| badge + bar, capsules, four buttons, green action | the light of the sign |
+| the place and shape of the cards | the rug on the floor, the planters, the sign colour |
 
-Yani **arayüz sabit, mekân kimlik taşıyor.** [docs/10](10-cuisine-identity.md)
-bunu zaten kural olarak yazmıştı: *mutfaklar ortam, ışık, siluet ve kıyafetle
-ayrışır.* Referans o kuralın resmi.
+So **the interface is fixed, the venue carries the identity.**
+[docs/10](10-cuisine-identity.md) had already written this down as a rule:
+*cuisines are differentiated by environment, light, silhouette and clothing.*
+The reference is a picture of that rule.
 
 ---
 
-## 2. Arayüz: şerit değil kart
+## 2. The interface: cards, not strips
 
-Eski oyun ekranı iki **tam genişlikte koyu şeritti** ve içlerinde eş değer gri
-düğmeler yan yana duruyordu. Ölçüldü: sabah 179 dp, servis 152 dp, akşam 199 dp.
+The old game screen was two **full-width dark strips** with equivalent grey
+buttons sitting side by side inside them. Measured: morning 179 dp, service
+152 dp, evening 199 dp.
 
-Yeni düzen referansın düzeni — köşelerde yüzen kartlar ve kapsüller:
+The new layout is the reference's layout — cards and capsules floating in the
+corners:
 
 ```
-[12] Servis ▓▓▓▓░░░   Kiraya 6 gün        (🪙 8.000)(💎 30,0/55)  (⚙)
-┌ Bugün ────────┐                                    ┌ Ciro       ┐
-│ ● Ağırlanan 12│                                    │ 1.006 ¤    │
-│ ● Kızgın     0│                                    ├ Memnuniyet ┤
-│ ● Masa    2/4 │                                    │ 94,7       │
+[12] Service ▓▓▓▓░░░   Rent in 6 days      (🪙 8,000)(💎 30.0/55)  (⚙)
+┌ Today ────────┐                                    ┌ Takings    ┐
+│ ● Served    12│                                    │ 1,006 ¤    │
+│ ● Walkouts   0│                                    ├ Satisfact. ┤
+│ ● Tables  2/4 │                                    │ 94.7       │
 └───────────────┘                                    └────────────┘
-[⏸][×1] [ Mutfağı hızlandır | Çay | İlgi ●●●● ]        [▶▶ Günü kapat]
+[⏸][×1] [ Speed up | Tea | Attention ●●●● ]            [▶▶ Close the day]
 ```
 
-**Yeniden ölçüldü (13 Eylül 2026, iki dilde de aynı): sabah 154 dp, servis
-154 dp, akşam 172 dp.**
+**Re-measured (13 September 2026, the same in both languages): morning 154 dp,
+service 154 dp, evening 172 dp.**
 
-| aşama | eski | yeni | fark |
+| phase | old | new | difference |
 |---|---:|---:|---:|
-| sabah | 179 | 154 | salona **+25 dp** |
-| servis | 152 | 154 | **−2 dp** |
-| akşam | 199 | 172 | salona **+27 dp** |
+| morning | 179 | 154 | **+25 dp** to the hall |
+| service | 152 | 154 | **−2 dp** |
+| evening | 199 | 172 | **+27 dp** to the hall |
 
-Yani kazanç sabah ve akşamda; **serviste iki dp kaybediliyor** ve ekran o
-aşamada daha çok şey söylüyor. Bu belge bir süre "üç aşamada da 156 dp" ve
-"salona 23–43 dp daha fazla yer" yazdı; ikisi de ölçümün gerisinde kalmıştı ve
-servis satırı **zaten o zaman da bir kayıptı** (152 → 156). Kazanan üç aşamayı
-tek cümlede toplamak, kaybeden aşamayı ortalamanın içinde gizliyordu.
+So the gain is in the morning and the evening; **two dp are lost in service**,
+and at that phase the screen says more. This document said "156 dp in all three
+phases" and "23–43 dp more room for the hall" for a while; both had fallen
+behind the measurement, and the service row **was already a loss back then too**
+(152 → 156). Collecting the three winning phases into a single sentence hid the
+losing phase inside the average.
 
-### Renk artık üç rol
+### Colour is now three roles
 
-Eskiden tek vurgu rengi (bakır) sekiz ayrı iş yapıyordu. Referansın ayrımı
-alındı:
+There used to be one accent colour (copper) doing eight separate jobs. The
+reference's distinction was adopted:
 
-| renk | anlamı | nerede |
+| colour | meaning | where |
 |---|---|---|
-| **mavi** | "buraya gir" | Hal, Menü, Personel, Ekipman, Gün raporu |
-| **yeşil** | "oyunu ilerlet" | Servisi aç, Günü kapat, Ertesi gün |
-| **bakır** | "dikkat / değer" | kalan müdahale hakkı, itibar, gün çubuğu |
+| **blue** | "go in here" | Market, Menu, Crew, Equipment, Day report |
+| **green** | "advance the game" | Open service, Close the day, Next day |
+| **copper** | "attention / value" | interventions left, reputation, day bar |
 
-### Uydurulmayan şeyler
+### Things that were not invented
 
-Referansta seviye çubuğu, elmas ve "Bölüm 3" var; bu oyunda yok. Onların yerine
-oyunun **kendi** sayıları kondu ve hepsi zaten vardı, yalnızca görünmüyordu:
+The reference has a level bar, gems and "Chapter 3"; this game has none of
+those. In their place the game's **own** numbers were put, and all of them
+already existed — they simply were not visible:
 
-| referans | Lokanta'daki karşılığı |
+| reference | its counterpart in Lokanta |
 |---|---|
-| seviye rozeti + XP çubuğu | **gün numarası + servis gününün ilerlemesi** |
-| altın + yeşil "+" | kasa + **kredi ekranını açan** düğme |
-| elmas | itibar (tavanıyla birlikte: 30,0 / 55) |
-| "Günlük Hedefler" listesi | sabah **açılış kontrol listesi**, serviste **bugünün akışı** |
-| "Saatlik Gelir / Müşteri Memnuniyeti" | **ciro ve ortalama memnuniyet** — ikisi de yalnızca akşam raporunda görünüyordu |
-| "Bölüm 3 → yeni müşteriler" | aşama düğmesi + alt satırı ("1. gün başlıyor") |
+| level badge + XP bar | **day number + the progress of the service day** |
+| gold + green "+" | cash + the button that **opens the loan screen** |
+| gem | reputation (with its ceiling: 30.0 / 55) |
+| "Daily Goals" list | morning **opening checklist**, in service **today's flow** |
+| "Hourly Income / Customer Satisfaction" | **revenue and average satisfaction** — both of which only appeared in the evening report |
+| "Chapter 3 → new customers" | the phase button and its subtitle ("Day 1 begins") |
 
-**Servis gününün ilerlemesi** en dikkat çekici olanı: bu sayı oyunda vardı
-(`ServiceProgressBp` — gölgelerin yönü, ışığın rengi ve sokak lambaları ondan
-okunuyor) ama oyuncuya hiç gösterilmiyordu. "Ne kadar kaldı" sorusunun cevabı
-yalnızca gökyüzünün rengindeydi.
+**The progress of the service day** is the most striking one: this number
+existed in the game (`ServiceProgressBp` — the direction of the shadows, the
+colour of the light and the street lamps are all read from it) but was never
+shown to the player. The answer to "how much is left" lived only in the colour
+of the sky.
 
-### Simgeler çiziliyor
+### The icons are drawn
 
-Hiçbir simge yazı tipinden gelmiyor. Bu bir tercih değil, bir ders: yıldız
-karakteri Rubik'te yok ve oyuncuya **boş kutu** olarak görünüyordu
-(`tools/art/check_font.py` yakaladı). Hepsi dikdörtgen, daire ve döndürmeden
-kuruluyor (`Icons.cs`). UI Toolkit'in kendi çizim API'si (Painter2D) de
-kullanılmıyor — bu projenin bütün "editörde çalıştı, yapıda çıkmadı"
-hikâyeleri yapıya dolaylı giren bir şeye güvenmekten çıktı.
+Not a single icon comes from a font. This is not a preference but a lesson: the
+star character does not exist in Rubik and appeared to the player as an **empty
+box** (`tools/art/check_font.py` caught it). They are all built from rectangles,
+circles and rotation (`Icons.cs`). UI Toolkit's own drawing API (Painter2D) is
+not used either — every "it worked in the editor, it did not show up in the
+build" story in this project came out of trusting something that reaches the
+build indirectly.
 
-### Turun bulduğu iki şey
+### Two things the tour found
 
-1. **Tur "Servisi aç"ı bulamadı.** Yeni düğmelerin `text` alanı boş; yazı
-   içerideki bir etikette. Tur metne göre tıklıyordu, bulamayınca **sessizce
-   devam etti** — servis hiç açılmadı ve sonraki bütün kontroller sabah ekranını
-   ölçmeye başladı. Düzeltme: tur da, kırpılma ölçümü de artık düğmenin
-   **görünen** yazısına bakıyor. *Oyuncu düğmenin alanına değil yazısına bakar.*
-2. **"Duraklat oyunu durdurdu" kırmızıydı** ve sebebi oyun değil aramaydı:
-   duraklat artık simgeli. Kip düğmeleri adlarıyla bulunuyor (`ClickNamed`).
+1. **The tour could not find "Servisi aç"** ("Open service"). The new buttons
+   have an empty `text` field; the words are in a label inside them. The tour
+   was clicking by text, and when it could not find it, it **silently carried
+   on** — service never opened, and every later check started measuring the
+   morning screen. The fix: the tour, and the clipping measurement, now both
+   look at the button's **visible** text. *A player looks at the button's
+   words, not at its area.*
+2. **`Duraklat oyunu durdurdu`** ("Pause stopped the game") **was red**, and the
+   reason was not the game but the lookup: pause is an icon now. Mode buttons
+   are found by their names (`ClickNamed`).
 
 ---
 
-## 3. Mekân: arka perde, sarkıt, tabela, halı
+## 3. The venue: back curtain, pendants, sign, rug
 
-Görünüm katmanına prosedürel bir model kurucusu eklendi (`Modeler.cs`): kutu ve
-çok kenarlı prizma, **renge göre** tek örgüye toplanıyor. Bütün süsleme, kaç
-parçadan oluşursa oluşsun bir avuç çizim.
+A procedural model builder was added to the view layer (`Modeler.cs`): boxes and
+many-sided prisms, gathered into a single mesh **per colour**. The whole
+decoration, however many pieces it is made of, is a handful of draws.
 
-| parça | ne yapıyor |
+| piece | what it does |
 |---|---|
-| **arka perde** | 2,60 m yüksek dolu duvar + iki yan dönüş. Oda duvarları 1,15 m ve saydam (salonun içi görünmeli); arkası ise boştu, mekân "kat planı" gibi okunuyordu |
-| **tabela** | kapının üstünde, **neon çerçeve** + amblem |
-| **menü tahtası** | salonun arka duvarında, satırları açık şeritlerle |
-| **davlumbaz** | ocak sırasının üstünde; her mutfakta paslanmaz |
-| **saksılar** | cephe boyunca, kapının önü boş |
-| **halı** | yalnızca Türk mutfağında |
+| **back curtain** | a solid 2.60 m wall + two side returns. The room walls are 1.15 m and transparent (the inside of the hall has to be visible); the back was empty, and the venue read like a "floor plan" |
+| **sign** | above the door, a **neon frame** + emblem |
+| **menu board** | on the back wall of the hall, its lines in light strips |
+| **extractor hood** | above the row of stoves; stainless in every cuisine |
+| **planters** | along the frontage, the area in front of the door left clear |
+| **rug** | only in the Turkish cuisine |
 
-### Sarkıtlar denendi ve geri alındı
+### Pendant lamps were tried and reverted
 
-Kullanıcı [docs/38](38-street-and-interior-light.md)'de *"lambalar fiziksel olarak
-gözükmesin, tavanda olacakları için"* demişti ve iç aydınlatma yalnızca yerdeki
-ışık havuzlarıyla yapılmıştı. Referansta ise sarkıt lambalar mekânın en belirgin
-öğesi; bu belgenin ilk yazımında o karar geri alındı ve sarkıtlar eklendi.
+In [docs/38](38-street-and-interior-light.md) the user had said *"lambalar
+fiziksel olarak gözükmesin, tavanda olacakları için"* (*"the lamps should not be
+physically visible, since they will be on the ceiling"*), and the interior
+lighting was done only with pools of light on the floor. In the reference,
+however, the pendant lamps are the most prominent element of the venue; in the
+first writing of this document that decision was reverted and pendants were
+added.
 
-**Sonra tekrar kaldırıldılar** (aşağıda, yedinci dilim) ve docs/38'in kararı
-geçerli kaldı: referansın kamerası daha alçak, orada sarkıt mekânın yarısı;
-bizimki 34 dereceden ve tavansız bir binaya bakıyor. Sarkıtlar aydınlattıkları
-yeri kapatıyordu.
+**Then they were removed again** (below, seventh slice) and docs/38's decision
+stood: the reference's camera is lower, and there a pendant is half the venue;
+ours looks at a ceilingless building from 34 degrees. The pendants were covering
+the very place they lit.
 
-Yani referansta olan her şey bizim kameramızda işe yaramıyor — **açı, listeden
-önce gelir.** Kodda `Pendants()` diye boş gövdeli bir metot da kalmadı;
-gerekçe `BuildDecor`'un başında duruyor.
+So not everything that is in the reference works with our camera — **the angle
+comes before the list.** There is not even an empty-bodied `Pendants()` method
+left in the code; the reasoning sits at the top of `BuildDecor`.
 
-### Tabela neden yazısız
+### Why the sign has no writing
 
-Dünyada metin çizmek için ayrı bir paket gerekiyor (TextMeshPro) ve bu projede
-yok. Tabela bunun yerine **renk ve ışıkla** konuşuyor. İlk denemede levhanın
-bütün yüzü yanıyordu ve ekranda *"ışıklı sarı bir kalas"* olarak okunuyordu —
-tabela değil lamba. Gerçek tabelalarda yanan şey yazı ve **çerçeve**; neon
-çerçeve aynı işi görüyor.
+Drawing text in the world needs a separate package (TextMeshPro) and this
+project does not have it. The sign speaks with **colour and light** instead. On
+the first attempt the whole face of the board was lit and it read on screen as
+*"a lit yellow plank"* — a lamp, not a sign. On real signs what lights up is the
+lettering and the **frame**; a neon frame does the same job.
 
-### Lamba ışığı tabeladan ayrı
+### The lamp light is separate from the sign
 
-İlk denemede sarkıtların ağzı da tabela rengiyle yanıyordu ve hızlı yemek salonu
-**pembe** bir ışıkla doluyordu. Tabela kimliğin rengi (neon kırmızı), lamba ise
-her lokantada aynı şey: sıcak beyaz.
+On the first attempt the mouths of the pendants also lit in the sign's colour,
+and the fast food hall filled with a **pink** light. The sign is the colour of
+the identity (neon red); the lamp is the same thing in every restaurant: warm
+white.
 
-### İkinci dilim: zemin, banko, raf, sedir, korkuluk, kıyafet
+### Second slice: floor, counter, shelf, banquette, railing, clothing
 
-| parça | ne yapıyor |
+| piece | what it does |
 |---|---|
-| **zemin deseni** | Türk'te uzun ahşap tahta, hızlı yemekte kare fayans (dama). Tek düz renk 34 derecelik bakışta **boş** bir alan olarak okunuyordu; desen ayrıca ölçek veriyor |
-| **servis bankosu** | mutfağın önünde sıcak teşhir tezgâhı: paslanmaz tabla, sıralı kaplar, cam siper. Referansın en karakteristik mutfak parçası |
-| **duvar rafları** | mutfak ve depoda, üzerinde kaplar — "çalışılan bir yer" |
-| **sedir** | salonların arka duvarı boyunca bank |
-| **teras korkuluğu** | cephe ile kaldırım arasında; kapının önü açık |
-| **kıyafet** | aşçıya beyaz kep + beyaz önlük, garsona koyu önlük |
+| **floor pattern** | long wooden boards in Turkish, square tiles (checkerboard) in fast food. A single flat colour read as an **empty** area at a 34-degree look; the pattern also gives scale |
+| **service counter** | a hot display counter in front of the kitchen: stainless top, trays in a row, glass guard. The reference's most characteristic kitchen piece |
+| **wall shelves** | in the kitchen and the store, with pots on them — "a place where work is done" |
+| **banquette** | a bench along the back wall of the halls |
+| **terrace railing** | between the frontage and the pavement; the area in front of the door is open |
+| **clothing** | a white toque + white apron for the cook, a dark apron for the waiter |
 
-**Kıyafet iki kez sessizce hiçbir şey yapmadı** ve ikisi de öğretici:
+**The clothing silently did nothing twice**, and both cases are instructive:
 
-1. Kep, kemiğe göre **sabit sayılarla** kondu (0,105 m yukarı, 0,17 m geniş) ve
-   ekranda hiçbir şey görünmedi: kep başın **içinde** kaldı. Sebep kemik
-   zincirinin kendi ölçeği (baş kemiğinin `lossyScale`'i 1,19) ve baş kemiğinin
-   başın ortasında değil boynunda durması. Artık ölçü **figürden** okunuyor:
-   derinin dünya kutusunun tepesi ve figürün boyu.
-2. İkinci yazım `SkinnedMeshRenderer` arıyordu; paketin karakteri **iki ayrı
-   parçadan** kuruluyor (`body-mesh`, `head-mesh`). Bileşen bulunamayınca metot
-   başta dönüyordu — kıyafet yok, hata da yok. Şimdi bütün çizicilerin kutusu
-   birleştiriliyor.
+1. The toque was placed relative to the bone with **fixed numbers** (0.105 m up,
+   0.17 m wide) and nothing appeared on screen: the toque stayed **inside** the
+   head. The reason is the bone chain's own scale (the head bone's `lossyScale`
+   is 1.19) and the fact that the head bone sits at the neck, not in the middle
+   of the head. The measurement is now read **from the figure**: the top of the
+   skin's world box and the height of the figure.
+2. The second writing was looking for a `SkinnedMeshRenderer`; the package's
+   character is built from **two separate pieces** (`body-mesh`, `head-mesh`).
+   When the component could not be found the method returned at the top — no
+   clothing, and no error either. Now the boxes of all the renderers are merged.
 
-İkisi de aynı sınıf: *bir şeyin görünmemesi, hata vermemesiyle aynı anda olabilir.*
-Teşhisi yapan şey log değil **render** oldu.
+Both are the same class: *a thing not appearing and it not raising an error can
+happen at the same time.* What made the diagnosis was not the log but the
+**render**.
 
-### Üçüncü dilim: vitrin kasası ve teras oturması
+### Third slice: the shop-window frame and the terrace seating
 
-**Cephe artık bir dükkân cephesi:** alt bordür, dikmeler ve ince bir kiriş.
-Cam eklenmedi (saydam malzeme yapıda opak çizilebiliyor, [docs/37]); eklenen şey
-**kasa** — cam, aradaki boşluk. İlk denemede kiriş 2,05 m'deydi ve görüntüde
-salonun ön sırasının önünden geçen **koyu bir bant** olarak çıktı: oyuncunun
-masaları gördüğü yeri kapatıyordu. Oda duvarları zaten 1,15 m; cephe de o hattın
-üzerine çıkmamalı. Kiriş 1,34 m'ye indi.
+**The frontage is now a shop front:** a bottom kerb, mullions and a thin beam.
+No glass was added (a transparent material can be drawn opaque in the build,
+[docs/37]); what was added is the **frame** — the glass is the gap between.
+On the first attempt the beam was at 2.05 m and came out in the image as a
+**dark band** passing in front of the hall's front row: it was covering the place
+where the player sees the tables. The room walls are already 1.15 m; the
+frontage should not rise above that line either. The beam came down to 1.34 m.
 
-**Terasta iki masa** var ve **boşlar** — simülasyon dışarıda servis yapmıyor.
-Boş bir teras masası yine de "burası bir lokanta" diyor; dolusu yalan söylerdi.
-Masalar `StreetObstacles`'a kaydedildi: kaldırım aynı zamanda yayaların yürüdüğü
-yer ve kaydedilmeseydi geçenler masanın içinden geçerdi. *Bir şeyi sahneye
-koymak, onu yolun bir parçası yapmak demek.*
+**There are two tables on the terrace** and they are **empty** — the simulation
+does not serve outside. An empty terrace table still says "this is a
+restaurant"; a full one would be lying. The tables were registered in
+`StreetObstacles`: the pavement is also where the pedestrians walk, and without
+registering them the passers-by would walk through the table. *Putting something
+in the scene means making it part of the road.*
 
-### Dördüncü dilim: mobilya da kimlik taşıyor
+### Fourth slice: the furniture carries identity too
 
-Paketin mobilya malzemelerinin **dokusu yok** — hepsi düz bir `_BaseColor`
-(`Furniture_wood`, `Furniture_carpet`, …). Yani mutfağa göre renklendirmek için
-dokuyla uğraşmak gerekmiyor: malzemenin bir **kopyası** çıkarılıp rengi paletten
-yazılıyor.
+The package's furniture materials have **no texture** — they are all a flat
+`_BaseColor` (`Furniture_wood`, `Furniture_carpet`, …). So colouring them per
+cuisine does not mean fighting with textures: a **copy** of the material is made
+and its colour is written from the palette.
 
-**Kopya malzeme başına bir tane.** Alternatifi her çiziciye property block
-yazmaktı ve o, çizicileri SRP toplu çiziminin **dışına** atıyor (bu proje bunu
-zemin levhalarında öğrendi): yüz parça mobilya, yüz ayrı çizim demekti. Tek
-kopya, aynı malzemeyi paylaşan bütün mobilyayı birden boyuyor.
+**One copy per material.** The alternative was writing a property block onto
+every renderer, and that throws the renderers **out** of SRP batching (this
+project learned it on the floor slabs): a hundred pieces of furniture would have
+meant a hundred separate draws. A single copy paints all the furniture sharing
+that material at once.
 
-Sonuç: hızlı yemekte **kırmızı sandalyeler**, Türk tarafında koyu bordo minderler
-ve sıcak ahşap.
+Result: **red chairs** in fast food, dark burgundy cushions and warm wood on the
+Turkish side.
 
-**Metal boyanmıyor.** İlk denemede paletin metali (Türk'te pirinç) bütün metal
-parçalara gitti ve mutfak **altın** oldu: lavabo, tezgâh, buzdolabı. Davlumbazda
-öğrenilen şey burada da geçerli — ekipman her lokantada paslanmazdır; pirinç bir
-süsleme rengi (korkuluk, fener) ve orada kalıyor.
+**Metal is not painted.** On the first attempt the palette's metal (brass in
+Turkish) went to every metal piece and the kitchen turned **gold**: the sink,
+the counter, the fridge. What was learned on the extractor hood holds here too —
+equipment is stainless in every restaurant; brass is a decorative colour
+(railing, lantern) and stays there.
 
-### Beşinci dilim: masada yemek
+### Fifth slice: food on the table
 
-Referansın dört karesinde de masaların üzerinde tabak ve yemek var; bizim
-masalarımız **servis edilirken bile boştu** — oyuncunun "şu masa yiyor" bilgisini
-alabileceği tek yer rozetti.
+In all four frames of the reference there are plates and food on the tables;
+our tables were **empty even while being served** — the only place the player
+could get the "that table is eating" information from was the badge.
 
-Koşul **çekirdekten**: yalnızca yemeği gelmiş masada (`Eating` / `WaitingToPay`)
-tabak var. Her masaya tabak koymak daha kolay olurdu ve yalan olurdu — bekleyen
-masa ile yiyen masa ekranda aynı görünürdü. Tabaklar havuzlu (bir kez kurulup
-açılıp kapanıyor) ve yemek paketin malzeme modellerinden geliyor, yani kendi
-malzemeleriyle toplu çizime giriyorlar.
+The condition comes **from the core**: only a table whose food has arrived
+(`Eating` / `WaitingToPay`) has a plate. Putting a plate on every table would
+have been easier and would have been a lie — a waiting table and an eating table
+would look the same on screen. The plates are pooled (built once, shown and
+hidden) and the food comes from the package's ingredient models, so they enter
+batching with their own materials.
 
-**Tabaklar ilk denemede masanın 2,4 m üstünde durdu.** Tabla yüksekliğini
-taşıyıcının bütün çizicilerinden ölçüyordum; taşıyıcının içinde sandalyeler
-(0,9 m) ve **rozet** (2,45 m) de var. Ölçüm artık masa kurulurken, sandalyeler
-eklenmeden önce yapılıyor — o anda taşıyıcının içinde yalnızca masa var.
+**On the first attempt the plates sat 2.4 m above the table.** I was measuring
+the tabletop height from all of the carrier's renderers; the carrier also
+contains the chairs (0.9 m) and the **badge** (2.45 m). The measurement is now
+taken while the table is being built, before the chairs are added — at that
+moment there is only the table inside the carrier.
 
-Tur artık ikisini birden soruyor: *"yiyen masa varsa ekranda tabak görülüyor mu"*
-— "çekirdek yiyor" ile "oyuncu görüyor" ayrı iddialar (bulaşıkta öğrenilen ders).
+The tour now asks for both at once: *"if there is an eating table, is a plate
+visible on screen"* — "the core is eating" and "the player sees it" are separate
+claims (the lesson learned on the dishwashing).
 
-### Altıncı dilim: okunabilirlik
+### Sixth slice: readability
 
-Sahne süslendikçe iki şey birikti ve ikisi de **görüntüyü soldurdu**:
+As the scene was decorated two things accumulated, and both of them **washed the
+image out**:
 
-1. **Duvarların sütlü beyazı.** Saydam duvarlar 0,16 alfayla bütün salonun
-   üzerine bir pus bindiriyordu; altındaki renkler (halı, tahta, kırmızı
-   sandalye) soluyordu. Oda ayrımı zaten zeminden ve eşyadan okunuyor —
-   duvarın işi **sınırı çizmek**, alanı boyamak değil. 0,10'a indi.
-   *Not: `RestaurantView`'de bir `WallColor` alanı vardı ve hiçbir yerden
-   okunmuyordu; gerçek renk `custom_wall.mat` varlığında, çünkü saydam malzeme
-   bir `.mat` varlığı olmak zorunda ([docs/37]). Ölü alan silindi — ama
-   **özeti silinmemişti**: sahipsiz kalan yorum bir süre daha orada durdu ve
-   üstelik daha da eski bir değeri (0,20) anlatıyordu. Bir alanı silerken onu
-   anlatan yorumu bırakmak, yorumu **belge**den **efsane**ye çeviriyor.*
-2. **Zemin rengi paletten kopuktu.** Oda tabanı sabit üç renkti (salon / mutfak /
-   servis) ve desenin arasından görünüyordu: hızlı yemekte sıcak kahve bir taban,
-   Türk'te soğuk gri bir taban. Artık paletten geliyor; servis odaları yine de
-   ayrılıyor (mutfak ve bulaşık daha soğuk, depo daha koyu) çünkü oyuncunun
-   "burası arka taraf" ayrımını yapabilmesi gerekiyor.
+1. **The milky white of the walls.** With 0.16 alpha, the transparent walls laid
+   a haze over the whole hall; the colours beneath them (rug, wood, red chair)
+   were fading. The room division is already read from the floor and the
+   furniture — the wall's job is to **draw the boundary**, not to paint the
+   area. It went down to 0.10.
+   *Note: `RestaurantView` had a `WallColor` field that was not read from
+   anywhere; the real colour is in the `custom_wall.mat` asset, because a
+   transparent material has to be a `.mat` asset ([docs/37]). The dead field was
+   deleted — but **its summary had not been deleted**: the orphaned comment
+   stood there a while longer, and moreover described an even older value (0.20).
+   Leaving the comment that describes a field when you delete the field turns
+   the comment from **documentation** into **legend**.*
+2. **The floor colour was disconnected from the palette.** The room floors were
+   three fixed colours (hall / kitchen / service) and showed through the pattern:
+   a warm brown base in fast food, a cold grey base in Turkish. It now comes from
+   the palette; the service rooms are still separated (the kitchen and the
+   dishwashing colder, the store darker) because the player needs to be able to
+   make the "this is the back" distinction.
 
-### Yedinci dilim: gölgeler ve tavan lambaları
+### Seventh slice: shadows and ceiling lamps
 
 > **"Dükkân içi ışık ve gölgelerde problem var, odalardaki gölgeler başka
 > odalara kayıyor. Başka problemler de var, düzelt. Tavandaki ışıklar
 > gözükmesin, onların gözükmesine gerek yok."**
+>
+> *("There is a problem with the light and shadows inside the shop, the shadows
+> in the rooms are sliding into other rooms. There are other problems too, fix
+> them. The ceiling lights should not be visible, there is no need for them to
+> be visible.")*
 
-**Gölge taşmasının iki sebebi vardı ve ikisi de ölçülebilir:**
+**The shadow overspill had two causes and both are measurable:**
 
-1. **Saydam duvarlar gölge düşürüyordu.** Duvarlar cam (alfa 0,10) ama gölge
-   haritasında katı: 1,15 m'lik bir levha, güneş 10 derecedeyken **6,5 m**
-   uzunluğunda koyu bir bant bırakıyor ve o bant komşu odanın yarısını
-   kaplıyordu. Yanlışlığı iki katlı — cam bir bölme zaten gölge düşürmez, ve
-   düşürdüğü gölge oyuncunun bakması gereken yere düşüyordu.
-2. **Güneşin eğimi çok alçaktı.** Eğim sabah 26, akşam 10 dereceydi; gölge boyu
-   `h / tan(açı)`, yani 1,8 m'lik bir buzdolabı akşam **10 metre** gölge
-   bırakıyor. Eğim artık 44–66 derece bandında: en uzun gölge ~1,9 m, odaların
-   en darı 3,2 m. **Günün saati kaybolmuyor** — yön (azimut) 148'den 268'e
-   dönmeye devam ediyor ve saati asıl o söylüyor; boy değil *yön* okunuyor.
-   Akşam gölge gücü de 0,35'e iniyor: geceyi aydınlatan şey yönlü güneş değil,
-   iç ışıklar.
+1. **The transparent walls were casting shadows.** The walls are glass (alpha
+   0.10) but solid in the shadow map: a 1.15 m panel leaves a dark band **6.5 m**
+   long when the sun is at 10 degrees, and that band covered half of the
+   neighbouring room. The wrongness is double — a glass partition does not cast
+   a shadow in the first place, and the shadow it cast fell exactly where the
+   player needs to look.
+2. **The sun's elevation was far too low.** The elevation was 26 degrees in the
+   morning and 10 in the evening; shadow length is `h / tan(angle)`, so a 1.8 m
+   fridge leaves a **10 metre** shadow in the evening. The elevation is now in
+   the 44–66 degree band: the longest shadow is ~1.9 m, the narrowest room is
+   3.2 m. **The time of day is not lost** — the direction (azimuth) keeps
+   turning from 148 to 268, and that is what actually tells the time; what is
+   read is the *direction*, not the length. The evening shadow strength also
+   comes down to 0.35: what lights the night is not the directional sun but the
+   interior lights.
 
-**Tavan lambaları kaldırıldı.** Bu parça bir kez vardı, referans görselleri
-üzerine eklenmişti; kullanıcı iki kez aynı şeyi söyledi. Referansın kamerası
-daha alçak ve orada sarkıt mekânın yarısı; bizimki 34 dereceden ve **tavansız**
-bir binaya bakıyor — sarkıtlar aydınlattıkları yeri kapatan nesnelere
-dönüyordu. Işık duruyor: yerdeki havuzlar ve akşamın sıcak dolgusu.
+**The ceiling lamps were removed.** This piece existed once, added on top of the
+reference images; the user said the same thing twice. The reference's camera is
+lower and there a pendant is half the venue; ours looks at a **ceilingless**
+building from 34 degrees — the pendants were turning into objects that covered
+the place they lit. The light stays: the pools on the floor and the evening's
+warm fill.
 
-**"Başka problemler" iki tane çıktı, ikisi de yakın planda:**
+**"Other problems" turned out to be two, both in close-up:**
 
-- **Servis bankosu paket tezgâhlarıyla aynı yerde duruyordu** — tezgâh kutuları
-  bankonun içinden çıkıyor, kaplar havada asılı duruyordu. Ön sıra tezgâhları
-  kaldırıldı; banko zaten daha iyi bir tezgâh (tabla, sıralı kaplar, cam siper)
-  ve aşçının çalışma noktaları ocaklardan türüyor.
-- **Zeminde düzensiz koyu lekeler**: desen levhalarının alt yüzü zemin
-  levhasının üst yüzüyle **aynı düzlemdeydi** (ikisi de y=0) — z-kavgası.
-  Uzaktan "gölge kırıntısı" gibi okunuyordu ve beni gölge ayarlarında
-  arattıracaktı. Desen 6 mm yukarı alındı.
+- **The service counter was standing in the same place as the package's
+  counters** — the counter boxes came out through the inside of the service
+  counter and the trays hung in the air. The front-row counters were removed;
+  the service counter is already a better counter (top, trays in a row, glass
+  guard) and the cook's work points derive from the stoves.
+- **Irregular dark blotches on the floor**: the underside of the pattern slabs
+  was on **the same plane** as the top face of the floor slab (both at y=0) —
+  z-fighting. From a distance it read like "shadow crumbs" and would have sent
+  me hunting through the shadow settings. The pattern was raised 6 mm.
 
 ---
 
-## 4. Şimdiye kadarki kimlik farkı
+## 4. The identity difference so far
 
-| | hızlı yemek | Türk |
+| | fast food | Turkish |
 |---|---|---|
-| duvar | kömür grisi | sıcak tuğla |
-| vurgu | neon kırmızı | bakır |
-| tabela | kırmızı neon | amber |
-| zemin | halı yok | kilim (bordo + bakır bordür) |
-| metal | çelik | pirinç |
-| zemin deseni | kare fayans (dama) | uzun ahşap tahta |
-| servis kapları | kırmızı | amber |
-| sandalye minderi | kırmızı | koyu bordo |
-| cephe dikmesi | kırmızı | bakır |
+| wall | charcoal grey | warm brick |
+| accent | neon red | copper |
+| sign | red neon | amber |
+| floor | no rug | kilim (burgundy + copper border) |
+| metal | steel | brass |
+| floor pattern | square tiles (checkerboard) | long wooden boards |
+| service trays | red | amber |
+| chair cushion | red | dark burgundy |
+| frontage mullion | red | copper |
 
 ---
 
-## 5. Kamera açısı: referansın üç çeyreği ve bedeli
+## 5. The camera angle: the reference's three-quarter view and its price
 
 > **"Kamera açısı da referanstaki gibi olsa daha iyi değil mi? Referans
 > noktasından çok uzaktayız şu an."**
+>
+> *("Wouldn't it be better if the camera angle were like the reference too?
+> Right now we are very far from the reference point.")*
 
-Doğru. Referansın dört karesinde de bina **üç çeyrek** duruyor — iki yüzü birden
-görünüyor. Bizimki tam karşıdan bakıyordu (`CameraFit.Yaw = 0`) ve bu **bilerek**
-seçilmişti: [docs/31](31-rooms-and-camera.md) −12 derecelik dönmenin dokunma hedefi
-tabanını 71 dp'den 48'e düşürdüğünü ölçmüştü.
+Correct. In all four frames of the reference the building stands at **three
+quarters** — two faces are visible at once. Ours was looking straight on
+(`CameraFit.Yaw = 0`) and that had been chosen **deliberately**:
+[docs/31](31-rooms-and-camera.md) had measured that a −12 degree rotation drops
+the touch-target floor from 71 dp to 48.
 
-O yüzden önce **ölçüldü** (`RoomLayout.Capture`, TABAN = en küçük açık odanın
-şeritli kısa kenarı):
+So it was **measured** first (`RoomLayout.Capture`, FLOOR = the striped short
+edge of the smallest open room):
 
-| dönme | TABAN 20:9 | TABAN 16:9 |
+| rotation | FLOOR 20:9 | FLOOR 16:9 |
 |---|---|---|
 | 0° | 53 dp | 66 dp |
 | 10° | 45 dp | 57 dp |
 | 18° | 41 dp | 51 dp |
 | 30° | 39 dp | 49 dp |
 
-**Ve bir de telefonda bakıldı.** 20 derece görüntü aracında (1280×560) harika
-duruyordu; gerçek yapıda, 873×393 ve şeritler yerindeyken **bina küçüldü** —
-döndürülmüş bir dikdörtgen ekranda daha geniş yer istiyor, sığdırma da kamerayı
-geri çekiyor. Yani dönme tek başına referansa yaklaştırmıyor, *uzaklaştırıyor*.
-Aracın karesi ile telefonun karesi aynı soruya iki ayrı cevap veriyor; karar
-telefonunki.
+**And it was also looked at on a phone.** 20 degrees looked marvellous in the
+imaging tool (1280×560); in the real build, at 873×393 and with the strips in
+place, **the building shrank** — a rotated rectangle wants more room on the
+screen, and the fit pulls the camera back. So rotation alone does not bring us
+closer to the reference, it takes us *further away*. The tool's frame and the
+phone's frame give two different answers to the same question; the decision is
+the phone's.
 
-**10 derece seçildi.** Referansın üç çeyrek görünüşü geliyor, kayıp en küçük
-adımda duruyor. 48 dp'nin altına inmesi bilinen bir bedel — ve tabanın altında
-kalan şey bir düğme değil, beş metrelik bir odanın ekrandaki **kısa** kenarı;
-uzun kenarı iki katından fazla ve oyuncu iki parmakla yaklaşabiliyor.
+**10 degrees was chosen.** The reference's three-quarter view arrives and the
+loss stops at the smallest step. Going below 48 dp is a known price — and what
+falls below the floor is not a button but the **short** edge on screen of a
+five-metre room; its long edge is more than twice that and the player can zoom
+in with two fingers.
 
-**13 Eylül'de yeniden ölçüldü ve sayı 45 değil 42–43 dp çıktı** (20:9; 16:9'da
-52–54). Oyun değişmedi — *ölçüm* düzeldi: araç şeridin aldığı yeri %40
-sayıyordu, gerçek en kötü aşama %43,8. Kabul edilen bedel aynı yerde duruyor,
-ama artık doğru sayıyla duruyor. `RoomLayout` bunu her koşuda **uyarı** olarak
-basıyor (48 dp sektör tabanı) ve **40 dp'nin altına düşerse kırmızı** yanıyor:
-kabul edilmiş bir bedeli her koşuda hata diye bildirmek, gerçek bir gerilemeyi
-gürültünün içinde kaybetmek olurdu.
+**Re-measured on 13 September and the number came out 42–43 dp, not 45**
+(20:9; 52–54 at 16:9). The game did not change — the *measurement* was fixed:
+the tool was counting the strips as taking 40% of the screen, the real worst
+phase is 43.8%. The accepted price stands in the same place, but it now stands
+with the right number. `RoomLayout` prints this as a **warning** on every run
+(48 dp sector floor) and goes **red if it drops below 40 dp**: reporting an
+accepted price as an error on every run would be losing a real regression inside
+the noise.
 
-Ölçüm aracının kendisi de düzeltildi: şerit oranları `0,13 / 0,17` (toplam %30)
-yazılıydı ve "üst sınır" olduğu söyleniyordu. Tur şeridi **gerçekten** ölçüyor
-ve o gün 156 dp / 393 dp = **%40** çıktı. Yani sayı üst sınır değil alt sınırdı
-— ölçüm, hedefin gerçekte olduğundan büyük olduğunu söylüyordu.
+The measuring tool itself was fixed too: the strip ratios were written as
+`0.13 / 0.17` (30% in total) and were said to be an "upper bound". The tour
+**actually** measures the strip and that day it came out 156 dp / 393 dp =
+**40%**. So the number was not an upper bound but a lower one — the measurement
+was saying the target was larger than it really is.
 
-**Bu kopya bir daha sessizce eskidi.** 13 Eylül ölçümünde en kötü aşama (akşam)
-**172 dp**, yani %43,8; araç hâlâ %40'a göre hesaplıyordu ve dokunma hedefini
-yine olduğundan büyük bildiriyordu. Bant 172 dp'ye kuruldu ve `RoomLayout`
-artık kopyasını turun ölçtüğü değerle karşılaştırıp altında kalırsa **kırmızı**
-yanıyor. Aynı sayının iki yerde durması kaçınılmazdı (araç editör kipinde
-arayüzü kuramıyor); kaçınılabilir olan, ikisinin ayrıştığının hiç
-görülmemesiydi.
+**This copy silently went stale again.** In the 13 September measurement the
+worst phase (evening) is **172 dp**, that is 43.8%; the tool was still computing
+against 40% and was again reporting the touch target as larger than it is. The
+band was set to 172 dp and `RoomLayout` now compares its copy against the value
+the tour measures and goes **red** if it falls below it. Having the same number
+in two places was unavoidable (the tool cannot build the interface in editor
+mode); what was avoidable was the two of them diverging without anyone ever
+seeing it.
 
-### Ve o "asıl çözüm" yanlış çıktı
+### And that "real solution" turned out to be wrong
 
-Burada bir cümle yazmıştım: *"referansın binası kare, bizimki uzun bir şerit; kat
-planı derinleşirse hem dönme hem boyut geri gelir."* **Ölçüm bunu çürüttü.**
+I had written a sentence here: *"the reference's building is square, ours is a
+long strip; if the floor plan gets deeper, both the rotation and the size come
+back."* **The measurement refuted it.**
 
-Arayüzsüz bir kare (873×393) çekilince görüldü ki bina ekranı **zaten
-dolduruyor**: genişlik sınırda, derinlikte az bir pay var. 34 derecelik eğim
-derinliği `sin(34°) = 0,56` ile sıkıştırıyor, yani 18 × 9,6 m'lik arsa ekranda
-**3,3:1** oranında duruyor; şeritler arasındaki bant ise 3,7:1. Arsa kare olsaydı
-bina **küçülürdü**, büyümezdi.
+When a frame without the interface was taken (873×393) it became visible that
+the building **already fills** the screen: the width is at the limit, there is a
+little slack in depth. The 34-degree tilt compresses the depth by
+`sin(34°) = 0.56`, so an 18 × 9.6 m plot stands on screen at a ratio of
+**3.3:1**; the band between the strips is 3.7:1. If the plot were square the
+building would have **shrunk**, not grown.
 
-Gerçek darboğaz arayüzün kendisiydi: şeritler 393 dp'nin 156'sını alıyordu (%40).
-Simge düğmeleri 62 → 54 dp, kapsül 42 → 38 dp indi; menü düğmesi dokunma
-tabanında (48 dp) kaldı.
+The real bottleneck was the interface itself: the strips were taking 156 of the
+393 dp (40%). The icon buttons came down from 62 to 54 dp, the capsule from 42
+to 38 dp; the menu button stayed at the touch floor (48 dp).
 
-*Bir tahmini belgeye yazmak onu doğru yapmıyor — bu satırlar, planı yeniden
-çizmeye başlamadan önce bir kare almanın karşılığı.*
+*Writing a guess into a document does not make it true — these lines are what
+taking one frame before starting to redraw the plan bought.*
 
 ---
 
-## 6. Sırada ne var
+## 6. What is next
 
-Bu belge birinci ve ikinci dilimi kapsıyor. Referansa yaklaşmak için kalanlar:
+This document covers the first and second slices. What remains in order to get
+closer to the reference:
 
-1. **Mobilya modelleri** — paket modelleri duruyor ve artık **mutfağın tonunu
-   alıyor**; prosedürel olarak yeniden yazmak (ahşap üst + koyu iskelet) hâlâ
-   açık ama kazancı azaldı
-2. ~~Karakterler~~ ✅ aşçı kepi ve önlük; müşteri çeşitliliği sırada
-2b. ~~Masada yemek~~ ✅
-3. ~~Teras~~ ✅ korkuluk ve saksılar; dış oturma sırada
-4. ~~Servis bankosu~~ ✅
-5. ~~Zemin dokusu~~ ✅
-6. ~~Kat planının derinleşmesi~~ ❌ **ölçüm gereksiz olduğunu gösterdi** (§5)
+1. **Furniture models** — the package models are staying and now **take the
+   cuisine's tone**; rewriting them procedurally (wooden top + dark frame) is
+   still open but its payoff has shrunk
+2. ~~Characters~~ ✅ cook's toque and apron; customer variety is next
+2b. ~~Food on the table~~ ✅
+3. ~~Terrace~~ ✅ railing and planters; outdoor seating is next
+4. ~~Service counter~~ ✅
+5. ~~Floor texture~~ ✅
+6. ~~Deepening the floor plan~~ ❌ **the measurement showed it was unnecessary** (§5)

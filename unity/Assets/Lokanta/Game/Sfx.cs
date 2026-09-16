@@ -4,42 +4,45 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Sesler once DOSYADAN, yoksa koddan.
+    /// Sounds come FROM A FILE first, and from code only if there is none.
     ///
-    /// `Resources/audio/<ad>` altinda bir klip varsa o calinyor; yoksa ayni
-    /// isimli sentezlenmis ton devreye giriyor. Yani ses dosyasi eklemek
-    /// KOD DEGISIKLIGI ISTEMIYOR - dosyayi klasore koymak yetiyor.
+    /// If there is a clip under `Resources/audio/<name>` that one is
+    /// played; if not, the synthesised tone of the same name steps in. So
+    /// adding a sound file NEEDS NO CODE CHANGE - putting the file in the
+    /// folder is enough.
     ///
-    /// Neden boyle: bir sure butun sesler yalnizca kodla uretiliyordu ve
-    /// gerekcesi ticariydi ("indirilen her dosya bir lisans karari").
-    /// Gerekce yarim dogru: lisans gercek bir risk ama sentez de gercek
-    /// bir maliyet - basit dalga bicimleri bir lokanta oyununda ucuz
-    /// duyuluyor ve mutfak, kapi zili, kalabalik gibi sesler sentezle
-    /// inandirici olmuyor.
+    /// Why it works this way: for a while every sound was produced in code
+    /// alone, and the reasoning was commercial ("every file downloaded is
+    /// a licence decision"). The reasoning is half right: a licence is a
+    /// real risk, but synthesis is a real cost too - simple waveforms
+    /// sound cheap in a restaurant game, and sounds like a kitchen, a
+    /// doorbell or a crowd are not convincing when synthesised.
     ///
-    /// Iki katmanli cozum ikisini de cozuyor: sentez YEDEK olarak
-    /// duruyor (yani oyun ses dosyasi olmadan da tam calisiyor ve
-    /// APK'ya sifir bayt ekliyor), dosya konulursa o kazaniyor.
-    /// Konulacak dosyalarin listesi ve kaynaklari: Art/ATTRIBUTION.md.
+    /// The two-layer answer solves both: the synthesis stays as the
+    /// FALLBACK (so the game runs complete with no sound files at all and
+    /// adds zero bytes to the APK), and if a file is put there, the file
+    /// wins. The list of files to add and where they come from:
+    /// Art/ATTRIBUTION.md.
     ///
-    /// Sentez basit ama kasitli: her ses bir ZARF (yukselis-sonus) ile
-    /// carpiliyor, cunku zarfsiz bir ton "bip" gibi duyuluyor. Tiklamalar
-    /// kisa ve yumusak; mutfak sesleri gurultulu; para sesi iki tonlu.
+    /// The synthesis is simple but deliberate: every sound is multiplied
+    /// by an ENVELOPE (attack-release), because a tone without one sounds
+    /// like a "beep". The clicks are short and soft; the kitchen sounds
+    /// are noisy; the money sound has two tones.
     /// </summary>
     public static class Sfx
     {
         /// <summary>
-        /// Ornekleme hizi. 22050, 44100 degil.
+        /// The sample rate. 22050, not 44100.
         ///
-        /// Sesler tik, onay, para, zil gibi kisa ve dar bantli seyler;
-        /// 22 kHz'de fark duyulmuyor ama bellek ve sentez suresi
-        /// YARILANIYOR. Onceki degerde on klip 181.000 ornek demekti ve
-        /// hepsi acilista, bir delege uzerinden, cogu birkac Mathf.Sin
-        /// cagirarak uretiliyordu - dusuk seviye bir telefonda ilk
-        /// karede 20-40 ms.
+        /// The sounds are short, narrow-band things - a click, a confirm,
+        /// money, a bell; at 22 kHz the difference cannot be heard, but the
+        /// memory and the synthesis time are HALVED. At the previous value
+        /// ten clips meant 181,000 samples, all of them produced at startup,
+        /// through a delegate, most of them calling a few Mathf.Sin - 20-40
+        /// ms in the first frame on a low-end phone.
         ///
-        /// Klip verisi de 724 KB'dan 362 KB'a iniyor ve gecici float
-        /// dizileri buyuk nesne yiginina dusmuyor.
+        /// The clip data also drops from 724 KB to 362 KB, and the temporary
+        /// float arrays do not fall into the large object heap.
         /// </summary>
         public const int SampleRate = 22050;
 
@@ -56,35 +59,36 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Dosya varsa onu, yoksa sentezlenmis klibi dondurur.
+        /// Returns the file if there is one, otherwise the synthesised clip.
         ///
-        /// Resources.Load klasor yoksa da sessizce null donuyor, yani
-        /// ses dosyasi hic eklenmemis bir projede hata cikmiyor.
-        /// </summary>
+        /// Resources.Load also returns null quietly when the folder does not
+        /// exist, so a project that has never had a sound file added does not
+        /// throw.
         /// <summary>
-        /// Dosya varsa onu, yoksa SENTEZLER.
+        /// The file if there is one, otherwise it SYNTHESISES.
         ///
-        /// Sentez artik ancak gerektiginde calisiyor: once dosyaya
-        /// bakiliyor, bulunmazsa uretiliyor. Onceden on klibin hepsi
-        /// kosulsuz sentezleniyor, sonra dosya varsa CÖPE ATILIYORDU -
-        /// yani yapilan isin bir kismi bastan bosunaydi.
+        /// The synthesis now runs only when it is needed: the file is looked
+        /// for first and the tone is produced only if it is not found.
+        /// Before, all ten clips were synthesised unconditionally and then
+        /// THROWN AWAY if a file existed - so part of the work was wasted
+        /// from the start.
         /// </summary>
         private static AudioClip Prefer(string file, System.Func<AudioClip> synth)
         {
-            AudioClip c = Resources.Load<AudioClip>("ses/" + file);
+            AudioClip c = Resources.Load<AudioClip>("audio/" + file);
             return c != null ? c : synth();
         }
 
-        /// <summary>Sahnede bir kez cagriliyor.</summary>
+        /// <summary>Called once in the scene.</summary>
         public static void Init(AudioSource source)
         {
             _source = source;
             if (_built) return;
 
-            // HER KLIP ICIN ONCE DOSYA, YOKSA SENTEZ.
+            // FOR EVERY CLIP, THE FILE FIRST AND THE SYNTHESIS IF THERE IS NONE.
             //
-            // Isimler Art/ATTRIBUTION.md'deki listeyle ayni; oradaki tablo
-            // hangi dosyanin nereye dusecegini soyluyor.
+            // The names are the same as the list in Art/ATTRIBUTION.md; that
+            // table says which file lands where.
             _click = Prefer("tik", () => Tone("tik", 0.045f, (t, n) =>
                 Env(t, n, 0.004f, 0.040f) * Sine(t, 880f) * 0.35f));
 
@@ -96,7 +100,7 @@ namespace Lokanta.Game
                 Env(t, n, 0.006f, 0.17f) *
                 (Sine(t, 392f) * 0.5f + Sine(t, 294f) * 0.35f) * 0.4f));
 
-            // Para: iki hizli ton, ikincisi yukarida. "Kasa" duygusu.
+            // Money: two quick tones, the second one higher. The feel of a "till".
             _coin = Prefer("para", () => Tone("para", 0.26f, (t, n) =>
             {
                 float a = Env(t, n, 0.004f, 0.09f) * Sine(t, 1047f);
@@ -106,34 +110,34 @@ namespace Lokanta.Game
                 return (a * 0.45f + b * 0.5f) * 0.4f;
             }));
 
-            // Zil: kapi cani. Uc harmonikli, uzun sonus.
+            // Bell: a door chime. Three harmonics, a long release.
             _bell = Prefer("kapi-zili", () => Tone("zil", 0.85f, (t, n) =>
                 Env(t, n, 0.003f, 0.80f) *
                 (Sine(t, 1319f) * 0.5f + Sine(t, 1976f) * 0.28f
                  + Sine(t, 2637f) * 0.14f) * 0.32f));
 
-            // Cizirti: gurultu, alcak gecirgen his icin yumusatilmis.
+            // Sizzle: noise, softened for a low-pass feel.
             _sizzle = Prefer("cizirti", () => Tone("cizirti", 0.55f, (t, n) =>
                 Env(t, n, 0.05f, 0.45f) * Noise(t) * 0.22f));
 
-            // Dokme: gurultu + alcalan ton.
+            // Pouring: noise + a falling tone.
             _pour = Prefer("dokme", () => Tone("dokme", 0.45f, (t, n) =>
                 Env(t, n, 0.03f, 0.40f) *
                 (Noise(t) * 0.35f + Sine(t, 320f - 120f * (t / n)) * 0.25f) * 0.3f));
 
-            // Kizgin musteri: alcalan iki ton.
+            // An angry guest: two falling tones.
             _upset = Prefer("kizgin", () => Tone("kizgin", 0.35f, (t, n) =>
                 Env(t, n, 0.006f, 0.32f) *
                 Sine(t, 330f - 90f * (t / n)) * 0.42f));
 
-            // Seviye atlama: yukselen uclu.
+            // Levelling up: a rising triad.
             _levelUp = Prefer("seviye", () => Tone("seviye", 0.5f, (t, n) =>
             {
                 float f = t < 0.14f ? 523f : (t < 0.28f ? 659f : 784f);
                 return Env(t, n, 0.006f, 0.45f) * Sine(t, f) * 0.4f;
             }));
 
-            // Gun donumu: yumusak, alcak, iki tonlu.
+            // The turn of the day: soft, low, two tones.
             _day = Prefer("gun-donumu", () => Tone("gun", 0.7f, (t, n) =>
                 Env(t, n, 0.06f, 0.62f) *
                 (Sine(t, 262f) * 0.4f + Sine(t, 349f) * 0.3f) * 0.35f));
@@ -142,8 +146,9 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Kac ses DOSYADAN geliyor. Tur bunu raporluyor: "sesler tamam"
-        /// demek, sentezlenmis on tonun da gecerli sayilmasi demekti.
+        /// How many sounds come FROM A FILE. The tour reports this: saying
+        /// "the sounds are fine" would otherwise have counted the ten
+        /// synthesised tones as valid too.
         /// </summary>
         public static int FileBackedCount()
         {
@@ -152,11 +157,11 @@ namespace Lokanta.Game
                                "gun-donumu" };
             int n = 0;
             for (int i = 0; i < names.Length; i++)
-                if (Resources.Load<AudioClip>("ses/" + names[i]) != null) n++;
+                if (Resources.Load<AudioClip>("audio/" + names[i]) != null) n++;
             return n;
         }
 
-        // --- calma ------------------------------------------------------------
+        // --- playing ----------------------------------------------------------
         private static void Play(AudioClip c, float scale = 1f)
         {
             if (_source == null || c == null) return;
@@ -174,7 +179,7 @@ namespace Lokanta.Game
         public static void LevelUp() { Play(_levelUp); }
         public static void DayChange() { Play(_day); }
 
-        // --- sentez -----------------------------------------------------------
+        // --- synthesis --------------------------------------------------------
         private static AudioClip Tone(string name, float seconds, Func<float, float, float> f)
         {
             int count = Mathf.CeilToInt(seconds * SampleRate);
@@ -196,9 +201,9 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Belirlenimci gurultu. Random KULLANILMIYOR: ayni tohum ayni
-        /// dalga demek, ve sesin kosudan kosuya degismesinin bir anlami
-        /// yok. Ayrica cekirdegin rastgele akislarina hic dokunmuyor.
+        /// Deterministic noise. Random IS NOT USED: the same seed means the
+        /// same wave, and there is no point in a sound changing from run to
+        /// run. It also never touches the core's random streams.
         /// </summary>
         private static float Noise(float t)
         {
@@ -206,7 +211,7 @@ namespace Lokanta.Game
             return Mathf.Repeat(Mathf.Sin(x) * 43758.5453f, 2f) - 1f;
         }
 
-        /// <summary>Yukselis-sonus zarfi. Zarfsiz ton "bip" gibi duyuluyor.</summary>
+        /// <summary>An attack-release envelope. Without one a tone sounds like a "beep".</summary>
         private static float Env(float t, float total, float attack, float release)
         {
             if (t < 0f) return 0f;

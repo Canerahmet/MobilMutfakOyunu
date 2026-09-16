@@ -1,877 +1,884 @@
-# 34 — İlerleme: kilit, karmaşıklık, mevsim ve "soran müşteri"
+# 34 — Progression: locks, complexity, the seasons and "the customer who asks"
 
-10 Eylül 2026. Bu belge, bir günde bulunan **beş ölü içerik** ve onları canlandırırken açılan iki deliği anlatıyor.
+10 September 2026. This document describes **five pieces of dead content** found in a single day and the two holes that opened up while bringing them back to life.
 
 ---
 
-## 1. Önce şu soru: içeriğin vaat ettiği her şeyin karşılığı var mı?
+## 1. First this question: is there something behind everything the content promises?
 
-Aynı gün içinde dört ayrı hata bulundu ve dördü de tek bir sınıftandı:
+Four separate bugs were found on the same day and all four were of one class:
 
-| Ne vaat ediliyordu | Kod ne yapıyordu |
+| What was promised | What the code was doing |
 |---|---|
-| `spoilDays` — 44 malzemenin raf ömrü, 1 ile 45 gün | Hepsini her gece siliyordu |
-| `tatli` grubu — 9 tatlı yemeği | `PickOrder` tatlıya hiç bakmıyordu |
-| Yemek grupları mutfağa özel | Fast food sözlüğü sabit kodlanmıştı |
-| `attendBp` — [27](27-time-model.md) Karar D | Mutfak hiç uygulamamıştı |
+| `spoilDays` — the shelf life of 44 ingredients, 1 to 45 days | It deleted all of them every night |
+| The `tatli` group — 9 dessert dishes | `PickOrder` never looked at desserts |
+| Dish groups are cuisine-specific | The fast food dictionary was hard-coded |
+| `attendBp` — [27](27-time-model.md) Decision D | The kitchen had never applied it |
 
-Hiçbiri derlemeyi bozmuyor, hiçbiri testi kırmıyor. Hepsi **sessizce ölü.** Bu sınıf hata tahminle bulunmaz, taranır.
+None of them breaks the build, none of them fails a test. All of them are **silently dead.** This class of bug is not found by guessing, it is swept for.
 
-`tools/audit_content.py` bunun için yazıldı. Üç soru soruyor:
+`tools/audit_content.py` was written for that. It asks three questions:
 
-1. `content/*.json` içinde olup hiçbir DTO'nun bağlamadığı anahtar var mı?
-2. Çekirdek tipinde olup **hiçbir yerde** okunmayan özellik var mı?
-3. [13-data-schemas.md](13-data-schemas.md)'de olup üretilen içerikte olmayan alan var mı?
+1. Is there a key in `content/*.json` that no DTO binds?
+2. Is there a property on a core type that is read **nowhere**?
+3. Is there a field in [13-data-schemas.md](13-data-schemas.md) that is not in the generated content?
 
-İkinci soru dikkatli sorulmalı: bir alanın *çekirdekte* okunmaması tek başına hata değil — dilim süreleri çekirdek dışında `TimingConfig`'e veriliyor, kapasiteler yükleyicide doğrulanıyor. Asıl bulgu **hiçbir yerde** okunmayan alan.
+The second question has to be asked carefully: a field not being read *in the core* is not on its own a bug — the slot durations are handed to `TimingConfig` outside the core, the capacities are validated in the loader. The real finding is a field read **nowhere**.
 
-### İlk koşuşta bulduğu iki tam sistem
+### The two whole systems it found on its first run
 
-**Mevsim fiyatları.** 77 malzemenin hepsinde dört mevsimlik çarpan var ve **35'inin gerçek oynaması** var: domates yazın %14 ucuz, kışın %20 pahalı. Simülasyon hep taban fiyatı ödüyordu.
+**Seasonal prices.** All 77 ingredients have a multiplier for each of the four seasons and **35 of them have real movement**: tomatoes are 14% cheaper in summer and 20% dearer in winter. The simulation was always paying the base price.
 
-**Malzeme kalitesi.** Üç kademe (`dusuk` / `standart` / `yuksek`), hem fiyatı hem memnuniyeti etkiliyor. Hiç okunmuyordu; **§9'da yazıldı.**
+**Ingredient quality.** Three tiers (`dusuk` / `standart` / `yuksek`), affecting both the price and the satisfaction. It was never read; **it was written in §9.**
 
-Ayrıca `seasonDays` ve `unlockSeason` **DTO'ya bağlanmış ama çekirdeğe hiç ulaşmıyor** — denetimin iki kontrolü arasından kaçan üçüncü bir sınıf. Denetleyici bunu göremiyor; bir sonraki turda eklenmeli.
+Also, `seasonDays` and `unlockSeason` are **bound to the DTO but never reach the core** — a third class that slips between the auditor's two checks. The auditor cannot see it; it should be added on the next pass.
 
 ---
 
-## 2. Mevsim uygulandı
+## 2. The seasons were implemented
 
-Kampanya 60 gün, mevsim 15 gün: ilkbahar, yaz, sonbahar, kış. Halden alınan malzemenin fiyatı mevsime göre değişiyor.
+The campaign is 60 days, a season 15: spring, summer, autumn, winter. The price of an ingredient bought at the market changes with the season.
 
-**Tek başına bu bir karar değil, sadece bir gider oynaması.** Karar olması için ucuzken alıp saklayabilmek gerekiyor — ve o tam olarak [32](32-equipment-and-rebalance.md) §7'de yazılan **soğuk hava** merdiveni. İki parça birbirini tamamlıyor:
+**On its own this is not a decision, only a swing in the expenses.** For it to be a decision you have to be able to buy cheap and keep it — and that is exactly the **cold storage** ladder written in [32](32-equipment-and-rebalance.md) §7. The two pieces complete each other:
 
 ```
-sonbaharda soğan %10 ucuz  +  soğuk oda (raf ömrünün %60'ı)
-      = kışa kadar dayanan ucuz stok
+onions 10% cheaper in autumn  +  a cold room (60% of the shelf life)
+      = cheap stock that lasts until winter
 ```
 
-Denge aracında `plancı` stratejisi bunu kullanınca **%9 kazandı** (17.722 → 19.327). Yani mevsim artık dekor değil.
+When the `planci` strategy used it in the balance tool it **gained 9%** (17,722 -> 19,327). So the seasons are no longer decoration.
 
-Yapısal bir yan etki de var ve kasıtlı bırakıldı: kış hem **en pahalı** mevsim hem de kampanyanın **en yoğun** dönemi. Maliyet eğrisi sona doğru yükseliyor.
+There is a structural side effect too, and it was left in deliberately: winter is both the **dearest** season and the **busiest** stretch of the campaign. The cost curve rises towards the end.
 
 ---
 
-## 3. Yemek kilidi: takvimden başarıya
+## 3. The dish lock: from a calendar to an achievement
 
-### Durum neydi
+### What the situation was
 
-Yemekler zaten ilk günden açık değildi: 32 yemeğin **6'sı** (2 ana yemek) gün 1'de açık, gerisi 3. günden 57. güne teker teker geliyordu.
+The dishes were not all open from day one already: **6** of the 32 dishes (2 main courses) were open on day 1, the rest arriving one by one from day 3 to day 57.
 
-Ama açılma bir **takvimdi**. `unlockDay` geldiği gün yemek açılıyordu; oyuncu bunun için hiçbir şey yapmıyordu.
+But the opening was a **calendar**. On the day `unlockDay` arrived, the dish opened; the player did nothing for it.
 
-### Ne oldu
+### What happened
 
-Kilit artık üç şart birden istiyor:
+The lock now wants three conditions at once:
 
-| Şart | Ne anlama geliyor |
+| Condition | What it means |
 |---|---|
-| `unlockDay` | Tempo tabanı — en erken ne zaman ([09](09-content-inventory.md)) |
-| `unlockReputationCenti` | **Kazanılan** şey |
-| `requiresStationTier` | **Satın alınan** şey |
+| `unlockDay` | The pacing floor — the earliest it can happen ([09](09-content-inventory.md)) |
+| `unlockReputationCenti` | Something **earned** |
+| `requiresStationTier` | Something **bought** |
 
-Üçüncüsü önemli: **ekipman almak artık menü açıyor.** [32](32-equipment-and-rebalance.md)'de yazılan istasyon merdiveni yalnızca hız satmıyordu artık; içerik satıyor.
+The third one matters: **buying equipment now opens menu items.** The station ladder written in [32](32-equipment-and-rebalance.md) was no longer selling only speed; it sells content.
 
-### `complexity` canlandı — ama ödül olarak değil
+### `complexity` came alive — but not as a reward
 
-`complexity` alanı (1..3) içerikte vardı ve hiçbir yerde okunmuyordu. Veri zaten anlamlıydı: karmaşıklık 3 yemekler karmaşıklık 1'in **iki katı fiyatlı ve iki katı hazırlama süreli**.
+The `complexity` field (1..3) existed in the content and was read nowhere. The data was already meaningful: complexity-3 dishes cost **twice as much and take twice as long to prepare** as complexity-1 ones.
 
-İlk uygulama memnuniyeti karmaşıklığa göre **iki yönde** büyütüyordu. Ölçüm hemen yakaladı:
+The first implementation scaled satisfaction by complexity **in both directions**. The measurement caught it immediately:
 
-> Türk menüsünün 17'si karmaşıklık 3. Hiçbir şey yapmayan `sadece_hal` oyuncusu 5.094'ten **33.488**'e fırladı.
+> 17 of the Turkish menu are complexity 3. The `sadece_hal` player, who does nothing at all, jumped from 5,094 to **33,488**.
 
-Sebep basit: müşterilerin çoğu zaten memnun, yani büyüteç pratikte tek yönlü çalıştı ve itibarı şişirdi.
+The reason is simple: most customers are satisfied anyway, so in practice the magnifier only worked in one direction and it inflated the reputation.
 
-**Ödül zaten fiyatta.** Karmaşıklık artık yalnızca **risk**: usta işi yemeği geç götürürsen müşteri daha çok kızıyor, iyi götürürsen fazladan ödül yok.
+**The reward is already in the price.** Complexity is now only **risk**: if you take a skilled dish late the customer gets angrier, and if you take it well there is no extra reward.
 
 ---
 
-## 4. Kilit sisteminin açtığı delik
+## 4. The hole the lock system opened
 
-Kilit yazılınca ölçüm ikinci bir sorun gösterdi:
+Once the lock was written the measurement showed a second problem:
 
-| | kilit öncesi | kilit sonrası |
+| | before the lock | after the lock |
 |---|---:|---:|
-| `sadece_hal` (hiçbir şey yapmayan) | 3.386 | **18.583** |
-| `fazla_kadro` | 1.921 | **14.403** |
+| `sadece_hal` (does nothing at all) | 3,386 | **18,583** |
+| `fazla_kadro` | 1,921 | **14,403** |
 
-**Kilitli yemek = stoklanmayan yemek = masrafsız yemek.** Menüyü daraltmanın kazancını, menüyü hiç yönetmeyen oyuncu bedavaya aldı. Tasarlanmış bir gerilim tersine döndü.
+**A locked dish = a dish not stocked = a dish with no cost.** The gain from narrowing the menu was handed free of charge to the player who never manages the menu at all. A designed tension had been turned inside out.
 
-### Çözüm: müşteri gelip soruyor
+### The solution: the customer comes and asks
 
 > "Yeni yemek kilitleri açılınca müşteriler onu gelip sorsun; böylece gerekli masrafı yapmazsa müşteri memnuniyeti düşer."
+>
+> *("When new dish locks open, let the customers come and ask for it; that way, if they do not make the necessary outlay, customer satisfaction drops.")*
 
-Günü ve itibarı gelmiş ama **ekipmanı alınmamış** bir ana yemek varsa, müşteri onu soruyor. Bulamayınca memnuniyeti düşüyor.
+If there is a main course whose day and reputation have come but whose **equipment has not been bought**, the customer asks for it. Not finding it, their satisfaction drops.
 
-İki ayrıntı önemli:
+Two details matter:
 
-- **Yalnızca oyuncunun kapatabileceği eksik sorulur.** Takvimin daha getirmediği yemek sorulmuyor; o haksızlık olurdu.
-- **Ceza bekleyen yemek sayısıyla ölçekleniyor.** Bir yemeği atlamak küçük bir eksik; sekizini atlamak ihmal, ve mahalle bunu konuşuyor.
+- **Only a gap the player could have closed is asked about.** A dish the calendar has not brought yet is not asked for; that would be unfair.
+- **The penalty scales with the number of pending dishes.** Skipping one dish is a small gap; skipping eight is neglect, and the neighbourhood talks about it.
 
-| | kilit sonrası | soran müşteri sonrası |
+| | after the lock | after the asking customer |
 |---|---:|---:|
-| `sadece_hal` | 18.583 | **14.424** |
-| `fazla_kadro` | 14.403 | **5.106** |
+| `sadece_hal` | 18,583 | **14,424** |
+| `fazla_kadro` | 14,403 | **5,106** |
 
-Deliği kapattı. Ve mekanik, ekipman satın almayı soyut bir hız kazancından **masadaki hayal kırıklığına** çevirdiği için [02-design-proposal.md](02-design-proposal.md)'nin "görünür büyüme" ilkesiyle örtüşüyor.
-
----
-
-## 5. Kuralı yine tek mutfağa göre yazdım
-
-Kilit kuralı önce mutlaktı: *karmaşıklık 3 → istasyon kademesi 2.*
-
-Fast food'da 32 yemeğin **2'si** karmaşıklık 3. Türk lokantasında **17'si**. Yani kural, Türk menüsünün yarısını bir anda kilitledi ve ölçüm bunu gösterdi: `sadece_hal` iyi oyunun **%89'unu** kazanıyordu, çünkü kilitli menü ucuz menü demek.
-
-Kural artık **mutfağın kendi dağılımına** göre: yemekler karmaşıklık ve fiyata göre sıralanıp üçe bölünüyor — alt %45 ekipman istemez, sonraki %35 kademe 1, üst %20 kademe 2. İki mutfak da 17 / 9 / 6.
-
-Bu, [33-second-cuisine.md](33-second-cuisine.md)'ün dersinin tekrarı ve o belgeyi yazan kişi tarafından tekrarlandı. `tools/balance/calibrate.py` artık **iki mutfağı da** koşuyor; tek mutfakla kalibre etmek bu yüzden artık mümkün değil.
+It closed the hole. And because the mechanic turns buying equipment from an abstract speed gain into **a disappointment at the table**, it lines up with [02-design-proposal.md](02-design-proposal.md)'s "visible growth" principle.
 
 ---
 
-## 6. Bu turun bıraktığı durum
+## 5. Once again I wrote the rule for one cuisine
 
-Dört yeni sistem birlikte ekonomiyi **zorlaştırdı**: mevsim maliyeti, kilit şartı, karmaşıklık riski ve soran müşteri. Kalibrasyon iki mutfakla yeniden çözüldü ve **gerçekleşme oranı 6.500'e döndü**, kiralar 650 / 1.550 / 2.250 / 4.000.
+The lock rule was absolute at first: *complexity 3 -> station tier 2.*
 
-Ara bir noktada denge marjinaldi: hiçbir şey yapmayan oyuncu bazı ayarlarda tam planı uygulayanı geçiyordu. §7'deki itibar tabanı bunu da kapattı.
+In fast food **2** of the 32 dishes are complexity 3. In the Turkish restaurant it is **17**. So the rule locked half of the Turkish menu at a stroke, and the measurement showed it: `sadece_hal` was earning **89%** of what good play earns, because a locked menu means a cheap menu.
 
-**Sonuç, iki mutfakta da:**
+The rule now goes by **the cuisine's own distribution**: the dishes are sorted by complexity and price and split into three — the bottom 45% need no equipment, the next 35% tier 1, the top 20% tier 2. Both cuisines come out 17 / 9 / 6.
 
-| strateji | fast food | Türk | boşaldı |
+This is a repeat of [33-second-cuisine.md](33-second-cuisine.md)'s lesson, and it was repeated by the person who wrote that document. `tools/balance/calibrate.py` now runs **both cuisines**; calibrating with one cuisine is therefore no longer possible.
+
+---
+
+## 6. The state this pass left behind
+
+Four new systems together made the economy **harder**: the seasonal cost, the lock condition, the complexity risk and the asking customer. The calibration was re-solved with both cuisines and **the realisation rate went back to 6,500**, the rents 650 / 1,550 / 2,250 / 4,000.
+
+At an intermediate point the balance was marginal: on some settings the player who did nothing beat the one who followed the full plan. The reputation floor in §7 closed that too.
+
+**The result, in both cuisines:**
+
+| strategy | fast food | Turkish | emptied |
 |---|---:|---:|---:|
-| hiçbir şey yapmayan | −4.943 | −4.722 | **5. gün** |
-| sadece malzeme alan | 12.311 | 14.920 | 32 / 36 |
-| **iyi oyuncu** | **24.876** (itibar 91,0) | **26.211** | hiç |
-| genişlemeyen | 11.519 | 12.859 | hiç |
-| pervasız genişleyen | −51.604 (7. gün borç) | −5.433 (23. gün) | 8 / 11 |
-| **plancı** | **17.501** (itibar **100,0**) | **20.419** (itibar **87,5**) | hiç / 54 |
-| yüksek fiyat | 3.790 | 3.145 | 9 / 6 |
-| fazla kadro | 7.947 | 13.110 | 52 / hiç |
+| does nothing at all | −4,943 | −4,722 | **day 5** |
+| buys ingredients only | 12,311 | 14,920 | 32 / 36 |
+| **good player** | **24,876** (reputation 91.0) | **26,211** | never |
+| does not expand | 11,519 | 12,859 | never |
+| expands recklessly | −51,604 (in debt on day 7) | −5,433 (day 23) | 8 / 11 |
+| **planner** | **17,501** (reputation **100.0**) | **20,419** (reputation **87.5**) | never / 54 |
+| high price | 3,790 | 3,145 | 9 / 6 |
+| overstaffed | 7,947 | 13,110 | 52 / never |
 
-**Kalibrasyon cezası SIFIR, iki mutfakta da.** Bütün tasarım hedefleri geçiyor:
+**The calibration penalty is ZERO, in both cuisines.** Every design target passes:
 
-- İhmalin bedeli var: hiçbir şey yapmayanın dükkânı **5. günde boşalıyor**, 42. günde batıyor
-- Kötü yöneten **zor da olsa geçiyor**: 32. güne kadar sürünüyor, batmıyor
-- Pervasız büyüme 7. günde borca düşürüyor
-- Büyümek **2,3 kat** ödüllendiriyor
-- **Zamanında yatırım yapanın itibarı iki mutfakta da 80 üstünde** (92,1 ve 87,5)
-- Fazla kadro ve yüksek fiyat cezalandırılıyor
-- Para hiçbir haftada önemsizleşmiyor
+- Neglect has a price: the shop of the one who does nothing **empties on day 5** and goes under on day 42
+- The bad manager **scrapes through, but only just**: they crawl until day 32 without going under
+- Reckless growth puts you in debt on day 7
+- Growing is rewarded **2.3-fold**
+- **Whoever invests on time has a reputation above 80 in both cuisines** (92.1 and 87.5)
+- Overstaffing and high prices are punished
+- Money never becomes irrelevant in any week
 
-120 test, 20/20 model kontrolü.
+120 tests, 20/20 model checks.
 
-### İlk hafta kuralı: talebin tabanı fazla yüksekmiş
+### The first-week rule: the demand floor turned out to be too high
 
 > "Hiç iş yapmayan biri ilk haftayı geçemesin. Kötü yönettiği durumda zor da olsa geçebilsin."
+>
+> *("Somebody who does no work at all should not get through the first week. If they manage badly they should get through, but only with difficulty.")*
 
-**Başlangıç kasasıyla denendi ve ölçüm reddetti.** 8.000'den 1.725'e (ilk hafta giderinin %85'i) inince hiçbir şey yapmayan gerçekten erken battı, ama `plancı` −18.976'ya, iyi oyuncunun itibarı 16,2'ye düştü ve masası 4'te kaldı. Sebep yapısal: **gerçek bir oyuncunun işletebilmesi için gereken tampon, aynı zamanda ölü bir restoranı haftalarca ayakta tutan tampon.**
+**It was tried with the starting cash and the measurement rejected it.** Bringing it from 8,000 down to 1,725 (85% of the first week's outgoings) did make the do-nothing player die early, but `planci` fell to −18,976, the good player's reputation dropped to 16.2 and their table count stuck at 4. The reason is structural: **the buffer a real player needs in order to run the place is the same buffer that keeps a dead restaurant standing for weeks.**
 
-İki şey daha çıktı ve ikisi de yönü değiştirdi.
+Two more things came out and both of them changed the direction.
 
-**Birincisi:** talep çarpanı `0,5 + itibar` idi, yani itibar sıfırken bile restoran taban talebin **yarısını** alıyordu. Kimsenin konuşmadığı bir dükkân yarı doluymuş gibi davranıyordu; ihmalin ölüm sarmalı gerçekte yoktu.
+**The first:** the demand multiplier was `0.5 + reputation`, that is, even with zero reputation the restaurant got **half** the base demand. A shop nobody talks about was behaving as if it were half full; the death spiral of neglect did not actually exist.
 
-**İkincisi:** [08-endgame.md](08-endgame.md) kapanışı zaten reddetmiş — *"Kayıt hâlâ silinmez, oyun hâlâ bitmez."* Batma bir son değil, bir **merdiven**. Yani "ilk haftayı geçememek" oyunun bitmesi olamaz.
+**The second:** [08-endgame.md](08-endgame.md) had already rejected the closure — *"The save is still never deleted, the game still does not end."* Going under is not an ending, it is a **ladder**. So "not getting through the first week" cannot mean the game ending.
 
-Ve hiçbir şey yapmayan oyuncunun **cirosu sıfır** (malzemesi yok, herkesi kapıdan çeviriyor), yani talep düşse de batma günü değişmiyor: kasa ÷ haftalık gider = 42. gün. Saf aritmetik.
+And the do-nothing player's **revenue is zero** (they have no ingredients, they turn everybody away at the door), so even if demand falls the day they go under does not change: cash ÷ weekly outgoings = day 42. Pure arithmetic.
 
-### Kabul edilen çözüm: batma günü değil BOŞALMA günü
+### The solution that was accepted: not the day you go under, the day you EMPTY OUT
 
-Talep eğrisi 20 puanın altında dikleştirildi — sıfırda taban talebin %10'u kalıyor. Kırılma noktası başlangıç itibarının (30) **altında**, ve bu önemli: önce 30'a konmuştu, test yakaladı — itibar ilk günden erimeye başladığı için her oyuncu daha ikinci günde dik bölgeye giriyor ve açılış haftası herkes için çöküyordu.
+The demand curve was steepened below 20 points — at zero, 10% of the base demand remains. The breaking point is **below** the starting reputation (30), and that matters: it was put at 30 first and the test caught it — because the reputation starts eroding from day one, every player entered the steep region on the second day already and the opening week collapsed for everyone.
 
-Denge aracına **"boşaldı"** sütunu eklendi: itibarın 20 puanın altına indiği gün, yani dükkânın gözle görülür biçimde boşaldığı an.
+An **"emptied"** column was added to the balance tool: the day the reputation drops below 20 points, that is, the moment the shop visibly empties out.
 
-| strateji | boşaldı | ilk borç |
+| strategy | emptied | first debt |
 |---|---:|---:|
-| **hiçbir şey yapmayan** | **5. gün** | 42 |
-| pervasız genişleyen | 8 | 7 |
-| kötü fiyatlayan | 9 | — |
-| kötü yöneten | 32 | — |
-| fazla kadro | 45 | — |
-| **iyi oyuncu** | **hiç** | — |
-| **plancı** | **hiç** (Türk'te 54) | — |
+| **does nothing at all** | **day 5** | 42 |
+| expands recklessly | 8 | 7 |
+| prices badly | 9 | — |
+| manages badly | 32 | — |
+| overstaffed | 45 | — |
+| **good player** | **never** | — |
+| **planner** | **never** (54 in the Turkish cuisine) | — |
 
-Kural artık tutuyor, doğru okunduğunda: **hiçbir şey yapmayanın dükkânı beşinci günde boşalıyor.** Oyuncu işin bittiğini ilk haftanın içinde görüyor; kasadaki para yalnızca cenazeyi geciktiriyor. Kötü yöneten 32. güne kadar sürünüyor — "zor da olsa geçiyor". İyi oynayan hiç çökmüyor.
+The rule holds now, when it is read correctly: **the shop of the one who does nothing empties on the fifth day.** The player sees within the first week that it is over; the money in the till only delays the funeral. The bad manager crawls to day 32 — "gets through, but only just". Whoever plays well never collapses.
 
-Kurgusal olarak da doğru: parası olan bir restoran hemen kapanmaz, süründürür.
+It is right fictionally too: a restaurant with money does not close immediately, it drags on.
 
-**Bu değişiklik iyi oyuna hiç dokunmuyor.** İtibarını 20 üstünde tutan herkes eskisiyle birebir aynı sayıları alıyor; yalnızca çöken cezalanıyor.
+**This change does not touch good play at all.** Everybody who keeps their reputation above 20 gets exactly the same numbers as before; only the collapsing player is punished.
 
-## 7. Mutfak farkının sebebi mutfak değildi
+## 7. The cause of the difference between the cuisines was not the cuisine
 
-Karmaşıklık bağıl hâle getirildikten sonra bile fark duruyordu: iyi oyuncunun itibarı fast food'da 94,2, Türk lokantasında 74,5. Yirmi puan.
+Even after complexity was made relative, the difference remained: the good player's reputation was 94.2 in fast food and 74.5 in the Turkish restaurant. Twenty points.
 
-Ölçüm sebebi başka yere koydu:
+The measurement put the cause somewhere else:
 
-| | ort. memnuniyet | ağırlanan | son itibar |
+| | avg. satisfaction | served | final reputation |
 |---|---:|---:|---:|
-| fast food | 86,7 | 3.062 | **94,2** |
-| Türk | 83,2 | 2.860 | **74,5** |
+| fast food | 86.7 | 3,062 | **94.2** |
+| Turkish | 83.2 | 2,860 | **74.5** |
 
-**Memnuniyet farkı 3,5 puan, itibar farkı 20 puan.** Yani sorun mutfakta değil, itibar eğrisinde.
+**The satisfaction difference is 3.5 points, the reputation difference is 20 points.** So the problem is not in the cuisine, it is in the reputation curve.
 
-Sebep sönümleme kuralı. [29](29-phase0-simulation.md)'da itibarın dokuz günde tavana vurmasını engellemek için kazanç kalan boşlukla çarpılmaya başlanmıştı:
+The cause is the damping rule. In [29](29-phase0-simulation.md) the gain had started being multiplied by the remaining headroom, to stop the reputation hitting the ceiling in nine days:
 
 ```
-kazanç = kazanç × (10000 − itibar) / 10000
+gain = gain × (10000 − reputation) / 10000
 ```
 
-O iş görülüyor. Ama çarpan **doğrusal** olduğu için tepeye yakın bölge bıçak sırtı: itibar 90'a gelince kazanç onda birine iniyor ve günlük 0,3 puanlık erime onu yeniyor. O bölgede memnuniyetteki 3,5 puanlık fark, denge noktasında 20 puanlık farka dönüşüyor.
+That job is being done. But because the multiplier is **linear**, the region near the top is a knife edge: once the reputation reaches 90 the gain drops to a tenth and the daily 0.3-point erosion beats it. In that region a 3.5-point difference in satisfaction turns into a 20-point difference at the equilibrium.
 
-**Çözüm: sönümlemeye taban.** Kalan boşluk 30 puanın altına inse bile çarpan 30 puanmış gibi hesaplanıyor. Erken sönümleme aynen duruyor — itibar hâlâ dokuz günde tavana vurmuyor — ama tepedeki bölge bıçak sırtı olmaktan çıkıyor.
+**The solution: a floor under the damping.** Even if the remaining headroom drops below 30 points, the multiplier is computed as though it were 30 points. The early damping stays exactly as it was — the reputation still does not hit the ceiling in nine days — but the region at the top stops being a knife edge.
 
-| itibar (`plancı`) | taban öncesi | taban sonrası |
+| reputation (`planci`) | before the floor | after the floor |
 |---|---:|---:|
-| fast food | 94,2 | 92,1 |
-| Türk | 74,5 | **87,5** |
-| **fark** | **20 puan** | **4,6 puan** |
+| fast food | 94.2 | 92.1 |
+| Turkish | 74.5 | **87.5** |
+| **difference** | **20 points** | **4.6 points** |
 
-Yan etki olarak Türk lokantasında `plancı` (19.912) artık `sadece_hal`'i (16.931) geçiyor; sıralama ihlali de bu değişiklikle kapandı.
+As a side effect, in the Turkish restaurant `planci` (19,912) now beats `sadece_hal` (16,931); the ordering violation was closed by this change too.
 
-**Ders:** iki mutfak arasındaki farkı mutfakta aramak yanlıştı. Fark, ikisinin de içinden geçtiği bir eğrinin doğrusal olmayan bölgesinde büyümüştü.
-
----
-
-## 8. İçerik ile kodun sessiz ayrışması kapatıldı
-
-Denetleyicinin üçüncü kontrolü **19 alan** buldu: DTO bağlıyor ama çekirdeğe hiç ulaşmıyor. Hepsi karara bağlandı ve **ikisi gerçek hataydı.**
-
-### Gerçek hata 1: yemek yeme süresi
-
-İçerik **38 saniye** diyordu, `TimingConfig` **45** kullanıyordu. Masa devir hızında %18 fark, yıllardır ayrışık ve kimse görmemiş. Düzeltildikten sonra `plancı`nın itibarı 92,1'den **100,0**'a çıktı, kaybı 25'ten 22'ye indi.
-
-### Gerçek hata 2: servis günü uzunluğu
-
-İçerik **120.000 ms** diyordu, kod **480.000** kullanıyordu — dört kat. Burada **kod doğruydu**: [27-time-model.md](27-time-model.md) gün uzunluğunu 480.000'e çıkardığında içerik güncellenmemişti. İçerik düzeltildi, artık ikisi tek kaynaktan.
-
-### Sessiz ama zararsız olanlar
-
-Kredi şartları (1,35× / 8 hafta / üç seçenek), kira günü, memnuniyet nötr eşiği (6000), düşük fiyat tabanı — hepsi içerikte yazılıydı, kodda sabitti, değerleri **tesadüfen** aynıydı. Artık içerikten okunuyorlar.
-
-Doğrulama: yeniden düzenleme sonrası denge aracı **birebir aynı** sayıları verdi; sonra yemek süresi düzeltmesiyle beklenen yönde değişti.
-
-### Ölü alanı değişmeze çevirmek
-
-`TierIndex` (sık / orta / nadir) hiçbir yerde okunmuyordu. [13-data-schemas.md](13-data-schemas.md) §144 "trafik payları sıklık kademesinden türetilir" diyor ve içerik buna uyuyor — sık 550–1300, orta 220–400, nadir 100–150, hiç örtüşme yok — ama bunu hiçbir şey zorlamıyordu.
-
-Artık yüklemede kontrol ediliyor: bir arketipin kademesi değiştirilip ağırlığı unutulursa **oyun açılmıyor**. Ölü alan, iki veri parçasının sessizce ayrışmasını engelleyen bir değişmeze dönüştü. Bu, ölü alanlarla başa çıkmanın üçüncü yolu: uygula, sil, ya da **değişmeze çevir**.
+**The lesson:** looking for the difference between the two cuisines inside the cuisines was wrong. The difference had grown in the non-linear region of a curve both of them pass through.
 
 ---
 
-## 9. Malzeme kalitesi: içerik zaten karar vermişti
+## 8. The silent drift between content and code was closed
 
-Denetleyicinin bulduğu son büyük ölü sistem. 77 malzemenin hepsinde üç kademelik bir tablo vardı ve simülasyon hiç okumuyordu:
+The auditor's third check found **19 fields**: bound by the DTO but never reaching the core. All of them were decided on and **two of them were real bugs.**
+
+### Real bug 1: the eating time
+
+The content said **38 seconds**, `TimingConfig` used **45**. An 18% difference in table turnover, drifted for years and nobody had seen it. After the fix, `planci`'s reputation went from 92.1 to **100.0** and its losses fell from 25 to 22.
+
+### Real bug 2: the length of the service day
+
+The content said **120,000 ms**, the code used **480,000** — four times as much. Here **the code was right**: when [27-time-model.md](27-time-model.md) raised the day length to 480,000 the content was not updated. The content was fixed; the two now come from one source.
+
+### The silent but harmless ones
+
+The loan terms (1.35x / 8 weeks / three options), the rent day, the satisfaction neutral threshold (6000), the low-price floor — all of them were written in the content, constant in the code, and their values were the same **by coincidence**. They are read from the content now.
+
+Verification: after the rework the balance tool gave **exactly the same** numbers; then it moved in the expected direction with the eating-time fix.
+
+### Turning a dead field into an invariant
+
+`TierIndex` (frequent / medium / rare) was read nowhere. [13-data-schemas.md](13-data-schemas.md) §144 says "the traffic shares are derived from the frequency tier" and the content complies — frequent 550–1300, medium 220–400, rare 100–150, with no overlap at all — but nothing was enforcing it.
+
+It is checked at load time now: if an archetype's tier is changed and its weight forgotten, **the game does not open**. A dead field turned into an invariant that stops two pieces of data drifting apart silently. This is the third way of dealing with dead fields: implement it, delete it, or **turn it into an invariant**.
+
+---
+
+## 9. Ingredient quality: the content had already decided
+
+The last big dead system the auditor found. All 77 ingredients had a three-tier table and the simulation never read it:
 
 ```json
 "qualityPriceMultiplierBp": { "dusuk": 8000, "standart": 10000, "yuksek": 12500 },
 "qualitySatisfactionCenti": { "dusuk": -1200, "standart": 0, "yuksek": 800 }
 ```
 
-### Tasarım kararı veride yazılıydı
+### The design decision was written in the data
 
-Üç duyarlılık sınıfı var ve en hassas altısının **hepsi et**:
+There are three sensitivity classes and all six of the most sensitive are **meat**:
 
-| sınıf | ucuz fiyat | ucuz memnuniyet | kaç malzeme | örnek |
+| class | cheap price | cheap satisfaction | how many ingredients | example |
 |---|---:|---:|---:|---|
-| **et** | −%25 | **−20 puan** | 6 | kıyma, tavuk göğsü, balık fileto, dana/kuzu kuşbaşı, kuzu pirzola |
-| orta | −%20 | −12 puan | 38 | domates, süt, yumurta, sosis, ekmek |
-| duyarsız | −%15 | −5 puan | 33 | tuz, karabiber, un, şeker, makarna |
+| **meat** | −25% | **−20 points** | 6 | `kiyma`, `tavuk_gogus`, `balik_filetosu`, `dana_kusbasi` / `kuzu_kusbasi`, `kuzu_pirzola_et` |
+| medium | −20% | −12 points | 38 | tomato, milk, egg, sausage, bread |
+| insensitive | −15% | −5 points | 33 | salt, black pepper, flour, sugar, pasta |
 
-Yani **ucuza kaçmak tuzda serbest, ette felaket** kuralı içeriğe yazılmış durumda.
+So the rule **going cheap is free on salt and catastrophic on meat** is already written into the content.
 
-### Bu yüzden tek bir küresel ayar yetiyor
+### This is why a single global setting is enough
 
-Kalite malzeme başına seçilseydi 77 karar olurdu; [16-screens-and-tutorial.md](16-screens-and-tutorial.md)'nin günde 40–60 dokunuşluk bütçesi bunu kaldırmaz. Ama duyarlılık dağılımı sayesinde **tek ayar bile yemeğe göre farklı sonuç veriyor**: etli menü ağır cezalanıyor, makarna menüsü zar zor fark ediyor.
+If quality were chosen per ingredient it would be 77 decisions; [16-screens-and-tutorial.md](16-screens-and-tutorial.md)'s budget of 40–60 taps a day would not carry that. But thanks to the sensitivity distribution, **even a single setting gives a different result per dish**: a meat-heavy menu is punished hard, a pasta menu barely notices.
 
-Stok kalitesi ağırlıklı ortalamayla karışıyor — ucuz alıp sonra pahalı alan, elindeki ucuz maldan hemen kurtulamıyor.
+The stock quality blends by weighted average — somebody who buys cheap and then buys dear cannot get rid of the cheap goods on their hands straight away.
 
-### Ortalama almak yanlıştı ve ölçüm yakaladı
+### Taking an average was wrong and the measurement caught it
 
-İlk uygulamada yemeğin kalite etkisi malzemelerinin **ortalaması** alınıyordu. Fast food'da doğru göründü, Türk mutfağında ters çıktı:
+In the first implementation a dish's quality effect was the **average** of its ingredients. In fast food it looked right; in the Turkish cuisine it came out inverted:
 
-> `ucuz_malzeme` 35.200 kazanıyordu — iyi oyunun 26.211'inden **fazla**.
+> `ucuz_malzeme` was earning 35,200 — **more** than good play's 26,211.
 
-Sebep ortalamanın kendisiydi: tencereye atılan ucuz soğan, **ucuz eti gizliyordu**. Altı malzemeli sulu yemek cezayı altıya bölüyor, üç malzemeli hamburger üçe. Kendi yazdığım yorum bunun tersini söylüyordu — "müşteri *eti ucuzmuş* der" — ama kod öyle davranmıyordu.
+The cause was the average itself: the cheap onion thrown into the pot was **hiding the cheap meat**. A stew with six ingredients divides the penalty by six, a hamburger with three by three. A comment I had written myself said the opposite — "the customer says *the meat is cheap*" — but the code was not behaving that way.
 
-Doğru kural: **en belirleyici malzeme ne diyorsa o.** Müşteri yanındaki soğanları saymıyor.
+The right rule: **whatever the most decisive ingredient says.** The customer is not counting the onions on the side.
 
-| | fast food | Türk |
+| | fast food | Turkish |
 |---|---:|---:|
-| **ortalama** ile | 9.117 | **35.200** ← tuzak değil, strateji |
-| **en belirleyici** ile | 9.117 | **11.604** ← tuzak |
+| with the **average** | 9,117 | **35,200** <- not a trap, a strategy |
+| with the **most decisive** | 9,117 | **11,604** <- a trap |
 
-`QualityTests.Ucuz_et_kalabalik_tarifin_arkasina_saklanamiyor` bu gerilemeyi koruyor: çok malzemeli yemek, az malzemeli yemekten daha az cezalanamaz.
+`QualityTests.Cheap_meat_cannot_hide_behind_a_crowded_recipe` protects against that regression: a dish with many ingredients cannot be punished less than one with few.
 
-### Sonuç
+### The result
 
 | | `makul` | `ucuz_malzeme` |
 |---|---:|---:|
-| son kasa (fast food) | 24.876 | **9.117** |
-| son kasa (Türk) | 26.211 | **11.604** |
-| itibar | 91,0 / 58,0 | 16,3 / 18,2 |
-| ulaştığı masa | 7,9 / 8,0 | 4,4 / 4,4 |
+| end cash (fast food) | 24,876 | **9,117** |
+| end cash (Turkish) | 26,211 | **11,604** |
+| reputation | 91.0 / 58.0 | 16.3 / 18.2 |
+| tables reached | 7.9 / 8.0 | 4.4 / 4.4 |
 
-Zincir okunabilir: birim maliyet düşüyor → itibar çöküyor → müşteri azalıyor → büyüme duruyor. Malzemeden kısmak bir tuzak, ve **neden** tuzak olduğu görünüyor.
+The chain is readable: the unit cost falls -> the reputation collapses -> the customers thin out -> growth stops. Cutting the ingredients is a trap, and **why** it is a trap is visible.
 
 ---
 
-## 10. Adlandırılmış ekipman
+## 10. Named equipment
 
 > "Özel ekipmandan kastım mesela pide yapmak istersek taş fırın gereksin. Döner için döner takılan tezgâh gereksin. Veya İtalyan makarna için parmesan peyniri gereksin."
+>
+> *("What I mean by special equipment is, for example, if we want to make pide then a stone oven should be needed. For doner, a counter with a doner spit on it should be needed. Or for Italian pasta, parmesan cheese should be needed.")*
 
-[09-content-inventory.md](09-content-inventory.md) bunu zaten planlamıştı: **mutfak başına 10 özel pişirme istasyonu**. Yapılmamıştı; §3'ün "istasyon kademesi ≥ N" kuralı onun soluk vekiliydi.
+[09-content-inventory.md](09-content-inventory.md) had already planned this: **10 special cooking stations per cuisine**. It had not been done; §3's "station tier ≥ N" rule was its pale stand-in.
 
-`equipment.json` artık `cuisineStations` taşıyor: paylaşılan altı istasyonun **ardına** eklenen, mutfağa özel, **adlandırılmış** ekipman.
+`equipment.json` now carries `cuisineStations`: cuisine-specific, **named** equipment added **after** the six shared stations.
 
-| mutfak | ekipman | fiyat | açtığı |
+| cuisine | equipment | price | what it opens |
 |---|---|---:|---|
-| Türk | **taş fırın** | 2.700 | börek, kadayıf, revani, fırın makarna, musakka, karnıyarık, patlıcan kebabı |
-| fast food | **milkshake makinesi** | 1.860 | milkshake |
-| fast food | **waffle makinesi** | 2.700 | waffle |
+| Turkish | **`tas_firin`** (Stone Oven) | 2,700 | `borek`, `kadayif`, `revani`, `firin_makarna`, `musakka`, `karniyarik`, aubergine kebab |
+| fast food | **`milkshake_makinesi`** (Milkshake Machine) | 1,860 | milkshake |
+| fast food | **`waffle_makinesi`** (Waffle Iron) | 2,700 | waffle |
 
-Paylaşılan altıdan tek farkı **başlangıçta olmamaları**: satın alınana kadar bağlı yemekler kilitli, günü ve itibarı gelse bile. Fark soyuttan somuta — "ızgara kademesi 2 gerekli" değil, **"taş fırın al, börek açılsın"**.
+The only difference from the shared six is that **they are not there at the start**: until one is bought the dishes tied to it are locked, even if their day and their reputation have come. The difference goes from abstract to concrete — not "grill tier 2 required" but **"buy a stone oven, and borek opens"**.
 
-**Döner ve pide verilemedi çünkü içerikte yok.** Türk menüsünde köfte, tavuk şiş, adana, kanat, pirzola var; döner yok. Mekanizma hazır, o yemekler yazıldığında `doner_ocagi` ve `pide_firini` tek satırla tanımlanıp bağlanır. Onluk kadro içerik işi.
+**Doner and pide could not be given, because they are not in the content.** The Turkish menu has kofte, chicken shish, adana, wings and chops; there is no doner. The mechanism is ready, and when those dishes are written, `doner_ocagi` and `pide_firini` can be defined and wired up in a single line each. The ten-strong lineup is a content job.
 
-### İki yerde yazılan şey, çapraz kontrol edilmeli
+### What is written in two places has to be cross-checked
 
-`equipment.json` her ekipmanın açtığı yemekleri listeliyor ama yemekler de kendi istasyonunu söylüyor. Bugün beş kez iki yerde yazılı bir şeyin sessizce ayrıştığını gördükten sonra liste sadece belge bırakılmadı: yüklemede çapraz kontrol ediliyor. Bir yemek başka istasyona taşınıp liste güncellenmezse **oyun açılmıyor**.
+`equipment.json` lists the dishes each piece of equipment opens, but the dishes also state their own station. After watching something written in two places drift apart silently five times today, the list was not left as documentation: it is cross-checked at load time. If a dish is moved to another station and the list is not updated, **the game does not open**.
 
-### Gerilemenin sebebi içerik değil botun kararıydı
+### The cause of the regression was not the content but the bot's decision
 
-Ekipman eklendikten sonra ölçüm fast food'da `plancı`yı batmış gösterdi: −1.896, itibar 35,6, kadro 11'den 6,9'a. Günlük veri sebebi tek bakışta verdi:
+After the equipment was added, the measurement showed `planci` going under in fast food: −1,896, reputation 35.6, crew down from 11 to 6.9. The daily data gave the reason at a glance:
 
-| gün | kasa |
+| day | till |
 |---|---:|
-| 55 | 19.649 |
-| **56** (ödeme günü) | **330** |
-| 57 | 163 → malzeme alınamıyor, 4 müşteri |
-| 58–60 | sıfır servis, itibar 100'den 31'e |
+| 55 | 19,649 |
+| **56** (pay day) | **330** |
+| 57 | 163 -> cannot buy ingredients, 4 customers |
+| 58–60 | zero service, reputation from 100 to 31 |
 
-On dört masada haftalık sabit gider ~19.000 ve restoran haftada tam o kadar biriktiriyor. Yeni iki ekipman (4.560) bıçak sırtını aşağı itti. Yani içerik yanlış değildi — **strateji maaş parasını harcıyordu.**
+At fourteen tables the weekly fixed costs are ~19,000 and the restaurant accumulates exactly that much a week. The two new pieces of equipment (4,560) pushed the knife edge down. So the content was not wrong — **the strategy was spending the wage money.**
 
-Düzeltme stratejide: ekipman alımı haftalık ödemeyi yiyemez. Gerçek oyuncu maaş günü yaklaşırken waffle makinesi almaz.
+The fix is in the strategy: an equipment purchase cannot eat the weekly payment. A real player does not buy a waffle iron as pay day approaches.
 
-| | ekipman öncesi | ekipman sonrası | ödeme koruması ile |
+| | before the equipment | after the equipment | with the payment guard |
 |---|---:|---:|---:|
-| `plancı` fast food | 17.501 | **−1.896** | **21.468** (itibar 100) |
-| `plancı` Türk | 20.419 | — | **23.581** (itibar 100) |
+| `planci` fast food | 17,501 | **−1,896** | **21,468** (reputation 100) |
+| `planci` Turkish | 20,419 | — | **23,581** (reputation 100) |
 
-Düzeltme yalnızca gerilemeyi kapatmadı, botu **eskisinden yetkin** yaptı. Bu, denge aracının ikinci işi: ekonomiyi ölçerken stratejilerin beceriksizliğini de gösteriyor.
+The fix did not just close the regression, it made the bot **more competent than it was before**. That is the balance tool's second job: while it measures the economy it also shows up the strategies' incompetence.
 
 ---
 
-## 11. Sipariş tercihi: uydurmak yerine türetmek
+## 11. Order preference: deriving instead of inventing
 
-[13-data-schemas.md](13-data-schemas.md) arketip başına bir sipariş tercihi tasarlamıştı:
+[13-data-schemas.md](13-data-schemas.md) had designed an order preference per archetype:
 
 ```json
 "orderPreference": { "sulu": 0.6, "pilav": 0.25, "corba": 0.15 }
 ```
 
-Simülasyon bunu okumuyordu — **bütün müşteriler aynı dağılımla sipariş veriyordu.** Şemayı birebir uygulamak 24 arketip için elle ağırlık tablosu yazmak demekti, ve o tablolar uydurma olurdu: hangi arketipin pilavı %25 mi %30 mu sevdiğini söyleyecek hiçbir dayanak yok.
+The simulation was not reading it — **every customer was ordering from the same distribution.** Implementing the schema literally would have meant hand-writing a weight table for 24 archetypes, and those tables would have been made up: there is no basis on which to say whether a given archetype likes rice at 25% or 30%.
 
-**Onun yerine zaten yüklü olan karakter alanlarından türetildi.**
+**Instead it was derived from the character fields that were already loaded.**
 
-### Yemek seçimi: `priceSensitivityBp`
+### Dish choice: `priceSensitivityBp`
 
-Bu alan içerikte vardı, 4.000 ile 25.000 arasında değişiyordu, ve yalnızca *memnuniyet cezasında* kullanılıyordu — yemek **seçiminde** hiç rol oynamıyordu.
+This field existed in the content, varied between 4,000 and 25,000, and was used only in the *satisfaction penalty* — it played no part at all in **choosing** a dish.
 
-Artık rolden yemek seçimi eşit olasılıklı değil: duyarlılık 10.000 nötr, üstü ucuza, altı pahalıya yaslanıyor. Hiçbir yemek tamamen dışlanmıyor (taban ağırlık var), sadece dağılım kayıyor.
+Now dish choice from a role is not equiprobable: 10,000 sensitivity is neutral, above it leans cheap, below it leans expensive. No dish is excluded entirely (there is a base weight), the distribution just shifts.
 
-| mutfak | en duyarlı | ort. fiş | en duyarsız | ort. fiş |
+| cuisine | most sensitive | avg. receipt | least sensitive | avg. receipt |
 |---|---|---:|---|---:|
-| Türk | öğrenci (23.000) | 51,5 | yemek eleştirmeni (4.000) | 60,7 |
-| fast food | pazarlıkçı (25.000) | **29,1** | yemek eleştirmeni (4.000) | **43,2** |
+| Turkish | student (23,000) | 51.5 | food critic (4,000) | 60.7 |
+| fast food | haggler (25,000) | **29.1** | food critic (4,000) | **43.2** |
 
-Fast food'da en cimri ile en cömert müşteri arasında **%48 fiş farkı** — sıfır yeni içerikle.
+In fast food there is a **48% receipt difference** between the stingiest and the most generous customer — with zero new content.
 
-### Ek kalemler: `tipChanceBp`
+### Extras: `tipChanceBp`
 
-Tatlı olasılığı da arketipe göre değişiyor. Bahşiş eğilimi, harcamaya yatkınlığın vekili: çok bahşiş bırakan tatlı da alır, hiç bırakmayan almaz. Bahşişi 0 olan denetim görevlisi tatlı olasılığının yarısını, 3.200 ile mahalle toplu yemeği iki katını alıyor.
+The dessert probability varies by archetype too. The tipping tendency is a proxy for the tendency to spend: somebody who tips a lot also takes a dessert, somebody who never tips does not. The inspector, whose tip is 0, gets half the dessert probability, and the neighbourhood group meal, at 3,200, gets twice.
 
-### Neden bu daha iyi
+### Why this is better
 
-Uydurma tablo yazmak, veriyi **iki kere** yazmak demekti: karakter bir yerde (fiyat duyarlılığı), tercih başka yerde. Bugün beş kez iki yerde yazılan şeyin sessizce ayrıştığını gördükten sonra bu yola girmek yanlış olurdu.
+Writing a made-up table would have meant writing the data **twice**: the character in one place (price sensitivity), the preference in another. After watching something written in two places drift apart silently five times today, going down that road would have been wrong.
 
-Türetilmiş hâlinde bir arketipin fiyat duyarlılığını değiştirmek, sipariş davranışını **kendiliğinden** değiştiriyor. Ve `PriceSensitivityBp` ile `TipChanceBp` artık çift iş görüyor.
+In its derived form, changing an archetype's price sensitivity changes its ordering behaviour **by itself**. And `PriceSensitivityBp` and `TipChanceBp` now do double duty.
 
-**Ölçülen yan etkisi:** iyi oyuncu 23.636'dan **26.434**'e, itibarı 86,5'ten **92,4**'e çıktı. Sebep, fiyata duyarsız müşterilerin artık pahalı yemeği gerçekten seçmesi.
+**The measured side effect:** the good player went from 23,636 to **26,434** and their reputation from 86.5 to **92.4**. The reason is that customers who are insensitive to price now really do choose the expensive dish.
 
 ---
 
-## 12. Patron müdahalesi: etki vardı, kısıt yoktu
+## 12. The owner's intervention: there was an effect, there was no constraint
 
-[02-design-proposal.md](02-design-proposal.md) §10 patronun servis sırasındaki rolünü tek cümleyle tanımlıyor: *"servis sırasında sadece krizlere müdahale edersin"*. §59 de sınırı koyuyor: **gün başına 3–5 hak**.
+[02-design-proposal.md](02-design-proposal.md) §10 defines the owner's role during service in a single sentence: *"during service you only intervene in crises"*. §59 sets the limit as well: **3–5 uses per day**.
 
-Simülasyonda müdahalenin **etkisi** yazılıydı — özür ve ikram +15 puan, patron ilgisi +20, ve ilgi gösterilen müşteri biraz daha bekliyor. Ama iki kısıt yoktu:
+In the simulation the **effect** of intervening was written — an apology and a freebie +15 points, the owner's attention +20, and the customer being attended to waits a little longer. But two constraints were missing:
 
-| Ne eksikti | Sonucu |
+| What was missing | Its consequence |
 |---|---|
-| **Hak sayısı** — `interventionsPerDay: 4` içerikte yazılı, hiçbir şey zorlamıyor | Her kızgın müşteri bedava kurtarılabiliyordu; kriz yönetimi bir kaynak değil sınırsız bir düğmeydi |
-| **İkram maliyeti** — [12-economy.md](12-economy.md) §3 "porsiyon başına 2 maliyet" diyor | Çay bedava bir memnuniyet musluğuydu |
+| **The number of uses** — `interventionsPerDay: 4` is written in the content, nothing enforces it | Every angry customer could be rescued for free; crisis management was not a resource but an unlimited button |
+| **The cost of the freebie** — [12-economy.md](12-economy.md) §3 says "2 cost per portion" | The tea was a free satisfaction tap |
 
-İkisi de eklendi. Ve bir hata daha çıktı, testle: hakkı yalnızca gün açılışında kuruyordum, ama simülasyon **birinci güne zaten açık başlıyor** — yani ilk gün sıfır hakla geçiyordu. Kurucuya da kondu.
+Both were added. And one more bug came out, through a test: I was only setting up the allowance at the day's opening, but the simulation **starts with day one already open** — so the first day went by with zero allowance. It was put in the constructor too.
 
-### Ölçüldü: müdahale kazandırıyor ama para değil itibar olarak
+### Measured: intervening pays off, but in reputation, not money
 
-`mudahaleci` stratejisi makul oyuncu gibi oynuyor, ayrıca serviste sabrı en az kalan masaya patron ilgisi gösteriyor.
+The `mudahaleci` strategy plays like the reasonable player and, in addition, gives the owner's attention to the table with the least patience left during service.
 
 | | `makul` | `mudahaleci` |
 |---|---:|---:|
-| son kasa | 26.434 | **27.019** (+%2,2) |
-| itibar | 92,4 | **99,5** |
-| ulaştığı masa | 7,8 | 8,1 |
-| ağırlanan | 2.216 | 2.288 |
+| end cash | 26,434 | **27,019** (+2.2%) |
+| reputation | 92.4 | **99.5** |
+| tables reached | 7.8 | 8.1 |
+| served | 2,216 | 2,288 |
 
-Kasadaki fark küçük, itibardaki fark büyük. Bu doğru şekil: docs/02 patronun servis rolünü **kriz yönetimi** diye tanımlıyor, para musluğu diye değil. Zaten itibarı tavana yakın bir restoranda kazanç küçük görünüyor; asıl değeri zorlanan bir restoranda ortaya çıkar.
+The difference in the till is small, the difference in reputation is large. That is the right shape: docs/02 defines the owner's service role as **crisis management**, not as a money tap. In a restaurant whose reputation is near the ceiling anyway the gain looks small; its real value shows up in a restaurant that is struggling.
 
-### Hedefi yanlış şeye bağladım, ikinci mutfak düzeltti
+### I tied the target to the wrong thing, and the second cuisine corrected it
 
-Kalibrasyona önce şu hedef kondu: *müdahale etmek, etmemekten kötü olamaz* — ölçü son kasa. Türk mutfağı reddetti: `mudahaleci` 24.058, `makul` 28.638.
+The target put into the calibration at first was: *intervening cannot be worse than not intervening* — measured by the end cash. The Turkish cuisine rejected it: `mudahaleci` 24,058, `makul` 28,638.
 
-Ama aynı koşuda:
+But in the same run:
 
 | | `makul` | `mudahaleci` |
 |---|---:|---:|
-| itibar | 56,5 | **81,3** |
-| ulaştığı masa | 8,4 | **11,0** |
-| ağırlanan | 1.998 | **2.152** |
-| son kasa | 28.638 | 24.058 |
+| reputation | 56.5 | **81.3** |
+| tables reached | 8.4 | **11.0** |
+| served | 1,998 | **2,152** |
+| end cash | 28,638 | 24,058 |
 
-Müdahaleci daha küçük değil **daha büyük** bir işletme çalıştırıyor. Kasası az çünkü yükselen itibar stratejiyi daha çok genişlemeye ve daha çok kadroya itmiş — parayı kaybetmemiş, **yatırmış**.
+The interventionist is running not a smaller but a **bigger** business. Its till is lower because the rising reputation pushed the strategy into more expansion and more crew — it did not lose the money, it **invested** it.
 
-Yani ölçü yanlıştı. Müdahalenin doğrudan etkilediği şey **itibar ve ağırlanan müşteri**; kasa, stratejinin o itibarla ne yaptığına bağlı ve bu mekaniğin ölçüsü olamaz. Hedef ikisine çevrildi, artı "müdahaleci borca düşmemeli".
+So the measure was wrong. What the intervention directly affects is **reputation and customers served**; the till depends on what the strategy does with that reputation and cannot be this mechanic's measure. The target was switched to those two, plus "the interventionist must not fall into debt".
 
-**Genel ders:** bir mekaniği, doğrudan etkilemediği bir sayıyla ölçmek onu haksız yere mahkûm edebilir. İtibarı yükselten bir şey, o itibarla büyüyen bir stratejinin elinde son kasayı **düşürür**.
+**The general lesson:** measuring a mechanic by a number it does not directly affect can convict it unjustly. Something that raises the reputation **lowers** the end cash in the hands of a strategy that grows on that reputation.
 
-### Yazılmayan dördüncü tür
+### The fourth kind that was never written
 
-docs/02 üç örnek veriyor: *"bir istasyonu hızlandır, bekleyen masaya ikram gönder, VIP müşteriyi bizzat karşıla."* İkincisi ve üçüncüsü var. **Birincisi — istasyon hızlandırma — yok**, çünkü `InterventionKind` üç değer taşıyor ve o [23-core-contract.md](23-core-contract.md)'de kapalı liste. Eklenmesi sözleşme değişikliği; ayrı bir karar.
-
----
-
-## 13. İstasyon hızlandırma: sözleşmeyi açmaya değdi
-
-§12'nin sonu bu türü "ayrı bir karar" diye bıraktı. Karar verildi: **yazıldı.**
-
-`InterventionKind` [23-core-contract.md](23-core-contract.md)'de kapalı bir liste olduğu için dördüncü değer eklemek sözleşme değişikliği. Değdirdi çünkü diğer iki müdahale de **bekleyen masayı** hedefliyor; ikisi de mutfağa dokunamıyor. Servis saatinde tıkanan yer genelde mutfak, ve patronun elinde mutfağa dair hiçbir düğme yoktu.
-
-### Patron pişirmiyor
-
-[14-staff-system.md](14-staff-system.md) net: patron mutfakta çalışmaz. Yani mekanik "patron tezgâha geçer" olamaz. Bunun yerine `RushStation` **o istasyonda pişmekte olan işlerin kalan duvar saatinin %40'ını siler** — patron mutfağa girip "şu masa bekliyor" der, bir tabak öne alınır. Aşçının kapasitesini değil, **sıranın önceliğini** değiştirir.
-
-Bu, [27-…](27-time-model.md) Karar D'yi de bozmuyor: `prepMs` içerik tarafında sabit kalıyor, kısalan şey o anki *kalan* süre — ekipmanın yaptığı gibi kalıcı bir hızlanma değil, günde birkaç kez kullanılabilen bir kerelik hak.
-
-### Boş istasyonu hızlandırmak hakkı yakmıyor
-
-Müdahale hakkı günlük ve sayılı. Boş bir istasyona basmak hakkı harcasaydı, mekanik oyuncuyu **arayüzü yanlış okuduğu için** cezalandırırdı — hangi istasyonun dolu olduğu zoom seviyesine göre her zaman görünmüyor. Boş istasyon reddediliyor, hak duruyor. İki test bunu koruyor.
+docs/02 gives three examples: *"speed up a station, send a freebie to a waiting table, greet a VIP customer yourself."* The second and third exist. **The first — speeding up a station — does not**, because `InterventionKind` carries three values and that is a closed list in [23-core-contract.md](23-core-contract.md). Adding one is a contract change; a separate decision.
 
 ---
 
-## 14. Hal fiyat oynaklığı: takip edilecek bir şey olmalı
+## 13. Speeding up a station: it was worth opening the contract
 
-[12-economy.md](12-economy.md) §3 şunu söylüyordu: *"erken alım avantajı yok, stok bozuluyor. Ucuz güne denk gelmek şans değil, TAKİP meselesi."* İçerikte `priceVolatilityBp: 2500` yazılıydı. **Okunmuyordu.** Yani hal her gün aynı fiyatı veriyordu ve takip edilecek hiçbir şey yoktu.
+The end of §12 left this kind as "a separate decision". The decision was taken: **it was written.**
 
-Artık gün açılışında (`AdvanceToNextDay`) her malzeme için ayrı bir günlük çarpan atılıyor — `Market` akışından, ±%25 bandında. Sabah hale gidildiğinde bugünün fiyatı görülüyor; sipariş o fiyattan kesiliyor.
+Because `InterventionKind` is a closed list in [23-core-contract.md](23-core-contract.md), adding a fourth value is a contract change. It was worth it, because the other two interventions both target **a waiting table**; neither of them can touch the kitchen. During service the place that jams is usually the kitchen, and the owner had no button at all for the kitchen.
 
-### Neden gün açılışında, servis açılışında değil
+### The owner does not cook
 
-Oyuncu sabah stok kararını verirken **bugünün** fiyatını görmeli. Çarpan servis açılışında atılsaydı, oyuncu dünkü fiyata bakıp alır, fiyat sonradan oynardı — karar değil kumar olurdu.
+[14-staff-system.md](14-staff-system.md) is clear: the owner does not work in the kitchen. So the mechanic cannot be "the owner steps up to the counter". Instead, `RushStation` **erases 40% of the remaining wall-clock time of the jobs cooking at that station** — the owner goes into the kitchen and says "that table is waiting", and one plate is moved up. It changes not the cook's capacity but **the priority of the queue**.
 
-### Oynaklık tek başına bir karar değil
+This does not break [27-…](27-time-model.md) Decision D either: `prepMs` stays fixed on the content side, and what is shortened is the *remaining* time at that moment — not a permanent speed-up like the equipment gives, but a one-off allowance usable a few times a day.
 
-Kırk dört malzemenin fiyatı her gün oynasa da, bugün ucuz olanı alıp yarına saklayamıyorsan bu sadece bir gider gürültüsü. Kararı yapan şey **soğuk hava merdiveni**: `CanKeep` + `KeepDays`. Harness'ın `stockAhead` mantığı zaten bunu yapıyordu (bugünkü fiyat yıl ortalamasının %92'sinin altındaysa dört güne kadar stok) — o karşılaştırma şimdiye kadar sadece **mevsimi** ölçüyordu, çünkü günlük oynaklık yoktu. Aynı satır artık iki sinyali birden okuyor: mevsim (yavaş, öngörülebilir) ve hal (hızlı, öngörülemez).
+### Speeding up an empty station does not burn the allowance
 
-Ortalama, oynaklığı içermez — oynaklığın ortalaması 1,0 — yani karşılaştırma bozulmuyor.
+The intervention allowance is daily and counted. If pressing an empty station spent an allowance, the mechanic would punish the player **for misreading the interface** — which station is busy is not always visible at every zoom level. An empty station is rejected and the allowance stands. Two tests protect this.
 
-### Ölçüm: denge iyileşti
+---
 
-| | önce | sonra |
+## 14. Market price volatility: there has to be something to keep track of
+
+[12-economy.md](12-economy.md) §3 said this: *"there is no early-buying advantage, the stock goes off. Catching a cheap day is not luck, it is a matter of KEEPING TRACK."* `priceVolatilityBp: 2500` was written in the content. **It was not being read.** So the market gave the same price every day and there was nothing to keep track of.
+
+Now a separate daily multiplier is rolled for every ingredient at the day's opening (`AdvanceToNextDay`) — from the `Market` stream, in a ±25% band. When you go to the market in the morning you see today's price; the order is billed at that price.
+
+### Why at the day's opening and not at the service opening
+
+When the player makes the morning stock decision they must see **today's** price. If the multiplier were rolled at the service opening, the player would buy looking at yesterday's price and the price would move afterwards — that is not a decision, it is a gamble.
+
+### Volatility on its own is not a decision
+
+Even if the price of forty-four ingredients moves every day, if you cannot buy what is cheap today and keep it for tomorrow it is just noise in the expenses. What makes it a decision is **the cold storage ladder**: `CanKeep` + `KeepDays`. The harness's `stockAhead` logic was already doing this (if today's price is below 92% of the year's average, stock up to four days ahead) — that comparison had until now been measuring only the **season**, because there was no daily volatility. The same line now reads two signals at once: the season (slow, predictable) and the market (fast, unpredictable).
+
+The average does not include the volatility — the average of the volatility is 1.0 — so the comparison is not broken.
+
+### The measurement: the balance improved
+
+| | before | after |
 |---|---:|---:|
-| kalibrasyon cezası (iki mutfak) | 8 | **0** |
+| calibration penalty (both cuisines) | 8 | **0** |
 
-Oynaklık dengeyi bozmadı, **düzeltti**. Sebebi muhtemelen şu: sabit fiyat, malzemeden kısan stratejiyi fazla öngörülebilir kılıyordu; oynaklık aynı stratejiye risk ekliyor ama soğuk havaya yatırım yapmış oyuncuya risk eklemiyor. Yani oynaklık, zaten satılan bir merdivenin **karşılığını** yaratıyor.
+The volatility did not break the balance, it **fixed** it. The reason is probably this: a fixed price made the strategy that cuts the ingredients too predictable; volatility adds risk to that same strategy but adds no risk to a player who has invested in cold storage. So the volatility creates **the payoff** for a ladder that was already being sold.
 
-### Belirlenimcilik
+### Determinism
 
-Oynama rastgele ama tohuma bağlı: aynı tohum aynı fiyat dizisini veriyor, `_rngMarket` ve `_marketBp` kayda giriyor (sürüm 8). `Hal_fiyatlari_her_gun_oynuyor` ikisini birden koruyor — fiyat oynuyor **ve** ikiz simülasyon aynı ilk fiyatı veriyor.
+The swing is random but tied to the seed: the same seed gives the same price sequence, and `_rngMarket` and `_marketBp` go into the save (version 8). `The_market_prices_swing_every_day` protects both at once — the price swings **and** a twin simulation gives the same first price.
 
-### Bir kenar notu: kalibrasyon sessizce yanlış cevap verebiliyordu
+### A footnote: the calibration could give a wrong answer silently
 
-Bu ölçümü alırken `calibrate.py` yedi adayın hepsine aynı cezayı (1998) verdi ve en kötüsünü "en iyi" diye yazdı. Sebep dengede değildi: harness'ın **Debug** çıktısı bu makinede "Application Control" politikasına takılıyor, hiç çalışmıyor. `run()` hatayı yutuyordu, tablo boş geliyordu, her aday eşitleniyordu.
+While taking this measurement, `calibrate.py` gave all seven candidates the same penalty (1998) and wrote the worst one down as "the best". The cause was not in the balance: the harness's **Debug** output gets caught by the "Application Control" policy on this machine and never runs at all. `run()` was swallowing the error, the table came back empty, and every candidate came out equal.
 
-İki şey düzeltildi: harness artık `-c Release` ile koşuyor, **ve** tablo tamamen boşsa `calibrate.py` artık ceza verip devam etmiyor, hata fırlatıyor. Ceza mekanizması *tasarım* ihlalini ölçer; *koşu* hatasını cezaya çevirmek, bozuk bir ölçümü geçerli bir sonuç gibi gösteriyor.
+Two things were fixed: the harness now runs with `-c Release`, **and** if the table is completely empty `calibrate.py` no longer assigns a penalty and carries on, it throws. The penalty mechanism measures a *design* violation; turning a *run* error into a penalty makes a broken measurement look like a valid result.
 
 ---
 
-## 15. Personel deneyimi: kimin ne kadar süredir burada olduğu
+## 15. Staff experience: how long who has been here
 
-[14-staff-system.md](14-staff-system.md) şunu yazmıştı: *çalışılan her gün 1 puan, 30 puanda seviye, azami 3 seviye, her seviye hız +%10.* `staff-roles.json` dört rolün her birine `xpSpeedBp: [10000, 11000, 12000, 13000]` merdivenini taşıyordu. **Hiçbiri okunmuyordu.**
+[14-staff-system.md](14-staff-system.md) had written this: *1 point for every day worked, a level at 30 points, at most 3 levels, +10% speed per level.* `staff-roles.json` carried the `xpSpeedBp: [10000, 11000, 12000, 13000]` ladder on each of the four roles. **None of it was being read.**
 
-### Deneyim sayılamaz
+### Experience cannot be counted
 
-Simülasyon personeli **sayı** olarak tutuyor: `_cooks`, `_salon`. Deneyim bu modele sığmıyor — "kaç aşçı var" sorusunun cevabı bir sayı, ama "ne kadar süredir burada" sorusunun cevabı *kişiye* ait. Bu yüzden iki dizi eklendi: `_cookXpDays[]`, `_salonXpDays[]`. İşe alım **sona** ekler, çıkarma **sondan** alır.
+The simulation keeps the staff as **numbers**: `_cooks`, `_hall`. Experience does not fit that model — the answer to "how many cooks are there" is a number, but the answer to "how long have they been here" belongs to a *person*. So two arrays were added: `_cookXpDays[]`, `_hallXpDays[]`. Hiring appends at the **end**, removing takes from the **end**.
 
-Sondan alması bilinçli: aksi halde "en deneyimliyi kov" diye anlamsız bir karar doğardı. Geri alınan da yeni biri — kadro kesip geri almak bedava değil.
+Taking from the end is deliberate: otherwise a nonsensical decision — "fire the most experienced" — would arise. Somebody hired back is a new person too — cutting the crew and hiring back is not free.
 
-### Kısalan şey pişme süresi değil
+### What gets shorter is not the cooking time
 
-Deneyim `attendMs`'i bölüyor, `prepMs`'i değil. Yani **deneyimli aşçı daha çabuk serbest kalıyor, yemek daha çabuk pişmiyor.** [27-…](27-time-model.md) Karar D ekipman için ne diyorsa deneyim için de aynısı geçerli; `Deneyim_yemegin_pisme_suresine_dokunmuyor` bunu koruyor. Salon tarafında aynı şey: garsonun işi kısalıyor, müşterinin yemek yeme süresi değil.
+Experience divides `attendMs`, not `prepMs`. So **an experienced cook is freed up sooner, the food does not cook faster.** Whatever [27-…](27-time-model.md) Decision D says for equipment applies to experience as well; `Experience_does_not_touch_a_dishs_cooking_time` protects it. The same on the hall side: the waiter's job gets shorter, the customer's eating time does not.
 
-Patron (salon dizininin sıfırıncı elemanı) deneyim kazanmıyor — zaten `OwnerAdjusted` ile ayrı bir çarpanı var.
+The owner (element zero of the hall array) does not gain experience — they already have a separate multiplier through `OwnerAdjusted`.
 
-### Ölçüm: deneyim en çok DAR KADROYA yarıyor
+### The measurement: experience helps a THIN CREW most
 
-Mekaniğin bağlayıcı olup olmadığını anlamak için merdiven abartıldı (+%10/20/30 yerine +%100/200/300) ve fast food koşusu tekrarlandı:
+To find out whether the mechanic binds at all, the ladder was exaggerated (+100/200/300% instead of +10/20/30%) and the fast food run repeated:
 
-| strateji | gerçek merdiven | abartılmış |
+| strategy | the real ladder | exaggerated |
 |---|---:|---:|
-| `genislemeyen` itibar | 64,7 | **89,4** |
-| `genislemeyen` ağırlanan | 1.091 | 1.160 |
-| `fazla_kadro` itibar | 30,1 | 36,9 |
-| `makul` itibar | 99,1 | 99,5 |
-| `planci` itibar | 100,0 | 100,0 |
+| `genislemeyen` reputation | 64.7 | **89.4** |
+| `genislemeyen` served | 1,091 | 1,160 |
+| `fazla_kadro` reputation | 30.1 | 36.9 |
+| `makul` reputation | 99.1 | 99.5 |
+| `planci` reputation | 100.0 | 100.0 |
 
-Büyük ve iyi kadrolu işletmelerde etki **doygun** — zaten tavandalar. Fark, dört masada iki kişiyle dönen `genislemeyen`de çıkıyor. Yani deneyim tam olması gereken yerde işliyor: **yeni birini alamayacak kadar küçük olan işletmeye, elindekini tutmanın karşılığını veriyor.**
+In big, well-staffed businesses the effect is **saturated** — they are at the ceiling already. The difference shows up in `genislemeyen`, running four tables with two people. So experience works exactly where it should: **it gives the business that is too small to take on somebody new a payoff for holding on to who it has.**
 
-Gerçek merdivenle etki ölçülü kalıyor (kalibrasyon cezası yine 0, ölçülen gerçekleşme 10.196 → 10.207). Bu bir strateji değil, arka planda biriken bir ödül — ve maaşı zaten haftalık %2,2 bileşik zamla ödeniyor. **Elindekini tut, hızlansınlar; tutmanın maliyeti de artsın.**
+With the real ladder the effect stays measured (the calibration penalty is 0 again, the measured realisation 10,196 -> 10,207). It is not a strategy but a reward accumulating in the background — and it is paid for by a compounding 2.2% weekly wage rise anyway. **Hold on to what you have, they get faster; the cost of holding on rises too.**
 
-### 60 günde üçüncü seviye yok
+### There is no third level in 60 days
 
-30 gün = 1. seviye, 60 gün = 2. seviye, 90 gün = 3. Yani kampanya süresinde tavana ulaşılamıyor; üçüncü seviye [29-…](08-endgame.md)'un serbest oyununa ait. Bu bir eksik değil, süre yapısının sonucu — ama testte açıkça yazılı, çünkü fark edilmeden değiştirilecek bir sayı.
-
----
-
-## 16. Kalan üç ölü alan: üçünün de kaderi farklı
-
-[Beşinci ders](#) diyordu ki bir ölü alanın üç kaderi var: **yaz, sil, ya da değişmeze çevir.** Kuyrukta kalan üç madde üçünü de örnekliyor.
-
-### `weeklyWageMultiplierBp` → **değişmez**
-
-`economy.json` hem `weeklyXpWageGrowthBp: 220`'yi hem de onun on haftalık bileşiklerini taşıyordu. Aynı gerçek iki yerde. Tablo silinmedi — denge aracı ve arayüz onu okuyor — ama artık `ContentLoader` açılışta üretecine karşı doğruluyor, bir baz puanlık toleransla (tablo Python'da, doğrulama C#'ta hesaplanıyor).
-
-### `unlockSeason` → **değişmez**
-
-32 yemeğin her biri hem `unlockDay` hem `unlockSeason` taşıyor, ve ikincisi birincisinden türetilebiliyor: `(gün - 1) / 15 + 1`. Yükleyici artık bunu doğruluyor ve `DishDef.UnlockSeason` olarak taşıyor; ilerleme ekranı yemekleri buna göre gruplayacak. Üstüne [09-…](09-content-inventory.md)'un ilerleme eğrisi de teste bağlandı: mevsim başına 13/8/6/5 yemek, iki mutfakta da.
-
-`ContentSetLoader` mevsim uzunluğunu bu yüzden `economy.json`'dan okuyor — ikinci bir sabit yazmak, az önce kapatılan hatanın aynısını açardı.
-
-### `ownerPool` → **değişmez**
-
-İçerik `"salon"` yazıyor ve kod zaten salon **varsayıyor**: `StaffingModel` patronun iş gününü salon yükünden düşüyor, `DispatchSalon` patronu sıfırıncı garson olarak çalıştırıyor, docs/14 patronun mutfakta çalışmasını yasaklıyor. Alan bir *seçim* değil, bir *varsayımın yazılı hali*. Silmek varsayımı görünmez yapardı; okumak için ikinci bir havuz yazmak gerekirdi ve tasarım onu istemiyor. Başka bir havuz yazılırsa oyun artık açılmıyor.
-
-### `Crew.SalonWorkMicro` → **silindi**
-
-Tek gerçek silme. Zirve günün salon iş yükünü taşıyordu, hiçbir yerde okunmuyordu — ve **dört kurucusundan ikisi ona `0` yazıyordu.** Yani birisi onu okumaya kalksa yanlış değer okuyacaktı. Yük zaten `peakCustomers`'tan yeniden hesaplanabiliyor.
-
-**Ders:** bir alanın yazılmamış olması onu silinecek yapmaz; ama **çağrı yerlerinden bazıları ona yalan yazıyorsa**, o alan artık ölü değil *tuzak*. Silmek tek doğru kader.
-
-Denetleyicinin 1., 2. ve 3. kontrolü artık **hiçbir şey bulmuyor.**
+30 days = level 1, 60 days = level 2, 90 days = level 3. So the ceiling cannot be reached within the campaign; the third level belongs to [29-…](08-endgame.md)'s free play. That is not a gap but a consequence of the time structure — but it is written down explicitly in a test, because it is a number that could be changed without anyone noticing.
 
 ---
 
-## 17. Döner ve pide — ve üretecin sildiği kilit sistemi
+## 16. The remaining three dead fields: a different fate for each of them
 
-Kullanıcının istediği hal buydu: *"pide yapmak istersek taş fırın gereksin. Döner için döner takılan tezgah gereksin."* Taş fırın §10'da yazılmıştı; döner ve pide **içerikte yoktu**, o yüzden bağlanamamışlardı.
+[The fifth lesson](#) said a dead field has three fates: **implement it, delete it, or turn it into an invariant.** The three items left in the queue illustrate all three.
 
-### Menü 32'de kalıyor: dört giren, dört çıkan
+### `weeklyWageMultiplierBp` -> **an invariant**
 
-| Çıkan | Neden |
+`economy.json` carried both `weeklyXpWageGrowthBp: 220` and its ten weekly compounded values. The same fact in two places. The table was not deleted — the balance tool and the interface read it — but `ContentLoader` now validates it against its generator at start-up, with a one-basis-point tolerance (the table is computed in Python, the validation in C#).
+
+### `unlockSeason` -> **an invariant**
+
+Each of the 32 dishes carries both `unlockDay` and `unlockSeason`, and the second can be derived from the first: `(day - 1) / 15 + 1`. The loader now validates that and carries it as `DishDef.UnlockSeason`; the progression screen will group the dishes by it. On top of that, [09-…](09-content-inventory.md)'s progression curve was tied to a test as well: 13/8/6/5 dishes per season, in both cuisines.
+
+This is why `ContentSetLoader` reads the season length from `economy.json` — writing a second constant would have opened exactly the bug that had just been closed.
+
+### `ownerPool` -> **an invariant**
+
+The content says `"hall"` and the code already **assumes** hall: `StaffingModel` takes the owner's working day off the hall load, `DispatchHall` runs the owner as waiter number zero, and docs/14 forbids the owner from working in the kitchen. The field is not a *choice*, it is *an assumption written down*. Deleting it would make the assumption invisible; reading it would require writing a second pool, and the design does not want one. If another pool is written the game no longer opens.
+
+### `Crew.SalonWorkMicro` -> **deleted**
+
+The only real deletion. It carried the peak day's hall workload and was read nowhere — and **two of its four constructors were writing `0` to it.** So if somebody did go to read it, they would read the wrong value. The load can be recomputed from `peakCustomers` anyway.
+
+**The lesson:** a field not being written does not make it deletable; but **if some of its call sites lie to it**, that field is no longer dead, it is a *trap*. Deleting is the only right fate.
+
+The auditor's checks 1, 2 and 3 now find **nothing at all.**
+
+---
+
+## 17. Doner and pide — and the lock system the generator was deleting
+
+The state the user wanted was this: *"if we want to make pide then a stone oven should be needed. For doner, a counter with a doner spit on it should be needed."* The stone oven was written in §10; doner and pide **were not in the content**, which is why they could not be wired up.
+
+### The menu stays at 32: four in, four out
+
+| Out | Why |
 |---|---|
-| `tavuk_kanat_izgara` | fast food okunuyor; `tavuk_kanat` malzemesi de Türk listesinden çıktı |
-| `firin_makarna` | İtalyan mutfağına ait; `kasar` yerine yeni pideye bağlandı |
-| `kiymali_ispanak` | on bir sulu yemek arasında en zayıfı; `ispanak` malzemesi de silindi |
-| `kabak_dolma` | aynı |
+| `tavuk_kanat_izgara` | it reads as fast food; the `tavuk_kanat` ingredient left the Turkish list too |
+| `firin_makarna` | it belongs to Italian cuisine; it was rebound to the new pide instead of to `kasar` |
+| `kiymali_ispanak` | the weakest of the eleven stews; the `ispanak` ingredient was deleted too |
+| `kabak_dolma` | the same |
 
-| Giren | Ekipman | Mevsim |
+| In | Equipment | Season |
 |---|---|---|
-| `doner` | **döner ocağı** | 2 |
-| `iskender` | döner ocağı | 4 |
-| `kiymali_pide` | **pide fırını** | 3 |
-| `lahmacun` | pide fırını | 4 |
+| `doner` | **`doner_ocagi`** | 2 |
+| `iskender` | `doner_ocagi` | 4 |
+| `kiymali_pide` | **`pide_firini`** | 3 |
+| `lahmacun` | `pide_firini` | 4 |
 
-Dördü de `izgara` grubunda, yani **ana** rolde: menünün omurgasına dokunuyorlar, kenarına değil. Tek yeni malzeme `doner_eti`. Mevsim dağılımı bozulmadı (13/8/6/5), ilerleme eğrisi 6 → 13 → 21 → 27 → 32 aynı kaldı.
+All four are in the `izgara` group, that is, in the **main** role: they touch the backbone of the menu, not its edge. The only new ingredient is `doner_eti`. The season spread was not disturbed (13/8/6/5) and the progression curve stayed the same: 6 -> 13 -> 21 -> 27 -> 32.
 
-Türk mutfağı artık üç adlandırılmış ekipman taşıyor (taş fırın 2.700, döner ocağı 1.860, pide fırını 4.800 sikke), toplam **on bir yemek** onların arkasında. docs/09 mutfak başına on istasyon istiyor; üç ile beş arası bir yerdeyiz.
+The Turkish cuisine now carries three named pieces of equipment (stone oven 2,700, doner grill 1,860, pide oven 4,800 coins) with **eleven dishes** in total behind them. docs/09 wants ten stations per cuisine; we are somewhere between three and five.
 
-### Bunu yazarken bulunan asıl şey: üreteç kilit sistemini siliyordu
+### What was really found while writing this: the generator was deleting the lock system
 
-`content/dishes/*.json` **üretilen** dosyalar. Ama `requiresStationTier`, `unlockReputationCenti` ve adlandırılmış istasyon adları oraya doğrudan yazılmıştı — üretici `tools/content/gen_dishes.py` onları **bilmiyordu**.
+`content/dishes/*.json` are **generated** files. But `requiresStationTier`, `unlockReputationCenti` and the named station names had been written straight into them — the generator `tools/content/gen_dishes.py` **did not know about them**.
 
-Yani `python tools/content/gen_dishes.py` çalıştırmak:
-- yedi Türk yemeğinin istasyonunu `tas_firin`'den `firin`'e geri çeviriyor,
-- 64 yemeğin **hepsinin** `requiresStationTier`'ını 0 yapıyor,
-- `unlockReputationCenti`'yi siliyordu.
+So running `python tools/content/gen_dishes.py`:
+- turned seven Turkish dishes' station back from `tas_firin` to `firin`,
+- set `requiresStationTier` to 0 on **all** 64 dishes,
+- deleted `unlockReputationCenti`.
 
-Yani içerik üreticisini çalıştırmak, o günün en büyük tasarım işini — itibar + ekipman kilidini — **tek komutta yok ediyordu.** Hiçbir test kırılmıyordu çünkü testler o an üretilmiş içeriği okuyor. Bunu ancak üreteci gerçekten çalıştırınca gördüm.
+So running the content generator **destroyed the biggest design job of that day — the reputation + equipment lock — in a single command.** No test broke, because the tests read the content as it stands at that moment. I only saw this by actually running the generator.
 
-**Üç şey düzeltildi:**
+**Three things were fixed:**
 
-1. Adlandırılmış istasyonlar artık `gen_dishes.py`'de: yemek satırı kendi istasyonunu yazıyor, `CUISINE_STATIONS` mutfağa hangi ekipmanların ait olduğunu söylüyor.
-2. Kilit kapıları `unlock_gates()` içinde **üretiliyor**: yemekler (karmaşıklık, fiyat) ile sıralanıp bölünüyor (alt %53 ekipmansız, sonraki %28 kademe 1, üst %19 kademe 2 — 32 yemekte 17/9/6), adlandırılmış ekipmana bağlı olan tam olarak kademe 1, açılış menüsü hep 0; itibar eşiği gün başına 0,9 puan.
-3. Ekipmanın **`opens` listesi artık türetiliyor**: `model.py` onu elle tutmuyor, `export.py` yemek dosyalarını tarayıp çıkarıyor. Hangi yemeğin hangi ekipmanı istediği zaten yemeğin kendi `station` alanında yazıyor; ikinci bir liste tutmak bu projede tam da az önce ayrışan şeydi.
+1. The named stations are now in `gen_dishes.py`: the dish row writes its own station, and `CUISINE_STATIONS` says which equipment belongs to which cuisine.
+2. The lock gates are **generated** inside `unlock_gates()`: the dishes are sorted (by complexity, by price) and split (the bottom 53% with no equipment, the next 28% tier 1, the top 19% tier 2 — 17/9/6 out of 32 dishes), the ones tied to named equipment are exactly tier 1, the opening menu is always 0; the reputation threshold is 0.9 points per day.
+3. **The equipment's `opens` list is now derived**: `model.py` no longer keeps it by hand, `export.py` scans the dish files and extracts it. Which dish wants which piece of equipment is already written in the dish's own `station` field; keeping a second list was in this project exactly the thing that had just drifted apart.
 
-`ContentTests.Kilit_kapilari_uretecin_kuralina_uyuyor` aynı kuralı dışarıdan sınıyor, ve üreteci iki kez çalıştırmak artık **bit bit aynı** içerik veriyor.
+`ContentTests.The_unlock_gates_follow_the_generators_rule` tests the same rule from the outside, and running the generator twice now gives **bit-for-bit identical** content.
 
-### Denge: iki kez bot suçluydu, ekonomi değil
+### Balance: twice the bot was guilty, not the economy
 
-Yeni içerik kalibrasyonu bozdu (ceza 0 → 16) ve iki ihlalin ikisi de stratejinin kararıydı:
+The new content broke the calibration (penalty 0 -> 16) and both violations were the strategy's decision:
 
-**Birincisi — `genislemeyen` itibarı 85,1'den 50,7'ye düştü.** Sebep: kredisi vardı, `Equipment.Upgrade` kredi varken **hiçbir** isteğe bağlı ekipman almıyordu, dolayısıyla döner ocağını hiç alamıyordu — ve müşteriler her gün döner soruyordu (§6'daki "soran müşteri" mekaniği). Altmış günün yarısını "yok" diyerek geçiriyordu. Kural değişti: kredi varken **yalnızca menü açan** ekipman alınabiliyor, iki haftalık sabit gider korunarak.
+**The first — `genislemeyen`'s reputation fell from 85.1 to 50.7.** The cause: it had a loan, and `Equipment.Upgrade` bought **no** optional equipment while a loan was outstanding, so it could never buy the doner grill — and the customers were asking for doner every day (the "asking customer" mechanic from §6). It spent half of the sixty days saying "we don't have it". The rule changed: while a loan is outstanding, **only equipment that opens menu items** can be bought, with two weeks of fixed costs kept in reserve.
 
-Bu kuralın ikinci yarısı da ölçülerek geldi: bir haftalık koruma yetmedi, `planci` genişleme takvimini kaçırdı (12,5 masa, hedef 13) çünkü parayı ocağa yatırıp kademeyi geciktirdi. İki haftaya çıkınca ikisi de düzeldi.
+The second half of that rule came from measurement too: one week of reserve was not enough, `planci` missed its expansion schedule (12.5 tables, target 13) because it put the money into the grill and delayed the tier. At two weeks both were fixed.
 
-**Sonuç:** `makul` 30.364 → **33.208** ve itibar 64,2 → **100,0**; büyüme çarpanı 4,14 → **3,80** (hedef bandı 1,8-4,0). **İki mutfak da temiz, ceza 0.** 153 test.
+**The result:** `makul` 30,364 -> **33,208** and its reputation 64.2 -> **100.0**; the growth multiplier 4.14 -> **3.80** (target band 1.8–4.0). **Both cuisines clean, penalty 0.** 153 tests.
 
-**Ders (yedincinin devamı):** üretilen bir dosyaya elle yazılan her alan, üretecin bir sonraki çalıştırmasında ölür. Bu, "aynı şey iki yerde yazılı" hatasının en sinsi hali — çünkü iki yer ayrışmıyor, biri **diğerini siliyor**.
+**The lesson (a continuation of the seventh):** every field hand-written into a generated file dies on the generator's next run. This is the most insidious form of the "the same thing is written in two places" bug — because the two places do not drift apart, one of them **deletes** the other.
 
 ---
 
-## 18. İmza mekanikleri: mutfağı mutfaktan ayıran tek şey
+## 18. The signature mechanics: the only thing separating one cuisine from another
 
-[07-cuisine-system.md](07-cuisine-system.md) bunu **"en önemli satır"** diye yazmıştı: *"satın almanın yeniden boyama değil başka bir oyun olduğunu gösteren şey bu."* [23-…](23-core-contract.md) §8.2 şemayı da yazmıştı — `cuisines/*.json` içine bir `signature` bloğu, *"kind bilinmiyorsa doğrulama reddeder, blok eksikse mutfak yüklenmez."*
+[07-cuisine-system.md](07-cuisine-system.md) had written this down as **"the most important line"**: *"this is what shows that buying one is a different game, not a repaint."* [23-…](23-core-contract.md) §8.2 had written the schema as well — a `signature` block inside `cuisines/*.json`, *"if the kind is unknown the validation rejects it, if the block is missing the cuisine does not load."*
 
-**Blok hiç yoktu ve mutfaklar sorunsuz yükleniyordu.** Yani iki mutfak, farklı menü taşıyan aynı oyundu.
+**The block did not exist at all and the cuisines were loading without a problem.** So the two cuisines were the same game carrying different menus.
 
-| Mutfak | Mekanik | Ne yapıyor |
+| Cuisine | Mechanic | What it does |
 |---|---|---|
-| fast food | **kombo** | Kombonun ana yemeğini seçen grup yanını ve içeceğini de **kesin** alıyor, üçüne indirimli tek fiyat ödüyor, ve o iş aşçıyı **%20 daha uzun** bağlıyor |
-| Türk | **veresiye** | Sık gelen müşteri hesabı deftere yazmayı **istiyor**; açarsan nakit akışın bozulur, açmazsan memnuniyet düşer |
+| fast food | **combo** | A party that chooses the combo's main course **definitely** takes the side and the drink too, pays one discounted price for all three, and that job ties the cook up **20% longer** |
+| Turkish | **credit** | A frequent customer **asks** to have the bill put on the tab; if you open it your cash flow suffers, if you do not your satisfaction drops |
 
-Mekanik kodda, sayılar veride. Blok yoksa, `kind` tanınmıyorsa, kombo mutfağı **rahatlatıyorsa** (`kitchenLoadBp < 10000` — bedava kazanç) ya da kombo indirimi indirim değilse oyun açılmıyor.
+The mechanic is in the code, the numbers in the data. If the block is absent, if the `kind` is not recognised, if the combo **relieves** the kitchen (`kitchenLoadBp < 10000` — a free gain) or if the combo discount is not a discount, the game does not open.
 
-### Mekanik ikinci mevsimde geliyor
+### The mechanic arrives in the second season
 
-[09-…](09-content-inventory.md): *"İmza mekaniği ikinci mevsimin başında gelir. Birinci mevsime konursa öğretici yükü çok ağırlaşır, çünkü oyuncu zaten menü ve fiyatı öğreniyor."* `SignatureDef.FromDay` bunu taşıyor (mevsim uzunluğu + 1 = 16. gün) ve yükleyici kombonun üç kalemini o güne göre denetliyor: mekanik geldiğinde kilitli olan bir kombo hiç satılamaz.
+[09-…](09-content-inventory.md): *"The signature mechanic arrives at the start of the second season. If it is put in the first, the tutorial load gets far too heavy, because the player is already learning the menu and the prices."* `SignatureDef.FromDay` carries that (season length + 1 = day 16) and the loader audits the combo's three items against that day: a combo that is locked when the mechanic arrives could never be sold.
 
-### Veresiye üç kez yanlış yazıldı, üçünde de ölçüm söyledi
+### The tab was written wrong three times, and each time the measurement said so
 
-**Birinci deneme — prim düğmesi.** Veresiye açmak memnuniyet primi veriyordu. Ölçüm: `imzacı` 29.151, `makul` 32.676. Sebep basit ve öğretici: **iyi oynayan zaten itibar tavanında.** 100/100 iken +8 puanlık bir memnuniyet primi hiçbir şey satın almıyor; geriye yalnızca batan hesapların maliyeti kalıyor.
+**First attempt — a bonus button.** Opening a tab gave a satisfaction bonus. The measurement: `imzaci` 29,151, `makul` 32,676. The reason is simple and instructive: **the player who plays well is already at the reputation ceiling.** At 100/100 an +8-point satisfaction bonus buys nothing; all that is left is the cost of the bad debts.
 
-**İkinci deneme — sadakat talebi.** Tahsil edilen her hesap talebe kalıcı %0,6 ekliyor (tavan %15). Ölçüm: ağırlanan müşteri 2.331 → 2.334. **Üç kişi.** Sebep yine aynı sınıftan: iyi oynayan **kapasite sınırında**, servis oranı %97, kapıdan dönen %1. Talep artırmak, masası dolu bir restorana hiçbir şey vermiyor.
+**Second attempt — loyalty demand.** Every bill collected adds a permanent 0.6% to demand (capped at 15%). The measurement: customers served 2,331 -> 2,334. **Three people.** The reason is from the same class again: the player who plays well is **at the capacity limit**, the service rate is 97%, the share turned away at the door is 1%. Raising demand gives nothing to a restaurant whose tables are full.
 
-**Üçüncü deneme — doğru yön.** Mekanik ters kuruluydu: veresiye **teklif edilen bir prim değil, istenen bir şey.** Sık gelen müşteri (`TierIndex 0`) %12 olasılıkla hesabı deftere yazmayı istiyor; vermezsen memnuniyeti düşüyor. Kullanıcının kendi fikri olan "kilitli yemeği soran müşteri" mekaniğiyle (§6) tam olarak aynı fikir. Kazanç tarafı da paraya bağlandı: hesabını kapatan **üstüne %12 koyuyor**, ve deftere yazılan adama çay konuyor — çay tahsilat şansını %85'ten %95'e çıkarıyor ve maliyeti içerikteki `teaCostCenti` (bugüne kadar okunmayan bir alan).
+**Third attempt — the right direction.** The mechanic was set up backwards: the tab is **not a bonus you offer, it is something that is asked of you.** A frequent customer (`TierIndex 0`) asks to have the bill put on the tab with 12% probability; if you do not give it, their satisfaction drops. Exactly the same idea as the "customer who asks for a locked dish" mechanic (§6), which was the user's own. The gain side was tied to money as well: whoever settles their bill **adds 12% on top**, and the person on the tab is given tea — tea raises the collection chance from 85% to 95% and its cost is the content's `teaCostCenti` (a field never read until now).
 
-### Ölçüm: mekanik tavanda nötr, DAR yerde kazandırıyor
+### The measurement: the mechanic is neutral at the ceiling, it pays in a TIGHT spot
 
-| | veresiye veren | geri çeviren |
+| | gives the tab | turns it down |
 |---|---:|---:|
-| kasa | 19.270 | 17.999 |
-| defter | 169 | — |
-| itibar | 17,8 | 17,1 |
-| sadakat | %12,0 | — |
+| till | 19,270 | 17,999 |
+| tab | 169 | — |
+| reputation | 17.8 | 17.1 |
+| loyalty | 12.0% | — |
 
-Bu, **itibarı tavanda olmayan** küçük bir lokanta. Veren, çevirenin %8 önünde. Altmış günlük tam kampanyada, itibarı 100'de doymuş bir `makul`e karşı `imzacı` 30.465 + 1.883 defter = 32.348'e karşı 32.987 — yani **nötr**.
+This is a small restaurant **whose reputation is not at the ceiling**. The one who gives is 8% ahead of the one who turns it down. Across a full sixty-day campaign, against a `makul` saturated at 100 reputation, `imzaci` gets 30,465 + 1,883 on the tab = 32,348 against 32,987 — that is, **neutral**.
 
-Bu, personel deneyiminde bulunan şeyle aynı şekil (§15): **mekanik, sıkışmış oyuncuya yarıyor; tavandaki oyuncuya değmiyor.** Ve doğrusu bu — tavandaki oyuncuya da kazandırsaydı mekanik karar değil mecburiyet olurdu.
+This is the same shape as what was found with staff experience (§15): **the mechanic helps the player who is squeezed; it does not touch the player at the ceiling.** And that is right — if it paid off for the player at the ceiling too, the mechanic would be an obligation, not a decision.
 
-Fast food'da kombo doğrudan kazandırıyor: fiş 55,5 → **56,2**, kasa 26.167 → **26.698**, ama itibar 99,2 → 97,7 — mutfak gerçekten daha yorgun. Takas görünür.
+In fast food the combo pays off directly: the receipt 55.5 -> **56.2**, the till 26,167 -> **26,698**, but the reputation 99.2 -> 97.7 — the kitchen really is more tired. The trade is visible.
 
-### Kalibrasyona yeni bir hedef
+### A new target for the calibration
 
-`imzacı`, `makul`'ün **%90 ile %130'u arasında** kalmalı ve borca düşmemeli. Alt sınır mekaniğin tuzak olmadığını, üst sınır mecburiyet olmadığını sınıyor. Ölçü **kasa + defter**, çünkü altmışıncı günde tahsil edilmemiş veresiye kaybolmuş para değil ([08](08-endgame.md) net varlık). Harness tablosuna bunun için bir **`defter`** sütunu eklendi.
+`imzaci` must stay **between 90% and 130% of** `makul` and must not fall into debt. The lower bound tests that the mechanic is not a trap, the upper bound that it is not an obligation. The measure is **till + tab**, because on the sixtieth day an uncollected tab is not lost money ([08](08-endgame.md), net assets). A **`tab`** column was added to the harness table for this.
 
-**Ders (dokuzuncunun kardeşi): bir mekaniğin ödülünü, oyuncunun zaten DOYMUŞ olduğu bir eksene bağlamak, mekaniği görünmez yapar.** İtibar 100'de, masalar dolu. Bu iki eksende ödeme yapan iki tasarım denendi ve ikisi de ölçümde sıfır çıktı. Üçüncüsü paraya ve bir CEZAYA bağlandı — ve çalıştı. Yeni bir mekanik yazarken ilk soru "ne veriyor" değil, **"verdiği şeyin oyuncuda yeri var mı"** olmalı.
+**The lesson (the ninth's sibling): tying a mechanic's reward to an axis the player is already SATURATED on makes the mechanic invisible.** Reputation at 100, tables full. Two designs that paid out on those two axes were tried and both measured zero. The third was tied to money and to a PENALTY — and it worked. The first question when writing a new mechanic should not be "what does it give" but **"is there room in the player for what it gives"**.
 
 ---
 
-## 19. İsimli düzenli müşteriler
+## 19. Named regular customers
 
-[11-customer-system.md](11-customer-system.md) ayrımı net koymuştu: *"isimli müşteri tek bir kişidir, elle yazılmıştır, hikayesi vardır ve hep aynı kişidir. Arketip ise binlerce müşteri üretir."* [09](09-content-inventory.md) mutfak başına on tane istiyor, her birinin üç-dört sahnelik hikâyesiyle. `content/regulars/` klasörü **hiç yoktu.**
+[11-customer-system.md](11-customer-system.md) had drawn the distinction clearly: *"a named customer is a single person, hand-written, with a story, and always the same person. An archetype produces thousands of customers."* [09](09-content-inventory.md) wants ten per cuisine, each with a three-or-four-beat story. The `content/regulars/` folder **did not exist at all.**
 
-Artık var: `tools/content/gen_regulars.py`, mutfak başına on kişi. Türk tarafında Hasan Usta (esnaf komşu, kuru fasulye, 3. gün), Nazife Teyze, Selim Bey, Rasim Amca…; fast food tarafında Deniz, Burak, Elif…
+Now it does: `tools/content/gen_regulars.py`, ten people per cuisine. On the Turkish side Hasan Usta (the shopkeeper neighbour, `kuru_fasulye`, day 3), Nazife Teyze, Selim Bey, Rasim Amca…; on the fast food side Deniz, Burak, Elif…
 
-### Davranışı arketipten geliyor, kimliği kendinden
+### Their behaviour comes from the archetype, their identity from themselves
 
-Düzenli müşteri bir **arketibi taban alıyor** ([13](13-data-schemas.md)): sabır, grup büyüklüğü, fiyat duyarlılığı, geliş saati — hepsi oradan. Böylece davranış kodu tek yol izliyor. Kendine ait olan üç şey var:
+A regular customer **takes an archetype as its base** ([13](13-data-schemas.md)): patience, party size, price sensitivity, arrival time — all from there. That way the behaviour code follows a single path. There are three things that are their own:
 
-| Alan | Ne yapıyor |
+| Field | What it does |
 |---|---|
-| `favouriteDish` | Menüde varsa onu sipariş ediyor; yoksa memnuniyeti düşüyor |
-| `arrivesFromDay` | Kampanyaya ne zaman giriyor (3. günden 47. güne yayılı) |
-| `veresiyeEligible` | Türk mutfağında deftere yazılabilir mi |
+| `favouriteDish` | If it is on the menu they order it; if not, their satisfaction drops |
+| `arrivesFromDay` | When they enter the campaign (spread from day 3 to day 47) |
+| `veresiyeEligible` | Whether they can go on the tab in the Turkish cuisine |
 
-### En önemli değişmez: talebi ŞİŞİRMİYOR
+### The most important invariant: it does NOT INFLATE the demand
 
-İsimli müşteri, günün planına **eklenmiyor** — planın içinden **yer alıyor**. `BindRegularsToPlan`, gelen düzenli müşteriyi kendi arketibindeki bir plan satırına bağlıyor; yoksa en erken boş satırı onun adına yazıyor.
+A named customer is **not added** to the day's plan — they **take a place** inside it. `BindRegularsToPlan` binds an arriving regular to a plan row in their own archetype; failing that, it writes the earliest empty row in their name.
 
-Bu bilinçli: aksi halde her yeni isim ekonomiyi büyütürdü ve **kalibrasyon her içerik eklemesinde kayardı.** `RegularTests.Talebi_SISIRMIYOR` ilk üç günü karşılaştırıyor — ilk düzenli müşteri 3. günde geldiği için 1. ve 2. gün birebir aynı, dolayısıyla 3. günün itibarı da aynı, ve planı da aynı çıkmalı. Sonraki günlerde sayılar ayrışıyor ve **ayrılmaları doğru**: sevdiği yemeği bulan müşteri daha memnun ayrılıyor, itibar farklı işliyor. O fark mekaniğin kendisi.
+This is deliberate: otherwise every new name would grow the economy and **the calibration would shift with every content addition.** `RegularTests.They_DO_NOT_INFLATE_the_demand` compares the first three days — because the first regular arrives on day 3, days 1 and 2 are exactly identical, therefore day 3's reputation is identical too, and its plan must come out identical as well. On the following days the numbers diverge and **their divergence is correct**: a customer who finds their favourite dish leaves happier and the reputation works out differently. That difference is the mechanic itself.
 
-### Veresiye kimliğine kavuştu
+### The tab found its identity
 
-[13](13-data-schemas.md) `veresiyeEligible` alanını düzenli müşteri dosyasına koymuştu ve doğrusu buydu: **veresiye adını bildiğin birine açılır.** §18'de bu kural "sık gelen arketip"ten türetiliyordu — çalışan ama kimliksiz bir yaklaşım. Artık içerik varsa oradan geliyor; yoksa eski türetim yedek olarak duruyor (birim testleri düzenli müşteri dosyası olmadan koşuyor).
+[13](13-data-schemas.md) had put the `veresiyeEligible` field in the regular customer's file, and that was right: **a tab is opened for somebody whose name you know.** In §18 this rule was being derived from "a frequent archetype" — an approach that works but has no identity. Now it comes from the content if the content is there; if not, the old derivation stands as a fallback (the unit tests run without the regular customer file).
 
-Bunun bir yan etkisi ölçüldü: aday kitle daraldığı için (yedi kişi, her biri günlerin yarısında uğruyor) veresiye isteme oranı %12 ile neredeyse hiç işlemiyordu — altmış günde üç hesap. Oran **%40'a** çıkarıldı; artık günlük bir karar.
-
----
-
-## 20. Personel huyları ve moral
-
-[14-staff-system.md](14-staff-system.md) on iki huy ve bir moral tablosu yazmıştı. Çekirdekte `huy` diye bir şey **yoktu**.
-
-### Huylar: ikisi bedelsiz göründü, ölçüm sordu
-
-Üreteç bir denge kuralı dayatıyor — docs/14'ün kendi cümlesi: *"hiçbir huy saf iyi veya saf kötü değil."* Kural ilk yazıldığında **iki huyu yakaladı**: müşteriyle iyi anlaşan (+8 memnuniyet) ve ekip moralini yükselten (+10 moral). İkisinin de etki tablosunda hiçbir bedeli yok.
-
-Ama bedelleri **var**, sadece huyun içinde değil **havuzun** içinde: her birinin bir kötü ikizi var (suratsız, huysuz) ve ikisi çakışıyor. İşe alım ikisinden birini çekiyor — yani iyi huy seçilen bir avantaj değil, bir **şans**. Kural buna göre yazıldı: *bir huyun ya kendi içinde bedeli olacak, ya çakıştığı bir huy onun aynası olacak.*
-
-Çakışmalar yüklemede **simetri** açısından da denetleniyor: A ile B çakışıyorsa B ile A da çakışmalı. Tek yönlü yazılmış bir çakışma, işe alım kodunda sessizce çalışmayan bir kural bırakırdı — yani iki çakışan huyu taşıyan bir personel üretilebilirdi.
-
-### Hız artık tek bir çarpanda toplanıyor
-
-Deneyim + huy − moral − yoğunluk − yorgunluk. Hepsi aynı yerde, çünkü hepsi aynı şeyi söylüyor: bu kişi bu işi ne kadar çabuk bitiriyor. Taban %20 — üç kötü huyun üst üste gelmesi kişiyi tamamen durdurmasın diye.
-
-**Yoğun dilim mutfağa göre türetiliyor**, sabit "ikinci dilim" değil: [28](28-peak-decision.md) Karar G payları değil **süreleri** değiştirdi, yani mutfağın zirvesi dilim uzunluğunda yazıyor. Sabit yazmak, Türk lokantasının öğle zirvesini fast food'a da dayatırdı.
-
-### Moral: tablo bir OLAY listesi, sürüklenme modeli değil
-
-İlk uygulama docs/14'ün tablosunu birebir aldı ve ölçüm reddetti: **iyi yönetilen bir dükkânda bile bütün kadro bir ayda istifa ediyordu.** Sebep tablonun eksikliği değil, tablonun **ne olduğu**: docs/14 bir olay listesi veriyor (maaş +5 / −25, yoğun gün −3, izin +10, zam +15), ve bunların yarısı oyuncunun *yapması* gereken şeyler. Sadece olayları uygulayınca merdiven tek yönlü aşağı gidiyor.
-
-İki düzeltme:
-
-1. **Sakin gün toparlatıyor** (+2), ama başlangıç moralini **geçmiyor**. Yani sakin günler personeli mutlu etmiyor, yalnızca normale döndürüyor; üstüne çıkmak için oyuncunun bir şey yapması lazım.
-2. **"Yoğun gün" mutlak eşik değil, kadroya göre eşik.** İlk tanım "masa başına üç grup" idi ve iyi yönetilen bir dükkânda her gün yoğun sayılıyordu. Doğrusu: mutfak **tasarım kapasitesinin** üstünde çalıştıysa yoğun. Aynı müşteri sayısı iki aşçıyla sakin, bir aşçıyla yorucu.
-
-### Ve bir kurucu hatası
-
-Başlangıç kadrosu huy ve moral **almıyordu** — `RollTraits` yalnızca `Hire` içinden çağrılıyordu, oysa oyun bir aşçıyla başlıyor. O aşçının morali **0** ile başlıyordu, yani istifa eşiğinin altında: restoran **ikinci gün aşçısız** kalıyordu. Günlük iz olmadan bu hata "moral sistemi çok sert" diye yanlış teşhis edilirdi.
-
-**Ders:** bir alanın varsayılanı `0` ise ve `0` anlamlı bir değerse (burada "morali sıfır"), o alanı kuran her yolu ayrı ayrı sormak gerekiyor. `Hire` yolu doğruydu; kurucu yolu hiç yoktu.
+A side effect of this was measured: because the candidate pool narrowed (seven people, each dropping in on half the days), the 12% asking rate meant it barely operated at all — three tabs in sixty days. The rate was raised to **40%**; it is now a daily decision.
 
 ---
 
-## 21. Huy sistemi dengeyi bozdu, ve sebebi üç kez BOT çıktı
+## 20. Staff traits and morale
 
-Huylar kodlanınca fast food'da iyi oyuncunun itibarı **96,5'ten 87'ye** indi ve bazı koşularda dükkân boşaldı. Denge kaybı gerçekti; sebebi ekonomi değildi.
+[14-staff-system.md](14-staff-system.md) had written twelve traits and a morale table. There was **no such thing as a trait** in the core.
 
-### Ölçüm nasıl daraltıldı
+### The traits: two of them looked free, the measurement asked
 
-Tahmin etmek yerine **her etkiyi tek tek kapatıp** koştum:
+The generator enforces a balance rule — docs/14's own sentence: *"no trait is purely good or purely bad."* When the rule was first written it **caught two traits**: gets on well with customers (+8 satisfaction) and lifts the team's morale (+10 morale). Neither has any cost at all in the effect table.
 
-| Yalnızca bu etki açık | `makul` itibarı |
+But they **do** have costs, only not inside the trait — inside the **pool**: each of them has an evil twin (sullen, cantankerous) and the two conflict. Hiring draws one of the two — so a good trait is not an advantage you choose, it is a **roll of the dice**. The rule was written accordingly: *either a trait has a cost within itself, or a trait it conflicts with is its mirror.*
+
+The conflicts are also audited at load time for **symmetry**: if A conflicts with B then B must conflict with A. A conflict written one-way would leave a rule silently not working in the hiring code — that is, a member of staff carrying two conflicting traits could be generated.
+
+### Speed is now collected into a single multiplier
+
+Experience + trait − morale − busyness − fatigue. All in the same place, because all of them say the same thing: how quickly does this person finish this job. The floor is 20% — so that three bad traits stacking up do not stop the person entirely.
+
+**The busy slot is derived from the cuisine**, not a fixed "second slot": [28](28-peak-decision.md) Decision G changed not the shares but the **durations**, so the kitchen's peak is written in the slot length. Writing it fixed would have forced the Turkish restaurant's lunch peak onto fast food too.
+
+### Morale: the table is an EVENT list, not a drift model
+
+The first implementation took docs/14's table literally and the measurement rejected it: **even in a well-run shop the whole crew resigned within a month.** The cause was not a gap in the table but **what the table is**: docs/14 gives an event list (wages +5 / −25, a busy day −3, a day off +10, a raise +15), and half of those are things the player has to *do*. Applying only the events makes the ladder go one way: down.
+
+Two fixes:
+
+1. **A quiet day recovers morale** (+2), but it does not go **above** the starting morale. So quiet days do not make the staff happy, they only bring them back to normal; going above that needs the player to do something.
+2. **"A busy day" is not an absolute threshold but a threshold relative to the crew.** The first definition was "three parties per table" and in a well-run shop every day counted as busy. The right one: it is busy if the kitchen worked above its **design capacity**. The same number of customers is calm with two cooks and exhausting with one.
+
+### And a constructor bug
+
+The starting crew was **not getting** a trait or morale — `RollTraits` was only called from inside `Hire`, whereas the game starts with one cook. That cook's morale started at **0**, that is, below the resignation threshold: the restaurant was left **without a cook on the second day**. Without the daily trace this bug would have been misdiagnosed as "the morale system is too harsh".
+
+**The lesson:** if a field's default is `0` and `0` is a meaningful value (here, "zero morale"), every path that constructs that field has to be asked about separately. The `Hire` path was right; the constructor path did not exist at all.
+
+---
+
+## 21. The trait system broke the balance, and three times the cause turned out to be the BOT
+
+When the traits were coded, the good player's reputation in fast food dropped **from 96.5 to 87** and in some runs the shop emptied out. The loss of balance was real; its cause was not the economy.
+
+### How the measurement was narrowed down
+
+Instead of guessing, I **turned each effect off one at a time** and ran it:
+
+| Only this effect on | `makul` reputation |
 |---|---:|
-| hiçbiri | 96,5 |
-| `speedBp` | 95,7 |
-| `peakPenaltyBp` | 95,5 |
-| `fatiguePenaltyBp` | 98,6 |
-| `cleanlinessBp` | 96,5 |
-| `satisfactionCenti` | 97,0 |
-| `xpBp` | 99,9 |
-| **`wageBp`** | **86,9** |
+| none | 96.5 |
+| `speedBp` | 95.7 |
+| `peakPenaltyBp` | 95.5 |
+| `fatiguePenaltyBp` | 98.6 |
+| `cleanlinessBp` | 96.5 |
+| `satisfactionCenti` | 97.0 |
+| `xpBp` | 99.9 |
+| **`wageBp`** | **86.9** |
 
-Tek bir alan. Ve `wageBp`'nin kendisi zararsız — kişi başı ücret ortalamada **+%1,2**. Zarar veren şey **oynaklık**: eşiğe bağlı kararlar (kredi çekme, ekipman alma, genişleme) tek yönlü, yani kötü bir çekiliş kalıcı olarak geriletiyor, iyi bir çekiliş takvimin önüne geçiremiyor.
+A single field. And `wageBp` itself is harmless — the wage per person is **+1.2%** on average. What does the damage is the **variance**: threshold-based decisions (taking a loan, buying equipment, expanding) are one-way, so a bad draw sets you back permanently while a good draw cannot put you ahead of schedule.
 
-### Eksik olan şey mekanik değil, KARAR'dı
+### What was missing was not a mechanic but a DECISION
 
-docs/14 cevabı zaten yazmıştı ve ben yarısını kodlamıştım: *"İşe alım ekranında aynı anda **üç aday** görünür. Adaylar üretilir: rol, iki huy, görünüm, isim. Aday havuzu her üç günde bir yenilenir. Beğenmediğin adayı reddedebilirsin ama yenisi hemen gelmez."*
+docs/14 had already written the answer and I had coded half of it: *"Three candidates appear at once on the hiring screen. The candidates are generated: role, two traits, appearance, name. The candidate pool refreshes every three days. You can reject a candidate you do not like, but a new one does not arrive straight away."*
 
-Havuz olmadan huy bir **piyango**: pahalı bir kadro çekiyorsun ve bununla yaşıyorsun. Havuzla birlikte bir **karar**: üç adaya bakıp seçiyorsun.
+Without a pool, a trait is a **lottery**: you draw an expensive crew and you live with it. With a pool it is a **decision**: you look at three candidates and you choose.
 
-Havuz yazıldı (`CandidateSlots = 3`, üç günde bir yenileniyor, alınan adayın yeri hemen dolmuyor) ve denge aracına iki şey eklendi:
+The pool was written (`CandidateSlots = 3`, refreshing every three days, the slot of a hired candidate not filled immediately) and two things were added to the balance tool:
 
-1. **`Hiring.Pick`** — adaylar arasından hız + memnuniyet − ücret en yükseği.
-2. **`Hiring.ReplaceWorst`** — elindeki kişi kapıdaki adaydan belirgin olarak kötüyse değiştir. Değişim bedelli: gidenin deneyimi sıfırlanıyor.
+1. **`Hiring.Pick`** — the highest speed + satisfaction − wage among the candidates.
+2. **`Hiring.ReplaceWorst`** — if the person you have is markedly worse than the candidate at the door, replace them. The swap has a price: the leaver's experience is reset.
 
-İkincisi ilk yazımda **hiç tetiklenmedi** — eşiği 3.000 koymuştum, huy puanlarının toplam yayılımı ise ~4.700. Eşik 1.200'e inince:
+The second one **never fired** in its first version — I had set the threshold at 3,000, while the total spread of the trait scores is ~4,700. Once the threshold came down to 1,200:
 
-| | huysuz taban | huylar açık, botsuz | huylar + **seçim** |
+| | traitless baseline | traits on, no bot | traits + **selection** |
 |---|---:|---:|---:|
-| `makul` kasa | 24.540 | 20.886 | **28.617** |
-| `makul` itibar | 96,5 | 87,5 | **99,3** |
-| `genislemeyen` itibar | — | 61,0 | **71,3** |
+| `makul` till | 24,540 | 20,886 | **28,617** |
+| `makul` reputation | 96.5 | 87.5 | **99.3** |
+| `genislemeyen` reputation | — | 61.0 | **71.3** |
 
-Yani huy sistemi, oyuncu **kadrosunu yönetince** dengeyi bozmuyor — **iyileştiriyor.**
+So the trait system does not break the balance when the player **manages their crew** — it **improves** it.
 
-### Başlangıç aşçısı huysuz
+### The starting cook has no trait
 
-Bir şey daha çıktı: başlangıç aşçısını oyuncu **seçmiyor**, oyun veriyor. Ona rastgele huy atmak, kampanyanın ilk gününde görünmez bir zar atmak demek — ve ölçümde kötü huylu bir başlangıç aşçısı çeken koşuda memnuniyet 9.000'den 5.000'e sızıyor, dükkân dört masada kalıyor ve altmış gün toparlanamıyordu. Devraldığın aşçı **sıradan**; karakter, **seçtiğin** kişilerle geliyor.
+One more thing came out: the player does not **choose** the starting cook, the game gives them one. Assigning them a random trait means throwing an invisible die on the campaign's first day — and in the measurement, a run that drew a badly-traited starting cook leaked satisfaction from 9,000 to 5,000, the shop stayed at four tables and could not recover in sixty days. The cook you inherit is **ordinary**; character comes with the people **you choose**.
 
-### Ve bir hedef, tavana çarptığı için yanlış ölçmeye başladı
+### And a target started measuring wrongly, because it hit the ceiling
 
-Kalibrasyon "müdahale itibarı artırmalı" diyordu. `makul` kendi kadrosunu yönetmeyi öğrenip **99,3**'e çıkınca müdahalenin yükseltecek yeri kalmadı ve mekanik "işe yaramıyor" göründü — aynı koşuda Türk mutfağında müdahaleci 100,0, makul 96,1, yani **boşluk olan yerde çalışıyor.**
+The calibration said "intervening must raise the reputation". Once `makul` learned to manage its own crew and climbed to **99.3**, there was nowhere left for the intervention to raise and the mechanic looked like it "does not work" — while in the same run, in the Turkish cuisine, the interventionist was at 100.0 and `makul` at 96.1, that is, **it works where there is headroom.**
 
-Hedef "her zaman daha iyi"den "hiçbir zaman daha kötü değil"e çevrildi (3 puan tolerans). Bu §18'in dersinin aynısı, bu kez *ölçen* tarafta: **bir mekaniği, oyuncunun zaten doymuş olduğu bir eksende ölçmek onu haksız yere mahkûm eder.**
-
----
-
-## 22. Unity görünüm katmanı: ilk dilim
-
-Altmış günlük bir ekonomi, iki mutfak, iki imza mekaniği, isimli müşteriler ve huylu personel — hepsi vardı ve **hiçbiri ekranda değildi**. `unity/Assets/Lokanta/` altında yalnızca dört editör betiği duruyordu.
-
-Bu dilim oyunu oynanabilir yapmıyor; **görülebilir** yapıyor. Amaç, en büyük bilinmeyeni açmak: bu eğlenceli mi?
-
-### İçerik platformun arkasına alındı
-
-Yükleyici dosya yolu okuyordu. Android'de dosya yolu diye bir şey yok: içerik APK'nın içinde. `IContentSource` portu yazıldı ([26](04-architecture.md)'nın "platform portun arkasında" kuralı) ve iki uygulaması var:
-
-| Kaynak | Nerede |
-|---|---|
-| `DirectoryContentSource` | testler, denge aracı, editör |
-| `ResourcesContentSource` | oyun; Unity Resources, her platformda **senkron** |
-
-StreamingAssets seçilmedi çünkü Android'de yalnızca `UnityWebRequest` ile ve **asenkron** okunuyor; içerik yükleme senkron bir işlem (doğrulama yapıyor, hata fırlatıyor) ve onu asenkron yapmak bütün zinciri bulaştırırdı. Bedeli, `content/`'in `Assets/Resources/content/` altına kopyalanması — **Lokanta > İçeriği Resources'a kopyala**, ve yanında **İçerik kopyası güncel mi** kontrolü. Bayat bir kopya, dengenin değişmiş gibi görünmesine yol açar ve sebebi saatler alır.
-
-### Kat planı çalışma zamanına taşındı — ve ilk kez test edildi
-
-Plan yalnızca `Editor/RoomLayout.cs` içindeydi, yani **çalışma zamanı planı bilmiyordu**. Aynı sayıları iki yere yazmak bu projede dört kez sessizce ayrıştı; plan `Lokanta.Game.RoomPlan`'a taşındı ve editör aracı artık ondan **türetiyor** (orada kalan tek şey renk).
-
-Taşınınca bir şey daha oldu: plan `Lokanta.Core.csproj`'a girdi ve **testlenebilir** hale geldi. `RoomPlanTests` altı şey soruyor ve hepsi geçiyor:
-
-- odalar arsayı **tam** kaplıyor (172,80 m² = 172,80 m²)
-- odalar üst üste binmiyor, arsanın dışına taşmıyor
-- masa sayıları **kademe tablosuyla aynı**: 4 / 7 / 10 / 14 — plan ile ekonomi aynı şeyi söylemeli, yoksa oyuncu satın aldığı masayı salonda göremez
-- her salon odası masalarını alıyor (`Fit()` epsilonu olmadan bir sütun kayboluyor)
-- masa noktaları kendi odasının içinde
-- en yakın iki masa 1,70 m — dokunma hedefi çakışmıyor
-
-Bunların hepsi daha önce **yalnızca Unity açılınca** sınanıyordu.
-
-### Ve `float` yasağının kapsamı yazıldı
-
-Plan çekirdek derlemesine girince [23](23-core-contract.md) §2.5'in yansıma testi onu yakaladı: `PlotW : Single`. Kural doğru ve gevşetilmedi — **kapsamı yazıldı**: tarama artık yalnızca `Lokanta.Core.*` ad alanını geziyor.
-
-Ayrım şu: determinizm **simülasyona** ait, çünkü aynı komut dizisi telefonda ve denge aracında aynı sonucu vermeli. Kat planı sonuca girmiyor, ekranda nerede durduğunu söylüyor; 18,0 × 9,6 m bir arsayı tamsayıyla yazmak, ölçüyü santimetreye çevirip her yerde bölmek olurdu ve hiçbir şey kazandırmazdı. Bu ayrım **yazılmadığı sürece** bir gün birisi simülasyona float sokmak için bu testi gevşetir.
-
-### Yazılanlar
-
-| Dosya | İş |
-|---|---|
-| `GameHost` | İçeriği yükler, `Simulation`'ı kurar, **sabit adımlı** tick döngüsünü sürer |
-| `RestaurantView` | Odaları ve masaları kurar, her karede simülasyondan **okuyarak** günceller |
-| `CameraRig` | İki kademeli kamera: genel görünüm ↔ odaya yaklaşma |
-| `HudView` | Gün, kasa, itibar, aşama düğmeleri |
-| `Editor/BuildGameScene` | Sahneyi **kurar** — elle kurulan sahne, kimin neyi nereye bağladığını kimsenin hatırlamadığı bir dosyaya döner |
-
-**Sabit adım en önemli satır.** Unity'nin değişken `deltaTime`'ı çekirdeğe hiç girmiyor; `GameHost`'ta bir biriktirici var ve o kadar. Artık **atılmıyor**, biriktiriliyor — atmak, yavaş karede günü kısaltırdı. Bir karede en fazla 400 tick işleniyor ki geç bir kare "ölüm sarmalı" üretmesin.
-
-Görünüm katmanı simülasyonu **okur, ona yazmaz**; yazan tek şey komut. Kayıt ve tekrar oynatma bunun üzerine kurulu.
-
-### Ne yapılmadı
-
-Bu dilim kutu-prizma bir yer tutucu. Müşteri figürü yok, animasyon yok, gerçek arayüz yok (HUD bilerek IMGUI — işi tasarım değil, görünürlük). Odaya yaklaşınca dokunma hedefinin **masa takımına** dönmesi de yazılmadı; kamera yaklaşıyor ama hedef hâlâ oda. [16](16-screens-and-tutorial.md)'nın on dört ekranı ve [24](24-art-pipeline.md)'ün mesh hattı önümüzde.
-
-**Bu katman burada derlenmedi.** `UnityEngine`'e bağlı olduğu için `dotnet build` onu görmüyor; ilk derleme Unity açıldığında olacak.
+The target was changed from "always better" to "never worse" (a 3-point tolerance). This is the same lesson as §18's, this time on the *measuring* side: **measuring a mechanic on an axis the player is already saturated on convicts it unjustly.**
 
 ---
 
-## 23. Sıradakiler
+## 22. The Unity view layer: the first slice
 
-- ~~Malzeme kalitesi~~ **yazıldı** (§9).
-- ~~`orderPreference` ölü~~ **türetilerek yazıldı** (§11).
-- ~~Özel ekipman adlandırılmalı~~ **mekanizma yazıldı** (§10). Kalan iş **içerik**: döner ve pide gibi yemekler menüye eklenmeli ki `doner_ocagi` ve `pide_firini` onlara bağlanabilsin. docs/09 mutfak başına 10 istasyon planlıyor, şu an Türk'te 1, fast food'da 2 var.
-- ~~Denetleyicinin kör noktası~~ **kapandı**: üçüncü kontrol yazıldı ve 19 alan buldu (§8).
-- ~~Patron müdahalesi~~ **kısıtları yazıldı** (§12), dördüncü tür de (§13).
-- ~~İstasyon hızlandırma~~ **yazıldı** (§13); `InterventionKind` dört değer taşıyor.
-- ~~Hal fiyat oynaklığı~~ **yazıldı** (§14).
-- ~~Personel deneyimi~~ **yazıldı** (§15).
-- ~~`weeklyWageMultiplierBp`, `unlockSeason`, `ownerPool`, `SalonWorkMicro`~~ **kapandı** (§16).
-- **Kalan kuyruk artık içerik ve arayüz işi**, ölü sistem değil:
-  - ~~döner/pide~~ **yazıldı** (§17). Adlandırılmış ekipman sayısı Türk'te 3, fast food'da 2; docs/09 mutfak başına 10 istiyor, yani hâlâ içerik işi var.
-  - denetleyicinin 4. kontrolü, docs/13 şemasında olup üretilen içerikte olmayan 63 alan sayıyor. Bunlar ölü alan değil, **yazılmamış içerik**: şema, denge aracının ürettiğinden daha geniş bir oyunu tarif ediyor.
-  - ~~oda görünümü~~ **ilk dilimi yazıldı** (§22): iki kademeli kamera ve kat planı sahnede. Yerleşim ekranı ([16](16-screens-and-tutorial.md) ekran 14) ve odaya yaklaşınca masa takımına dönen dokunma hedefi hâlâ yazılmadı.
-  - ~~imza mekanikleri~~ **yazıldı** (§18); İtalyan (`courses`) ve Japon (`broth`) blokları şema tarafında hazır, o mutfaklar yazılınca kodlanacak.
-  - ~~isimli düzenli müşteriler~~ **yazıldı** (§19).
-  - ~~personel huyları ve moral~~ **yazıldı** (§20).
-  - **iş yükseltmeleri** (`content/upgrades.json`, [13](13-data-schemas.md)) ve **yıl sonu puanlaması** (`scoreAxis`, [08](08-endgame.md)) hâlâ yazılmadı.
-  - **Unity görünüm katmanı** — sıradaki büyük iş.
-- **`SalonWorkMicro`** çekirdekte hiç okunmuyor; ya kullanılmalı ya silinmeli.
+A sixty-day economy, two cuisines, two signature mechanics, named customers and staff with traits — all of it existed and **none of it was on screen**. Under `unity/Assets/Lokanta/` there were only four editor scripts.
+
+This slice does not make the game playable; it makes it **visible**. The aim is to open up the biggest unknown: is this fun?
+
+### The content was moved behind the platform
+
+The loader was reading a file path. On Android there is no such thing as a file path: the content is inside the APK. The `IContentSource` port was written ([26](04-architecture.md)'s "the platform sits behind a port" rule) and it has two implementations:
+
+| Source | Where |
+|---|---|
+| `DirectoryContentSource` | tests, the balance tool, the editor |
+| `ResourcesContentSource` | the game; Unity Resources, **synchronous** on every platform |
+
+StreamingAssets was not chosen because on Android it is only read through `UnityWebRequest` and **asynchronously**; content loading is a synchronous operation (it validates, it throws) and making it asynchronous would infect the whole chain. The price is that `content/` is copied under `Assets/Resources/content/` — **Lokanta > Copy the content to Resources**, and beside it an **Is the content copy up to date** check. A stale copy makes the balance look as though it has changed, and finding out why takes hours.
+
+### The floor plan moved to runtime — and was tested for the first time
+
+The plan lived only inside `Editor/RoomLayout.cs`, that is, **the runtime did not know the plan**. Writing the same numbers in two places has drifted apart silently four times in this project; the plan was moved to `Lokanta.Game.RoomPlan` and the editor tool now **derives** from it (the only thing left there is the colour).
+
+Something else happened when it moved: the plan entered `Lokanta.Core.csproj` and became **testable**. `RoomPlanTests` asks six things and all of them pass:
+
+- the rooms cover the plot **exactly** (172.80 m² = 172.80 m²)
+- the rooms do not overlap and do not spill outside the plot
+- the table counts are **the same as the tier table**: 4 / 7 / 10 / 14 — the plan and the economy have to say the same thing, otherwise the player cannot see in the hall the table they bought
+- every hall room gets its tables (without `Fit()`'s epsilon a column disappears)
+- the table points are inside their own room
+- the nearest two tables are 1.70 m apart — the touch targets do not overlap
+
+All of this used to be tested **only when Unity was opened**.
+
+### And the scope of the `float` ban was written down
+
+When the plan entered the core assembly, [23](23-core-contract.md) §2.5's reflection test caught it: `PlotW : Single`. The rule is right and it was not loosened — **its scope was written down**: the scan now only walks the `Lokanta.Core.*` namespace.
+
+The distinction is this: determinism belongs to the **simulation**, because the same command sequence has to give the same result on a phone and in the balance tool. The floor plan does not enter the result, it says where something stands on screen; writing an 18.0 x 9.6 m plot in integers would mean converting the measurement to centimetres and dividing everywhere, and would gain nothing. **Unless this distinction is written down**, one day somebody will loosen this test in order to get a float into the simulation.
+
+### What was written
+
+| File | Job |
+|---|---|
+| `GameHost` | Loads the content, sets up `Simulation`, drives the **fixed-step** tick loop |
+| `RestaurantView` | Builds the rooms and the tables, updates them every frame by **reading** from the simulation |
+| `CameraRig` | A two-tier camera: the overview <-> zooming into a room |
+| `HudView` | Day, till, reputation, phase buttons |
+| `Editor/BuildGameScene` | **Builds** the scene — a hand-built scene turns into a file where nobody remembers who bound what to where |
+
+**The fixed step is the most important line.** Unity's variable `deltaTime` never enters the core; there is an accumulator in `GameHost` and that is all. It is no longer **discarded**, it is accumulated — discarding would shorten the day on a slow frame. At most 400 ticks are processed in one frame, so that a late frame does not produce a "death spiral".
+
+The view layer **reads** the simulation, it does not write to it; the only thing that writes is a command. Saving and replay are built on that.
+
+### What was not done
+
+This slice is a box-prism placeholder. There is no customer figure, no animation, no real interface (the HUD is deliberately IMGUI — its job is not design but visibility). Nor was the touch target turning into the **table set** when you zoom into a room written; the camera zooms but the target is still the room. [16](16-screens-and-tutorial.md)'s fourteen screens and [24](24-art-pipeline.md)'s mesh pipeline are ahead of us.
+
+**This layer was not compiled here.** Because it depends on `UnityEngine`, `dotnet build` does not see it; the first compile happens when Unity is opened.
+
+---
+
+## 23. What is next
+
+- ~~Ingredient quality~~ **written** (§9).
+- ~~`orderPreference` is dead~~ **written, by derivation** (§11).
+- ~~The special equipment should be named~~ **the mechanism was written** (§10). What is left is **content**: dishes like doner and pide have to be added to the menu so that `doner_ocagi` and `pide_firini` can be bound to them. docs/09 plans 10 stations per cuisine; right now the Turkish cuisine has 1 and fast food 2.
+- ~~The auditor's blind spot~~ **closed**: the third check was written and it found 19 fields (§8).
+- ~~The owner's intervention~~ **its constraints were written** (§12), and the fourth kind too (§13).
+- ~~Speeding up a station~~ **written** (§13); `InterventionKind` carries four values.
+- ~~Market price volatility~~ **written** (§14).
+- ~~Staff experience~~ **written** (§15).
+- ~~`weeklyWageMultiplierBp`, `unlockSeason`, `ownerPool`, `SalonWorkMicro`~~ **closed** (§16).
+- **The remaining queue is now content and interface work**, not dead systems:
+  - ~~doner/pide~~ **written** (§17). The number of named pieces of equipment is 3 in the Turkish cuisine and 2 in fast food; docs/09 wants 10 per cuisine, so there is still content work.
+  - the auditor's 4th check counts 63 fields that are in the docs/13 schema and not in the generated content. These are not dead fields but **content that has not been written**: the schema describes a wider game than the one the balance tool produces.
+  - ~~the room view~~ **its first slice was written** (§22): a two-tier camera and the floor plan in the scene. The layout screen ([16](16-screens-and-tutorial.md) screen 14) and the touch target turning into the table set when you zoom into a room are still not written.
+  - ~~the signature mechanics~~ **written** (§18); the Italian (`courses`) and Japanese (`broth`) blocks are ready on the schema side and will be coded when those cuisines are written.
+  - ~~named regular customers~~ **written** (§19).
+  - ~~staff traits and morale~~ **written** (§20).
+  - **business upgrades** (`content/upgrades.json`, [13](13-data-schemas.md)) and **the year-end scoring** (`scoreAxis`, [08](08-endgame.md)) are still not written.
+  - **The Unity view layer** — the next big job.
+- **`SalonWorkMicro`** is read nowhere in the core; it must either be used or deleted.
+

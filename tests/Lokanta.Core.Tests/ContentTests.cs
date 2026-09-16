@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Lokanta.Content;
 using Lokanta.Core.Content;
@@ -13,7 +13,7 @@ namespace Lokanta.Core.Tests
         {
             new StaffRoleDto { Id = "asci", Pool = "kitchen", CapacityPerDay = 28,
                                WorkPerCustomerMicro = 35714, DailyWage = 14000 },
-            new StaffRoleDto { Id = "garson", Pool = "salon", CapacityPerDay = 25,
+            new StaffRoleDto { Id = "garson", Pool = "hall", CapacityPerDay = 25,
                                WorkPerCustomerMicro = 40000, DailyWage = 11000 },
         };
 
@@ -28,7 +28,7 @@ namespace Lokanta.Core.Tests
             IngredientRateBp = 3200,
             Staffing = new StaffingDto
             {
-                OwnerPool = "salon",
+                OwnerPool = "hall",
                 OwnerWorkMicro = 1400000,
                 WeeklyXpWageGrowthBp = 220,
                 Tiers = new List<TierDto>
@@ -40,7 +40,7 @@ namespace Lokanta.Core.Tests
         };
 
         [Fact]
-        public void Gercek_icerik_yuklenir()
+        public void The_real_content_loads()
         {
             EconomyConfig cfg = ContentLoader.LoadEconomy(Paths.Content);
 
@@ -51,57 +51,57 @@ namespace Lokanta.Core.Tests
             Assert.Equal(14000, cfg.CookDailyWage);
             Assert.Equal(4, cfg.TierCount);
 
-            // Salon havuzu uc rolden olusuyor: 25 + 46 + 66 kapasiteli
-            Assert.Equal(73581, cfg.SalonWorkPerCustomerMicro);
+            // The hall pool is made of three roles: capacities 25 + 46 + 66
+            Assert.Equal(73581, cfg.HallWorkPerCustomerMicro);
             Assert.Equal(1300000, cfg.OwnerWorkMicro);
         }
 
         [Fact]
-        public void Salon_gunluk_ucreti_agirlikli_ortalamayi_verir()
+        public void The_hall_daily_wage_is_the_weighted_average()
         {
             EconomyConfig cfg = ContentLoader.LoadEconomy(Paths.Content);
-            long wage = StaffingModel.SalonDailyWage(cfg);
+            long wage = StaffingModel.HallDailyWage(cfg);
 
-            // Python modeli 102,3749 sikke veriyor = 10237,49 santi-sikke
+            // The Python model gives 102.3749 coins = 10237.49 centi-coins
             Assert.InRange(wage, 10230, 10245);
         }
 
         [Fact]
-        public void Ondalik_sayi_reddedilir()
+        public void A_decimal_number_is_rejected()
         {
             string json = "{ \"reputationDecayPerDay\": 0.3 }";
             ContentException ex = Assert.Throws<ContentException>(
                 () => ContentLoader.AssertNoDecimals(json, "test.json"));
-            Assert.Contains("ondalik", ex.Message);
+            Assert.Contains("decimal number", ex.Message);
         }
 
         [Fact]
-        public void Metin_icindeki_nokta_ondalik_sayilmaz()
+        public void A_full_stop_inside_a_string_does_not_count_as_a_decimal()
         {
-            // Surum numarasi ya da dosya adi iceren metinler tetiklememeli
+            // Strings holding a version number or a file name must not trigger it
             ContentLoader.AssertNoDecimals("{ \"nameKey\": \"dish.kuru_fasulye\" }", "t.json");
             ContentLoader.AssertNoDecimals("{ \"note\": \"1.5 kat\" }", "t.json");
         }
 
         [Fact]
-        public void Gercek_icerik_dosyalarinda_ondalik_yok()
+        public void There_are_no_decimals_in_the_real_content_files()
         {
             foreach (string f in Directory.GetFiles(Paths.Content, "*.json"))
                 ContentLoader.AssertNoDecimals(File.ReadAllText(f), Path.GetFileName(f));
         }
 
         [Fact]
-        public void Gecersiz_kimlik_reddedilir()
+        public void An_invalid_id_is_rejected()
         {
             List<StaffRoleDto> roles = ValidRoles();
-            roles[0].Id = "Asci";   // buyuk harf: tr-TR'de ToLower tuzagi
+            roles[0].Id = "Asci";   // a capital letter: the tr-TR ToLower trap
             ContentException ex = Assert.Throws<ContentException>(
                 () => ContentLoader.Build(ValidEconomy(), roles));
-            Assert.Contains("Gecersiz kimlik", ex.Message);
+            Assert.Contains("Invalid id", ex.Message);
         }
 
         [Fact]
-        public void Tekrarlanan_kimlik_reddedilir()
+        public void A_duplicate_id_is_rejected()
         {
             List<StaffRoleDto> roles = ValidRoles();
             roles[1].Id = "asci";
@@ -109,17 +109,17 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Bilinmeyen_havuz_reddedilir()
+        public void An_unknown_pool_is_rejected()
         {
             List<StaffRoleDto> roles = ValidRoles();
             roles[1].Pool = "bahce";
             ContentException ex = Assert.Throws<ContentException>(
                 () => ContentLoader.Build(ValidEconomy(), roles));
-            Assert.Contains("Bilinmeyen havuz", ex.Message);
+            Assert.Contains("Unknown pool", ex.Message);
         }
 
         [Fact]
-        public void Mutfak_rolu_yoksa_reddedilir()
+        public void It_is_rejected_when_there_is_no_kitchen_role()
         {
             List<StaffRoleDto> roles = ValidRoles();
             roles.RemoveAt(0);
@@ -127,17 +127,17 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Azalan_kadro_tavani_reddedilir()
+        public void A_decreasing_crew_cap_is_rejected()
         {
             EconomyDto e = ValidEconomy();
             e.Staffing.Tiers[1].StaffCap = 2;
             ContentException ex = Assert.Throws<ContentException>(
                 () => ContentLoader.Build(e, ValidRoles()));
-            Assert.Contains("kadro tavani", ex.Message);
+            Assert.Contains("staff cap", ex.Message);
         }
 
         [Fact]
-        public void Artmayan_masa_sayisi_reddedilir()
+        public void A_table_count_that_does_not_increase_is_rejected()
         {
             EconomyDto e = ValidEconomy();
             e.Staffing.Tiers[1].Tables = 4;
@@ -145,7 +145,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Sifir_kapasite_reddedilir()
+        public void A_zero_capacity_is_rejected()
         {
             List<StaffRoleDto> roles = ValidRoles();
             roles[0].CapacityPerDay = 0;
@@ -153,33 +153,33 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Bilinmeyen_masa_sayisi_icin_kademe_bulunmaz()
+        public void No_tier_is_found_for_an_unknown_table_count()
         {
             EconomyConfig cfg = ContentLoader.LoadEconomy(Paths.Content);
 
-            // Sorgu ISTISNA FIRLATMIYOR, en yakin alt kademeyi donuyor.
+            // The query DOES NOT THROW, it returns the nearest tier below.
             //
-            // Once firlatiyordu ve yanlis yerdeydi: bir okuyucu hicbir
-            // zaman cokertmemeli. Bozuk bir kayittan gelen gecersiz masa
-            // sayisi, oyuncu Personel ekranini actigi anda oyunu olduruyor
-            // ve kaydi kullanilamaz birakiyordu. Kaydin gecerliligi artik
-            // YUKLEMEDE denetleniyor (Simulation.Validate).
+            // It used to throw, and that was the wrong place for it: a reader
+            // must never bring things down. An invalid table count coming out of
+            // a corrupt save killed the game the moment the player opened the
+            // Staff screen and left the save unusable. A save's validity is now
+            // checked ON LOAD (Simulation.Validate).
             Assert.False(cfg.HasTierForTables(99));
             Assert.Equal(cfg.TierAt(cfg.TierCount - 1).Tables,
                          cfg.TierForTables(99).Tables);
 
-            // Kademelerin altinda bir sayi icin de en dusuk kademe.
+            // For a number below all the tiers, the lowest tier.
             Assert.False(cfg.HasTierForTables(1));
             Assert.Equal(cfg.TierAt(0).Tables, cfg.TierForTables(1).Tables);
         }
 
         // ====================================================================
-        // unlockSeason: unlockDay'in turetilmisi, ayri bir gercek degil.
+        // unlockSeason: derived from unlockDay, not a separate fact.
         // ====================================================================
         [Theory]
         [InlineData("fastfood")]
         [InlineData("turk")]
-        public void Mevsim_gunden_turetiliyor(string cuisine)
+        public void The_season_is_derived_from_the_day(string cuisine)
         {
             ContentSet c = ContentSetLoader.Load(Paths.Content, cuisine);
             EconomyConfig e = ContentLoader.LoadEconomy(Paths.Content);
@@ -194,10 +194,11 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Ayrisan_mevsim_reddediliyor()
+        public void A_drifted_season_is_rejected()
         {
-            // Bu testin varlik sebebi: alan silinmedi, DEGISMEZE cevrildi.
-            // Degismez calismiyorsa alan yine olu demektir.
+            // Why this test exists: the field was not deleted, it was turned into
+            // an INVARIANT. If the invariant does not run, the field is dead
+            // again.
             string path = Path.Combine(Paths.Content, "dishes", "fastfood.json");
             List<DishDto> dishes = Newtonsoft.Json.JsonConvert
                 .DeserializeObject<List<DishDto>>(File.ReadAllText(path));
@@ -217,10 +218,10 @@ namespace Lokanta.Core.Tests
                 .DeserializeObject<CuisineDto>(
                     File.ReadAllText(Path.Combine(Paths.Content, "cuisines", "fastfood.json")));
 
-            // Once saglam icerik aciliyor.
+            // First the sound content is opened.
             ContentSetLoader.Build("fastfood", ing, dishes, arc, eq, cui, 15);
 
-            // Sonra tek bir yemegin mevsimi kaydiriliyor.
+            // Then a single dish's season is shifted.
             for (int i = 0; i < dishes.Count; i++)
             {
                 if (dishes[i].UnlockDay <= 1) continue;
@@ -234,32 +235,32 @@ namespace Lokanta.Core.Tests
         [Theory]
         [InlineData("fastfood")]
         [InlineData("turk")]
-        public void Kilit_kapilari_uretecin_kuralina_uyuyor(string cuisine)
+        public void The_unlock_gates_follow_the_generators_rule(string cuisine)
         {
-            // Bu testin ac bir sebebi var: requiresStationTier ve
-            // unlockReputationCenti bir zamanlar dogrudan JSON'a elle
-            // yazilmisti ve URETEC ONLARI BILMIYORDU. gen_dishes.py'yi
-            // calistirmak butun kilit sistemini sessizce siliyordu -
-            // hicbir sey kirilmadan, sadece her yemek kilitsiz kaliyordu.
+            // This test has a raw reason to exist: requiresStationTier and
+            // unlockReputationCenti were once written into the JSON by hand and
+            // THE GENERATOR DID NOT KNOW ABOUT THEM. Running gen_dishes.py
+            // silently deleted the entire unlock system - nothing broke, every
+            // dish was simply left unlocked.
             //
-            // Kural artik uretecte (tools/content/gen_dishes.py) ve burada
-            // ayni kural disaridan sinaniyor.
+            // The rule now lives in the generator (tools/content/gen_dishes.py)
+            // and the same rule is tested here from the outside.
             ContentSet c = ContentSetLoader.Load(Paths.Content, cuisine);
 
             foreach (DishDef d in c.Dishes)
             {
-                // Itibar esigi gunle dogru orantili: gun basina 0,9 puan.
+                // The reputation threshold is proportional to the day: 0.9 points per day.
                 Assert.Equal((d.UnlockDay - 1) * 90, d.UnlockReputationCenti);
 
-                // Acilis menusu hicbir sey istemez.
+                // The opening menu asks for nothing.
                 if (d.UnlockDay <= 1)
                 {
                     Assert.Equal(0, d.RequiresStationTier);
                     Assert.Equal(0, d.UnlockReputationCenti);
                 }
 
-                // Adlandirilmis ekipmana bagli yemek TAM OLARAK kademe 1
-                // ister: o merdiven iki basamakli, kademe 2 diye bir sey yok.
+                // A dish tied to named equipment asks for EXACTLY tier 1: that
+                // ladder has two rungs, there is no such thing as tier 2.
                 StationDef st = c.Stations[d.StationIndex];
                 if (!st.Shared)
                 {
@@ -270,10 +271,11 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Turk_mutfagi_doner_ve_pideyi_kendi_ekipmaninda_tutuyor()
+        public void The_Turkish_cuisine_keeps_doner_and_pide_on_their_own_equipment()
         {
-            // Kullanicinin istedigi hali: "doner icin doner takilan tezgah
-            // gereksin, pide icin tas firin". Ayri ekipman, ayri kilit.
+            // What the user asked for: "doner should need a counter with a doner
+            // spit on it, pide should need a stone oven". Separate equipment,
+            // separate unlock.
             ContentSet c = ContentSetLoader.Load(Paths.Content, "turk");
 
             foreach (string pair in new[] { "doner:doner_ocagi",
@@ -283,7 +285,7 @@ namespace Lokanta.Core.Tests
             {
                 string[] parts = pair.Split(':');
                 int i = c.DishIndexOf(parts[0]);
-                Assert.True(i >= 0, parts[0] + " menude yok");
+                Assert.True(i >= 0, parts[0] + " is not on the menu");
                 Assert.Equal(parts[1], c.Stations[c.Dishes[i].StationIndex].Id);
                 Assert.Equal(1, c.Dishes[i].RequiresStationTier);
             }
@@ -292,12 +294,13 @@ namespace Lokanta.Core.Tests
         [Theory]
         [InlineData("fastfood")]
         [InlineData("turk")]
-        public void Mevsim_dagilimi_docs09_egrisini_tutuyor(string cuisine)
+        public void The_season_spread_follows_the_docs09_curve(string cuisine)
         {
-            // docs/09 ilerleme egrisi: 6 -> 13 -> 21 -> 27 -> 32 birikimli,
-            // yani mevsim basina 6, 7, 8, 6, 5. Ilk mevsimde 6 acilis + 7
-            // yeni = 13. Egri iceriktedir ve tablo docs/09'da; ikisi
-            // ayrisirsa oyunun temposu belgeden farkli olur.
+            // The docs/09 progression curve: 6 -> 13 -> 21 -> 27 -> 32
+            // cumulative, that is 6, 7, 8, 6, 5 per season. In the first season 6
+            // opening dishes + 7 new = 13. The curve lives in the content and the
+            // table lives in docs/09; if the two drift apart the game's pace
+            // differs from the document.
             ContentSet c = ContentSetLoader.Load(Paths.Content, cuisine);
 
             int[] perSeason = new int[5];

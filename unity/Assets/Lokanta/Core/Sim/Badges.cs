@@ -1,105 +1,114 @@
-namespace Lokanta.Core.Sim
+﻿namespace Lokanta.Core.Sim
 {
     /// <summary>
-    /// NISANLAR - gorev degil, TANIMA.
+    /// BADGES - not a quest, RECOGNITION.
     ///
-    /// Ayrim bu dosyanin butun gerekcesi. Bir gorev "yarin sunu yap"
-    /// der ve oyuncuyu gorunmez bir patronun calisani yapar; oyunun tek
-    /// cumlelik vaadi ise "Patronsun, asci degil". Bir nisan "bugun sunu
-    /// basardin" der - geriye donuktur, bu yuzden oyuncunun planiyla
-    /// ASLA catismaz. Bilerek kadrosu eksik calisan oyuncuyu bir gorev
-    /// cezalandirir, bir nisan odullendirir.
+    /// That distinction is this file's entire justification. A quest says
+    /// "do this tomorrow" and turns the player into the employee of an
+    /// invisible boss; whereas the game's one-sentence promise is "You are
+    /// the owner, not the chef". A badge says "today you pulled this off" -
+    /// it looks backwards, and so it NEVER clashes with the player's own
+    /// plan. A player deliberately running short-handed is punished by a
+    /// quest and rewarded by a badge.
     ///
-    /// Ikinci gerekce olcumden: bu projenin yasasi "doymus bir eksene
-    /// odenen odul gorunmez". Klasik gunluk gorev odulu paradir ve
-    /// harness'a gore iyi oyuncu altmisinci gunu ~21.000 kasayla
-    /// bitiriyor - yani odul, tam da hissedilecegi anda hissedilmiyor.
-    /// Nisanlarin odulu para DEGIL: gorulmek.
+    /// The second justification comes from measurement: this project's law
+    /// is "a reward paid into a saturated axis is invisible". The classic
+    /// daily-quest reward is money, and according to the harness a good
+    /// player finishes day sixty on a till of ~21,000 - so the reward is not
+    /// felt at exactly the moment it was meant to be. A badge's reward is
+    /// NOT money: it is being seen.
     ///
-    /// Hepsi simulasyonun ZATEN bildigi seylerden kuruldu; tek yeni
-    /// takip "defter bir kez acildi mi" bayragi. Uydurma kosul yok,
-    /// cunku uydurma bir kosul olculemez.
+    /// All of them were built out of things the simulation ALREADY knows;
+    /// the only new piece of tracking is the "has the book ever been opened"
+    /// flag. There is no invented condition, because an invented condition
+    /// cannot be measured.
     /// </summary>
     public static class Badges
     {
         /// <summary>
-        /// Zirve gununde kimse kapidan donmedi ve kimse masadan kizgin
-        /// kalkmadi. Zirve sarti onemli: hafta ici bunu yapmak kolay ve
-        /// kolay olan bir sey tanima hak etmiyor.
+        /// On the peak day nobody was turned away at the door and nobody
+        /// left a table angry. The peak condition matters: doing this on a
+        /// weekday is easy, and something that is easy does not deserve
+        /// recognition.
         /// </summary>
-        public const int HerkesDoydu = 0;
+        public const int EverybodyFed = 0;
 
         /// <summary>
-        /// Zirveyi gereken kadronun ALTINDA gecti ve yine de kimse
-        /// masadan kizgin kalkmadi. Oyunun merkezi takasini - kadro
-        /// kapasite demek ama para demek - dogrudan odullendiriyor.
+        /// Got through the peak BELOW the crew it needed, and still nobody
+        /// left a table angry. It rewards the game's central trade-off
+        /// directly - crew means capacity, but crew also means money.
         /// </summary>
-        public const int ZirveEksikKadro = 1;
+        public const int PeakShortHanded = 1;
 
         /// <summary>
-        /// Defter acildi ve tamami tahsil edildi. Turk mutfaginin imza
-        /// mekanigi; fast food oynayan oyuncu bunu hic gormez ve
-        /// gormemeli.
+        /// The book was opened and every bit of it was collected. The
+        /// signature mechanic of Turkish cuisine; a player on fast food
+        /// never sees this one, and should not.
         /// </summary>
-        public const int DefterKapandi = 2;
+        public const int TabBookClosed = 2;
 
-        /// <summary>Bir mudavimin ilk hikaye sahnesi acildi.</summary>
-        public const int IlkSahne = 3;
+        /// <summary>A regular's first story beat has opened.</summary>
+        public const int FirstStoryBeat = 3;
 
-        /// <summary>Kasada ilk kez on bin sikke.</summary>
-        public const int IlkOnBin = 4;
+        /// <summary>Ten thousand coins in the till for the first time.</summary>
+        public const int FirstTenThousand = 4;
 
         /// <summary>
-        /// Dukkan ilk kez buyudu.
+        /// The shop grew for the first time.
         ///
-        /// Bu ikisi (genisleme ve itibar) OLCULEREK eklendi. Ilk bes
-        /// nisanla makul oyuncu gunleri 5, 6 ve 8'de uc tanima aliyordu
-        /// ve sonra ELLI IKI GUN sessizlik vardi - yani basari egrisi
-        /// birinci haftada oluyordu. Nisanlarin isi kampanyaya yayilmak.
+        /// These two (expansion and reputation) were added BY MEASUREMENT.
+        /// With the first five badges the reasonable player picked up three
+        /// pieces of recognition on days 5, 6 and 8, and then there were
+        /// FIFTY-TWO DAYS of silence - that is, the whole achievement curve
+        /// happened in the first week. A badge's job is to spread across the
+        /// campaign.
         /// </summary>
-        public const int IlkGenisleme = 5;
+        public const int FirstExpansion = 5;
 
         /// <summary>
-        /// Itibar 90'a cikti. Gec geliyor cunku itibar masa kademesinin
-        /// tavanina kirpiliyor: 90'i gormek once GENISLEMEYI gerektiriyor.
+        /// Reputation reached 90. It comes late because reputation is
+        /// clamped to the ceiling of the table tier: seeing 90 requires
+        /// EXPANDING first.
         /// </summary>
-        public const int SemtinKonustugu = 6;
+        public const int TalkOfTheNeighbourhood = 6;
 
         public const int Count = 7;
 
-        /// <summary>Itibar esigi, SANTI. Tek kaynak.</summary>
+        /// <summary>The reputation threshold, in CENTI. A single source.</summary>
         public const int ReputationMilestoneCenti = 9000;
 
         /// <summary>
-        /// Kasa esigi, SANTI-SIKKE. Tek kaynak: hem kosul hem metin buradan.
+        /// The till threshold, in CENTI-COINS. A single source: both the
+        /// condition and the text come from here.
         ///
-        /// Birim olculerek duzeldi. Once 10000 yaziyordu ve bu, oyunun
-        /// para biriminde 100 sikke demek: baslangic kasasi 800.000 santi
-        /// (8.000 sikke) oldugu icin nisan BIRINCI GUNUN sonunda
-        /// dagitiliyordu. Hicbir sey kirilmiyordu - yalnizca "ilk on bin"
-        /// diye bir tanima, hic kazanilmadan veriliyordu.
+        /// The unit was fixed by measurement. It used to read 10000, which
+        /// in the game's currency means 100 coins: since the starting till
+        /// is 800,000 centi (8,000 coins), the badge was being handed out at
+        /// the end of the FIRST DAY. Nothing broke - it was just that a
+        /// piece of recognition called "the first ten thousand" was being
+        /// given away without ever being earned.
         /// </summary>
-        public const long CashMilestone = 1000000;   // 10.000 sikke
+        public const long CashMilestone = 1000000;   // 10,000 coins
 
         /// <summary>
-        /// Nisanin adi. Metni gorunum Loc'tan cozuyor - cekirdekte
-        /// metin YOK (docs/23 6.3).
+        /// The badge's name. The view resolves the text from Loc - there is
+        /// NO text in the core (docs/23 6.3).
         /// </summary>
         public static string NameKey(int i)
         {
             switch (i)
             {
-                case HerkesDoydu: return "badge.full_house";
-                case ZirveEksikKadro: return "badge.short_peak";
-                case DefterKapandi: return "badge.book_closed";
-                case IlkSahne: return "badge.first_beat";
-                case IlkOnBin: return "badge.first_ten_k";
-                case IlkGenisleme: return "badge.first_expand";
+                case EverybodyFed: return "badge.full_house";
+                case PeakShortHanded: return "badge.short_peak";
+                case TabBookClosed: return "badge.book_closed";
+                case FirstStoryBeat: return "badge.first_beat";
+                case FirstTenThousand: return "badge.first_ten_k";
+                case FirstExpansion: return "badge.first_expand";
                 default: return "badge.renowned";
             }
         }
 
-        /// <summary>Nisanin altindaki tek satirlik aciklama.</summary>
+        /// <summary>The single line of explanation under the badge.</summary>
         public static string NoteKey(int i)
         {
             return NameKey(i) + ".note";

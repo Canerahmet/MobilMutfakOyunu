@@ -1,189 +1,189 @@
-# Ekranlar ve Öğretici
+# Screens and Tutorial
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddeleri:** A9 ekran listesi ve akış, A10 öğretici
-**Durum:** Yazıldı, karar bekliyor
+**Last updated:** 9 September 2026
+**Register items:** A9 screen list and flow, A10 tutorial
+**Status:** Written, awaiting decision
 
 ---
 
-## Ekran listesi
+## The screen list
 
-On sekiz ekran. Yatay mod, en dar güvenli alana göre tasarlanır.
+Eighteen screens. Landscape, designed against the narrowest safe area.
 
-### Oyun dışı
+### Outside the game
 
-| # | Ekran | İş |
+| # | Screen | Job |
 |---|---|---|
-| 1 | Açılış | Logo, devam et, yuvalar |
-| 2 | Yuva seçimi | Dört yuva, her biri mutfak, gün, kasa, plaket gösterir |
-| 3 | Mutfak seçimi | Yeni oyun açarken. Kilitli mutfaklar önizlemeyle görünür |
-| 4 | Mutfak mağazası | Gerçek parayla satın alma. **Oyun içi para ikonu burada asla kullanılmaz** |
-| 5 | Ayarlar | Ses, dil, erişilebilirlik, veri |
-| 6 | Miras vitrini | Kayıtlar üstü. Her mutfağın en iyi plaketi |
+| 1 | Title | Logo, continue, slots |
+| 2 | Slot selection | Four slots, each showing cuisine, day, till, plaque |
+| 3 | Cuisine selection | When opening a new game. Locked cuisines are visible with a preview |
+| 4 | Cuisine store | Purchase with real money. **The in-game currency icon is never used here** |
+| 5 | Settings | Sound, language, accessibility, data |
+| 6 | Legacy showcase | Across saves. The best plaque for every cuisine |
 
-### Günün döngüsü
+### The day cycle
 
-| # | Ekran | Aşama | Süre |
+| # | Screen | Phase | Duration |
 |---|---|---|---|
-| 7 | Hal | Sabah | 45-75 sn |
-| 8 | Tezgâh | Açılış öncesi | 45-75 sn |
-| 9 | Servis | Gündüz | 90-180 sn |
-| 10 | Gün sonu hesabı | Kapanış | 45-60 sn |
+| 7 | Market | Morning | 45-75 s |
+| 8 | Counter | Before opening | 45-75 s |
+| 9 | Service | Daytime | 90-180 s |
+| 10 | End-of-day accounts | Closing | 45-60 s |
 
-Bu dördü sıralı ve döngüseldir. Oyuncu her gün bu dört ekrandan geçer.
+These four are sequential and cyclical. The player passes through these four screens every day.
 
-### Yönetim ekranları
+### Management screens
 
-| # | Ekran | Nereden açılır |
+| # | Screen | Where it opens from |
 |---|---|---|
-| 11 | Yerleşim düzenleme | Tezgâh veya hesap |
-| 12 | İşe alım | Tezgâh |
-| 13 | Personel yönetimi | Tezgâh. Moral, deneyim, zam, çıkarma |
-| 14 | Yükseltme ve ekipman | Hesap |
-| 15 | Müşteri defteri | Her yerden. Düzenli müşteriler ve hikayeleri |
-| 16 | Veresiye defteri | Türk mutfağında. Kim ne kadar borçlu |
-| 17 | İtibar ve yorumlar | Hesap |
-| 18 | Yıl sonu değerlendirmesi | 60. günde otomatik |
+| 11 | Layout editing | Counter or accounts |
+| 12 | Hiring | Counter |
+| 13 | Staff management | Counter. Morale, experience, raises, dismissal |
+| 14 | Upgrades and equipment | Accounts |
+| 15 | Customer book | From anywhere. Regulars and their stories |
+| 16 | Tab book | In Turkish cuisine. Who owes how much |
+| 17 | Reputation and reviews | Accounts |
+| 18 | End-of-year evaluation | Automatic on day 60 |
 
 ---
 
-## Akış kuralları
+## Flow rules
 
-### Geri tuşu
+### The back button
 
-Android'de donanım geri tuşu var ve davranışı tanımlı olmalı.
+Android has a hardware back button and its behaviour has to be defined.
 
-| Konum | Geri tuşu |
+| Position | Back button |
 |---|---|
-| Yönetim ekranı | Bir üst ekrana döner |
-| Günün dört aşaması | **Hiçbir şey yapmaz.** Aşamalar arasında geri gidilmez |
-| Servis sırasında | Duraklatma menüsünü açar |
-| Ana ekran | Çıkış onayı sorar |
+| A management screen | Returns to the screen above |
+| The four phases of the day | **Does nothing.** You do not go back between phases |
+| During service | Opens the pause menu |
+| The main screen | Asks to confirm quitting |
 
-Aşamalar arasında geri gidilmemesi bilinçli. Hal aşamasında verilen karar bağlayıcıdır, geri alınmaz.
+Not going back between phases is deliberate. A decision made in the market phase is binding and is not undone.
 
-### Modal kullanımı
+### Use of modals
 
-**Kural: oyuncuyu okumaya zorlayan modal yok.**
+**The rule: no modal that forces the player to read.**
 
-Modal sadece üç durumda kullanılır:
-1. Onay gereken yıkıcı işlem, örneğin personel çıkarma veya kayıt silme
-2. Gerçek para harcaması
-3. Yıl sonu değerlendirmesi
+A modal is used in three situations only:
+1. A destructive operation that needs confirmation, for example dismissing a staff member or deleting a save
+2. Spending real money
+3. The end-of-year evaluation
 
-Bunun dışındaki bütün bilgi ekranın içinde, akışı durdurmadan verilir.
+Every other piece of information is given inside the screen, without stopping the flow.
 
-### Bilgi hiyerarşisi
+### Information hierarchy
 
-Servis ekranında üst çubukta üç şey var ve sırası hiç değişmez:
+On the service screen there are three things in the top bar and their order never changes:
 
 ```
-[sikke] 8.240      Gün 23    İtibar 62    Kiraya 4 gün
+[coin] 8.240      Day 23    Reputation 62    Rent in 4 days
 ```
 
-**"Kiraya 4 gün" bilinçli olarak sabit.** Haftalık baskının metronomu her an görünür olmalı. Oyuncu bunu görmeden karar vermemeli.
+**"Rent in 4 days" is deliberately permanent.** The metronome of the weekly pressure must be visible at all times. The player should not make a decision without seeing it.
 
 ---
 
-## Öğretici: ilk on dakika
+## The tutorial: the first ten minutes
 
-### İlke
+### The principle
 
-Araştırmadaki en net ders: **metin duvarı yok, yaparak öğret.** Ve günde bir kavram.
+The clearest lesson from the research: **no wall of text, teach by doing.** And one concept per day.
 
-Fast food öğretici zemini olarak doğru yer, çünkü en az değişkeni olan mutfak. Ücretsiz olmasının bir sebebi de bu.
+Fast food is the right ground for the tutorial, because it is the cuisine with the fewest variables. That is one of the reasons it is the free one.
 
-### Dakika dakika
+### Minute by minute
 
-| Dakika | Ne oluyor | Öğretilen |
+| Minute | What happens | What is taught |
 |---|---|---|
-| 0-1 | Soğuk açılış. Dükkân açık, tek müşteri geliyor, tek yemek var. Bir dokunuş | Servis nasıl işliyor |
-| 1-3 | Birinci gün tamamlanıyor. Hal ve tezgâh en sade halleriyle | Günün dört aşaması |
-| 3-5 | İkinci gün. Fiyat belirleme açılıyor | Fiyat memnuniyeti etkiliyor |
-| 5-7 | Üçüncü gün. Menüde ikinci yemek. Malzeme bitiyor | Stok tükenmesinin bedeli |
-| 7-10 | Dördüncü ve beşinci gün. İlk personel işe alınıyor | Kadro ve maaş |
+| 0-1 | A cold open. The shop is open, one customer comes, there is one dish. One tap | How service works |
+| 1-3 | The first day is completed. The market and the counter in their plainest form | The four phases of the day |
+| 3-5 | The second day. Price setting opens | Price affects satisfaction |
+| 5-7 | The third day. A second dish on the menu. An ingredient runs out | The cost of running out of stock |
+| 7-10 | The fourth and fifth days. The first staff member is hired | Crew and wages |
 
-**Yedinci gün ilk kira günü.** Öğretici oraya kadar sürüyor ve ilk gerçek sınav orada.
+**The seventh day is the first rent day.** The tutorial runs up to there, and the first real test is there.
 
-### Öğretici kuralları
+### Tutorial rules
 
-1. **Hiçbir adım atlanmaz ama hiçbir adım da beklemez.** Oyuncu hazırsa hemen devam eder.
-2. **Öğretici metni tek cümle.** İki cümleyi geçen hiçbir ipucu yok.
-3. **İlk üç gün batma yok.** Kasa sıfıra inse bile merdiven işlemez. Oyuncu önce öğrenir.
-4. **İlk kira günü öncesi uyarı verilir.** "Yarın kira günü, kasanda şu kadar var."
-5. **Öğretici kapatılabilir.** Ama varsayılan açık.
-6. **İkinci oyunda öğretici gelmez.** Yuva ekranı zaten oynadığını biliyor.
+1. **No step is skipped, but no step waits either.** If the player is ready, it moves on at once.
+2. **Tutorial text is one sentence.** No hint runs past two sentences.
+3. **No bankruptcy in the first three days.** Even if the till drops to zero the ladder does not run. The player learns first.
+4. **A warning is given before the first rent day.** "Tomorrow is rent day, you have this much in the till."
+5. **The tutorial can be turned off.** But the default is on.
+6. **The tutorial does not appear in a second game.** The slot screen already knows you have played.
 
-### İlk on dakikanın hedefi
+### The goal of the first ten minutes
 
-Oyuncu onuncu dakikanın sonunda şunu bilmeli:
+By the end of the tenth minute the player should know:
 
-- Günün dört aşaması ne
-- Fiyatı ben belirliyorum ve sonucu var
-- Malzeme bitince müşteri kaybediyorum
-- Personel para götürüyor ama kapasite veriyor
-- Her hafta kira ödemem gerekiyor
+- What the four phases of the day are
+- That I set the price and that it has consequences
+- That I lose customers when an ingredient runs out
+- That staff cost money but give capacity
+- That I have to pay rent every week
 
-Bunu bilmiyorsa öğretici başarısız olmuştur.
+If they do not know this, the tutorial has failed.
 
 ---
 
-## Arayüz kısıtları
+## Interface constraints
 
-Bunlar mobil kararlarından geliyor ve pazarlık konusu değil.
+These come from the mobile decisions and are not negotiable.
 
-| Kural | Değer |
+| Rule | Value |
 |---|---|
-| Yön | Yatay |
-| En küçük dokunma alanı | 44pt |
-| Temel etkileşim | Sürükle bırak ve tek dokunuş |
-| Hassas nişan | Yok |
-| Çift dokunuş | Yok |
-| Günlük dokunuş bütçesi | 40-60. Prototipte ölçülecek |
-| Sayısal veri | Grafiğe çevrilir. Memnuniyet yüz ifadesi, stok dolu-boş çubuk |
-| Duraklatma | Her an |
-| Çıkış | Her an, kaldığı saniyeden devam |
+| Orientation | Landscape |
+| Smallest touch target | 44pt |
+| Basic interaction | Drag and drop, and a single tap |
+| Precise aiming | None |
+| Double tap | None |
+| Daily tap budget | 40-60. To be measured in the prototype |
+| Numerical data | Turned into a graphic. Satisfaction is a face, stock is a full-empty bar |
+| Pause | At any moment |
+| Quitting | At any moment, resuming from the second it stopped |
 
-**Dokunuş bütçesi ölçülecek.** Good Pizza'da çok malzemeli siparişler korku kaynağı olmuştu, çünkü tıklama sayısı ödül olmaktan çıkıp cezaya dönüşüyordu. Altmışı geçen tasarım elenecek.
-
----
-
-## Karar bekleyen ayrıntılar
-
-1. ~~Yatay mod kesin mi, dikey de desteklenmeli mi~~ **Kapandı 9 Eylül 2026: yatay, dikey yok.** Parti D'de eklenecek: başparmak bölgesi düzeni, sol el aynalama seçeneği
-2. Öğretici yedinci güne kadar mı sürmeli, daha kısa mı
-3. İlk üç günde batma korumasının süresi doğru mu
-4. Üst çubukta dört bilgi fazla mı
+**The tap budget will be measured.** In Good Pizza, orders with many ingredients became a source of dread, because the number of taps stopped being a reward and turned into a punishment. Any design that goes past sixty will be cut.
 
 ---
 
-## Ölçüldü: masa dokunma hedefi olamıyor
+## Details awaiting a decision
 
-10 Eylül 2026. Restoran yerleşimi Unity'de kuruldu ve dört kademe de gerçek telefon oranında render edildi (`Assets/Lokanta/Editor/RestaurantScene.cs`). Kamera bütün salonu çerçeveye sığdırıyor, açı 30 derece, yön yatay.
+1. ~~Is landscape final, should portrait be supported too~~ **Closed 9 September 2026: landscape, no portrait.** To be added in Batch D: thumb-zone layout, a left-handed mirroring option
+2. Should the tutorial run until the seventh day, or be shorter
+3. Is the length of the bankruptcy protection in the first three days right
+4. Are four pieces of information in the top bar too many
 
-Sonra masanın **ekranda kaç piksel** olduğu ölçüldü. Bu sayı bugüne kadar tahminle konuşuluyordu.
+---
 
-| Kademe | Salon | Masa, 960 piksellik karede | 2400 piksellik telefonda | dp karşılığı |
+## Measured: a table cannot be a touch target
+
+10 September 2026. The restaurant layout was built in Unity and all four tiers were rendered at a real phone aspect ratio (`Assets/Lokanta/Editor/RestaurantScene.cs`). The camera fits the whole hall into the frame, the angle is 30 degrees, the orientation is landscape.
+
+Then it was measured **how many pixels on screen** a table is. Until now that number had been talked about by guesswork.
+
+| Tier | Hall | Table, in a 960-pixel frame | On a 2400-pixel phone | In dp |
 |---|---|---|---|---|
-| 4 masa | 7,8 × 7,4 m | 22 piksel | 55 piksel | ~20 dp |
-| 7 masa | 9,6 × 7,4 m | 21 piksel | 53 piksel | ~19 dp |
-| 10 masa | 11,5 × 7,4 m | 20 piksel | 50 piksel | ~18 dp |
-| 14 masa | 13,3 × 9,1 m | 17 piksel | 42 piksel | ~15 dp |
+| 4 tables | 7.8 × 7.4 m | 22 pixels | 55 pixels | ~20 dp |
+| 7 tables | 9.6 × 7.4 m | 21 pixels | 53 pixels | ~19 dp |
+| 10 tables | 11.5 × 7.4 m | 20 pixels | 50 pixels | ~18 dp |
+| 14 tables | 13.3 × 9.1 m | 17 pixels | 42 pixels | ~15 dp |
 
-Karşılaştırma: Google'ın asgari dokunma hedefi **48 dp**, Apple'ın **44 pt**.
+For comparison: Google's minimum touch target is **48 dp**, Apple's is **44 pt**.
 
-**Masa, en küçük kademede bile asgarinin yarısından küçük; en büyük kademede üçte biri.** Bu, "on dört masa ekrana sığıyor mu" sorusunun cevabının evet, ama yanlış soru olduğunu gösteriyor. Sığıyor; dokunulamıyor.
+**Even at the smallest tier the table is less than half the minimum; at the largest tier it is a third of it.** This shows that the answer to "do fourteen tables fit on the screen" is yes, but that it was the wrong question. They fit; they cannot be touched.
 
-### Bu ne demek
+### What this means
 
-Bütün salonu tek karede gösteren bir kamerada **masa birincil dokunma hedefi olamaz.** Üç yol var ve karar verilmeli:
+On a camera that shows the whole hall in a single frame, **a table cannot be the primary touch target.** There are three routes and a decision has to be made:
 
-| Yol | Ne demek | Bedeli |
+| Route | What it means | Its cost |
 |---|---|---|
-| **Kamera yaklaşsın** | Oyuncu kaydırıp yakınlaştırıyor, masa büyüyor | Dokunuş bütçesi artıyor; docs/16 günde 60 dokunuş diyor, kaydırma da onun içinde |
-| **Hedef masadan büyük olsun** | Masanın etrafında görünmez, daha geniş bir dokunma bölgesi | 14 masada bölgeler çakışır; 42 piksellik masalar 130 piksellik hedeflerle örtüşür |
-| **Dokunulan şey masa olmasın** | Müşteri, sipariş ya da uyarı alt çubukta listelenir; oyuncu listeye dokunur, salona değil | Salon dekora dönüşür; ama zaten patron oynuyoruz, garson değil |
+| **Let the camera zoom in** | The player pans and zooms, the table gets bigger | The tap budget goes up; docs/16 says 60 taps a day, and panning is inside that |
+| **Let the target be bigger than the table** | An invisible, wider touch region around the table | At 14 tables the regions collide; 42-pixel tables overlap with 130-pixel targets |
+| **Let the thing you touch not be the table** | The customer, the order or the warning is listed in the bottom bar; the player touches the list, not the hall | The hall becomes decor; but we are playing the owner anyway, not the waiter |
 
-Üçüncüsü [02-design-proposal.md](02-design-proposal.md)'nin "patron, şef değil" ilkesiyle en tutarlı olanı ve [review/05](review/05-player-experience.md)'in istediği "sabır uyarısı üç kanallı, üst çubukta çipler" önerisiyle örtüşüyor. Ama karar verilmedi.
+The third is the most consistent with [02-design-proposal.md](02-design-proposal.md)'s "the owner, not the chef" principle, and it overlaps with [review/05](review/05-player-experience.md)'s proposal of "a three-channel patience warning, chips in the top bar". But no decision has been made.
 
-**Bu ölçüm olmadan üçü de makul görünüyordu.** Sayı, seçeneklerden ikisini ciddi biçimde zayıflatıyor.
+**Without this measurement all three looked reasonable.** The number weakens two of the options seriously.

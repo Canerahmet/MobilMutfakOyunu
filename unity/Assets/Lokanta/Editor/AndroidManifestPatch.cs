@@ -6,25 +6,25 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Android bildirimini yapi sirasinda duzeltir.
+    /// Fixes up the Android manifest during the build.
     ///
-    /// Neden elle bir AndroidManifest.xml yazmiyoruz: Unity'nin urettigi
-    /// bildirim motorun surumune gore degisiyor ve elle yazilan bir kopya
-    /// sessizce eskiyor. Uretilen dosyayi YAMALAMAK, yalnizca bizim
-    /// kararimiz olan satirlari degistiriyor.
+    /// Why we do not write an AndroidManifest.xml by hand: the manifest Unity
+    /// generates changes with the engine version, and a hand-written copy goes
+    /// stale silently. PATCHING the generated file only changes the lines that
+    /// are our own decision.
     ///
-    /// Su an tek bir karar var: OTOMATIK YEDEKLEME KAPALI.
+    /// Right now there is one decision: AUTOMATIC BACKUP IS OFF.
     ///
-    /// Android'de android:allowBackup varsayilan olarak acik ve bu,
-    /// Application.persistentDataPath altindaki kayit dosyalarinin
-    /// kullanicinin Google Drive hesabina kopyalanmasi demek. Oyun
-    /// tamamen cevrimdisi ve hicbir veri toplamiyor; yedekleme acik
-    /// kalirsa "hicbir veri cihazdan cikmiyor" cumlesi teknik olarak
-    /// yanlis olur ve Veri Guvenligi formuyla celisir.
+    /// On Android android:allowBackup is on by default, and that means the
+    /// save files under Application.persistentDataPath get copied to the
+    /// user's Google Drive account. The game is entirely offline and collects
+    /// no data; if backup were left on, the sentence "no data leaves the
+    /// device" would be technically false and would contradict the Data Safety
+    /// form.
     ///
-    /// Bu bir KARAR, eksiklik degil: yedeklemeyi acmak da savunulabilir
-    /// ("telefon degisince kayitlar gelir"), ama o zaman formda beyan
-    /// edilmesi gerekir. Karar vermeden birakmak en kotusu.
+    /// This is a DECISION, not an omission: turning backup on is defensible
+    /// too ("your saves follow you to a new phone"), but then it has to be
+    /// declared on the form. Leaving it undecided is the worst of the three.
     /// </summary>
     public sealed class AndroidManifestPatch : IPostGenerateGradleAndroidProject
     {
@@ -34,10 +34,10 @@ namespace Lokanta.EditorTools
 
         public void OnPostGenerateGradleAndroidProject(string path)
         {
-            // Gradle projesinde birden fazla bildirim var (launcher ve
-            // unityLibrary). Uygulama etiketini tasiyan her birini
-            // yamiyoruz; hangisinin birlestirmede kazandigi surume gore
-            // degisiyor.
+            // There is more than one manifest in the Gradle project (launcher
+            // and unityLibrary). We patch every one of them that carries an
+            // application tag; which one wins the merge changes with the
+            // version.
             int patched = 0;
             foreach (string file in Directory.GetFiles(
                          Directory.GetParent(path).FullName,
@@ -46,19 +46,19 @@ namespace Lokanta.EditorTools
                 if (Patch(file)) patched++;
             }
 
-            // GRADLE BETIGI de yamaniyor: yerel kutuphaneler
-            // SIKISTIRILMIS kalsin.
+            // THE GRADLE SCRIPT is patched too, so that the native libraries
+            // stay COMPRESSED.
             //
-            // Varsayilan paketleme .so dosyalarini kuruluma ACARAK
-            // kopyaliyor: 32 MB'lik indirme cihazda 110 MB'i asan bir
-            // kuruluma donuyor, cunku 77 MB'lik yuk (yalnizca
-            // libil2cpp.so 57 MB) hem paketin icinde hem /data altinda
-            // duruyor. Dusuk depolamali cihazlarda kurulum basarisiz
-            // oluyor.
+            // The default packaging copies the .so files out into the
+            // installation: a 32 MB download turns into an install of more
+            // than 110 MB on the device, because the 77 MB of payload
+            // (libil2cpp.so alone is 57 MB) sits both inside the package and
+            // under /data. On low-storage devices the install fails.
             //
-            // BuildPlayer bunu yillarca YORUMDA soz verdi ve kodda hic
-            // yapmadi; Unity 6'da PlayerSettings.Android.
-            // useLegacyPackaging da yok. Tek dogru yer burasi.
+            // BuildPlayer promised this IN A COMMENT for ages and never did it
+            // in code; and in Unity 6 there is no
+            // PlayerSettings.Android.useLegacyPackaging either. This is the
+            // one right place.
             int gradle = 0;
             foreach (string file in Directory.GetFiles(
                          Directory.GetParent(path).FullName,
@@ -67,47 +67,48 @@ namespace Lokanta.EditorTools
                 if (PatchGradle(file)) gradle++;
             }
 
-            Debug.Log(patched + " Android bildirimi yamandi (yedekleme kapali), "
-                      + gradle + " gradle betigi (sikistirilmis kutuphane).");
+            Debug.Log(patched + " Android manifests patched (backup off), "
+                      + gradle + " gradle scripts (compressed libraries).");
         }
 
         /// <summary>
-        /// Uygulama modulunun build.gradle'ina paketleme ayarini ekler.
+        /// Adds the packaging setting to the application module's build.gradle.
         ///
-        /// Yalnizca UYGULAMA modulu (com.android.application eklentisi);
-        /// kutuphane modullerinde bu ayarin karsiligi yok. Ayri bir
-        /// android { } blogu olarak SONA ekleniyor - Gradle ayni
-        /// betikteki bloklari birlestiriyor, yani mevcut yapiyi
-        /// ayristirmaya gerek kalmiyor.
+        /// Only the APPLICATION module (the com.android.application plugin);
+        /// the setting has no counterpart in library modules. It is appended AT
+        /// THE END as a separate android { } block - Gradle merges blocks
+        /// within the same script, so there is no need to parse the existing
+        /// structure.
         /// </summary>
         private static bool PatchGradle(string file)
         {
-            // YALNIZCA "launcher" MODULU.
+            // THE "launcher" MODULE ONLY.
             //
-            // Ilk yazimda olcut "dosyada com.android.application geciyor
-            // mu" idi ve KOK build.gradle'a dustu - orada o ad eklenti
-            // siniflandirmasinda geciyor ama android { } blogu YOK:
+            // In the first version the test was "does com.android.application
+            // appear in the file", and it caught the ROOT build.gradle - there
+            // that name appears in the plugin classification but there is NO
+            // android { } block:
             //
             //   Could not find method android() ... on root project
             //
-            // Klasor adi hem daha kesin hem daha okunur.
+            // The folder name is both more precise and easier to read.
             string dir = Path.GetFileName(Path.GetDirectoryName(file));
             if (dir != "launcher") return false;
 
-            // DEGER DEGISTIRILIYOR, BLOK EKLENMIYOR.
+            // A VALUE IS CHANGED, NO BLOCK IS ADDED.
             //
-            // Unity zaten "useLegacyPackaging true" yaziyor. Ilk yazimda
-            // dosyanin sonuna ikinci bir android { } blogu ekleniyordu
-            // ve "zaten yamanmis" korumasi Unity'nin kendi satirini
-            // gorup HER SEFERINDE atliyordu: yama sessizce hicbir sey
-            // yapmadi ve APK'da kutuphaneler sikistirilmis kaldi.
+            // Unity already writes "useLegacyPackaging true". In the first
+            // version a second android { } block was appended to the end of
+            // the file, and the "already patched" guard saw Unity's own line
+            // and skipped EVERY TIME: the patch silently did nothing and the
+            // libraries in the APK stayed compressed.
             //
-            // Eski paketleme .so dosyalarini kuruluma ACARAK kopyaliyor:
-            // 30,8 MB'lik paket, cihazda 30,8 + 77 = ~108 MB tutuyor.
-            // Yenisinde kutuphaneler pakette HAM duruyor ve yerinden
-            // okunuyor: paket buyuyor ama kurulum ~77 MB'a iniyor ve
-            // hicbir sey kopyalanmiyor. Google minSdk 23+ icin bunu
-            // oneriyor; bizim taban 25.
+            // The old packaging copies the .so files OUT into the install: a
+            // 30.8 MB package takes 30.8 + 77 = ~108 MB on the device. With
+            // the new one the libraries sit in the package UNCOMPRESSED and
+            // are read in place: the package grows but the install drops to
+            // ~77 MB and nothing is copied. Google recommends this for
+            // minSdk 23+; our floor is 25.
             string text = File.ReadAllText(file);
             const string legacy = "useLegacyPackaging true";
             if (text.IndexOf(legacy, System.StringComparison.Ordinal) < 0) return false;
@@ -121,17 +122,17 @@ namespace Lokanta.EditorTools
             XmlDocument doc = new XmlDocument();
             doc.Load(file);
 
-            // KURULUM YERI: DAHILI.
+            // INSTALL LOCATION: INTERNAL.
             //
-            // Unity varsayilani preferExternal ve kayitlar
-            // getExternalFilesDir altina dusuyor - yani oyuncunun altmis
-            // gunluk kampanyasi cikarilabilir bir karta yazilabiliyor.
-            // Yerel kutuphaneler ayrica sikistirilmamis ve yerinde
-            // okunuyor (useLegacyPackaging false); bunlari harici
-            // depolamadan okumak da yavas.
+            // Unity's default is preferExternal and the saves land under
+            // getExternalFilesDir - which means the player's sixty-day
+            // campaign can be written to a removable card. The native
+            // libraries are also uncompressed and read in place
+            // (useLegacyPackaging false); reading those off external storage
+            // is slow as well.
             //
-            // Unity 6'da PlayerSettings.Android.forceInternalStorage
-            // kalkti, karsiligi bu oznitelik.
+            // In Unity 6 PlayerSettings.Android.forceInternalStorage is gone;
+            // this attribute is its counterpart.
             XmlNode manifest = doc.SelectSingleNode("/manifest");
             if (manifest != null && manifest.Attributes != null)
                 Set(doc, manifest, "installLocation", "internalOnly");
@@ -141,19 +142,20 @@ namespace Lokanta.EditorTools
 
             Set(doc, app, "allowBackup", "false");
 
-            // NOT: extractNativeLibs BURAYA YAZILMIYOR.
+            // NOTE: extractNativeLibs IS NOT WRITTEN HERE.
             //
-            // Denendi ve AGP yapiyi kirdi, ustelik dogru yeri soyleyerek:
+            // It was tried and AGP broke the build - while telling us the
+            // right place:
             //
             //   android:extractNativeLibs is set to "false" in
             //   AndroidManifest.xml. Avoid setting it explicitly, and
             //   instead set android.packagingOptions.jniLibs.
             //   useLegacyPackaging to false in the build script.
             //
-            // Yani ayar bildirimde degil GRADLE BETIGINDE. PatchGradle()
-            // onu oraya yaziyor.
+            // So the setting belongs not in the manifest but IN THE GRADLE
+            // SCRIPT. PatchGradle() writes it there.
             Set(doc, app, "fullBackupContent", "false");
-            Set(doc, app, "dataExtractionRules", null);   // varsa kaldir
+            Set(doc, app, "dataExtractionRules", null);   // remove it if present
 
             doc.Save(file);
             return true;

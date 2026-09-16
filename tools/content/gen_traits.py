@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-content/staff-traits.json uretir: on iki personel huyu.
+Writes content/staff-traits.json: the twelve staff traits.
 
-docs/14 "Huy" tablosu birebir. Tasarim niyeti orada yazili:
+The "Trait" table in docs/14, one for one. The design intent is written
+there:
 
-    "Hicbir huy saf iyi veya saf kotu degil. Cirak ucuz ama yavas,
-     tecrubeli hizli ama pahali. Dogru huy dogru istasyona bagli."
+    "No trait is purely good or purely bad. The apprentice is cheap but
+     slow, the experienced one fast but expensive. The right trait
+     depends on the right station."
 
-Bu yuzden uretec bir DENGE KURALI dayatiyor: her huyun ya bir bedeli ya
-bir sarti olmali. Bedelsiz bir huy yazmak, huy secimini karar olmaktan
-cikarip "en iyisini al" dugmesine cevirir.
+So the generator imposes a BALANCE RULE: every trait must have either a
+cost or a condition. Writing a trait with no cost turns picking a trait
+from a decision into a "take the best one" button.
 
-docs/13 semasi ondalikli yaziyor ("speed": 0.18); docs/23 2.2 butun
-birimleri tamsayiya cevirdi, o yuzden burada baz puan: speedBp 1800.
+The schema in docs/13 is written in decimals ("speed": 0.18); docs/23
+2.2 turned every unit into an integer, so here it is in basis points:
+speedBp 1800.
 
-Calistirma:
+Usage:
     python tools/content/gen_traits.py
 """
 from __future__ import print_function
@@ -29,17 +32,17 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 CONTENT = os.path.join(ROOT, "content")
 
 # ---------------------------------------------------------------------------
-# (id, etkiler, cakistigi huy)
+# (id, effects, conflicting trait)
 #
-# Etki adlari:
-#   speedBp            gorev suresini bolen carpan farki (+1800 = %18 hizli)
-#   satisfactionCenti  servis ettigi masada memnuniyet farki
-#   wageBp             ucret farki
-#   xpBp               deneyim kazanim carpani (20000 = iki kat, 0 = hic)
-#   peakPenaltyBp      YOGUN dilimde ek yavaslama
-#   fatiguePenaltyBp   gunun son ceyreginde ek yavaslama
-#   moraleAura         diger personelin moraline etkisi
-#   cleanlinessBp      temizlik; bulasik ve masa toplama hizini etkiler
+# Effect names:
+#   speedBp            the multiplier that divides task time (+1800 = 18% faster)
+#   satisfactionCenti  satisfaction difference at the table they serve
+#   wageBp             wage difference
+#   xpBp               experience gain multiplier (20000 = double, 0 = none)
+#   peakPenaltyBp      extra slowdown in the BUSY slice
+#   fatiguePenaltyBp   extra slowdown in the last quarter of the day
+#   moraleAura         effect on the rest of the crew's morale
+#   cleanlinessBp      cleanliness; affects dishwashing and table-clearing speed
 # ---------------------------------------------------------------------------
 TRAITS = [
     ("hizli_ama_daginik", {"speedBp": 1800, "cleanlinessBp": -1500},
@@ -58,7 +61,7 @@ TRAITS = [
     ("tecrubeli", {"wageBp": 3000, "speedBp": 1500, "xpBp": 0}, ["cirak"]),
 ]
 
-# Bedelsiz sayilmayan alanlar: bunlardan biri varsa huyun bir bedeli var.
+# Fields that count as a cost: if a trait carries one of these it has a price.
 COSTS = ("speedBp", "satisfactionCenti", "wageBp", "cleanlinessBp",
          "peakPenaltyBp", "fatiguePenaltyBp", "moraleAura", "xpBp")
 
@@ -78,36 +81,39 @@ def build():
 def check(rows, errors):
     ids = set(r["id"] for r in rows)
     if len(ids) != len(rows):
-        errors.append("tekrarlanan huy kimligi")
+        errors.append("duplicate trait id")
     if len(rows) != 12:
-        errors.append("docs/09 on iki huy istiyor, %d var" % len(rows))
+        errors.append("docs/09 asks for twelve traits, there are %d" % len(rows))
 
     for r in rows:
-        # Cakisma SIMETRIK olmali: A ile B cakisiyorsa B ile A da cakisir.
-        # Tek yonlu yazilmis bir cakisma, ise alim kodunda sessizce
-        # calismayan bir kural birakir.
+        # A conflict must be SYMMETRIC: if A conflicts with B then B
+        # conflicts with A. A conflict written in one direction leaves a
+        # rule in the hiring code that silently does nothing.
         for other in r["conflictsWith"]:
             if other not in ids:
-                errors.append("%s olmayan huyla cakisiyor: %s" % (r["id"], other))
+                errors.append("%s conflicts with a trait that does not exist: %s"
+                              % (r["id"], other))
                 continue
             back = next(x for x in rows if x["id"] == other)
             if r["id"] not in back["conflictsWith"]:
-                errors.append("cakisma tek yonlu: %s -> %s" % (r["id"], other))
+                errors.append("one-way conflict: %s -> %s" % (r["id"], other))
 
-    # docs/14: "hicbir huy saf iyi veya saf kotu degil."
+    # docs/14: "no trait is purely good or purely bad."
     #
-    # Bu kural ilk yazildiginda iki huyu yakaladi: musteriyle iyi anlasan
-    # (+8 memnuniyet) ve ekip moralini yukselten (+10 moral) - ikisinin de
-    # etki tablosunda hicbir bedeli yok.
+    # When this rule was first written it caught two traits: good with
+    # people (+8 satisfaction) and lifts the team (+10 morale) - neither
+    # carries any cost in its effect table.
     #
-    # Ama bedelleri VAR, sadece huyun icinde degil HAVUZUN icinde: her
-    # birinin bir KOTU IKIZI var (suratsiz, huysuz) ve ikisi cakisiyor.
-    # Ise alim ikisinden birini cekiyor, yani iyi huy bir SANS - secilen
-    # bir avantaj degil. Bedel, kotu ikizin ayni havuzda durmasi.
+    # But they DO have a cost, only it is not inside the trait, it is
+    # inside the POOL: each of them has an EVIL TWIN (surly,
+    # bad-tempered) and the two conflict. Hiring draws one of the pair,
+    # so a good trait is LUCK - not an advantage you choose. The cost is
+    # that the bad twin sits in the same pool.
     #
-    # Dogru kural su: bir huyun ya kendi icinde bedeli olacak, ya da
-    # cakistigi bir huy onun AYNASI olacak. Aynasiz ve bedelsiz bir huy,
-    # huy secimini "en iyisini al" dugmesine cevirir.
+    # So the right rule is this: a trait must either carry its own cost,
+    # or a trait it conflicts with must be its MIRROR. A trait with no
+    # mirror and no cost turns picking a trait into a "take the best
+    # one" button.
     for r in rows:
         good, bad = weigh(r)
         if not good or bad:
@@ -121,11 +127,11 @@ def check(rows, errors):
             if b2 and not g2:
                 mirrored = True
         if not mirrored:
-            errors.append("%s bedelsiz ve aynasiz bir huy" % r["id"])
+            errors.append("%s is a trait with no cost and no mirror" % r["id"])
 
 
 def weigh(r):
-    """Bir huyun kac iyi, kac kotu etkisi var."""
+    """How many good and how many bad effects a trait has."""
     good = bad = 0
     for k, v in r["effects"].items():
         if k.endswith("Immune"):
@@ -133,7 +139,7 @@ def weigh(r):
         elif k in ("peakPenaltyBp", "fatiguePenaltyBp"):
             bad += 1
         elif k == "wageBp":
-            # Ucret ARTISI bedel, indirimi avantaj.
+            # A wage INCREASE is a cost, a discount is an advantage.
             if v > 0:
                 bad += 1
             elif v < 0:
@@ -155,13 +161,13 @@ def main():
     rows = build()
     check(rows, errors)
 
-    print("id                        etkiler")
+    print("id                        effects")
     for r in rows:
         print("%-25s %s" % (r["id"], json.dumps(r["effects"], ensure_ascii=False)))
 
     if errors:
         print("")
-        print("--- HATA (%d) ---" % len(errors))
+        print("--- ERROR (%d) ---" % len(errors))
         for e in errors:
             print("  " + e)
         return 1
@@ -170,8 +176,8 @@ def main():
     io.open(path, "w", encoding="utf-8", newline="\n").write(
         json.dumps(rows, ensure_ascii=False, indent=2) + "\n")
     print("")
-    print("yazildi: content/staff-traits.json")
-    print("butun kurallar gecti.")
+    print("written: content/staff-traits.json")
+    print("every rule passed.")
     return 0
 
 

@@ -11,15 +11,17 @@ using UnityEngine.Rendering.Universal;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Proje ayarlarini kod ile uygular. Elle tiklanmaz, tekrarlanabilir.
+    /// Applies the project settings in code. Nothing is clicked by hand, and
+    /// it is repeatable.
     ///
-    /// Calistirma:
+    /// To run it:
     ///   Unity.exe -batchmode -quit -projectPath unity
     ///             -executeMethod Lokanta.EditorTools.ProjectSetup.ApplyAll
     ///             -logFile -
     ///
-    /// Kaynak: docs/19-technical-setup.md B4 ve B5.
-    /// Ilk surum SADECE Android (Mac yok), bkz. docs/22-answers-and-direction.md.
+    /// The source: docs/19-technical-setup.md B4 and B5.
+    /// The first release is Android ONLY (there is no Mac), see
+    /// docs/22-answers-and-direction.md.
     /// </summary>
     public static class ProjectSetup
     {
@@ -40,12 +42,12 @@ namespace Lokanta.EditorTools
             Problems.Add("  " + what + " -> " + e.GetType().Name + ": " + e.Message);
         }
 
-        [MenuItem("Lokanta/Proje ayarlarini uygula")]
+        [MenuItem("Lokanta/Apply the project settings")]
         public static void ApplyAll()
         {
             Log.Clear();
             Problems.Clear();
-            Log.Add("=== Lokanta proje kurulumu ===");
+            Log.Add("=== Lokanta project setup ===");
 
             ApplyIdentity();
             ApplyRendering();
@@ -60,40 +62,41 @@ namespace Lokanta.EditorTools
             Debug.Log(string.Join("\n", Log));
             if (Problems.Count > 0)
             {
-                Debug.LogError("SORUNLAR:\n" + string.Join("\n", Problems));
+                Debug.LogError("PROBLEMS:\n" + string.Join("\n", Problems));
                 Finish(1);
             }
             else
             {
-                Debug.Log("=== Kurulum tamam, sorun yok ===");
+                Debug.Log("=== Setup done, no problems ===");
                 Finish(0);
             }
         }
 
         private static void Finish(int code)
         {
-            // Toplu kipte cikis kodu anlamli olsun. Editorde acikken cikma.
+            // In batch mode the exit code should mean something. Do not exit
+            // while the editor is open.
             if (Application.isBatchMode) EditorApplication.Exit(code);
         }
 
         // -------------------------------------------------------------------
         /// <summary>
-        /// Kimlik alanlari. DEGERLER BuildPlayer'DAN GELIYOR.
+        /// The identity fields. THE VALUES COME FROM BuildPlayer.
         ///
-        /// Once burasi kendi degerlerini yaziyordu: com.lokanta.game,
-        /// companyName "Lokanta", LandscapeLeft, targetSdk Auto -
-        /// BuildPlayer ise com.ahmetakar.lokanta, "Ahmet Akar",
-        /// AutoRotation, targetSdk 36 yaziyor VE ucunun de neden oyle
-        /// olmasi gerektigini kendi yorumlarinda uzun uzun anlatiyor.
+        /// This used to write its own values: com.lokanta.game, companyName
+        /// "Lokanta", LandscapeLeft, targetSdk Auto - while BuildPlayer writes
+        /// com.ahmetakar.lokanta, "Ahmet Akar", AutoRotation, targetSdk 36 AND
+        /// explains at length in its own comments why each of the three has to
+        /// be that way.
         ///
-        /// Ikisi ayni alanlari ters yonde yaziyordu ve hangisinin son
-        /// kostugu gorunmuyordu. PAKET ADI ILK YUKLEMEDE SONSUZA KADAR
-        /// KILITLENIYOR: com.lokanta.game ile bir kez yuklenirse donus
-        /// yok.
+        /// The two were writing the same fields in opposite directions and
+        /// there was no way to see which had run last. THE PACKAGE NAME IS
+        /// LOCKED FOREVER ON THE FIRST UPLOAD: upload once as com.lokanta.game
+        /// and there is no way back.
         ///
-        /// Ayni sinif hata (bir sayi iki yerde) bu projede URP
-        /// ayarlarinda yasandi ve check_urp.py o yuzden yazildi.
-        /// Cozumu ayni: tek kaynak.
+        /// The same class of bug (one number in two places) happened on this
+        /// project with the URP settings, and check_urp.py was written because
+        /// of it. The cure is the same: one source.
         /// </summary>
         private static void ApplyIdentity()
         {
@@ -109,7 +112,7 @@ namespace Lokanta.EditorTools
                 Ok("productName", PlayerSettings.productName);
                 Ok("applicationIdentifier", BuildPlayer.Package);
             }
-            catch (Exception e) { Fail("kimlik", e); }
+            catch (Exception e) { Fail("identity", e); }
         }
 
         // -------------------------------------------------------------------
@@ -117,7 +120,7 @@ namespace Lokanta.EditorTools
         {
             try
             {
-                // docs/19 B4: yumusak isik ve golge icin gerekli
+                // docs/19 B4: needed for soft light and shadow
                 PlayerSettings.colorSpace = ColorSpace.Linear;
                 Ok("colorSpace", PlayerSettings.colorSpace);
             }
@@ -125,16 +128,17 @@ namespace Lokanta.EditorTools
 
             try
             {
-                // Vulkan oncelikli, OpenGL ES 3 yedek. Otomatik secim kapali.
+                // Vulkan first, OpenGL ES 3 as the fallback. Automatic
+                // selection is off.
                 PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
                 PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[]
                 {
                     GraphicsDeviceType.Vulkan,
                     GraphicsDeviceType.OpenGLES3
                 });
-                Ok("Android grafik API", "Vulkan, OpenGLES3");
+                Ok("Android graphics API", "Vulkan, OpenGLES3");
             }
-            catch (Exception e) { Fail("grafik API", e); }
+            catch (Exception e) { Fail("graphics API", e); }
         }
 
         // -------------------------------------------------------------------
@@ -142,15 +146,16 @@ namespace Lokanta.EditorTools
         {
             try
             {
-                // docs/19 B5: en dusuk Android 10 = API 29
+                // docs/19 B5: the lowest is Android 10 = API 29
                 PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
-                // HEDEF SDK SABIT, "Auto" DEGIL.
+                // THE TARGET SDK IS FIXED, NOT "Auto".
                 //
-                // Auto, yapinin alindigi MAKINEDE kurulu en yuksek
-                // platforma baglaniyor - yani ayni depo iki makinede iki
-                // farkli hedefle derleniyor ve Play'in esigi kacirilirsa
-                // bu ancak yukleme aninda ortaya cikiyor. BuildPlayer
-                // 36 yaziyor ve gerekcesi orada; burasi onu bozmasin.
+                // Auto ties it to the highest platform installed ON THE MACHINE
+                // the build is taken on - that is, the same repository compiles
+                // against two different targets on two machines, and if Play's
+                // threshold is missed it only comes out at upload time.
+                // BuildPlayer writes 36 and the justification is there; this
+                // place must not undo it.
                 PlayerSettings.Android.targetSdkVersion =
                     AndroidSdkVersions.AndroidApiLevel36;
                 PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
@@ -159,14 +164,14 @@ namespace Lokanta.EditorTools
                 PlayerSettings.SetApiCompatibilityLevel(
                     NamedBuildTarget.Android, ApiCompatibilityLevel.NET_Standard);
                 PlayerSettings.Android.useAPKExpansionFiles = false;
-                EditorUserBuildSettings.buildAppBundle = true;   // Play Store AAB ister
+                EditorUserBuildSettings.buildAppBundle = true;   // the Play Store wants an AAB
                 EditorUserBuildSettings.androidBuildSubtarget = MobileTextureSubtarget.ASTC;
 
                 Ok("minSdkVersion", PlayerSettings.Android.minSdkVersion);
                 Ok("targetArchitectures", PlayerSettings.Android.targetArchitectures);
                 Ok("scriptingBackend", "IL2CPP");
                 Ok("apiCompatibility", "NET_Standard");
-                Ok("dokuSikistirma", EditorUserBuildSettings.androidBuildSubtarget);
+                Ok("textureCompression", EditorUserBuildSettings.androidBuildSubtarget);
                 Ok("buildAppBundle", EditorUserBuildSettings.buildAppBundle);
             }
             catch (Exception e) { Fail("android", e); }
@@ -180,7 +185,7 @@ namespace Lokanta.EditorTools
                 }
                 Ok("activeBuildTarget", EditorUserBuildSettings.activeBuildTarget);
             }
-            catch (Exception e) { Fail("build target degistirme", e); }
+            catch (Exception e) { Fail("switching the build target", e); }
         }
 
         // -------------------------------------------------------------------
@@ -188,14 +193,15 @@ namespace Lokanta.EditorTools
         {
             try
             {
-                // docs/16 ve kullanici karari 9 Eylul 2026: sadece yatay.
-                // AUTOROTATION, LandscapeLeft DEGIL.
+                // docs/16 and the user's decision of 9 September 2026:
+                // landscape only.
+                // AUTOROTATION, NOT LandscapeLeft.
                 //
-                // Sabit bir yon Unity'ye manifestte
-                // screenOrientation="landscape" yazdiriyor ve yatay
-                // bayraklari YOK SAYIYOR: telefon ters cevrilince oyun
-                // bas asagi duruyor. BuildPlayer bunu zaten duzeltmisti;
-                // burasi geri aliyordu.
+                // A fixed orientation makes Unity write
+                // screenOrientation="landscape" into the manifest and IGNORE
+                // the landscape flags: turn the phone the other way round and
+                // the game is upside down. BuildPlayer had already fixed this;
+                // this place was undoing it.
                 PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
                 PlayerSettings.allowedAutorotateToPortrait = false;
                 PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
@@ -206,11 +212,11 @@ namespace Lokanta.EditorTools
                 PlayerSettings.allowedAutorotateToLandscapeLeft = true;
                 PlayerSettings.allowedAutorotateToLandscapeRight = true;
                 PlayerSettings.useAnimatedAutorotation = true;
-                PlayerSettings.accelerometerFrequency = 0;   // ivmeolcer kapali
-                Ok("yon", "sadece yatay (sol ve sag)");
-                Ok("accelerometer", "kapali");
+                PlayerSettings.accelerometerFrequency = 0;   // accelerometer off
+                Ok("orientation", "landscape only (left and right)");
+                Ok("accelerometer", "off");
             }
-            catch (Exception e) { Fail("yon", e); }
+            catch (Exception e) { Fail("orientation", e); }
         }
 
         // -------------------------------------------------------------------
@@ -218,10 +224,11 @@ namespace Lokanta.EditorTools
         {
             try
             {
-                // Mobilde tek kalite seviyesi tutuyoruz; cihaz farkini
-                // URP asseti uzerinden yonetecegiz, kalite matrisinden degil.
-                QualitySettings.vSyncCount = 0;             // kare hizini kod ayarlar
-                QualitySettings.antiAliasing = 0;           // URP MSAA'yi kendi yonetiyor
+                // On mobile we keep a single quality level; the difference
+                // between devices will be handled through the URP asset, not
+                // through the quality matrix.
+                QualitySettings.vSyncCount = 0;             // the code sets the frame rate
+                QualitySettings.antiAliasing = 0;           // URP manages MSAA itself
                 QualitySettings.shadowCascades = 1;
                 QualitySettings.softParticles = false;
                 QualitySettings.realtimeReflectionProbes = false;
@@ -230,7 +237,7 @@ namespace Lokanta.EditorTools
                 Ok("vSyncCount", QualitySettings.vSyncCount);
                 Ok("skinWeights", QualitySettings.skinWeights);
             }
-            catch (Exception e) { Fail("kalite", e); }
+            catch (Exception e) { Fail("quality", e); }
         }
 
         // -------------------------------------------------------------------
@@ -261,11 +268,11 @@ namespace Lokanta.EditorTools
                     urp = UniversalRenderPipelineAsset.Create(rendererData);
                     AssetDatabase.CreateAsset(urp, UrpAssetPath);
                     AssetDatabase.SaveAssets();
-                    Ok("URP asseti", "olusturuldu");
+                    Ok("URP asset", "created");
                 }
                 else
                 {
-                    Ok("URP asseti", "zaten var");
+                    Ok("URP asset", "already there");
                 }
 
                 ConfigureUrp(urp);
@@ -278,9 +285,9 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// URP 17'de bu alanlarin cogu salt okunur ozellik. Serilestirilmis
-        /// alani dogrudan yaziyoruz. Alan adi surumle degisirse sessizce
-        /// gecmek yerine rapor ediyoruz.
+        /// In URP 17 most of these are read-only properties. We write the
+        /// serialised field directly. If a field name changes with the version
+        /// we report it rather than pass over it silently.
         /// </summary>
         private static void SetUrpField(SerializedObject so, string field,
                                         Action<SerializedProperty> set, string label)
@@ -288,8 +295,8 @@ namespace Lokanta.EditorTools
             SerializedProperty p = so.FindProperty(field);
             if (p == null)
             {
-                Problems.Add("  URP alani bulunamadi: " + field
-                             + " (URP surumu degismis olabilir)");
+                Problems.Add("  URP field not found: " + field
+                             + " (the URP version may have changed)");
                 return;
             }
             set(p);
@@ -315,91 +322,95 @@ namespace Lokanta.EditorTools
 
         private static void ConfigureUrp(UniversalRenderPipelineAsset urp)
         {
-            // docs/19 B4 ve degerlendirmenin duzeltmesi.
+            // docs/19 B4 and the correction from the review.
             SerializedObject so = new SerializedObject(urp);
 
-            // BU BLOK VARLIK SEBEBIYLE TEHLIKELI: LokantaURP.asset'teki
-            // sayilarin IKINCI kopyasi. Performans turu .asset'i elle
-            // duzeltmis, burayi unutmustu - yani ApplyAll'i kostaran biri
-            // MSAA'yi 1'den 4'e, golge mesafesini 45'ten 25'e geri
-            // cekiyordu ve bunu hicbir denetim yakalamiyordu. Degerler
-            // simdi .asset ile AYNI; degistiren ikisini birden
-            // degistirmeli.
+            // THIS BLOCK IS DANGEROUS BY ITS VERY NATURE: it is the SECOND
+            // copy of the numbers in LokantaURP.asset. The performance round
+            // fixed the .asset by hand and forgot this place - so anyone who
+            // ran ApplyAll pulled MSAA back from 1 to 4 and the shadow distance
+            // from 45 back to 25, and no check caught it. The values are now
+            // THE SAME as the .asset; whoever changes one has to change both.
             SetUrpField(so, "m_SupportsHDR", p => p.boolValue = false, "URP HDR");
 
-            // MSAA 1. 4x, 0,8 render olcegiyle birlestiginde dusuk
-            // seviye bir Adreno'da tek basina birkac ms yiyordu ve
-            // low-poly'de duz renkli yuzeylerde kazanci gorunmuyor.
+            // MSAA 1. Combined with a 0.8 render scale, 4x was eating a few ms
+            // on its own on a low-end Adreno, and on flat low-poly surfaces the
+            // gain is not visible.
             SetUrpField(so, "m_MSAA", p => p.intValue = 1, "URP MSAA");
-            SetUrpField(so, "m_RenderScale", p => p.floatValue = 0.8f, "URP render olcegi");
-            SetUrpField(so, "m_RequireDepthTexture", p => p.boolValue = false, "URP derinlik dokusu");
-            SetUrpField(so, "m_RequireOpaqueTexture", p => p.boolValue = false, "URP opak doku");
-            SetUrpField(so, "m_MainLightShadowsSupported", p => p.boolValue = true, "URP ana isik golgesi");
-            SetUrpField(so, "m_AdditionalLightShadowsSupported", p => p.boolValue = false, "URP ek isik golgesi");
+            SetUrpField(so, "m_RenderScale", p => p.floatValue = 0.8f, "URP render scale");
+            SetUrpField(so, "m_RequireDepthTexture", p => p.boolValue = false, "URP depth texture");
+            SetUrpField(so, "m_RequireOpaqueTexture", p => p.boolValue = false, "URP opaque texture");
+            SetUrpField(so, "m_MainLightShadowsSupported", p => p.boolValue = true, "URP main light shadow");
+            SetUrpField(so, "m_AdditionalLightShadowsSupported", p => p.boolValue = false, "URP additional light shadow");
 
             // LightRenderingMode { Disabled=0, PerVertex=1, PerPixel=2 }.
-            // KAPALI: dolgu isigi ikinci bir piksel gecisi aciyordu ve
-            // sahnede yalnizca bir yonlu isik var.
-            SetUrpField(so, "m_AdditionalLightsRenderingMode", p => p.enumValueIndex = 0, "URP ek isik kipi");
-            SetUrpField(so, "m_AdditionalLightsPerObjectLimit", p => p.intValue = 4, "URP ek isik siniri");
+            // OFF: the fill light was opening a second per-pixel pass and there
+            // is only one directional light in the scene.
+            SetUrpField(so, "m_AdditionalLightsRenderingMode", p => p.enumValueIndex = 0, "URP additional light mode");
+            SetUrpField(so, "m_AdditionalLightsPerObjectLimit", p => p.intValue = 4, "URP additional light limit");
 
-            // GOLGE MESAFESI KAMERADAN OLCULUYOR, SAHNEDEN DEGIL.
+            // THE SHADOW DISTANCE IS MEASURED FROM THE CAMERA, NOT FROM THE
+            // SCENE.
             //
-            // Performans turu bunu 25'ten 14'e indirmisti, gerekce
-            // "arsa 18 x 9,6 m, her sey golge haritasinin icinde" idi.
-            // Gerekce YANLIS birimdeydi: URP bu mesafeyi kameranin
-            // gorus derinligi boyunca olcuyor ve kamera 26-35 m uzakta
-            // duruyor. Yani deger butun DUSEN GOLGELERI sessizce
-            // kapatmisti - hicbir test bunu yakalamadi, ekran
-            // goruntusunde gorulup duzeltildi.
+            // The performance round had cut this from 25 to 14, on the grounds
+            // that "the plot is 18 x 9.6 m, everything is inside the shadow
+            // map". The justification was IN THE WRONG UNIT: URP measures this
+            // distance along the camera's view depth, and the camera stands
+            // 26-35 m away. So the value had silently turned off every CAST
+            // SHADOW - no test caught it, it was seen in a screenshot and
+            // fixed.
             //
-            // 45 = en kotu durumda (dar kare orani, kalin arayuz
-            // cubuklari) sahnenin en uzak kosesi 39,4 m + pay.
-            SetUrpField(so, "m_ShadowDistance", p => p.floatValue = 45f, "URP golge mesafesi");
-            SetUrpField(so, "m_ShadowCascadeCount", p => p.intValue = 1, "URP golge kademesi");
-            // 45 m tek kademede 512 harita = 18 cm/texel, golgeler
-            // taniinmaz oluyor. 1024 = 9 cm idi ve YETMEDI (asagi bak).
+            // 45 = in the worst case (narrow aspect ratio, thick interface
+            // bars) the furthest corner of the scene is 39.4 m, plus a margin.
+            SetUrpField(so, "m_ShadowDistance", p => p.floatValue = 45f, "URP shadow distance");
+            SetUrpField(so, "m_ShadowCascadeCount", p => p.intValue = 1, "URP shadow cascades");
+            // At 45 m on a single cascade a 512 map = 18 cm/texel and the
+            // shadows become unrecognisable. 1024 = 9 cm and that WAS NOT
+            // ENOUGH (see below).
             SetUrpField(so, "m_MainLightShadowmapResolution", p => p.intValue = 2048,
-                        "URP golge haritasi");
+                        "URP shadow map");
 
-            // GOLGE HARITASI 1024 -> 2048 VE BIAS VARSAYILANDAN DUSUK.
+            // THE SHADOW MAP GOES 1024 -> 2048 AND THE BIASES BELOW THE
+            // DEFAULT.
             //
-            // Olculdu: figurun golgesi AYAGINDAN KOPUKTU. 45 m'de 1024
-            // harita 8,8 cm/texel demek ve Unity'nin varsayilan normal
-            // bias'i (1,0) ornegi normal boyunca BIR TEXEL kaydiriyor -
-            // yani golge, 1,10 m'lik bir figurde govde boyunun %8'i
-            // kadar uzaga dusuyor. Ekran goruntusunde figur havada
-            // duruyor gibi gorunuyordu ("peter-panning").
+            // Measured: the figure's shadow was DETACHED FROM ITS FEET. At
+            // 45 m a 1024 map means 8.8 cm/texel, and Unity's default normal
+            // bias (1.0) shifts the sample ONE TEXEL along the normal - so on a
+            // 1.10 m figure the shadow lands 8% of the body height away. In the
+            // screenshot the figure looked as if it were floating
+            // ("peter-panning").
             //
-            // Iki kaldirac da texel boyuna bagli, o yuzden ikisi birden:
-            // 2048 texeli 4,4 cm'ye indiriyor ve ayni bias yarisi kadar
-            // kaydiriyor; bias'in kendisi de dusurulunce kayma 4,4 x 0,4
-            // = 1,8 cm'ye iniyor - bir figurde gorunmez.
+            // Both levers depend on the texel size, so both at once: 2048 takes
+            // the texel down to 4.4 cm and the same bias shifts by half as much;
+            // and once the bias itself is lowered too the shift comes down to
+            // 4.4 x 0.4 = 1.8 cm - invisible on a figure.
             //
-            // 2048 BURADA UCUZ, cunku golge gecisinde neredeyse hicbir
-            // sey yok: Modeler'in urettigi butun geometri (zemin,
-            // duvar, mobilya) shadowCastingMode.Off ve golge dusuren
-            // tek sey karakterler. Yani maliyet haritanin TEMIZLENMESI
-            // ve 8 MB bellek; rasterlenen alan bir avuc kucuk figur.
+            // 2048 IS CHEAP HERE, because there is almost nothing in the shadow
+            // pass: all the geometry the Modeler generates (floor, wall,
+            // furniture) is shadowCastingMode.Off and the only things casting a
+            // shadow are the characters. So the cost is CLEARING the map and
+            // 8 MB of memory; the area rasterised is a handful of small
+            // figures.
             //
-            // Bias'lar ONCE HIC AYARLANMIYORDU: SetUrpField listesinde
-            // yoklardi, yani check_urp.py de onlari denetlemiyordu ve
-            // Unity varsayilaninda kalmislardi. Artik denetleniyorlar.
-            SetUrpField(so, "m_ShadowDepthBias", p => p.floatValue = 0.6f, "URP golge derinlik bias");
-            SetUrpField(so, "m_ShadowNormalBias", p => p.floatValue = 0.4f, "URP golge normal bias");
+            // The biases WERE NEVER SET BEFORE: they were not in the SetUrpField
+            // list, which means check_urp.py was not checking them either and
+            // they had been left at Unity's defaults. They are checked now.
+            SetUrpField(so, "m_ShadowDepthBias", p => p.floatValue = 0.6f, "URP shadow depth bias");
+            SetUrpField(so, "m_ShadowNormalBias", p => p.floatValue = 0.4f, "URP shadow normal bias");
 
-            // GPU Resident Drawer: degerlendirme KAPALI dedi.
-            // Forward+ istiyor, GLES'te calismiyor, 100 cizim cagrisinda faydasi yok.
-            // docs/19 B4 tablosunda "Acik" yaziyordu; bu satir onu gecersiz kiliyor.
+            // GPU Resident Drawer: the review said OFF.
+            // It wants Forward+, it does not work on GLES, and at 100 draw
+            // calls it buys nothing. The docs/19 B4 table said "On"; this line
+            // overrides it.
             SerializedProperty grd = so.FindProperty("m_GPUResidentDrawerMode");
             if (grd != null)
             {
                 grd.enumValueIndex = 0;   // Disabled
-                Ok("GPU Resident Drawer", "Disabled (degerlendirme duzeltmesi)");
+                Ok("GPU Resident Drawer", "Disabled (the review's correction)");
             }
             else
             {
-                Log.Add("  GPU Resident Drawer alani yok; bu URP surumunde zaten kapali");
+                Log.Add("  no GPU Resident Drawer field; it is already off in this URP version");
             }
 
             so.ApplyModifiedPropertiesWithoutUndo();

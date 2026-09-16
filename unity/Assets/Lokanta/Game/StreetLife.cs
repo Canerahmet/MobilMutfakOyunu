@@ -1,168 +1,173 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace Lokanta.Game
 {
     /// <summary>
-    /// SOKAKTAN GECENLER.
+    /// THE PEOPLE WHO PASS ALONG THE STREET.
     ///
-    /// Kullanicinin cumlesi: "sokaktan gecen karakterlerin tamami
-    /// lokantaya gitmesin, bazilari yola devam etsin veya kendi
-    /// aralarinda konusup sonra yola devam etsinler".
+    /// The user's sentence: "not all the characters passing along the
+    /// street should go into the restaurant, some should carry on their
+    /// way, or talk among themselves and then carry on".
     ///
-    /// Neden onemli: her gecen kisinin ICERI girdigi bir sokak, sokak
-    /// degil bir kuyruk. Gecip giden birinin varligi, restoranin
-    /// KENDISINI bir secim haline getiriyor - burasi bir dunyanin
-    /// icinde ve herkes buraya gelmiyor.
+    /// Why it matters: a street where everyone who passes comes IN is not
+    /// a street, it is a queue. Someone passing by makes the restaurant
+    /// ITSELF a choice - this place is inside a world, and not everybody
+    /// comes here.
     ///
-    /// SIMULASYONA HIC DOKUNMUYOR. Bunlar musteri DEGIL: cekirdek
-    /// onlari bilmiyor, sayilari ekonomiyi etkilemiyor, hicbiri masaya
-    /// oturmuyor. Gorunum katmaninin susu - ve o yuzden rastgeleligi de
-    /// kendi tohumunda, cekirdegin RNG'sine dokunmadan.
+    /// IT NEVER TOUCHES THE SIMULATION. These are NOT guests: the core
+    /// does not know about them, their number does not affect the economy,
+    /// none of them sits down at a table. They are the view layer's
+    /// decoration - and that is why their randomness has its own seed too,
+    /// without touching the core's RNG.
     ///
-    /// BIRBIRLERININ ICINDEN GECMIYORLAR. Ilk yazimda geciyorlardi ve
-    /// kullanici bunu gordu. Iki katmanli cozum:
+    /// THEY DO NOT WALK THROUGH ONE ANOTHER. In the first version they
+    /// did, and the user saw it. A two-layer answer:
     ///
-    ///   1. SERIT - karsi yonde yuruyen iki figur ayni cizgide olursa
-    ///      karsilasma kacinilmaz. Iki ayri serit (Paths.PavementLane)
-    ///      bu durumu YAPISAL olarak yok ediyor.
-    ///   2. ITISME - ayni seritte birbirine yetisenler ve sohbet icin
-    ///      duranlar icin, her karenin sonunda govdeleri ayiran kucuk
-    ///      bir duzeltme (LateUpdate). Yol bulma degil: yalnizca iki
-    ///      govdenin ust uste binmesini engelliyor.
+    ///   1. LANES - if two figures walking in opposite directions are on
+    ///      the same line, meeting is unavoidable. Two separate lanes
+    ///      (Paths.PavementLane) remove that case STRUCTURALLY.
+    ///   2. PUSHING - for those who catch each other up in the same lane
+    ///      and for those standing still to chat, a small correction at
+    ///      the end of every frame that separates the bodies
+    ///      (LateUpdate). Not pathfinding: it only stops two bodies from
+    ///      overlapping.
     ///
-    /// Ikisi ayri olmali: yalnizca itisme birakilsa karsidan gelen ikili
-    /// birbirini frenleyerek gecerdi (kaldirim tikanir); yalnizca serit
-    /// birakilsa ayni yondeki hizli biri yavas olanin icinden gecerdi.
+    /// The two have to be separate: with the pushing alone, a pair coming
+    /// from opposite directions would brake against each other as they
+    /// passed (the pavement jams); with the lanes alone, a faster figure
+    /// going the same way would pass through a slower one.
     ///
-    /// UCUZ: en fazla bes figur; itisme O(n^2) ama n = 5 + disarida
-    /// bekleyen birkac musteri.
+    /// CHEAP: five figures at most; the pushing is O(n^2) but n = 5 + the
+    /// few guests waiting outside.
     /// </summary>
     public sealed class StreetLife : MonoBehaviour
     {
-        /// <summary>Ayni anda sokaktaki en fazla kisi.</summary>
+        /// <summary>The most people on the street at one time.</summary>
         private const int MaxWalkers = 5;
 
         /// <summary>
-        /// Sokagin uydugu en yuksek zaman carpani.
+        /// The highest time multiplier the street follows.
         ///
-        /// Oyuncu x16'ya bastiginda salon on alti kat hizli akiyor ama
-        /// SOKAK akmiyor: sokaktan gecenlerin simulasyonda karsiligi yok
-        /// ve "hizli ileri sardim" demek "kaldirim bosaldi" demek
-        /// olmamali.
+        /// When the player presses x16 the hall runs sixteen times faster but
+        /// the STREET does not: the people passing by have no counterpart in
+        /// the simulation, and "I fast-forwarded" must not mean "the pavement
+        /// emptied".
         ///
-        /// Asil sebep bir hataydi ve olculerek bulundu: Walker, carpan
-        /// TeleportAbove'u (4,5) gectiginde yuruyusu cizmeyip yolun
-        /// sonuna isinliyor. Sokakta yolun sonu yalnizca IKI nokta
-        /// (saga gidenin cikisi, sola gidenin cikisi), yani yuksek hizda
-        /// bes yaya o iki noktada ust uste yigiliyordu - uc + iki, tam
-        /// dort ic ice cift. Turun "yayalar birbirinin icinden gecmiyor"
-        /// kontrolu bunu ilk kosusunda yakaladi.
+        /// The real reason was a bug, and it was found by measurement: when
+        /// the multiplier goes above TeleportAbove (4.5), Walker stops
+        /// drawing the walk and teleports to the end of the path. On the
+        /// street the end of the path is only TWO points (the exit of the one
+        /// going right, the exit of the one going left), so at high speed
+        /// five pedestrians piled up at those two points - three plus two,
+        /// exactly four interpenetrating pairs. The tour's "the pedestrians
+        /// do not walk through each other" check caught it on its first run.
         ///
-        /// 4: TeleportAbove'un hemen altinda, yani isinlanma hic
-        /// devreye girmiyor.
+        /// 4: just below TeleportAbove, so the teleport never comes into
+        /// play at all.
         /// </summary>
         public const float MaxSpeed = 4f;
 
-        /// <summary>Sokagin su anki zaman carpani.</summary>
+        /// <summary>The street's current time multiplier.</summary>
         private static float Clock
         {
             get { return Mathf.Min(MaxSpeed, Mathf.Max(1f, Walker.GameSpeed)); }
         }
 
-        /// <summary>Sohbetin suresi (sn).</summary>
+        /// <summary>How long a chat lasts (s).</summary>
         private const float ChatMin = 2.2f;
         private const float ChatMax = 4.5f;
 
-        /// <summary>Iki kisinin sohbet icin yeterince yaklasmasi (m).</summary>
+        /// <summary>Two people coming close enough to chat (m).</summary>
         private const float ChatRange = 1.25f;
 
         /// <summary>
-        /// Sohbetin EN YAKIN mesafesi (m).
+        /// The CLOSEST distance of a chat (m).
         ///
-        /// Alt sinir olmazsa dip dibe duran iki figur konusuyor degil
-        /// ic ice gecmis gibi duruyor. Personal'den BUYUK olmali: kucuk
-        /// olsa itisme, sohbet suren boyunca iki konusani birbirinden
-        /// uzaklastirmaya calisirdi.
+        /// Without a lower limit, two figures standing nose to nose do not
+        /// look as if they are talking but as if they have merged. It has to
+        /// be LARGER than Personal: if it were smaller the pushing would try
+        /// to drive the two talkers apart for the whole length of the chat.
         /// </summary>
         private const float ChatNear = 0.75f;
 
         /// <summary>
-        /// Iki govdenin merkezleri arasi EN AZ mesafe (m).
+        /// The SMALLEST distance between the centres of two bodies (m).
         ///
-        /// 0,68 OLCULDU: Editor/PlacementAudit figurun yukseklige gore
-        /// yatay profilini basiyor ve kollar disinda en genis bant BAS
-        /// hizasi (y 0,61-0,72) - 0,67 m. Bu paketin oranlarinda kafa
-        /// govdenin ucte biri, yani omuzlardan (0,58) genis; omuz
-        /// olcusu kullanilsa iki bas 7 cm ortusurdu.
+        /// 0.68 WAS MEASURED: Editor/PlacementAudit prints the figure's
+        /// horizontal profile against height, and apart from the arms the
+        /// widest band is at HEAD height (y 0.61-0.72) - 0.67 m. In this
+        /// pack's proportions the head is a third of the body, that is,
+        /// wider than the shoulders (0.58); had the shoulder measurement
+        /// been used, two heads would have overlapped by 7 cm.
         ///
-        /// ILK OLCUM YANLIS SEYI OLCTU ve sayi absurt cikinca anlasildi:
-        /// sinirlayici kutu 1,14 m veriyordu - bir metre boyunda bir
-        /// figur icin ayak izi olamayacak bir sayi. Kutu KOL ACIKLIGINI
-        /// olcuyor ve bu paketin figurlerinin kollari govdeden acik
-        /// duruyor. Ustelik ikinci olcum de yanildi: kalca hizasina
-        /// (y 0,18-0,50) bakti ve 1,08 m buldu, cunku bu oranlarda ELLER
-        /// de o hizada. Dogru bandi bulmanin tek yolu butun profili
-        /// basmak oldu.
+        /// THE FIRST MEASUREMENT MEASURED THE WRONG THING, and it was only
+        /// noticed when the number came out absurd: the bounding box gave
+        /// 1.14 m - impossible as a footprint for a figure a metre tall. The
+        /// box measures the ARM SPAN, and this pack's figures hold their
+        /// arms away from the body. And the second measurement was wrong
+        /// too: it looked at hip height (y 0.18-0.50) and found 1.08 m,
+        /// because at these proportions the HANDS are at that height as
+        /// well. The only way to find the right band was to print the whole
+        /// profile.
         ///
-        /// Serit araligi da ayni sayidan geliyor (Paths.LaneHalf * 2 =
-        /// 0,60): karsidan gelen iki govde birbirine degmeden geciyor.
-        /// Ikisi ayni sayiyi paylasiyor ama iki AYRI ise yariyor - serit
-        /// karsilasmayi yapisal olarak onluyor, bu esik ise ayni seritte
-        /// yetisenleri ve duranlari ayiriyor.
-        /// </summary>
+        /// The lane spacing comes from the same number (Paths.LaneHalf * 2 =
+        /// 0.60): two bodies coming from opposite directions pass without
+        /// touching. The two share the same number but serve two DIFFERENT
+        /// purposes - the lane prevents the meeting structurally, while this
+        /// threshold separates those catching each other up in the same lane
+        /// and those standing still.
         public const float Personal = 0.68f;
 
         /// <summary>
-        /// Itismenin en hizli duzeltme hizi (m/sn) - TAVAN, hedef degil.
+        /// The fastest correction speed of the pushing (m/s) - A CEILING,
+        /// not a target.
         ///
-        /// Duzeltmenin kendisi ORANTILI: iki govde ne kadar ic ice
-        /// girmisse o kadar ayriliyor, yani teget gecerken duzeltme
-        /// sifira yakin (titreme yok) ve gercekten ust uste binmislerse
-        /// tek karede acilir. Bu tavan yalnizca beklenmedik bir sicramayi
-        /// sinirliyor.
+        /// The correction itself is PROPORTIONAL: the further two bodies
+        /// have merged the further they are separated, so a correction is
+        /// near zero when they only graze past each other (no juddering) and
+        /// opens up in a single frame if they really are on top of one
+        /// another. This ceiling only limits an unexpected jump.
         ///
-        /// 1,6'dan 4,0'a cikti ve sebebi olculdu: turun ikinci kosusunda
-        /// "en kotu 1 cift" cikti. Sabit hizli itisme, kaldirimi capraz
-        /// gecen bir MUSTERININ ittigi yayaya yetisemiyordu - musteri
-        /// itiliyor degil (yolu simulasyona bagli), yaya iki yandan
-        /// birden bastiriliyor ve zincirin sonu bir kare geriden
-        /// cozuluyordu.
-        /// </summary>
+        /// It went from 1.6 to 4.0 and the reason was measured: the tour's
+        /// second run came out with "1 pair at worst". Pushing at a fixed
+        /// speed could not keep up with the pedestrian being pushed by a
+        /// GUEST crossing the pavement - the guest is not pushed (its path
+        /// is tied to the simulation), the pedestrian is pressed from both
+        /// sides at once, and the end of the chain resolved a frame late.
         private const float PushSpeed = 4.0f;
 
         /// <summary>
-        /// Karsilikli ayirmada bir karedeki EN FAZLA gevseme gecisi.
+        /// The MOST relaxation passes in one frame of the mutual
+        /// separation.
         ///
-        /// Dongu erken cikiyor: bir gecis hicbir cifti duzeltmediyse
-        /// durum yakinsamis demektir. Bes kisi ve on cift icin gecis
-        /// basina maliyet on mesafe karsilastirmasi - tavani yuksek
-        /// tutmanin bedeli yok, dusuk tutmanin bedeli cozulmemis bir
-        /// zincir.
-        /// </summary>
+        /// The loop exits early: if a pass has corrected no pair at all the
+        /// state has converged. For five people and ten pairs the cost per
+        /// pass is ten distance comparisons - keeping the ceiling high costs
+        /// nothing, keeping it low costs an unresolved chain.
         private const int Passes = 6;
 
         /// <summary>
-        /// Sokak lambasi diregine EN AZ mesafe (m).
+        /// The SMALLEST distance to a street lamp post (m).
         ///
-        /// Direk ince (9 cm): govdenin yarisi (0,34) + diregin yarisi
-        /// (0,045) + pay. Personal'den KUCUK olmasi sart - direk
-        /// kaldirimin dis kenarinda ve dis serit ona 0,45 m uzakta; esik
-        /// Personal olsa dis seritteki her yaya SUREKLI iceri dogru
-        /// itilirdi, yani serit bir ise yaramazdi.
-        /// </summary>
+        /// The post is thin (9 cm): half a body (0.34) + half the post
+        /// (0.045) + a margin. It has to be SMALLER than Personal - the post
+        /// is on the pavement's outer edge and the outer lane is 0.45 m away
+        /// from it; were the threshold Personal, every pedestrian in the
+        /// outer lane would be pushed inwards CONSTANTLY, that is, the lane
+        /// would be useless.
         private const float PostClear = 0.40f;
 
         /// <summary>
-        /// Itismenin en az YANAL orani.
+        /// The smallest SIDEWAYS share of the pushing.
         ///
-        /// Neden: ayni seritte arkadan yetisen biri icin iki govdeyi
-        /// ayiran dogru neredeyse tamamen yurume eksenindedir. O yonde
-        /// itmek one gideni hizlandirip arkadakini yavaslatir - ikisi
-        /// hic yan yana gelmez, yani kimse kimseyi GECEMEZ. Itismeyi
-        /// yana dogru egince arkadaki yana kayip geciyor; serit sinirlari
-        /// da onu sonra yerine cekiyor.
-        /// </summary>
+        /// Why: for someone catching another up from behind in the same
+        /// lane, the line separating the two bodies is almost entirely along
+        /// the walking axis. Pushing in that direction speeds the one in
+        /// front up and slows the one behind down - the two never come
+        /// alongside each other, that is, nobody can OVERTAKE. Tilting the
+        /// push sideways lets the one behind slide across and pass; the lane
+        /// limits then pull it back into place afterwards.
         private const float SideBias = 0.62f;
 
         private sealed class Pedestrian
@@ -171,10 +176,10 @@ namespace Lokanta.Game
             public Walker Walk;
             public Figure Fig;
             public float ChatLeft;
-            public int Dir;              // +1 saga, -1 sola
-            public float NextChat;       // bu sureden once tekrar sohbet etmesin
-            public Pedestrian Partner;   // sohbet ettigi kisi
-            public int Side;             // itismede hangi yana kaydigi (+1/-1)
+            public int Dir;              // +1 to the right, -1 to the left
+            public float NextChat;       // do not chat again before this time
+            public Pedestrian Partner;   // the person it is chatting to
+            public int Side;             // which way it moves when pushed (+1/-1)
         }
 
         private readonly List<Pedestrian> _people = new List<Pedestrian>();
@@ -185,13 +190,13 @@ namespace Lokanta.Game
         private RestaurantView _view;
         private int _postStamp = -1;
 
-        /// <summary>Sokakta su an kac kisi var. Turun sorabilmesi icin.</summary>
+        /// <summary>How many people are on the street right now. So the tour can ask.</summary>
         public int Count { get { return _people.Count; } }
 
-        /// <summary>Itismenin bildigi engel (direk) sayisi.</summary>
+        /// <summary>The number of obstacles (posts) the pushing knows about.</summary>
         public int PostsKnown { get { return _posts.Count; } }
 
-        /// <summary>Su an sohbet eden kac kisi var. Turun sorabilmesi icin.</summary>
+        /// <summary>How many people are chatting right now. So the tour can ask.</summary>
         public int Chatting
         {
             get
@@ -204,34 +209,36 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// CIZILEN karede ic ice gecmis kac IKILI vardi.
+        /// How many PAIRS were merged into each other in the frame that was
+        /// DRAWN.
         ///
-        /// "Birbirlerinin icinden geciyorlar" sikayetinin OLCULEBILIR
-        /// hali: sifirdan buyukse gecmisler.
+        /// The MEASURABLE form of the "they walk through each other"
+        /// complaint: if it is greater than zero, they did.
         ///
-        /// HESAPLANMIYOR, SAKLANIYOR - ve sebebi bir yanlis olcum oldu.
-        /// Once bu ozellik soruldugu anda hesapliyordu ve tur rastgele
-        /// "en kotu 1 cift" diye kirmiziya dusuyordu. Sebep sokakta
-        /// degil OLCUM ANINDAYDI: Unity'de `yield return null` bir
-        /// coroutine'i Update ile LateUpdate ARASINDA uyandiriyor, yani
-        /// tur konumlari Walker tasidiktan SONRA ama itisme duzelttiginden
-        /// ONCE okuyordu. Olculen kare hic cizilmiyordu.
+        /// IT IS NOT CALCULATED, IT IS STORED - and the reason was a wrong
+        /// measurement. This property used to calculate when it was asked,
+        /// and the tour went red at random with "1 pair at worst". The cause
+        /// was not on the street but AT THE MOMENT OF MEASUREMENT: in Unity
+        /// `yield return null` wakes a coroutine BETWEEN Update and
+        /// LateUpdate, so the tour was reading the positions AFTER Walker
+        /// had moved them but BEFORE the pushing had corrected them. The
+        /// frame it measured was never drawn at all.
         ///
-        /// Simdi sayi LateUpdate'in sonunda, duzeltme bittikten sonra
-        /// yaziliyor: yani oyuncunun gordugu karenin sayisi.
-        /// </summary>
+        /// The number is now written at the end of LateUpdate, once the
+        /// correction is over: that is, the number of the frame the player
+        /// sees.
         public int Overlaps { get { return _overlaps; } }
 
         private int _overlaps;
         private int _postOverlaps;
 
-        /// <summary>Cizilen karede ic ice gecme sayilir.</summary>
-        private void Olc()
+        /// <summary>Counts the merged bodies in the frame being drawn.</summary>
+        private void Measure()
         {
-            // ESIGIN ALTINDA bir pay: itisme figurleri tam esikte
-            // durduruyor ve kayan nokta gurultusu kontrolu kararsiz
-            // yapardi.
-            float esik = Personal - 0.06f;
+            // A margin BELOW THE THRESHOLD: the pushing stops the figures
+            // exactly at the threshold and floating-point noise would make
+            // the check unstable.
+            float threshold = Personal - 0.06f;
             int n = 0;
             for (int i = 0; i < _people.Count; i++)
             {
@@ -242,19 +249,19 @@ namespace Lokanta.Game
                     if (_people[j].Body == null) continue;
                     Vector3 d = a - _people[j].Body.transform.localPosition;
                     d.y = 0f;
-                    if (d.sqrMagnitude < esik * esik) n++;
+                    if (d.sqrMagnitude < threshold * threshold) n++;
                 }
             }
             _overlaps = n;
 
-            // DIREK YOKSA SIFIR DEGIL, BIR.
+            // IF THERE IS NO POST IT IS NOT ZERO BUT ONE.
             //
-            // Once "0" donuyordu ve kontrol, direkler hic yuklenmemis
-            // olsa da YESIL kaliyordu - yani itismenin calistigini degil,
-            // olcecek bir sey olmadigini olcuyordu.
+            // It used to return "0" and the check stayed GREEN even when the
+            // posts had never been loaded - so it was measuring not that the
+            // pushing worked but that there was nothing to measure.
             if (_posts.Count == 0) { _postOverlaps = 1; return; }
 
-            float pEsik = PostClear - 0.06f;
+            float postThreshold = PostClear - 0.06f;
             n = 0;
             for (int i = 0; i < _people.Count; i++)
             {
@@ -264,27 +271,25 @@ namespace Lokanta.Game
                 {
                     Vector3 d = a - _posts[k];
                     d.y = 0f;
-                    if (d.sqrMagnitude < pEsik * pEsik) { n++; break; }
+                    if (d.sqrMagnitude < postThreshold * postThreshold) { n++; break; }
                 }
             }
             _postOverlaps = n;
         }
 
         /// <summary>
-        /// CIZILEN karede bir sokak lambasi diregine girmis kac yaya
-        /// vardi.
+        /// How many pedestrians were inside a street lamp post in the frame
+        /// that was DRAWN.
         ///
-        /// Neden ayri olculuyor: yayalarin BIRBIRINDEN kacmasi ile
-        /// diregin icinden gecmemesi ayri iki mekanizma (biri karsilikli
-        /// itisme, oteki tek tarafli) ve tek bir sayi ikisini birden
-        /// olcemez.
-        /// </summary>
+        /// Why it is measured separately: pedestrians avoiding EACH OTHER
+        /// and not passing through a post are two different mechanisms (one
+        /// mutual pushing, the other one-sided) and a single number cannot
+        /// measure both.
         public int PostOverlaps { get { return _postOverlaps; } }
 
         // =====================================================================
         /// <summary>
-        /// Sokagi doldurur. prefabs: musteri figurleri (ayni paket).
-        /// </summary>
+        /// Fills the street. prefabs: the guest figures (the same pack).
         public void Build(Transform root, GameObject[] prefabs, int seed)
         {
             _rng = new System.Random(seed);
@@ -295,7 +300,7 @@ namespace Lokanta.Game
             for (int i = 0; i < MaxWalkers; i++)
             {
                 GameObject go = Instantiate(prefabs[i % prefabs.Length], root);
-                go.name = "Yoldan";
+                go.name = "Passerby";
                 Pedestrian p = new Pedestrian
                 {
                     Body = go,
@@ -304,22 +309,22 @@ namespace Lokanta.Game
                     Dir = (i % 2 == 0) ? 1 : -1,
                     Side = (i % 2 == 0) ? 1 : -1,
                 };
-                // Walker'in govdesi baglanmali: GoTo/Update figurun
-                // durusunu onun uzerinden suruyor. Baglanmazsa yuruyus
-                // durusu sessizce devre disi kaliyor.
+                // Walker's body has to be bound: GoTo/Update drives the figure's
+                // pose through it. If it is not bound the walking pose is
+                // silently disabled.
                 p.Walk.Body = p.Fig;
 
-                // HIZLAR FARKLI.
+                // THE SPEEDS DIFFER.
                 //
-                // Hepsi ayni hizda yurudugunde kaldirim bir bant gibi
-                // akiyor: kimse kimseye yetismiyor, kimse kimseyi
-                // gecmiyor. Fark, sokagi kalabalik degil CANLI yapan sey.
+                // When everyone walks at the same speed the pavement flows like a
+                // band: nobody catches anybody up, nobody overtakes anybody. The
+                // difference is what makes the street ALIVE rather than crowded.
                 p.Walk.Speed = 0.92f + (float)_rng.NextDouble() * 0.42f;
                 p.Walk.SpeedCap = MaxSpeed;
 
-                // Baslangicta kaldirima dagiliyorlar: hepsi ayni
-                // kenardan girerse sokak bir kapidan bosalan kalabalik
-                // gibi duruyor.
+                // They are spread along the pavement at the start: if they all
+                // came in from the same edge the street would look like a crowd
+                // emptying out of a door.
                 float x = Lerp(i / (float)Mathf.Max(1, MaxWalkers - 1));
                 p.Walk.Warp(new Vector3(x, 0f, Paths.PavementLane(p.Dir)),
                             p.Dir > 0 ? 90f : -90f);
@@ -344,16 +349,16 @@ namespace Lokanta.Game
         {
             if (_people.Count == 0) return;
 
-            // DURAKLATINCA SOKAK DA DURUYOR.
+            // WHEN THE GAME IS PAUSED THE STREET STOPS TOO.
             //
-            // Asagidaki Mathf.Max(0.25f, ...) tabani sifiri yutuyordu:
-            // duraklatilmis bir dunyada yayalar yerinde sayarak yurume
-            // animasyonu oynatiyordu.
+            // The Mathf.Max(0.25f, ...) floor below was swallowing the zero:
+            // in a paused world the pedestrians played the walk animation
+            // while marking time.
             if (Walker.GameSpeed <= 0.001f) return;
 
-            // Sohbet sayaclari da TAVANLI saatle akiyor: yurume
-            // tavanliyken sohbet tavansiz olsa, x16'da iki kisi goz
-            // kirpacak kadar durup devam ederdi.
+            // The chat counters run on the CAPPED clock too: with the walking
+            // capped but the chat uncapped, two people at x16 would stop for
+            // the blink of an eye and carry on.
             float dt = Time.deltaTime * Clock;
 
             for (int i = 0; i < _people.Count; i++)
@@ -366,10 +371,11 @@ namespace Lokanta.Game
                 if (p.ChatLeft > 0f)
                 {
                     p.ChatLeft -= dt;
-                    // YUZ HER KAREDE YENIDEN CEVRILIYOR: itisme iki
-                    // konusani biraz ayiriyor ve sohbet basinda bir kez
-                    // yazilan yon kayiyordu - birbirine degil yanina
-                    // bakan iki figur "konusuyor" diye okunmuyor.
+                    // THE FACE IS TURNED AGAIN EVERY FRAME: the pushing separates
+                    // the two talkers a little and the direction written once at
+                    // the start of the chat drifted - two figures looking past
+                    // each other rather than at each other do not read as
+                    // "talking".
                     Face(p);
                     if (p.ChatLeft <= 0f) { p.Partner = null; Send(p); }
                     continue;
@@ -381,9 +387,10 @@ namespace Lokanta.Game
                     continue;
                 }
 
-                // Kenara vardi: karsi kenardan devam. Yonu degisince
-                // seridi de degisiyor - donus arsanin disinda oldugu
-                // icin serit degisimi ekranda gorunmuyor.
+                // It has reached the edge: carry on from the opposite edge. As
+                // its direction changes so does its lane - because the turn
+                // happens outside the plot, the change of lane is not visible
+                // on screen.
                 p.Dir = -p.Dir;
                 Send(p);
             }
@@ -393,41 +400,41 @@ namespace Lokanta.Game
 
         // =====================================================================
         /// <summary>
-        /// GOVDELERI AYIRAN DUZELTME.
+        /// THE CORRECTION THAT SEPARATES THE BODIES.
         ///
-        /// Walker'dan SONRA kosmali: Walker her karede konumu dogrudan
-        /// yaziyor, o yuzden duzeltme Update icinde yapilsa bir sonraki
-        /// karede silinirdi. LateUpdate'te yazilan konum o karenin
-        /// cizilen konumu oluyor.
+        /// It has to run AFTER Walker: Walker writes the position directly
+        /// every frame, so a correction made inside Update would be erased
+        /// on the next frame. A position written in LateUpdate is the
+        /// position that frame is drawn at.
         ///
-        /// YALNIZCA YAYALAR ITILIYOR, MUSTERILER DEGIL: musterinin yolu
-        /// simulasyonun bir olayina bagli (masaya oturma, cikis) ve onu
-        /// itmek varis olcumunu bozabilir. Ustelik dogrusu da bu -
-        /// lokantaya giren kendi cizgisini korur, yoldan gecen kenara
-        /// cekilir.
+        /// ONLY THE PEDESTRIANS ARE PUSHED, NOT THE GUESTS: a guest's path
+        /// is tied to an event in the simulation (sitting down at a table,
+        /// leaving) and pushing it could break the arrival measurement. And
+        /// it is the right way round anyway - someone walking into a
+        /// restaurant keeps their line, someone passing by steps aside.
         /// </summary>
         private void LateUpdate()
         {
             if (_people.Count == 0) return;
             if (Walker.GameSpeed <= 0.001f) return;
 
-            // HIZLANDIRILMIS oyunda duzeltme de hizlaniyor: yoksa x4'te
-            // figurler itismenin yetisemedigi kadar hizli ust uste
-            // biniyor. Yuruyusle AYNI tavani kullaniyor - itisme
-            // yuruyusten yavas kalsa hicbir sey ayiramaz.
+            // In a SPED-UP game the correction speeds up too: otherwise at x4
+            // the figures merge faster than the pushing can keep up with. It
+            // uses the SAME ceiling as the walking - if the pushing were
+            // slower than the walking it could never separate anything.
             float dt = Time.deltaTime * Clock;
-            float en = PushSpeed * dt;
+            float step = PushSpeed * dt;
 
-            // Disarida duran musteriler de hesaba giriyor: kapinin
-            // onunde bekleyen bir musterinin icinden gecen yaya, ayni
-            // hatanin ta kendisi.
+            // The guests standing outside count too: a pedestrian walking
+            // through a guest waiting in front of the door is exactly the
+            // same bug.
             _others.Clear();
             if (_view == null) _view = GetComponent<RestaurantView>();
             if (_view != null) _view.OutsideFigures(_others);
 
-            // Direkler KURULUSTA bir kez okunuyor: sabit duruyorlar ve
-            // her karede sekiz nesnelik bir liste kurmak bedava degil.
-            // Kurulus damgasi degisince yeniden okunuyor.
+            // The posts are read once AT BUILD TIME: they stand still, and
+            // building a list of eight objects every frame is not free. They
+            // are read again when the build stamp changes.
             if (_view != null && _postStamp != _view.BuildStamp)
             {
                 _postStamp = _view.BuildStamp;
@@ -435,59 +442,59 @@ namespace Lokanta.Game
                 _view.StreetObstacles(_posts);
             }
 
-            // SIRA ONEMLI VE BIR HATAYLA OGRENILDI.
+            // THE ORDER MATTERS, AND IT WAS LEARNED THROUGH A BUG.
             //
-            // Ilk yazimda her kisi icin once karsilikli ayirma, sonra
-            // engel itmesi yapiliyordu. Yani bir kisinin son islemi
-            // "musteriden/direkten uzaklas" oluyordu ve o itme onu
-            // ZATEN AYRILMIS oldugu komsusunun icine geri sokabiliyordu -
-            // kimse bir daha bakmiyordu. Tur bunu kararsiz bir kirmiziyla
-            // gosterdi: uc kosudan birinde "en kotu 1 cift".
+            // In the first version, for each person the mutual separation was
+            // done first and the obstacle push second. So a person's last
+            // operation was "move away from the guest/the post", and that push
+            // could drive them back into the neighbour they had ALREADY been
+            // separated from - and nobody looked again. The tour showed it
+            // with an unstable red: "1 pair at worst" on one run in three.
             //
-            // Dogru sira: once tek tarafli kisitlar (engeller, serit),
-            // EN SON karsilikli ayirma. Boylece cizilen karede son sozu
-            // soyleyen sey, kontrolun olctugu sey oluyor.
+            // The right order: the one-sided constraints first (obstacles, the
+            // lane), the mutual separation LAST. That way what has the last
+            // word in the frame being drawn is the thing the check measures.
 
-            // --- 1. sabit engeller: musteriler ve direkler -------------
+            // --- 1. fixed obstacles: the guests and the posts ----------
             for (int i = 0; i < _people.Count; i++)
             {
                 Pedestrian a = _people[i];
                 if (a.Body == null) continue;
 
                 for (int k = 0; k < _others.Count; k++)
-                    Push(a, _others[k], en, Personal);
+                    Push(a, _others[k], step, Personal);
                 for (int k = 0; k < _posts.Count; k++)
-                    Push(a, _posts[k], en, PostClear);
+                    Push(a, _posts[k], step, PostClear);
             }
 
-            // --- 2. serit bandi ----------------------------------------
+            // --- 2. the lane band --------------------------------------
             for (int i = 0; i < _people.Count; i++)
             {
                 Pedestrian a = _people[i];
                 if (a.Body == null) continue;
 
-                // SERIDIN ICINDE KALIYOR. Itisme figuru kaldirimin
-                // disina atabilirdi: yola ya da binanin icine. Serit
-                // bandi onu geri cekiyor - ve yalnizca banttan TASMISSA,
-                // yoksa itismeyle catisip titrerdi.
-                Vector3 yer = a.Body.transform.localPosition;
-                float serit = Paths.PavementLane(a.Dir);
-                if (Mathf.Abs(yer.z - serit) > Paths.LaneHalf + 0.30f)
+                // IT STAYS INSIDE ITS LANE. The pushing could throw a figure
+                // off the pavement: into the road or inside the building. The
+                // lane band pulls it back - and only if it has SPILLED out of
+                // the band, otherwise it would fight the pushing and judder.
+                Vector3 spot = a.Body.transform.localPosition;
+                float lane = Paths.PavementLane(a.Dir);
+                if (Mathf.Abs(spot.z - lane) > Paths.LaneHalf + 0.30f)
                 {
-                    yer.z = Mathf.MoveTowards(yer.z, serit, en);
-                    a.Body.transform.localPosition = yer;
+                    spot.z = Mathf.MoveTowards(spot.z, lane, step);
+                    a.Body.transform.localPosition = spot;
                 }
             }
 
-            // --- 3. karsilikli ayirma, yakinsayana kadar ---------------
+            // --- 3. mutual separation, until it converges --------------
             //
-            // Zincir: musteri A'yi itiyor, A B'ye giriyor, B C'ye. Tek
-            // gecis zinciri bir halka ilerletiyor. Dongu bir gecis hic
-            // duzeltme yapmadiginda ERKEN cikiyor, yani sakin bir
-            // kaldirimda bedeli tek gecis.
-            for (int gecis = 0; gecis < Passes; gecis++)
+            // The chain: the guest pushes A, A goes into B, B into C. A
+            // single pass moves the chain along by one link. The loop exits
+            // EARLY when a pass makes no correction at all, so on a quiet
+            // pavement it costs one pass.
+            for (int pass = 0; pass < Passes; pass++)
             {
-                bool degisti = false;
+                bool changed = false;
                 for (int i = 0; i < _people.Count; i++)
                 {
                     Pedestrian a = _people[i];
@@ -497,20 +504,21 @@ namespace Lokanta.Game
                     {
                         Pedestrian b = _people[j];
                         if (b.Body == null) continue;
-                        if (Nudge(a, b, en)) degisti = true;
+                        if (Nudge(a, b, step)) changed = true;
                     }
                 }
-                if (!degisti) break;
+                if (!changed) break;
             }
 
-            // OLCUM EN SONDA: bu kare artik cizilecek ve sayi o karenin
-            // sayisi.
-            Olc();
+            // THE MEASUREMENT COMES LAST: this frame is about to be drawn
+            // and the number is that frame's number.
+            Measure();
         }
 
         /// <summary>
-        /// Iki yayayi karsilikli ayirir. Duzeltme EKSIK MESAFENIN
-        /// yarisi, tavani e. Bir duzeltme yaptiysa true.
+        /// Separates two pedestrians, both of them moving. The correction
+        /// is half the MISSING DISTANCE, capped at e. True if it made a
+        /// correction.
         /// </summary>
         private static bool Nudge(Pedestrian a, Pedestrian b, float e)
         {
@@ -521,16 +529,17 @@ namespace Lokanta.Game
             float u = d.magnitude;
             if (u >= Personal) return false;
 
-            float itme = Mathf.Min(e, (Personal - u) * 0.5f);
-            Vector3 yon = Direction(d, u, a.Side);
-            a.Body.transform.localPosition = pa + yon * itme;
-            b.Body.transform.localPosition = pb - yon * itme;
+            float push = Mathf.Min(e, (Personal - u) * 0.5f);
+            Vector3 direction = Direction(d, u, a.Side);
+            a.Body.transform.localPosition = pa + direction * push;
+            b.Body.transform.localPosition = pb - direction * push;
             return true;
         }
 
         /// <summary>
-        /// Yayayi sabit bir noktadan uzaklastirir. Oteki taraf
-        /// kimildamadigi icin duzeltme eksik mesafenin TAMAMI.
+        /// Moves a pedestrian away from a fixed point. Because the other
+        /// side does not move, the correction is the WHOLE of the missing
+        /// distance.
         /// </summary>
         private static void Push(Pedestrian a, Vector3 other, float e, float clear)
         {
@@ -540,25 +549,26 @@ namespace Lokanta.Game
             float u = d.magnitude;
             if (u >= clear) return;
 
-            float itme = Mathf.Min(e, clear - u);
-            a.Body.transform.localPosition = pa + Direction(d, u, a.Side) * itme;
+            float push = Mathf.Min(e, clear - u);
+            a.Body.transform.localPosition = pa + Direction(d, u, a.Side) * push;
         }
 
         /// <summary>
-        /// Ayirma yonu - en az SideBias kadari YANAL.
+        /// The direction of the separation - at least SideBias of it
+        /// SIDEWAYS.
         ///
-        /// u sifira cok yakinsa (tam ust uste) yon tanimsiz kaliyor; o
-        /// zaman figurun kendi tarafina kaydiriliyor. Tarafi SABIT, yani
-        /// ayni figur her zaman ayni yana cekiliyor - kararsiz bir taraf
-        /// secimi titreme uretir.
+        /// If u is very close to zero (exactly on top of each other) the
+        /// direction is undefined; the figure is then moved to its own side.
+        /// Its side is FIXED, so the same figure is always pulled the same
+        /// way - an unstable choice of side would produce juddering.
         /// </summary>
         private static Vector3 Direction(Vector3 d, float u, int side)
         {
             if (u < 0.001f) return new Vector3(0f, 0f, side);
 
             Vector3 n = d / u;
-            // Yurume ekseni x, yanal eksen z. Yanal bilesen tabana
-            // cekiliyor, isareti korunuyor.
+            // The walking axis is x, the sideways axis z. The sideways
+            // component is pulled up to the floor, keeping its sign.
             float z = n.z;
             if (Mathf.Abs(z) < SideBias) z = SideBias * (z < 0f ? -1f : 1f);
 
@@ -568,26 +578,25 @@ namespace Lokanta.Game
         }
 
         // =====================================================================
-        /// <summary>
-        /// Yan yana gelen ikiliyi konusturur.
+        /// Makes a pair who have come alongside each other talk.
         ///
-        /// Kosullar: ikisi de yuruyor olmali, yeterince yakin ama COK
-        /// yakin OLMAMALI ve ikisi de yakin zamanda konusmamis olmali.
-        /// Son kosul olmazsa ayni iki kisi kaldirimda takilip kaliyor -
-        /// "sohbet" degil "tikanma" diye okunuyor.
+        /// The conditions: both have to be walking, close enough but NOT
+        /// TOO close, and neither of them may have talked recently. Without
+        /// the last condition the same two people get stuck on the pavement
+        /// - it reads as "a blockage" rather than "a chat".
         /// </summary>
         private void Gossip()
         {
             for (int i = 0; i < _people.Count; i++)
             {
                 Pedestrian a = _people[i];
-                // GOVDE KONTROLU BURADA DA SART.
+                // THE BODY CHECK IS ESSENTIAL HERE TOO.
                 //
-                // Update dongusu kendini koruyordu ama burasi
-                // korumuyordu: ana menuye donunce gorunum butun
-                // cocuklarini yok ediyor, _people icinde bes olu kayit
-                // kaliyor ve a.Body.transform her karede istisna
-                // atiyordu. Android'de yigin izi uretmek pahali.
+                // The Update loop guarded itself but this one did not: going
+                // back to the main menu makes the view destroy all its
+                // children, five dead records are left in _people and
+                // a.Body.transform threw an exception every frame. Producing a
+                // stack trace is expensive on Android.
                 if (a.Body == null || a.Walk == null) continue;
                 if (a.ChatLeft > 0f || a.NextChat > 0f || !a.Walk.Moving) continue;
 
@@ -605,9 +614,9 @@ namespace Lokanta.Game
                     if (u2 < ChatNear * ChatNear) continue;
                     if (_rng.NextDouble() > 0.35) continue;
 
-                    float sure = ChatMin + (float)_rng.NextDouble() * (ChatMax - ChatMin);
-                    Chat(a, b, sure);
-                    Chat(b, a, sure);
+                    float seconds = ChatMin + (float)_rng.NextDouble() * (ChatMax - ChatMin);
+                    Chat(a, b, seconds);
+                    Chat(b, a, seconds);
                     break;
                 }
             }
@@ -625,12 +634,10 @@ namespace Lokanta.Game
             Face(who);
         }
 
-        /// <summary>
-        /// Konusani karsisindakine dondurur.
+        /// Turns a talker towards the person opposite.
         ///
-        /// Ayni yone bakan iki figur "konusuyor" degil "sirada
-        /// bekliyor" diye okunuyor.
-        /// </summary>
+        /// Two figures looking the same way do not read as "talking" but as
+        /// "queueing".
         private static void Face(Pedestrian who)
         {
             if (who.Body == null) return;
@@ -641,17 +648,17 @@ namespace Lokanta.Game
             who.Body.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
         }
 
-        /// <summary>Kaldirimda karsi kenara dogru yollar.</summary>
+        /// <summary>Sends them along the pavement towards the opposite edge.</summary>
         private void Send(Pedestrian p)
         {
             if (p.Body == null || p.Walk == null) return;
 
-            float hedef = p.Dir > 0 ? RoomPlan.PlotW + 1.1f : -1.1f;
+            float target = p.Dir > 0 ? RoomPlan.PlotW + 1.1f : -1.1f;
             _path.Clear();
-            // Hedef kendi SERIDINDE: sohbetten ya da itismeden sonra
-            // seridin disinda kalan figur yurudukce kendiliginden
-            // seride donuyor - bir sicrama olmadan.
-            _path.Add(new Vector3(hedef, 0f, Paths.PavementLane(p.Dir)));
+            // The target is in its OWN LANE: a figure left outside its lane
+            // after a chat or a push comes back to the lane by itself as it
+            // walks - with no jump.
+            _path.Add(new Vector3(target, 0f, Paths.PavementLane(p.Dir)));
             p.Walk.GoTo(_path, float.NaN, null);
             if (p.Fig != null) p.Fig.Set(Figure.Pose.Walk);
         }

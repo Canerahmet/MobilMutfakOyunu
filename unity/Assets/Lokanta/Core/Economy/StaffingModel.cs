@@ -1,32 +1,34 @@
-namespace Lokanta.Core.Economy
+﻿namespace Lokanta.Core.Economy
 {
-    /// <summary>Bir haftanin kadrosu.</summary>
+    /// <summary>One week's crew.</summary>
     public readonly struct Crew
     {
         public readonly int Cooks;
-        public readonly int Salon;
+        public readonly int Hall;
 
-        // Burada bir SalonWorkMicro alani vardi: zirve gunun salon is yuku.
-        // Hicbir yerde okunmuyordu, ve dort kurucusundan ikisi ona 0 yaziyordu
-        // - yani okuyan biri cikarsa YANLIS deger okuyacakti. Yuk zaten
-        // peakCustomers'tan yeniden hesaplanabiliyor; alan silindi.
-        public Crew(int cooks, int salon)
+        // There used to be a SalonWorkMicro field here: the peak day's hall
+        // workload. It was read nowhere, and two of its four constructors
+        // wrote 0 into it - so if a reader ever appeared it would read the
+        // WRONG value. The workload can be recomputed from peakCustomers
+        // anyway; the field was deleted.
+        public Crew(int cooks, int hall)
         {
-            Cooks = cooks; Salon = salon;
+            Cooks = cooks; Hall = hall;
         }
 
-        public int Total { get { return Cooks + Salon; } }
+        public int Total { get { return Cooks + Hall; } }
     }
 
     /// <summary>
-    /// docs/14-staff-system.md kapasite modeli.
+    /// The capacity model of docs/14-staff-system.md.
     ///
-    /// Iki havuz:
-    ///   Mutfak  gereken = tavan(zirve / asci_kapasitesi). Patron pisiremez.
-    ///   Salon   is-gunu uzerinden. Patronun katkisi once dusulur.
+    /// Two pools:
+    ///   Kitchen  needed = ceil(peak / cook_capacity). The owner cannot cook.
+    ///   Hall     by person-days. The owner's own contribution is deducted first.
     ///
-    /// Kadro ZIRVE gune (hafta sonu) kurulur, ucreti yedi gun odenir.
-    /// Bu, ilk ise alimin ikinci haftaya dusmesinin sebebi: senaryo degil, yuk.
+    /// The crew is sized for the PEAK day (the weekend), and its wage is
+    /// paid for seven days. That is why the first hire falls in the second
+    /// week: not a script, but the workload.
     /// </summary>
     public static class StaffingModel
     {
@@ -36,22 +38,23 @@ namespace Lokanta.Core.Economy
 
             int cooks = Fx.CeilDiv(peakCustomers, cfg.CookCapacityPerDay);
 
-            long salonWork = (long)peakCustomers * cfg.SalonWorkPerCustomerMicro;
-            long afterOwner = salonWork - cfg.OwnerWorkMicro;
-            int salon = afterOwner <= 0 ? 0 : (int)Fx.CeilDivL(afterOwner, Fx.Micro);
+            long hallWork = (long)peakCustomers * cfg.HallWorkPerCustomerMicro;
+            long afterOwner = hallWork - cfg.OwnerWorkMicro;
+            int hall = afterOwner <= 0 ? 0 : (int)Fx.CeilDivL(afterOwner, Fx.Micro);
 
-            return new Crew(cooks, salon);
+            return new Crew(cooks, hall);
         }
 
         /// <summary>
-        /// Haftalik maas, santi-sikke. Deneyim zammi birikimli ve nano
-        /// hassasiyetinde; baz puanla ussalmak sekizinci haftada birkac
-        /// sikkelik sapma uretiyordu.
+        /// The weekly wage bill, in centi-coins. The experience rise is
+        /// compound and at nano precision; exponentiating in basis points
+        /// produced a drift of a few coins by the eighth week.
         /// </summary>
         /// <summary>
-        /// Zammin us alabilecegi en fazla hafta. %2,2'de 32 hafta 2,00
-        /// kati asiyor, yani tavan zaten orada devreye giriyor; bu sinir
-        /// PowNano'nun kendisini tasmadan onceye baglayan ikinci kemer.
+        /// The most weeks the rise may be raised to a power over. At 2.2%,
+        /// 32 weeks passes the 2.00 multiple, so the ceiling already comes
+        /// in there; this limit is the second belt, tying PowNano itself to
+        /// the near side of an overflow.
         /// </summary>
         private const int MaxWageGrowthWeeks = 64;
 
@@ -59,39 +62,39 @@ namespace Lokanta.Core.Economy
         {
             long cookBill = (long)crew.Cooks * 7 * cfg.CookDailyWage;
 
-            // Kisi basi salon ucretini onceden yuvarlamiyoruz: pay bir arada
-            // tutulup bolme tek seferde yapiliyor.
-            long salonBill = crew.Salon == 0
+            // We do not round the per-head hall wage in advance: the
+            // numerator is kept together and the division is done once.
+            long hallBill = crew.Hall == 0
                 ? 0
-                : Fx.MulDiv((long)crew.Salon * 7 * cfg.SalonWageNumerator,
-                            1, cfg.SalonWorkPerCustomerMicro);
+                : Fx.MulDiv((long)crew.Hall * 7 * cfg.HallWageNumerator,
+                            1, cfg.HallWorkPerCustomerMicro);
 
-            long baseBill = cookBill + salonBill;
+            long baseBill = cookBill + hallBill;
             if (week <= 1) return baseBill;
 
-            // ZAM TAVANLI: en fazla IKI KAT.
+            // THE RISE IS CAPPED: at most TWO TIMES.
             //
-            // Buyume haftada %2,2 ve BILESIK; kampanya sekiz haftalik
-            // oldugu icin orada 1,16 kat ediyor ve denge o pencereye
-            // gore kuruldu. Ama oyun altmisinci gunde BITMIYOR - docs/08
-            // serbest oyuna geciyor - ve orada tavansiz bir ussel,
-            // tavanli bir gelirle karsi karsiya kaliyordu:
+            // Growth is 2.2% a week and it is COMPOUND; because the campaign
+            // is eight weeks long it comes to 1.16x there, and the balance
+            // was built around that window. But the game DOES NOT END on day
+            // sixty - docs/08 moves into free play - and there an uncapped
+            // exponential stood against a capped income:
             //
-            //     gun 200  (hafta 28)   1,80 kat
-            //     gun 365  (hafta 52)   3,03 kat
-            //     gun ~728 (hafta 104)  PowNano long'u TASIYOR
+            //     day 200  (week 28)   1.80x
+            //     day 365  (week 52)   3.03x
+            //     day ~728 (week 104)  PowNano OVERFLOWS the long
             //
-            // Tasma CloseDay'in icinde, durumun bir kismi zaten
-            // degistikten SONRA atiyordu: itibar dusmus, stok
-            // yaslanmis, deneyim artmis ama asama Evening'e gecmemis.
-            // Unity dugme geri cagrisindaki istisnayi yutuyor, yani
-            // oyuncu "Gunu Kapat"a basiyor, hicbir sey olmuyor, tekrar
-            // basiyor - ve her basista ayni zarar BIR KEZ DAHA
-            // uygulaniyordu. Kalici, geri donussuz bir kilit.
+            // The overflow threw inside CloseDay, AFTER part of the state
+            // had already changed: reputation dropped, stock aged,
+            // experience gained, but the stage had not moved to Evening.
+            // Unity swallows the exception in a button callback, so the
+            // player presses "Close the Day", nothing happens, they press
+            // again - and on every press the same damage was applied ONCE
+            // MORE. A permanent, irreversible lock-up.
             //
-            // Tavan hem tasmayi hem de "gelir tavanli, gider tavansiz"
-            // asimetrisini kapatiyor. Iki kat, gercekci bir ust sinir:
-            // kidem zammi sonsuza kadar bilesik islemez.
+            // The cap closes both the overflow and the "income capped,
+            // outgoings uncapped" asymmetry. Two times is a realistic upper
+            // bound: a seniority rise does not compound forever.
             long growthNano = Fx.PowNano(
                 Fx.Nano + Fx.BpToNano(cfg.WeeklyXpWageGrowthBp),
                 week - 1 < MaxWageGrowthWeeks ? week - 1 : MaxWageGrowthWeeks);
@@ -99,10 +102,10 @@ namespace Lokanta.Core.Economy
             return Fx.MulDiv(baseBill, growthNano, Fx.Nano);
         }
 
-        /// <summary>Bilgi amacli: salonda bir kisinin gunluk ucreti, santi-sikke.</summary>
-        public static long SalonDailyWage(EconomyConfig cfg)
+        /// <summary>For information: one hall worker's daily wage, in centi-coins.</summary>
+        public static long HallDailyWage(EconomyConfig cfg)
         {
-            return Fx.MulDiv(cfg.SalonWageNumerator, 1, cfg.SalonWorkPerCustomerMicro);
+            return Fx.MulDiv(cfg.HallWageNumerator, 1, cfg.HallWorkPerCustomerMicro);
         }
     }
 }

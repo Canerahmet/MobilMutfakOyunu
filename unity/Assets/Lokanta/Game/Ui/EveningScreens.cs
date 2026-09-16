@@ -6,11 +6,11 @@ using UnityEngine.UIElements;
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// Gun raporu. docs/02 aksam asamasi.
+    /// The day's report. docs/02, the evening phase.
     ///
-    /// Ekranin isi rakam listelemek degil, GUNUN NE OLDUGUNU anlatmak:
-    /// para nereye gitti, kim geldi, kim kirildi. Sadece ciro gostermek,
-    /// oyuncuya ertesi gun neyi degistirecegini soylemiyor.
+    /// The screen's job is not to list figures but to tell WHAT THE DAY
+    /// WAS: where the money went, who came, who was let down. Showing
+    /// takings alone does not tell the player what to change tomorrow.
     /// </summary>
     public sealed class EveningScreen : ListScreen
     {
@@ -25,23 +25,24 @@ namespace Lokanta.Game.Ui
             Simulation sim = App.Sim;
             DayReport r = sim.BuildDayReport();
 
-            // --- nisanlar ve karne EN USTTE -----------------------------------
+            // --- accolades and the report card AT THE VERY TOP -----------------
             //
-            // Sira bilinerek boyle: bunlar gunun ODULU. Rakamlarin altina
-            // konsaydi, ayni ekranda asagi kaydirmayan oyuncu onlari hic
-            // gormezdi - ve gorulmeyen bir tanima tanima degildir.
+            // The order is deliberate: these are the day's REWARD. Put
+            // beneath the figures, a player who does not scroll down that
+            // screen would never see them - and recognition that is not seen
+            // is not recognition.
             //
-            // Ikisi de SEYREK: karne yedi gunde bir, nisan kampanyada en
-            // fazla bes kez. Her aksam tepede duran bir kutu olsalardi
-            // gurultu olurlardi; burada yoklar demek, bugun kazanilacak
-            // bir sey olmadi demek.
+            // Both are RARE: a report card every seven days, an accolade at
+            // most five times in a campaign. Had they been a box sitting at
+            // the top every evening they would be noise; their absence here
+            // means nothing was earned today.
             VisualElement badges = TodaysBadges();
             if (badges != null) list.Add(badges);
 
             VisualElement week = WeekReport();
             if (week != null) list.Add(week);
 
-            // --- para --------------------------------------------------------
+            // --- money -------------------------------------------------------
             VisualElement money = Theme.PanelBox();
             money.Add(Theme.Head(Loc.T("ui.evening.money")));
             money.Add(Theme.Field(Loc.T("ui.evening.revenue"),
@@ -49,17 +50,18 @@ namespace Lokanta.Game.Ui
             money.Add(Theme.Field(Loc.T("ui.evening.ingredients"),
                                   "−" + Loc.Money(r.IngredientCost), Theme.Bad));
 
-            // COPE GIDEN, malzemenin HEMEN ALTINDA.
+            // WHAT GOES IN THE BIN, DIRECTLY BENEATH the ingredients.
             //
-            // Oyunun en buyuk gorunmez gideriydi: makul oynayan bir oyuncu
-            // altmis gunde aldigi malzemenin %57'sini cope atiyor - yilin
-            // net karindan fazla bir para - ve bu sayi hicbir ekranda
-            // yoktu. Metni ("ui.evening.spoiled") yazilmisti bile; hicbir
-            // satir onu okumuyordu.
+            // It was the game's biggest invisible cost: a player playing
+            // reasonably throws away 57% of the ingredients they buy over
+            // sixty days - more money than the year's net profit - and that
+            // number was on no screen at all. The text ("ui.evening.spoiled")
+            // had already been written; not one line read it.
             //
-            // Isaret EKSI DEGIL: bu bir odeme degil, satin alinmis ve
-            // kullanilmamis stok. Net kara girmiyor - girse iki kere
-            // sayilirdi. Malzemenin altinda duruyor cunku SEBEBI o.
+            // The sign is NOT NEGATIVE: this is not a payment, it is stock
+            // bought and not used. It does not enter the net profit - if it
+            // did it would be counted twice. It sits below the ingredients
+            // because that is its CAUSE.
             if (r.SpoiledValue > 0)
             {
                 int sharePct = r.IngredientCost > 0
@@ -71,13 +73,14 @@ namespace Lokanta.Game.Ui
                         + (sharePct > 0 ? "  %" + sharePct : ""),
                     Theme.Warn));
             }
-            // UCRET VE KIRA DA GORUNUYOR.
+            // WAGES AND RENT ARE VISIBLE TOO.
             //
-            // Once "Kar" diye gosterilen sayi ciro eksi malzemeydi; ucret
-            // ve kira hicbir ekranda yoktu. Oyuncu personel aliyor, cironun
-            // arttigini goruyor, "kar"in da arttigini goruyor, sonra kasa
-            // bosaliyor ve sebebini bulamiyordu. Oyunun temel gerilimi -
-            // kadro kapasite demek AMA para demek - gorunmuyordu.
+            // The number once shown as "Profit" was takings minus
+            // ingredients; wages and rent were on no screen. The player
+            // would hire someone, see the takings go up, see the "profit" go
+            // up, then watch the till empty with no way of finding out why.
+            // The game's basic tension - crew means capacity BUT it means
+            // money - was invisible.
             if (r.WageCost > 0)
                 money.Add(Theme.Field(Loc.T("ui.evening.wages"),
                                       "−" + Loc.Money(r.WageCost), Theme.Bad));
@@ -85,11 +88,11 @@ namespace Lokanta.Game.Ui
                 money.Add(Theme.Field(Loc.T("ui.evening.rent"),
                                       "−" + Loc.Money(r.RentCost), Theme.Bad));
             else
-                // ETIKET KENDISIYLE CELISMIYOR.
+                // THE LABEL DOES NOT CONTRADICT ITSELF.
                 //
-                // Kira odenmediginde satir "Kira odendi | 4 gun sonra
-                // 1.200" diye cikiyordu: sol taraf odendi diyor, sag
-                // taraf odenmedi diyor.
+                // When the rent had not been paid the row came out as "Rent
+                // paid | 1,200 in 4 days": the left-hand side says paid, the
+                // right-hand side says not paid.
                 money.Add(Theme.Field(Loc.T("ui.evening.rent_next"),
                                       Loc.T("ui.evening.rent_in", sim.DaysToRent,
                                             Loc.Money(sim.WeeklyBill)), Theme.InkDim));
@@ -113,13 +116,13 @@ namespace Lokanta.Game.Ui
             money.Add(Theme.Field(Loc.T("ui.hud.cash"), Loc.Money(sim.Cash),
                                   Theme.CashColor(sim.Cash)));
 
-            // DEFTER ARTIK ACILABILIYOR.
+            // THE BOOK CAN NOW BE OPENED.
             //
-            // Burasi tek bir toplam gosteriyordu ve yedi gunluk
-            // bekleyis tamamen edilgendi: kimin borcu oldugu, vadesi,
-            // odeme sansi - hicbiri gorunmuyordu. Ustelik erken
-            // tahsilat komutu simulasyonda UYGULANIYOR ama hicbir
-            // ekran onu gondermiyordu.
+            // This showed a single total and the seven-day wait was
+            // entirely passive: who owed the money, when it fell due, the
+            // chance of being paid - none of it was visible. And the
+            // early-collection command IS IMPLEMENTED in the simulation
+            // while no screen sent it.
             if (sim.OpenCredit > 0)
             {
                 money.Add(Theme.Field(Loc.T("ui.evening.in_book"),
@@ -129,23 +132,24 @@ namespace Lokanta.Game.Ui
             }
             list.Add(money);
 
-            // --- salon -------------------------------------------------------
+            // --- the hall ----------------------------------------------------
             VisualElement hall = Theme.PanelBox();
             hall.Add(Theme.Head(Loc.T("ui.evening.hall")));
             hall.Add(Theme.Field(Loc.T("ui.hud.served"),
                                  Loc.T("ui.evening.served_n",
                                        r.ServedPeople, r.ServedParties)));
-            // MASADAN KIZGIN AYRILAN - kapidan donen ayri satirda.
-            // Ikisi AYNI sey degil: biri servis sorunu, oteki kapasite
-            // sorunu, ve oyuncunun yapabilecegi sey de farkli. Rapor
-            // ikisini tek sayiya katliyordu.
-            // ETIKET DE AYRILDI, SAYI GIBI.
+            // THOSE WHO LEFT A TABLE ANGRY - those turned away at the door
+            // are on a separate row. The two are NOT THE SAME thing: one is
+            // a service problem, the other a capacity problem, and what the
+            // player can do about them differs. The report folded both into
+            // a single number.
+            // THE LABEL WAS SPLIT TOO, LIKE THE NUMBER.
             //
-            // Ayrim yapilmisti ama iki yer de ayni anahtari
-            // ("ui.hud.angry") kullaniyordu: akSam seridi TOPLAMI,
-            // rapor yalnizca OTURMUS olanlari yaziyordu. Oyuncu ayni
-            // gun, ayni kelimenin altinda iki farkli sayi goruyordu
-            // ve birinin bozuk oldugunu dusunuyordu.
+            // The split had been made, but both places used the same key
+            // ("ui.hud.angry"): the evening strip showed the TOTAL and the
+            // report only those who had been SEATED. On the same day, under
+            // the same word, the player saw two different numbers and
+            // assumed one of them was broken.
             hall.Add(Theme.Field(Loc.T("ui.evening.left_table"),
                                  r.AngrySeatedParties.ToString(Loc.Culture),
                                  r.AngrySeatedParties > 0 ? Theme.Bad : Theme.InkDim));
@@ -161,20 +165,20 @@ namespace Lokanta.Game.Ui
                                  Theme.ReputationColor(sim.ReputationCenti)));
             list.Add(hall);
 
-            // --- duzenli musteriler -------------------------------------------
+            // --- the regulars -------------------------------------------------
             VisualElement regulars = Regulars();
             if (regulars != null) list.Add(regulars);
 
-            // --- kadro --------------------------------------------------------
+            // --- the crew -----------------------------------------------------
             VisualElement crew = Theme.PanelBox();
             crew.Add(Theme.Head(Loc.T("ui.morning.staff")));
             crew.Add(Theme.Field(Loc.T("ui.staff.cook"), sim.Cooks.ToString(), Theme.InkDim));
-            crew.Add(Theme.Field(Loc.T("ui.staff.salon"), sim.SalonStaff.ToString(), Theme.InkDim));
+            crew.Add(Theme.Field(Loc.T("ui.staff.hall"), sim.HallStaff.ToString(), Theme.InkDim));
 
             int lowMorale = 0;
             for (int pool = 0; pool < 2; pool++)
             {
-                int n = pool == 0 ? sim.Cooks : sim.SalonStaff;
+                int n = pool == 0 ? sim.Cooks : sim.HallStaff;
                 for (int i = 0; i < n; i++)
                     if (sim.StaffMorale(pool, i) < 30) lowMorale++;
             }
@@ -185,11 +189,11 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// BUGUN kazanilan nisanlar; yoksa null.
+        /// The accolades earned TODAY; null if there are none.
         ///
-        /// Yalnizca bugun kazanilanlar - kazanilmis hepsini her aksam
-        /// listelemek, tanimayi bir envantere cevirirdi. Bir nisan bir
-        /// kez gorulur, sonra duraganlasir.
+        /// Only the ones earned today - listing every accolade already
+        /// earned, every evening, would turn recognition into an inventory.
+        /// An accolade is seen once, and after that it goes still.
         /// </summary>
         private VisualElement TodaysBadges()
         {
@@ -207,15 +211,15 @@ namespace Lokanta.Game.Ui
                 }
 
                 VisualElement row = Theme.Column(2);
-                Label ad = Theme.Text(Loc.T(Badges.NameKey(i)), Theme.FontBody,
-                                      Theme.Accent);
-                ad.style.unityFontStyleAndWeight = FontStyle.Bold;
-                row.Add(ad);
+                Label name = Theme.Text(Loc.T(Badges.NameKey(i)), Theme.FontBody,
+                                        Theme.Accent);
+                name.style.unityFontStyleAndWeight = FontStyle.Bold;
+                row.Add(name);
 
-                Label not = Theme.Text(Loc.T(Badges.NoteKey(i)), Theme.FontSmall,
-                                       Theme.InkDim);
-                not.style.whiteSpace = WhiteSpace.Normal;
-                row.Add(not);
+                Label note = Theme.Text(Loc.T(Badges.NoteKey(i)), Theme.FontSmall,
+                                        Theme.InkDim);
+                note.style.whiteSpace = WhiteSpace.Normal;
+                row.Add(note);
                 box.Add(row);
             }
 
@@ -227,15 +231,17 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Haftalik karne: yedi eksen ve GECEN HAFTAYA GORE FARK.
+        /// The weekly report card: seven axes and THE DIFFERENCE AGAINST
+        /// LAST WEEK.
         ///
-        /// Farkin kendisi karnenin butun anlami. Yalnizca degerleri
-        /// gostermek, oyuncuya "su an buradasin" der; fark "bu hafta ne
-        /// yaptin" der - ve altmis gunluk oyunda hissedilen sey ikincisi.
+        /// The difference is the whole point of the report card. Showing
+        /// the values alone tells the player "this is where you are now";
+        /// the difference tells them "this is what you did this week" - and
+        /// in a sixty-day game the second is the one that is felt.
         ///
-        /// Bu ekran olmadan oyuncu yedi ekseni TAM BIR KEZ goruyordu,
-        /// altmisinci gunde. Goremedigin bir seyde ilerleme
-        /// hissedemezsin, ve gec ogrenilen bir olcute gore oynanamaz.
+        /// Without this screen the player saw the seven axes EXACTLY ONCE,
+        /// on day sixty. You cannot feel progress in something you cannot
+        /// see, and you cannot play towards a measure you learn too late.
         /// </summary>
         private VisualElement WeekReport()
         {
@@ -247,25 +253,27 @@ namespace Lokanta.Game.Ui
             box.Add(Theme.Text(Loc.T("ui.week.note"), Theme.FontSmall,
                                Theme.InkDim));
 
-            // Yil sonu karnesiyle AYNI satir bicimi (Theme.AxisRow):
-            // oyuncu altmisinci gunde yeni bir tablo ogrenmiyor, dokuz
-            // hafta boyunca gordugu tabloyu goruyor.
+            // THE SAME row format as the year-end report card
+            // (Theme.AxisRow): on day sixty the player is not learning a new
+            // table, they are seeing the table they have been looking at for
+            // nine weeks.
             for (int i = 0; i < SeasonScore.AxisCount; i++)
             {
-                string ad = i == SeasonScore.AxisCount - 1
+                string name = i == SeasonScore.AxisCount - 1
                     ? Loc.T(App.Content.ScoreAxis.NameKey)
                     : Loc.T(SeasonScore.AxisKey(i));
-                box.Add(Theme.AxisRow(ad, sim.WeekAxis(i), sim.WeekAxisDelta(i)));
+                box.Add(Theme.AxisRow(name, sim.WeekAxis(i), sim.WeekAxisDelta(i)));
             }
             return box;
         }
 
         /// <summary>
-        /// Bugun ugrayan isimli musteriler ve acilmis hikaye sahneleri.
+        /// The named guests who came in today, and any story beats they
+        /// have opened.
         ///
-        /// Sahne metni burada gosteriliyor cunku aksam, oyuncunun okumak
-        /// icin durdugu tek an. Servis sirasinda cikan bir metin
-        /// okunmadan kapatilirdi.
+        /// The beat's text is shown here because the evening is the only
+        /// moment the player stops to read. A piece of text appearing during
+        /// service would be dismissed unread.
         /// </summary>
         private VisualElement Regulars()
         {
@@ -309,23 +317,24 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Duraklatma menusu. Oyundan cikis BURADAN, geri tusundan degil.
-    /// Kaydetme otomatik (her gun basi) ama "kaydet ve cik" yine de
-    /// gorunur olmali: oyuncu kaydedildigini BILMELI.
+    /// The pause menu. Leaving the game happens HERE, not through the back
+    /// key. Saving is automatic (at the start of each day) but "save and
+    /// quit" still has to be visible: the player must KNOW they have been
+    /// saved.
     /// </summary>
     /// <summary>
-    /// Bir muudavimin hikaye sahnesi. Aksami KESIYOR.
+    /// A regular's story beat. It INTERRUPTS the evening.
     ///
-    /// Yirmi isimli musterinin her birinin uc sahnelik yazilmis hikayesi
-    /// var ve bunlar yalnizca aksam "Gun Raporu" dugmesine basilirsa
-    /// goruluyordu. Yani oyuncularin cogu altmis gunu, oyunun tek sicak
-    /// noktasini HIC GORMEDEN bitirecekti:
+    /// Each of the twenty named guests has a three-beat story written for
+    /// them, and these were only seen if the player pressed the "Day
+    /// Report" button in the evening. So most players would have finished
+    /// sixty days WITHOUT EVER SEEING the one warm spot in the game:
     ///
-    ///   "Artik siparisini soylemiyor. Oturuyor, siz biliyorsunuz."
+    ///   "He does not order any more. He sits down, and you know."
     ///
-    /// Elde en iyi malzeme vardi ve vitrinin arkasina konmustu. Sahne
-    /// acildigi gun artik "Ertesi Gun"un yerini aliyor: gunde en fazla
-    /// bir tane, tam genislikte, tek dugmeyle geciliyor.
+    /// The best material we had was behind the display case. On the day a
+    /// beat opens it now takes the place of "Next Day": at most one a day,
+    /// full width, dismissed with a single button.
     /// </summary>
     public sealed class StoryScreen : UiScreen
     {
@@ -353,8 +362,9 @@ namespace Lokanta.Game.Ui
             card.Add(Theme.Text(Loc.T(r.JobKey), Theme.FontSmall, Theme.InkFaint));
             card.Add(Theme.Divider());
 
-            // Repligin kendisi. Buyuk punto ve kirilabilir: oyunun
-            // okunmasini istedigimiz TEK metni kucuk yazmak olmazdi.
+            // The line itself. Large type and able to wrap: setting the ONE
+            // piece of text in the game we want read in small type would not
+            // do.
             int i = beat - 1;
             string key = i >= 0 && i < r.Story.Length
                 ? r.Story[i].TextKey : null;
@@ -373,18 +383,19 @@ namespace Lokanta.Game.Ui
             return root;
         }
 
-        /// <summary>Gecilmemis bir sahne kaybolmasin: geri tusu de gormus sayiyor.</summary>
+        /// <summary>A beat that was not dismissed must not be lost: the back key counts as having seen it too.</summary>
         public override void OnClosed() { App.StorySeen(); }
     }
 
     public sealed class PauseScreen : UiScreen
     {
         /// <summary>
-        /// Bu ekran acilmadan onceki duraklatma durumu.
+        /// The pause state from before this screen opened.
         ///
-        /// Ekranin adi "duraklatma" ama DURAKLATMIYORDU: oyuncu ayarlara
-        /// girip sesi kisarken gun akmaya devam ediyordu. Mobilde oyun her
-        /// an bolunuyor; bir menu acmak zaman kaybettirmemeli.
+        /// The screen is called "pause" but it WAS NOT PAUSING: while the
+        /// player went into the settings to turn the sound down, the day
+        /// went on running. On mobile the game is interrupted at any moment;
+        /// opening a menu should not cost time.
         /// </summary>
         private bool _was;
 
@@ -400,11 +411,12 @@ namespace Lokanta.Game.Ui
             root.style.paddingLeft = Theme.Pad * 2;
             root.style.paddingRight = Theme.Pad * 2;
 
-            // Sutun SOLDA, ortada degil.
+            // The column is ON THE LEFT, not in the middle.
             //
-            // Yatay tutusta bas parmaklar sol ve sag ALT koselerde duruyor;
-            // ekranin ortasi ikisinin de en uzak oldugu nokta. Dikey
-            // ortalama kalsin, yatay ortalama gitsin.
+            // Held in landscape, the thumbs rest in the bottom left and
+            // bottom right corners; the middle of the screen is the point
+            // furthest from both. Keep the vertical centring, drop the
+            // horizontal.
             VisualElement col = Theme.Column(Theme.Gap);
             col.style.maxWidth = 400;
             col.style.alignSelf = Align.FlexStart;
@@ -413,24 +425,23 @@ namespace Lokanta.Game.Ui
 
             col.Add(Theme.Btn(Loc.T("ui.pause.resume"), () => Ui.Pop(), primary: true));
 
-            // DEGERLENDIRME YENIDEN OKUNABILIR.
+            // THE EVALUATION CAN BE READ AGAIN.
             //
-            // Altmis gunun karsiligi olan ekran bir zamanlar TEK
-            // ATISLIKTI ve onu acan baska hicbir yer yoktu: kampanya
-            // bitince bir kez cikiyor, kapaninca bir daha gorunmuyordu.
-            // Bir plaket, bir daha bakilamayan bir sey olmamali.
+            // The screen that is the payoff for sixty days was once a ONE
+            // SHOT and nothing else opened it: it appeared once when the
+            // campaign ended and, dismissed, was never seen again. A plaque
+            // should not be a thing you cannot look at twice.
             if (App.Sim != null && App.Sim.SeasonOver)
                 col.Add(Theme.Btn(Loc.T("ui.pause.season"),
                                   () => Ui.Push(new EndScreen())));
 
-            // NISANLAR: kazanilmis olanlar kadar KAZANILMAMIS olanlar da.
+            // ACCOLADES: the unearned ones as much as the earned ones.
             //
-            // Aksam ekrani yalnizca o gun kazanilani gosteriyor; burasi
-            // hedefin durdugu yer. Kazanilmamis olani da adiyla gostermek
-            // bilincli: oyuncunun kendi hedefini secebilmesi icin neyin
-            // mumkun oldugunu gormesi gerekiyor - ama bu bir GOREV LISTESI
-            // degil, cunku hicbiri "bugun sunu yap" demiyor ve hicbirinin
-            // suresi yok.
+            // The evening screen shows only what was earned that day; this
+            // is where the goal lives. Showing the unearned ones by name is
+            // deliberate: to choose their own goal the player has to see
+            // what is possible - but this is not a TASK LIST, because none
+            // of them says "do this today" and none of them has a deadline.
             if (App.Sim != null)
                 col.Add(Theme.Btn(Loc.T("ui.badge.title"),
                                   () => Ui.Push(new BadgeScreen())));
@@ -448,7 +459,7 @@ namespace Lokanta.Game.Ui
             return root;
         }
 
-        /// <summary>Kapanirken duraklatma durumu geri veriliyor.</summary>
+        /// <summary>The pause state is handed back on the way out.</summary>
         public override void OnClosed()
         {
             App.Paused = _was;
@@ -456,30 +467,31 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Kampanya sonu. docs/08: altmisinci gunde puanlanmis degerlendirme,
-    /// sonra SERBEST OYUN - oyun bitmiyor, kampanya bitiyor.
+    /// The end of the campaign. docs/08: a scored evaluation on day sixty,
+    /// then FREE PLAY - the game does not end, the campaign does.
     /// </summary>
     /// <summary>
-    /// Yil sonu degerlendirmesi. docs/08-endgame.md.
+    /// The year-end evaluation. docs/08-endgame.md.
     ///
-    /// Oyun BITMIYOR, DEGERLENDIRILIYOR. Kayit silinmiyor, hicbir sey
-    /// elinden alinmiyor; oyuncu devam edebiliyor ve ikinci bir yila
-    /// kalip daha iyi bir puan hedefleyebiliyor.
+    /// The game DOES NOT END, IT IS EVALUATED. The save is not deleted and
+    /// nothing is taken away; the player can carry on and stay for a second
+    /// year aiming at a better score.
     ///
-    /// Puan tek sayi degil YEDI EKSEN, ve yedincisi mutfaga ozel: fast
-    /// food'da bir gunun en kalabalik kuveri, Turk mutfaginda veresiye
-    /// tahsilat orani. Mutfaklari ayiran sey oynanista oldugu kadar
-    /// SONUCTA da gorunuyor.
+    /// The score is not one number but SEVEN AXES, and the seventh is
+    /// specific to the cuisine: in fast food it is the busiest cover count
+    /// of any one day, in Turkish cuisine the rate at which tabs are
+    /// collected. What separates the cuisines shows up in the OUTCOME as
+    /// much as in the play.
     ///
-    /// Bu ekran bir zamanlar yaziliydi ama HIC CAGRILMIYORDU: altmisinci
-    /// gun gelip geciyor, hicbir sey olmuyordu. Oyunun kapanisi yoktu.
+    /// This screen was written once but WAS NEVER CALLED: day sixty came
+    /// and went and nothing happened. The game had no closing.
     /// </summary>
     public sealed class EndScreen : UiScreen
     {
         /// <summary>
-        /// Ekran KAPANINCA "gorulmus" sayiliyor ve kayit o zaman
-        /// tazeleniyor. Acilista isaretlemek, okunmadan kaybolan bir
-        /// degerlendirme demekti.
+        /// It counts as "seen" when the screen CLOSES, and the save is
+        /// refreshed at that point. Marking it on opening meant an
+        /// evaluation that could vanish unread.
         /// </summary>
         public override void OnClosed()
         {
@@ -500,11 +512,12 @@ namespace Lokanta.Game.Ui
             col.style.width = Length.Percent(100);
             col.style.flexShrink = 0;
 
-            // --- gazete manseti ------------------------------------------
+            // --- the newspaper headline ----------------------------------
             //
-            // Baslik PUANA gore degisiyor: yil sonunda semtin yemek
-            // elestirmeni yaziyor (docs/08). Ayni metni herkese gostermek,
-            // altmis gunluk oyunu tek bir sabit cumleye indirmek olurdu.
+            // The headline changes with the SCORE: at the end of the year
+            // the neighbourhood's food critic writes it up (docs/08).
+            // Showing everyone the same text would reduce a sixty-day game
+            // to one fixed sentence.
             Label title = Theme.Text(Loc.T("ui.end.plaque" + score.Plaque),
                                      Theme.FontHuge, Theme.Accent);
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -518,18 +531,20 @@ namespace Lokanta.Game.Ui
             lede.style.whiteSpace = WhiteSpace.Normal;
             col.Add(lede);
 
-            // --- yedi eksen, IKI SUTUN -----------------------------------
+            // --- seven axes, TWO COLUMNS ---------------------------------
             //
-            // Tek sutunda yedi eksen 287 dp tutuyor; baslik ve dugmelerle
-            // birlikte 393 dp'lik bir telefona sigmiyordu ve BESI
-            // gorunuyordu. Kesilen yer de panelin tam kenari oldugu icin
-            // "devami var" gibi degil "bitti" gibi okunuyordu.
+            // In one column the seven axes come to 287 dp; together with the
+            // heading and the buttons that did not fit a 393 dp phone and
+            // FIVE of them were visible. And because the cut fell exactly at
+            // the panel's edge it read as "that is all" rather than "there
+            // is more".
             //
-            // Bu oyunun ODUL EKRANI - altmis gunun karsiligi. Yarisi
-            // gorunmeyen bir odul, odul degil.
+            // This is the game's REWARD SCREEN - the payoff for sixty days.
+            // A reward you can only half see is not a reward.
             //
-            // Ekran 873 dp genis ve yatay: iki sutun bosa duran genisligi
-            // kullaniyor ve yedi eksen birden goruluyor.
+            // The screen is 873 dp wide and landscape: two columns use the
+            // width that was going spare and all seven axes are seen at
+            // once.
             VisualElement box = Theme.PanelBox();
             VisualElement cols = Theme.Row(Theme.Pad);
             cols.style.alignItems = Align.FlexStart;
@@ -554,7 +569,7 @@ namespace Lokanta.Game.Ui
             box.Add(cols);
             col.Add(box);
 
-            // --- devam ----------------------------------------------------
+            // --- carry on -------------------------------------------------
             col.Add(Theme.Btn(Loc.T("ui.end.continue"), () => Ui.Pop(), primary: true));
             col.Add(Theme.Btn(Loc.T("ui.end.menu"), () =>
             {

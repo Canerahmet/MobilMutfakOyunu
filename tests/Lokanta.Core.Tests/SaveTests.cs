@@ -11,10 +11,10 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// docs/23-core-contract.md 7.6 dogrulama listesi.
-    /// Kesinti testi bu dosyanin varlik sebebi: altmis gunluk kosu
-    /// rastgele noktalarda kaydedilip yuklenince kesintisiz kosuyla
-    /// BAYT BAYT ayni bitmeli.
+    /// The docs/23-core-contract.md 7.6 verification list.
+    /// The interruption test is this file's reason to exist: a sixty-day run,
+    /// saved and loaded at random points, must end BYTE FOR BYTE the same as an
+    /// uninterrupted one.
     /// </summary>
     public class SaveTests
     {
@@ -39,7 +39,7 @@ namespace Lokanta.Core.Tests
             return new Simulation(Economy(), Content(), Timing(), seed);
         }
 
-        /// <summary>Kaydeder ve yeni bir simulasyona yukler.</summary>
+        /// <summary>Saves and loads into a fresh simulation.</summary>
         private static Simulation RoundTrip(Simulation sim, out int bytes)
         {
             JsonStateWriter w = new JsonStateWriter();
@@ -54,7 +54,7 @@ namespace Lokanta.Core.Tests
 
         // ====================================================================
         [Fact]
-        public void Ayni_durum_ayni_ozeti_veriyor()
+        public void The_same_state_gives_the_same_hash()
         {
             Simulation a = NewSim();
             Simulation b = NewSim();
@@ -62,7 +62,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Tek_tick_ozeti_degistiriyor()
+        public void A_single_tick_changes_the_hash()
         {
             Simulation sim = NewSim();
             sim.Apply(new Command(0, CommandKind.OpenService));
@@ -72,7 +72,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Kaydet_yukle_ozeti_koruyor()
+        public void Save_and_load_preserves_the_hash()
         {
             Simulation sim = NewSim();
             sim.Apply(new Command(0, CommandKind.OpenService));
@@ -81,27 +81,27 @@ namespace Lokanta.Core.Tests
             ulong before = sim.StateHash();
             Simulation restored = RoundTrip(sim, out int bytes);
 
-            _out.WriteLine($"kayit boyutu {bytes / 1024} KB");
+            _out.WriteLine($"save size {bytes / 1024} KB");
             Assert.Equal(before, restored.StateHash());
         }
 
         [Fact]
-        public void Kayit_boyutu_butcede()
+        public void The_save_size_is_within_budget()
         {
-            // docs/23 7.3: anlik goruntu sikistirilmadan 40 KB alti hedefi.
-            // JSON metin hali daha buyuk; gzip oncesi tavan gevsek tutuluyor.
+            // docs/23 7.3: the target is under 40 KB for an uncompressed snapshot.
+            // The JSON text form is larger; the pre-gzip ceiling is kept loose.
             Simulation sim = NewSim();
             sim.Apply(new Command(0, CommandKind.OpenService));
             for (int i = 0; i < 2000; i++) sim.Tick();
 
             RoundTrip(sim, out int bytes);
-            _out.WriteLine($"sikistirilmamis JSON {bytes / 1024} KB");
+            _out.WriteLine($"uncompressed JSON {bytes / 1024} KB");
             Assert.True(bytes < 400 * 1024,
-                $"kayit cok buyuk: {bytes / 1024} KB");
+                $"the save is too big: {bytes / 1024} KB");
         }
 
         [Fact]
-        public void Yukledikten_sonra_ayni_devam_ediyor()
+        public void It_carries_on_identically_after_a_load()
         {
             Simulation a = NewSim();
             a.Apply(new Command(0, CommandKind.OpenService));
@@ -109,7 +109,7 @@ namespace Lokanta.Core.Tests
 
             Simulation b = RoundTrip(a, out _);
 
-            // Ikisini de ayni kadar ilerlet: ozetler ayni kalmali
+            // Advance both by the same amount: the hashes must stay equal
             for (int i = 0; i < 1500; i++) { a.Tick(); b.Tick(); }
 
             Assert.Equal(a.StateHash(), b.StateHash());
@@ -118,27 +118,25 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
-        /// ESKI SURUM KAYDI ACILIYOR - ve mekanizma GERCEKTEN kosuyor.
+        /// AN OLD VERSION SAVE OPENS - and the mechanism REALLY runs.
         ///
-        /// `SaveVersion` artarsa her oyuncunun altmis gunluk kampanyasi
-        /// gider; docs/README bunu ilk guncellemeden onceki sart diye
-        /// yaziyordu ve goc yolu yazilmamisti. Dosyanin kendi kurali
-        /// ("yeni alanlar Has() ile okunur") 126 okumanin IKISINDE
-        /// uygulanmisti - yani yine akil yurutmeyle yazilmis, hic
-        /// kosturulmamis bir koruma.
+        /// If `SaveVersion` goes up, every player's sixty-day campaign is lost;
+        /// docs/README wrote that down as a condition before the first update and
+        /// the migration path had not been written. The file's own rule ("new
+        /// fields are read through Has()") had been applied in TWO of 126 reads -
+        /// that is, another guard argued for in reasoning and never once run.
         ///
-        /// Bu test 21. surum kaydini alip 21'de EKLENEN alanlari
-        /// siliyor ve surumu 20 yapiyor - yani yayindan sonraki gercek
-        /// durumun aynisini kuruyor: elinde eski bir kayit var, kod
-        /// yeni. Sonra yukluyor.
+        /// This test takes a version 21 save, deletes the fields that were ADDED in
+        /// 21 and sets the version to 20 - that is, it builds exactly the situation
+        /// that comes after release: an old save in hand, new code. Then it loads
+        /// it.
         ///
-        /// Olcut iki yonlu: kayit ACILACAK (istisna yok, oyun devam
-        /// ediyor) ve eksik alanlar VARSAYILANDA kalacak. Yalnizca
-        /// birincisini sormak, her seyi sifirlayan bir goc yolunu da
-        /// yesil gecirirdi.
+        /// The criterion has two sides: the save MUST OPEN (no exception, the game
+        /// carries on) and the missing fields MUST STAY AT THEIR DEFAULTS. Asking
+        /// only the first would have passed a migration path that reset everything.
         /// </summary>
         [Fact]
-        public void Eski_surum_kaydi_aciliyor()
+        public void An_old_version_save_opens()
         {
             Simulation a = NewSim();
             for (int i = 0; i < 400; i++) a.Tick();
@@ -148,21 +146,22 @@ namespace Lokanta.Core.Tests
             Newtonsoft.Json.Linq.JObject root =
                 Newtonsoft.Json.Linq.JObject.Parse(w.ToJson());
 
-            // 21. surumde eklenen alanlari sil, surumu geriye al.
+            // Delete the fields added in version 21 and wind the version back.
             //
-            // SURUM "header"DA, ALANLAR "restaurant"TA. Ilk yazimda
-            // ikisini de header'da aradim ve testin kendi dogrulama
-            // satiri beni durdurdu - kurdugum "eski kayit" gercekci
-            // degildi ve mekanizmayi hic sinamadan yesil gececekti.
-            // 22. surumde eklenen alanlari sil, surumu 21 yap.
+            // THE VERSION IS IN "header", THE FIELDS ARE IN "restaurant". In my
+            // first attempt I looked for both in the header and the test's own
+            // validation line stopped me - the "old save" I had built was not
+            // realistic and would have passed green without testing the mechanism
+            // at all.
+            // Delete the fields added in version 22 and set the version to 21.
             Newtonsoft.Json.Linq.JObject staff =
                 (Newtonsoft.Json.Linq.JObject)root["restaurant"];
-            foreach (string alan in new[] { "cookTenure", "salonTenure" })
+            foreach (string field in new[] { "cookTenure", "salonTenure" })
             {
-                Assert.True(staff[alan] != null,
-                    "22. surum kaydinda olmasi gereken alan yok: " + alan
-                    + " - testin kurdugu 'eski kayit' gercekci degil");
-                staff.Remove(alan);
+                Assert.True(staff[field] != null,
+                    "a field that should be in a version 22 save is missing: " + field
+                    + " - the 'old save' the test builds is not realistic");
+                staff.Remove(field);
             }
             ((Newtonsoft.Json.Linq.JObject)root["header"])["version"] =
                 Simulation.SaveVersion - 1;
@@ -170,49 +169,50 @@ namespace Lokanta.Core.Tests
             Simulation b = NewSim();
             b.Restore(new JsonStateReader(root));
 
-            // Kayit acildi: oyun kaldigi yerden devam ediyor.
+            // The save opened: the game carries on where it left off.
             Assert.Equal(a.Day, b.Day);
             Assert.Equal(a.Cash, b.Cash);
             Assert.Equal(a.ServedParties, b.ServedParties);
 
-            // Eksik alanlar varsayilanda: kidem sifirdan sayiliyor.
+            // The missing fields are at their defaults: tenure counts from zero.
             Assert.Equal(0, b.StaffDaysWorked(0, 0));
 
-            // Ve devam edebiliyor - yuklenen durum kosabilir durumda.
+            // And it can carry on - the loaded state is in a runnable condition.
             for (int i = 0; i < 200; i++) b.Tick();
         }
 
         /// <summary>
-        /// Okunabilen araligin DISI reddediliyor.
+        /// Anything OUTSIDE the readable range is rejected.
         ///
-        /// Tek yonlu bir goc testi, "her surumu kabul et ve alanlari
-        /// bos birak" gibi bir uygulamayi da gecirirdi. Bu kol, kapinin
-        /// hala bir kapi oldugunu soyluyor.
+        /// A one-sided migration test would also have passed an implementation of
+        /// the form "accept every version and leave the fields empty". This arm
+        /// says the gate is still a gate.
         /// </summary>
         /// <summary>
-        /// KIDEM DENEYIMDEN AYRI - ve ekran kidemi gosteriyor.
+        /// TENURE IS SEPARATE FROM EXPERIENCE - and the screen shows the tenure.
         ///
-        /// `StaffDaysWorked` eskiden `_cookXpDays` donduruyordu ve o
-        /// DENEYIM: huya bagli (`tecrubeli` XpBp 0, `cirak` 2x). Yani
-        /// personel karti altmis gundur calisan bir `tecrubeli` icin
-        /// "0 gun" yaziyordu - simulasyonun yalanladigi bir sayi.
+        /// `StaffDaysWorked` used to return `_cookXpDays`, and that is EXPERIENCE:
+        /// it depends on the trait. The experienced hand's XpBp is 0, while the
+        /// apprentice's is 2x. So the staff card said "0 days" for an experienced
+        /// hand who had worked for sixty days - a number the simulation itself
+        /// contradicted.
         ///
-        /// Bu test iki sayinin AYRISTIGINI tutuyor: `tecrubeli`nin
-        /// deneyimi sabit kalirken kidemi artmali.
+        /// This test holds the two numbers APART: an experienced hand's tenure must
+        /// rise while their experience stays put.
         /// </summary>
         [Fact]
-        public void Kidem_deneyimden_ayri()
+        public void Tenure_is_separate_from_experience()
         {
-            // GUN KENDILIGINDEN ILERLEMIYOR. Ilk yazimda `while (gun < 12)
-            // { sim.Tick(); }` yazdim ve test SONSUZ DONGUYE girdi - gun
-            // ancak OpenService + CloseDay + AdvanceToNextDay ile
-            // doniyor. RunCampaign'in kalibi kullaniliyor.
-            const int gunSayisi = 12;
+            // THE DAY DOES NOT ADVANCE BY ITSELF. In my first attempt I wrote
+            // `while (day < 12) { sim.Tick(); }` and the test went into an INFINITE
+            // LOOP - the day only turns with OpenService + CloseDay +
+            // AdvanceToNextDay. RunCampaign's pattern is used here.
+            const int dayCount = 12;
             Simulation sim = NewSim();
             TimingConfig timing = Timing();
             int limit = timing.ServiceTicks + 6000;
 
-            for (int day = 1; day <= gunSayisi; day++)
+            for (int day = 1; day <= dayCount; day++)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
                 for (int t = 0; t < limit; t++)
@@ -224,41 +224,41 @@ namespace Lokanta.Core.Tests
                 sim.AdvanceToNextDay();
             }
 
-            // Devralinan asci gun bir'den beri burada.
-            int kidem = sim.StaffDaysWorked(0, 0);
-            int deneyim = sim.StaffXpDays(0, 0);
-            _out.WriteLine($"kidem {kidem}, deneyim {deneyim}");
+            // The inherited cook has been here since day one.
+            int tenure = sim.StaffDaysWorked(0, 0);
+            int experience = sim.StaffXpDays(0, 0);
+            _out.WriteLine($"tenure {tenure}, experience {experience}");
 
-            // Kidem calisilan gun sayisi - huydan bagimsiz.
-            Assert.Equal(gunSayisi, kidem);
+            // The tenure is the number of days worked - independent of the trait.
+            Assert.Equal(dayCount, tenure);
 
-            // DEVRALINAN ASCI YETMEZ.
+            // THE INHERITED COOK IS NOT ENOUGH.
             //
-            // Onun huyu yok, yani deneyimi de kidemi kadar artiyor -
-            // `StaffDaysWorked`'i yine `_cookXpDays`'e baglayan bir
-            // gerileme burada ESIT cikar ve test sessizce gecerdi.
-            // Iki sayinin AYRISTIGI ancak deneyim kazanmayan biriyle
-            // gosterilebilir: `tecrubeli` (XpBp 0).
-            Assert.Equal(kidem, deneyim);      // huysuz kisi: esit, dogru
+            // They have no trait, so their experience rises as fast as their tenure
+            // - a regression that tied `StaffDaysWorked` back to `_cookXpDays`
+            // would come out EQUAL here and the test would quietly pass. That the
+            // two numbers DIVERGE can only be shown with someone who gains no
+            // experience: an experienced hand (`tecrubeli`, XpBp 0).
+            Assert.Equal(tenure, experience);      // a person with no trait: equal, and right
 
-            // Aday havuzlarinda bir `tecrubeli` ara ve ise al.
-            int tecrubeliHuy = -1;
+            // Look for an experienced hand in the candidate pools and hire them.
+            int experiencedTrait = -1;
             for (int t = 0; t < Economy().TraitCount; t++)
-                if (Economy().TraitAt(t).Id == "tecrubeli") tecrubeliHuy = t;
-            Assert.True(tecrubeliHuy >= 0,
-                "icerikte 'tecrubeli' huyu yok - test neyi olctugunu bilemez");
+                if (Economy().TraitAt(t).Id == "tecrubeli") experiencedTrait = t;
+            Assert.True(experiencedTrait >= 0,
+                "the content has no 'tecrubeli' trait - the test cannot know what it measures");
 
-            int isealinan = -1;
-            for (int day = gunSayisi + 1; day <= 50 && isealinan < 0; day++)
+            int hired = -1;
+            for (int day = dayCount + 1; day <= 50 && hired < 0; day++)
             {
-                for (int slot = 0; slot < 3 && isealinan < 0; slot++)
+                for (int slot = 0; slot < 3 && hired < 0; slot++)
                 {
-                    bool var = sim.CandidateTrait(0, slot, 0) == tecrubeliHuy
-                               || sim.CandidateTrait(0, slot, 1) == tecrubeliHuy;
-                    if (!var) continue;
-                    int oncekiAsci = sim.Cooks;
+                    bool hasTrait = sim.CandidateTrait(0, slot, 0) == experiencedTrait
+                                    || sim.CandidateTrait(0, slot, 1) == experiencedTrait;
+                    if (!hasTrait) continue;
+                    int cooksBefore = sim.Cooks;
                     sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, slot));
-                    if (sim.Cooks > oncekiAsci) isealinan = sim.Cooks - 1;
+                    if (sim.Cooks > cooksBefore) hired = sim.Cooks - 1;
                 }
 
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
@@ -271,55 +271,56 @@ namespace Lokanta.Core.Tests
                 sim.AdvanceToNextDay();
             }
 
-            Assert.True(isealinan >= 0,
-                "elli gunde bir 'tecrubeli' aday cikmadi - test olcum "
-                + "yapamadi, gecmesi bir sey kanitlamaz");
+            Assert.True(hired >= 0,
+                "no 'tecrubeli' candidate appeared in fifty days - the test could not "
+                + "measure anything, its passing proves nothing");
 
-            int yeniKidem = sim.StaffDaysWorked(0, isealinan);
-            int yeniDeneyim = sim.StaffXpDays(0, isealinan);
-            _out.WriteLine($"tecrubeli: kidem {yeniKidem}, deneyim {yeniDeneyim}");
+            int newTenure = sim.StaffDaysWorked(0, hired);
+            int newExperience = sim.StaffXpDays(0, hired);
+            _out.WriteLine($"experienced hand: tenure {newTenure}, experience {newExperience}");
 
-            Assert.True(yeniKidem > 0,
-                "tecrubelinin kidemi artmadi (" + yeniKidem + ")");
-            Assert.Equal(0, yeniDeneyim);      // XpBp 0: deneyim kazanmaz
-            Assert.NotEqual(yeniKidem, yeniDeneyim);
+            Assert.True(newTenure > 0,
+                "the experienced hand's tenure did not rise (" + newTenure + ")");
+            Assert.Equal(0, newExperience);      // XpBp 0: gains no experience
+            Assert.NotEqual(newTenure, newExperience);
         }
 
         /// <summary>
-        /// UZUN KIDEM ANI ATESLENIYOR - ve TAM BIR KEZ.
+        /// THE LONG TENURE MOMENT FIRES - and EXACTLY ONCE.
         ///
-        /// Yirmi mudavimin ucer sahnesi vardi, personelin sifir satiri
-        /// (docs/53). Bu olay o boslugu kapatiyor ve nisanlarla ayni
-        /// aileden: gorev degil TANIMA.
+        /// Twenty regulars had three beats each, the staff had zero lines
+        /// (docs/53). This event closes that gap and belongs to the same family as
+        /// the badges: not a task but RECOGNITION.
         ///
-        /// Iki yonlu olcum sart. "En az bir kez atesledi" demek, her
-        /// gun atesleyen bir esigi de yesil gecirirdi - ve o, bildirim
-        /// seridini tek cumleyle doldururdu. Bu projede ayni hata tabak
-        /// bildiriminde bir kez yapildi, o yuzden esik `==` ile yazildi
-        /// ve test onu TAM BIR KEZ diye tutuyor.
+        /// A two-sided measurement is essential. Saying "it fired at least once"
+        /// would also have passed a threshold that fires every day - and that would
+        /// have filled the notification strip with a single sentence. The same
+        /// mistake was made once in this project with the plate notification, which
+        /// is why the threshold is written with `==` and the test holds it to
+        /// EXACTLY ONCE.
         /// </summary>
         [Fact]
-        public void Uzun_kidem_ani_tam_bir_kez_atesliyor()
+        public void The_long_tenure_moment_fires_exactly_one_single_time()
         {
-            const int gunSayisi = Simulation.TenureDays + 8;
+            const int dayCount = Simulation.TenureDays + 8;
             Simulation sim = NewSim();
             TimingConfig timing = Timing();
             int limit = timing.ServiceTicks + 6000;
 
-            // KISI BASINA sayiliyor, toplam degil.
+            // Counted PER PERSON, not in total.
             //
-            // Ilk yazimda "tam bir kez" diye toplami tuttum ve test
-            // kirmizi yandi: 30. gunde IKI kisi birden esigi geciyor
-            // (devralinan asci ve salondaki). Iki bildirim DOGRU - iki
-            // ayri insan. Yanlis olan testin beklentisiydi.
+            // In my first attempt I held the total to "exactly once" and the test
+            // went red: on day 30 TWO people cross the threshold at once (the
+            // inherited cook and the one in the hall). Two notifications are RIGHT -
+            // two separate human beings. What was wrong was the test's expectation.
             //
-            // Asil tutulmak istenen sey zaten kisi basina: esik ">=" gibi
-            // davranirsa AYNI kisi icin her gun atesler.
-            var kacKez = new Dictionary<int, int>();
-            var gorulenGun = new Dictionary<int, int>();
-            SimEvent[] tampon = new SimEvent[256];
+            // What was really meant to be held is per person anyway: if the
+            // threshold behaves like ">=" it fires every day for THE SAME person.
+            var fireCount = new Dictionary<int, int>();
+            var seenOnDay = new Dictionary<int, int>();
+            SimEvent[] buffer = new SimEvent[256];
 
-            for (int day = 1; day <= gunSayisi; day++)
+            for (int day = 1; day <= dayCount; day++)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
                 for (int t = 0; t < limit; t++)
@@ -329,40 +330,41 @@ namespace Lokanta.Core.Tests
                 }
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
 
-                int n = sim.Events.Drain(tampon);
+                int n = sim.Events.Drain(buffer);
                 for (int i = 0; i < n; i++)
                 {
-                    if (tampon[i].Kind != SimEventKind.StaffTenure) continue;
-                    int kisi = tampon[i].A * 100 + tampon[i].B;
-                    kacKez[kisi] = kacKez.TryGetValue(kisi, out int o) ? o + 1 : 1;
-                    gorulenGun[kisi] = sim.Day;
-                    _out.WriteLine($"kidem ani: gun {sim.Day}, havuz {tampon[i].A}, sira {tampon[i].B}");
+                    if (buffer[i].Kind != SimEventKind.StaffTenure) continue;
+                    int person = buffer[i].A * 100 + buffer[i].B;
+                    fireCount[person] = fireCount.TryGetValue(person, out int seen) ? seen + 1 : 1;
+                    seenOnDay[person] = sim.Day;
+                    _out.WriteLine($"tenure moment: day {sim.Day}, pool {buffer[i].A}, index {buffer[i].B}");
                 }
 
                 sim.AdvanceToNextDay();
             }
 
-            Assert.True(kacKez.Count > 0,
-                "kidem ani hic ateslenmedi (" + gunSayisi + " gun kosuldu, "
-                + "esik " + Simulation.TenureDays + ")");
+            Assert.True(fireCount.Count > 0,
+                "the tenure moment never fired (" + dayCount + " days were run, "
+                + "threshold " + Simulation.TenureDays + ")");
 
-            foreach (var kv in kacKez)
+            foreach (var kv in fireCount)
             {
-                // Esik ">=" gibi davranirsa ayni kisi icin her gun
-                // atesler ve bildirim seridi tek cumleyle dolar.
+                // If the threshold behaves like ">=" it fires every day for the same
+                // person and the notification strip fills with a single sentence.
                 Assert.True(kv.Value == 1,
-                    "ayni kisi icin " + kv.Value + " kez atesledi "
-                    + "(havuz " + (kv.Key / 100) + ", sira " + (kv.Key % 100)
-                    + ") - esik '==' degil '>=' gibi davraniyor");
+                    "it fired " + kv.Value + " times for the same person "
+                    + "(pool " + (kv.Key / 100) + ", index " + (kv.Key % 100)
+                    + ") - the threshold behaves like '>=' rather than '=='");
 
-                // Ve TAM esik gununde: erken ya da gec atesleyen bir
-                // sayac, sayiyi yazan bildirimi de yalanci yapardi.
-                Assert.Equal(Simulation.TenureDays, gorulenGun[kv.Key]);
+                // And on EXACTLY the threshold day: a counter that fires early or
+                // late would also make the notification that prints the number a
+                // liar.
+                Assert.Equal(Simulation.TenureDays, seenOnDay[kv.Key]);
             }
         }
 
         [Fact]
-        public void Cok_eski_surum_reddediliyor()
+        public void A_version_that_is_too_old_is_rejected()
         {
             Simulation a = NewSim();
             JsonStateWriter w = new JsonStateWriter();
@@ -377,24 +379,24 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Kesinti_testi_altmis_gun()
+        public void The_sixty_day_interruption_test()
         {
-            // docs/23 7.6: 60 gunluk kosu, rastgele noktalarda kaydet ve
-            // yukle, son ozet kesintisiz kosuyla esit olmali.
+            // docs/23 7.6: a 60-day run, saved and loaded at random points; the
+            // final hash must equal that of an uninterrupted run.
             const int days = 60;
             const int interruptions = 200;
 
             ulong clean = RunCampaign(days, null);
             ulong interrupted = RunCampaign(days, BuildInterruptionPoints(interruptions, days));
 
-            _out.WriteLine($"kesintisiz  {clean:X16}");
-            _out.WriteLine($"kesintili   {interrupted:X16}");
+            _out.WriteLine($"uninterrupted {clean:X16}");
+            _out.WriteLine($"interrupted   {interrupted:X16}");
             Assert.Equal(clean, interrupted);
         }
 
         /// <summary>
-        /// Kampanyayi kosar. interruptAt null degilse o gunlerde servis
-        /// ortasinda kaydedip yukler.
+        /// Runs the campaign. If interruptAt is not null it saves and loads in the
+        /// middle of service on those days.
         /// </summary>
         private ulong RunCampaign(int days, HashSet<int> interruptAt)
         {
@@ -404,7 +406,7 @@ namespace Lokanta.Core.Tests
 
             for (int day = 1; day <= days; day++)
             {
-                // Sade ama gercekci bir oyuncu: her sabah hal'e gidiyor.
+                // A plain but realistic player: goes to the market every morning.
                 for (int i = 0; i < sim.IngredientCount; i++)
                 {
                     int need = sim.RecommendedRestock(i);
@@ -435,7 +437,7 @@ namespace Lokanta.Core.Tests
 
         private static HashSet<int> BuildInterruptionPoints(int count, int days)
         {
-            // Deterministik dagilim; testin kendisi de tekrarlanabilir olmali.
+            // A deterministic spread; the test itself has to be repeatable too.
             HashSet<int> set = new HashSet<int>();
             Rng rng = RngSeeder.Create(4242UL, RngStream.Event);
             for (int i = 0; i < count; i++) set.Add(rng.NextInt(days) + 1);
@@ -443,7 +445,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Komut_gunlugu_kaydediliyor()
+        public void The_command_log_is_recorded()
         {
             Simulation sim = NewSim();
             sim.Apply(new Command(0, CommandKind.OrderIngredient, 0, 500));
@@ -459,7 +461,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Komut_gunlugu_gun_basinda_temizleniyor()
+        public void The_command_log_is_cleared_at_the_start_of_the_day()
         {
             Simulation sim = NewSim();
             sim.Apply(new Command(0, CommandKind.OpenService));
@@ -471,31 +473,30 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Gunluk_siniri_asilinca_komut_reddediliyor()
+        public void A_command_past_the_daily_limit_is_rejected()
         {
             Simulation sim = NewSim();
 
-            // Sinira kadar: fiyat degisiyor.
+            // Up to the limit: the price changes.
             sim.Apply(new Command(0, CommandKind.SetPrice, 0, 4000));
             Assert.Equal(4000, sim.DishPrice(0));
 
             for (int i = 1; i < Simulation.MaxCommandsPerDay; i++)
                 sim.Apply(new Command(0, CommandKind.SetPrice, 0, 4000));
 
-            // Sinirdan SONRA: komut ISLENMIYOR da.
+            // PAST the limit: the command is not APPLIED either.
             //
-            // Testin adi bastan beri "reddediliyor" diyordu ama yalnizca
-            // GUNLUK UZUNLUGUNU olcuyordu; komut gunluge girmiyor ama
-            // durumu yine de degistiriyordu. Yani "ayni tohum + ayni
-            // gunluk = ayni durum" sozlesmesi kirilabiliyordu ve test bunu
-            // gormuyordu.
+            // The test's name said "is rejected" from the start, but it only
+            // measured THE LOG'S LENGTH; the command did not enter the log and yet
+            // still changed the state. So the contract "same seed + same log = same
+            // state" could be broken and the test did not see it.
             sim.Apply(new Command(0, CommandKind.SetPrice, 0, 9999));
             Assert.Equal(Simulation.MaxCommandsPerDay, sim.CommandCount);
             Assert.Equal(4000, sim.DishPrice(0));
         }
 
         [Fact]
-        public void Bozuk_kayit_sessizce_kabul_edilmiyor()
+        public void A_corrupt_save_is_not_silently_accepted()
         {
             Simulation sim = NewSim();
             JsonStateWriter w = new JsonStateWriter();
@@ -510,7 +511,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Eksik_alan_sessizce_gecilmiyor()
+        public void A_missing_field_is_not_silently_skipped()
         {
             Simulation sim = NewSim();
             JsonStateWriter w = new JsonStateWriter();

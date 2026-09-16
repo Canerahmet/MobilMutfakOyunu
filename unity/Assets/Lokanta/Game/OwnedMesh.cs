@@ -3,25 +3,25 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// KENDI ORGUSUNU SAHIPLENEN NESNE.
+    /// AN OBJECT THAT OWNS ITS OWN MESH.
     ///
-    /// Modeler her cagrida `new Mesh()` uretiyor. Mesh bir
-    /// UnityEngine.Object'tir ve GameObject yok edilince PESINDEN
-    /// GITMEZ: MeshFilter.sharedMesh ile tutulan orgu yetim kalir ve
-    /// sahne bosaltilana kadar bellekte durur.
+    /// Modeler produces a `new Mesh()` on every call. A Mesh is a
+    /// UnityEngine.Object and it DOES NOT FOLLOW the GameObject when that
+    /// is destroyed: a mesh held through MeshFilter.sharedMesh is orphaned
+    /// and stays in memory until the scene is unloaded.
     ///
-    /// En kotu yol kiyafetler: kadro bilesimi her degistiginde TUM
-    /// personel yeniden giydiriliyor ve kisi basi uc-dort orgu
-    /// yaratiliyor. On bir personel ve altmis gunluk bir kampanyada
-    /// yuzlerce ise alma / bulasik nobeti degisimi = binlerce yetim
-    /// orgu. Ayni hata bir kat asagida (CookRoutine'in tava malzemesi)
-    /// bir kez yasandi ve orada duzeltildi; Modeler gelince bir kat
-    /// yukarida tekrarlandi.
+    /// The worst offender is the clothing: every time the crew's make-up
+    /// changes ALL the staff are dressed again and three or four meshes
+    /// are created per person. Eleven staff and a sixty-day campaign =
+    /// hundreds of hires / changes of dishwashing duty = thousands of
+    /// orphaned meshes. The same mistake was made one floor below
+    /// (CookRoutine's pan material) and fixed there; when Modeler arrived
+    /// it repeated itself one floor up.
     ///
-    /// Cozum neden BURASI: sahiplik nesnenin kendisinde durursa,
-    /// orguyu kimin yok edecegini her cagiranin ayri ayri hatirlamasi
-    /// gerekmiyor. Clear(), Strip(), sahne degisimi, prefab silinmesi -
-    /// hepsi ayni yoldan gecer.
+    /// Why the fix belongs HERE: if ownership sits on the object itself,
+    /// every caller does not have to remember separately who is going to
+    /// destroy the mesh. Clear(), Strip(), a scene change, a prefab being
+    /// deleted - they all go down the same path.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class OwnedMesh : MonoBehaviour
@@ -29,28 +29,28 @@ namespace Lokanta.Game
         public Mesh Mesh;
 
         /// <summary>
-        /// Uygulama KAPANIYOR mu.
+        /// Is the application QUITTING?
         ///
-        /// Kapanista Unity zaten butun varliklari bosaltiyor ve o
-        /// sirada elle Destroy cagirmak isin en kotu halinde surecin
-        /// cokmesine yol aciyor: turun ilk kosusu 0xC0000005 ile
-        /// dondu ve yigin tamamen kapanis temizliginin icindeydi.
+        /// On quit Unity is unloading every asset anyway, and calling Destroy
+        /// by hand at that moment makes the process crash in the worst case:
+        /// the tour's first run came back with 0xC0000005 and the stack was
+        /// entirely inside the shutdown cleanup.
         ///
-        /// Sahiplik OYUN SIRASINDA anlamli - sizinti orada oluyor.
-        /// Kapanista yapacak bir sey yok.
+        /// Ownership is meaningful DURING PLAY - that is where the leak
+        /// happens. At shutdown there is nothing to do.
         /// </summary>
-        private static bool _kapaniyor;
+        private static bool _quitting;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Izle()
+        private static void Watch()
         {
-            _kapaniyor = false;
-            Application.quitting += () => { _kapaniyor = true; };
+            _quitting = false;
+            Application.quitting += () => { _quitting = true; };
         }
 
         private void OnDestroy()
         {
-            if (_kapaniyor || Mesh == null) return;
+            if (_quitting || Mesh == null) return;
             if (Application.isPlaying) Destroy(Mesh);
             else DestroyImmediate(Mesh);
             Mesh = null;

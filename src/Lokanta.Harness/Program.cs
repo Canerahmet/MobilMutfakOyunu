@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -11,25 +11,26 @@ using Lokanta.Core.Sim;
 namespace Lokanta.Harness
 {
     /// <summary>
-    /// Bassiz denge araci.
+    /// Headless balance harness.
     ///
-    /// docs/04-architecture.md: Faz 0'in urunu. Farkli oyuncu stratejileriyle
-    /// kampanyalari simule eder ve docs/12-economy.md 8'deki sorulari
-    /// sayilarla cevaplar.
+    /// docs/04-architecture.md: the product of Phase 0. It simulates campaigns
+    /// with different player strategies and answers the questions in
+    /// docs/12-economy.md 8 with numbers.
     ///
-    /// Calistirma:
+    /// Running it:
     ///   dotnet run --project src/Lokanta.Harness
     ///   dotnet run --project src/Lokanta.Harness -- --seeds 20 --csv out.csv
     /// </summary>
     public static class Program
     {
         /// <summary>
-        /// Varsayilan mutfak. --mutfak turk ile degistirilebiliyor.
+        /// The default cuisine. Changed with --cuisine turk.
         ///
-        /// Butun denge cozumu fast food ile yapildi ve ikinci mutfak hic
-        /// olculmedi. Dilim sureleri farkli (576/2304/1200/720), yani Turk
-        /// lokantasinin ogle zirvesi cok daha keskin; ayni kadro ve ayni
-        /// ekipmanla ayni sonucu vermesi icin bir sebep yok.
+        /// The whole balance solution was done with fast food and the second
+        /// cuisine was never measured. Its slot durations differ
+        /// (576/2304/1200/720), so the Turkish restaurant's lunch peak is far
+        /// sharper; there is no reason for it to give the same result with the
+        /// same crew and the same equipment.
         /// </summary>
         private const string DefaultCuisine = "fastfood";
 
@@ -39,37 +40,37 @@ namespace Lokanta.Harness
 
             int seeds = ArgInt(args, "--seeds", 8);
 
-            // Soguk hava merdiveninin basamaklarini tek tek olcmek icin.
-            // Varsayilan sinirsiz, yani normal kosuyu etkilemiyor.
-            Equipment.StorageCap = ArgInt(args, "--depo-tavan", int.MaxValue);
+            // For measuring the cold storage ladder one step at a time.
+            // Unlimited by default, so it does not affect the normal run.
+            Equipment.StorageCap = ArgInt(args, "--storage-cap", int.MaxValue);
             int days = ArgInt(args, "--days", 60);
             string csv = ArgStr(args, "--csv", null);
             string root = FindRoot();
 
             EconomyConfig economy = ContentLoader.LoadEconomy(Path.Combine(root, "content"));
-            string cuisine = ArgStr(args, "--mutfak", DefaultCuisine);
+            string cuisine = ArgStr(args, "--cuisine", DefaultCuisine);
 
-            // BILINMEYEN BAYRAK HATA.
+            // AN UNKNOWN FLAG IS AN ERROR.
             //
-            // Once sessizce yutuluyordu ve bu tehlikeliydi: "--cuisine turk"
-            // yazan biri ikinci bir fastfood kosusu aliyor, iki mutfagi
-            // karsilastirdigini saniyordu. Bir olcum aracinin sessizce
-            // yanlis seyi olcmesi, hic olcmemekten kotudur.
+            // It used to be swallowed silently and that was dangerous: someone
+            // typing "--cuisine turk" got a second fastfood run and believed
+            // they had compared two cuisines. A measuring tool that silently
+            // measures the wrong thing is worse than one that measures nothing.
             if (!CheckArgs(args)) return 2;
             ContentSet content = ContentSetLoader.Load(Path.Combine(root, "content"), cuisine);
-            // Dilim sureleri mutfaktan geliyor (docs/28 Karar G).
+            // Slot durations come from the cuisine (docs/28 Decision G).
             TimingConfig timing = content.SlotDurationsBp != null
                 ? TimingConfig.Default().WithSlotDurations(content.SlotDurationsBp).WithEatMs(content.EatMs)
                 : TimingConfig.Default();
 
-            Console.WriteLine("=== Lokanta denge araci ===");
-            Console.WriteLine($"mutfak      : {cuisine}");
-            Console.WriteLine($"yemek       : {content.Dishes.Length}");
-            Console.WriteLine($"arketip     : {content.Archetypes.Length}");
-            Console.WriteLine($"gun         : {days}");
-            Console.WriteLine($"tohum       : {seeds}");
-            Console.WriteLine($"servis gunu : {timing.ServiceDayMs / 1000} sn sim, {timing.ServiceTicks} tick");
-            Console.WriteLine($"dilim tick  : {timing.SlotTicks(0)} / {timing.SlotTicks(1)} / " +
+            Console.WriteLine("=== Lokanta balance harness ===");
+            Console.WriteLine($"cuisine     : {cuisine}");
+            Console.WriteLine($"dishes      : {content.Dishes.Length}");
+            Console.WriteLine($"archetypes  : {content.Archetypes.Length}");
+            Console.WriteLine($"days        : {days}");
+            Console.WriteLine($"seeds       : {seeds}");
+            Console.WriteLine($"service day : {timing.ServiceDayMs / 1000} s sim, {timing.ServiceTicks} ticks");
+            Console.WriteLine($"slot ticks  : {timing.SlotTicks(0)} / {timing.SlotTicks(1)} / " +
                               $"{timing.SlotTicks(2)} / {timing.SlotTicks(3)}");
             Console.WriteLine();
 
@@ -81,50 +82,52 @@ namespace Lokanta.Harness
 
             List<StrategyResult> results = new List<StrategyResult>();
             StringBuilder rows = new StringBuilder();
-            rows.AppendLine("strateji,tohum,gun,masa,asci,salon,plan,servis,masadan_kizgin,kisi,ciro,memnuniyet,itibar,kasa");
+            rows.AppendLine("strategy,seed,day,tables,cooks,hall,planned,served,angry_at_table,people,revenue,satisfaction,reputation,cash");
 
-            // "--strateji" ARTIK OKUNUYOR. Bayrak listede duruyordu ama
-            // hicbir yerde okunmuyordu; tek bir botu olcmek isteyen kisi
-            // yirmi botun tamamini kosuyor ve filtreledigini saniyordu.
-            string yalniz = ArgStr(args, "--strateji", null);
-            int esles = 0;
+            // "--strategy" IS ACTUALLY READ NOW. The flag sat in the list but
+            // was read nowhere; someone who wanted to measure a single bot ran
+            // all twenty of them and believed they had filtered.
+            string only = ArgStr(args, "--strategy", null);
+            int matches = 0;
 
             foreach (IStrategy proto in AllStrategies())
             {
-                if (yalniz != null
-                    && !proto.Name.Equals(yalniz, StringComparison.OrdinalIgnoreCase))
+                if (only != null
+                    && !proto.Name.Equals(only, StringComparison.OrdinalIgnoreCase))
                     continue;
-                esles++;
+                matches++;
 
                 StrategyResult agg = new StrategyResult(proto.Name, proto.Question)
                 {
-                    // Mutabakat icin: kasa hareketi buradan olculuyor.
+                    // For the reconciliation: cash movement is measured from here.
                     StartCash = economy.StartingCash,
                 };
 
-                // OLCUM KOLU STRATEJIYE GORE: baskili cift salonu bir
-                // kisi eksik calistiriyor. Kol STATIK oldugu icin her
-                // strateji basinda yeniden yaziliyor - yoksa bir
-                // sonraki strateji eksik kadroyu miras alir ve olcum
-                // sessizce baska bir seyi olcer.
-                ReasonablePlayer.SalonShort = proto is PressuredPlayer ? 1 : 0;
+                // THE MEASUREMENT ARM DEPENDS ON THE STRATEGY: the pressured
+                // pair runs the hall one person short. Because the arm is
+                // STATIC it is rewritten at the start of every strategy -
+                // otherwise the next strategy inherits the short crew and the
+                // measurement silently measures something else.
+                ReasonablePlayer.HallShort = proto is PressuredPlayer ? 1 : 0;
                 Interventionist.ResetCounters();
 
-                // SABIRLI KIP DE STATIK: sifirlanmazsa bir sonraki
-                // strateji onu miras alir ve olcum sessizce baska bir
-                // seyi olcer - yukaridaki SalonShort ile ayni tuzak.
+                // THE PATIENT MODE IS STATIC TOO: if it is not reset the next
+                // strategy inherits it and the measurement silently measures
+                // something else - the same trap as HallShort above.
                 Interventionist.OnlyWhenUrgent = proto is PatientInterventionist;
 
-                // Secici kol yalnizca 5+ ziyaretli musteriye yaziyor.
+                // The picky arm only puts customers with 5+ visits on the tab.
                 SignaturePlayer.MinVisits = proto is PickyCreditor ? 5 : 0;
 
-                // Zirvede kapatan kol: salon YARISI dolunca kombo kapaniyor.
+                // The arm that closes at the peak: the combo closes once the
+                // hall is HALF full.
                 //
-                // Ilk denemem %75 idi ve HIC TETIKLENMEDI: doluluk o
-                // seviyeye pratikte cikmiyor (14 masanin 8-10'u dolu =
-                // %57-71). Kol imzaci ile birebir ayni sonucu verdi, yani
-                // olcum hicbir sey olcmuyordu ve bunu ancak iki satirin
-                // ayni cikmasi soyledi.
+                // My first attempt was 75% and it NEVER FIRED ONCE: occupancy
+                // does not reach that level in practice (8-10 of 14 tables full
+                // = 57-71%). The arm gave exactly the same result as the
+                // signature bot, which means the measurement measured nothing -
+                // and the only thing that said so was the two rows coming out
+                // identical.
                 SignaturePlayer.CloseAtOccupancyBp = proto is PeakCloser ? 5000 : 0;
 
                 for (int s = 0; s < seeds; s++)
@@ -133,7 +136,7 @@ namespace Lokanta.Harness
                     IStrategy strategy = NewLike(proto);
                     RunOne(economy, content, timing, seed, days, strategy, agg, rows);
                 }
-                ReasonablePlayer.SalonShort = 0;
+                ReasonablePlayer.HallShort = 0;
                 agg.InterventionsTried = Interventionist.Tried;
                 agg.InterventionsApplied = Interventionist.Applied;
 
@@ -141,11 +144,11 @@ namespace Lokanta.Harness
                 results.Add(agg);
             }
 
-            // SESSIZ BOS TABLO YOK. Yazim hatasi yapan kisi bos bir
-            // rapor gorup "demek bu bot hicbir sey yapmiyor" der.
-            if (yalniz != null && esles == 0)
+            // NO SILENT EMPTY TABLE. Someone who makes a typo would see an
+            // empty report and conclude "so this bot does nothing".
+            if (only != null && matches == 0)
             {
-                Console.WriteLine($"HATA: '{yalniz}' diye bir strateji yok.");
+                Console.WriteLine($"ERROR: there is no strategy called '{only}'.");
                 return 2;
             }
 
@@ -155,7 +158,7 @@ namespace Lokanta.Harness
             if (csv != null)
             {
                 File.WriteAllText(csv, rows.ToString());
-                Console.WriteLine($"\nCSV yazildi: {csv}");
+                Console.WriteLine($"\nCSV written: {csv}");
             }
             return 0;
         }
@@ -186,12 +189,13 @@ namespace Lokanta.Harness
             yield return new NoLoanPlayer();
             yield return new CheapPricer();
 
-            // BASKI CIFTI: aralarindaki TEK fark mudahale.
+            // THE PRESSURED PAIR: the ONLY difference between them is the
+            // intervention.
             //
-            // Rahat bir restoranda mudahalenin olculemedigi olculmustu
-            // (1440 mudahalenin 1440'i gecti, sonuc degismedi). Bu cift,
-            // "mekanik zayif mi" ile "kurtarilacak bir sey yok mu"
-            // sorularini ayiriyor.
+            // It had already been measured that intervention cannot be detected
+            // in a comfortable restaurant (1440 of 1440 interventions went
+            // through and the result did not change). This pair separates the
+            // question "is the mechanic weak" from "is there nothing to save".
             yield return new PressuredPlayer(intervene: false);
             yield return new PressuredPlayer(intervene: true);
         }
@@ -242,22 +246,23 @@ namespace Lokanta.Harness
             long plannedParties = 0, servedParties = 0, turnedAway = 0;
             int trivialWeek = 0;
 
-            // "Restoran gozle gorulur bicimde bosaldi" gunu: itibar, talep
-            // egrisinin kirilma noktasinin altina indigi gun.
+            // The "the restaurant visibly emptied out" day: the day reputation
+            // drops below the breaking point of the demand curve.
             //
-            // docs/08 kapanisi reddediyor ("kayit silinmez, oyun bitmez"),
-            // yani ihmalin bedeli oyunu bitirmek degil. Ama oyuncu isin
-            // bittigini GORMELI. Bu sutun onu olcuyor: kasadaki para
-            // cenazeyi geciktirse de dukkan ne zaman bosaldi.
+            // docs/08 rejects a game over ("the save is not deleted, the game
+            // does not end"), so the price of neglect is not the end of the
+            // game. But the player must SEE that it is over. This column
+            // measures that: however long the money in the till delays the
+            // funeral, when did the place empty out.
             const int CollapseCenti = 2000;
             int collapseDay = 0;
 
-            // TABAK BASINCI: darbogaz gercekten isiriyor mu.
+            // PLATE PRESSURE: does the bottleneck really bite.
             //
-            // docs/14 bulasikciyi bir darbogaz olarak tarif ediyor ama
-            // mekanik eklendiginde dogrudan olculmesi gerekti: "var olmak"
-            // ile "hissedilmek" ayri seyler ve bu projede dekoratif bir
-            // mekanik en kotu sonuctur.
+            // docs/14 describes the dishwasher as a bottleneck, but once the
+            // mechanic was added it had to be measured directly: "existing" and
+            // "being felt" are different things, and in this project a
+            // decorative mechanic is the worst possible outcome.
             int plateBlocked = 0, plateMinClean = int.MaxValue, plateMaxDirty = 0;
 
             for (int day = 1; day <= days; day++)
@@ -269,19 +274,20 @@ namespace Lokanta.Harness
                 {
                     sim.Tick();
 
-                    // Servis SIRASINDA mudahale. docs/02 cekirdek dongusu:
-                    // "servis sirasinda sadece krizlere mudahale edersin".
-                    // Yalnizca o stratejiye acik; digerleri hic kullanmiyor
-                    // ki farki olculebilsin.
-                    // SABIRLI KOL HER TIK SORULUYOR.
+                    // Intervention DURING service. docs/02 core loop: "during
+                    // service you only intervene in crises". Open only to that
+                    // strategy; the others never use it, so that the difference
+                    // can be measured.
+                    // THE PATIENT ARM IS ASKED ON EVERY TICK.
                     //
-                    // 200 tiklik aralik (20 sim-saniye) mudahaleci
-                    // icin yeterliydi cunku o zaten ilk firsatta
-                    // harciyor. Sabirli kol ise KRIZI BEKLIYOR ve
-                    // kriz penceresi 3 saniye: yirmi saniyede bir
-                    // bakan bir bot o pencereyi cogu zaman kacirir
-                    // ve olcum "saklamak ise yaramiyor" derdi -
-                    // olctugu sey aslinda kendi goz kirpmasi olurdu.
+                    // A 200-tick interval (20 sim-seconds) was enough for the
+                    // interventionist because it spends at the first
+                    // opportunity anyway. The patient arm WAITS FOR THE CRISIS,
+                    // and the crisis window is 3 seconds: a bot that looks once
+                    // every twenty seconds misses that window most of the time,
+                    // and the measurement would have said "holding back does
+                    // not pay" - when what it actually measured was its own
+                    // blinking.
                     if (strategy is PatientInterventionist)
                         Interventionist.DuringService(sim);
                     else if ((t % 200) == 0
@@ -289,17 +295,17 @@ namespace Lokanta.Harness
                             || (strategy is PressuredPlayer pp && pp.Intervenes)))
                         Interventionist.DuringService(sim);
 
-                    // Imza mekanigi de servis sirasinda isliyor: veresiye
-                    // odeme aninda aciliyor, kombo siparis aninda.
+                    // The signature mechanics also run during service: the tab
+                    // opens at the moment of payment, the combo at the moment
+                    // of ordering.
                     if ((t % 50) == 0)
                     {
-                        // TUR KONTROLU ZINCIRI YOK ARTIK.
+                        // NO MORE CHAIN OF TYPE CHECKS.
                         //
-                        // Zincirde olmayan bir strateji sessizce hicbir
-                        // sey yapmiyordu ve bunu hicbir sey soylemiyordu.
-                        // Arayuzun varsayilan bos govdesi sayesinde her
-                        // strateji cagriliyor; katilmak icin metodu
-                        // yazmak yetiyor.
+                        // A strategy that was not in the chain silently did
+                        // nothing and nothing said so. Thanks to the default
+                        // empty body on the interface every strategy is called;
+                        // writing the method is enough to take part.
                         strategy.DuringService(sim);
                     }
 
@@ -319,27 +325,28 @@ namespace Lokanta.Harness
                 turnedAway += r.TurnedAwayParties;
                 totalRevenue += r.Revenue;
                 totalIngredients += r.IngredientCost;
-                // GRUP sayiliyor, kisi degil - alanin adi da oyle.
-                // Eskiden "peopleLost" deniyordu ve Warnings() bunu
-                // KISI sayisiyla karsilastiriyordu: makul oyuncuda
-                // 2.042 kisi / 16 grup, esik 408 - koruma matematiksel
-                // olarak hic atesleyemezdi.
+                // PARTIES are counted, not people - and the field is named
+                // accordingly. It used to be called "peopleLost" and Warnings()
+                // compared it against the PEOPLE count: for the reasonable
+                // player that is 2,042 people / 16 parties, threshold 408 - the
+                // guard could never fire, mathematically.
                 //
-                // Ayrica kapidan donenler ARTIK AYRI: masadan kizgin
-                // ayrilan bir servis sorunu, kapidan donen bir kapasite
-                // sorunu. Ikisi tek sayiya katlanirsa hangi derdin
-                // buyudugu okunamiyor.
+                // Also, those turned away at the door are NOW SEPARATE: a party
+                // that leaves the table angry is a service problem, a party
+                // turned away at the door is a capacity problem. Folded into
+                // one number, you cannot read which trouble is growing.
                 partiesLost += r.AngrySeatedParties;
 
-                // "Para sorun olmaktan cikti": kasa, geriye kalan BUTUN
-                // satin alinabilirleri tek seferde odeyebiliyorsa oyuncunun
-                // biriktirecegi bir sey kalmamis demektir.
+                // "Money has stopped being a problem": if the till can pay for
+                // ALL the remaining purchasables in one go, then the player has
+                // nothing left to save up for.
                 //
-                // Iki eski tanim da yanlisti. Once "en pahali genislemenin
-                // uc kati" deniyordu; ekipmani hic saymiyordu. Sonra ayni
-                // esige ekipman eklendi ama "uc kat" keyfi kaldi: elde
-                // 30.000 varken 20.000'lik iki ekipman duruyorsa para hala
-                // onemli.
+                // Both of the old definitions were wrong too. First it was
+                // "three times the most expensive expansion"; that counted no
+                // equipment at all. Then equipment was added to the same
+                // threshold but the "three times" remained arbitrary: with
+                // 30,000 in hand and two 20,000 pieces of equipment still on
+                // the shelf, money still matters.
                 long remaining = sim.RemainingPurchaseCost();
                 if (trivialWeek == 0 && remaining > 0 && sim.Cash > remaining)
                     trivialWeek = (day + 6) / 7;
@@ -349,7 +356,7 @@ namespace Lokanta.Harness
 
                 rows.Append(strategy.Name).Append(',').Append(seed).Append(',')
                     .Append(day).Append(',').Append(sim.TableCount).Append(',')
-                    .Append(sim.Cooks).Append(',').Append(sim.SalonStaff).Append(',')
+                    .Append(sim.Cooks).Append(',').Append(sim.HallStaff).Append(',')
                     .Append(r.PlannedParties).Append(',').Append(r.ServedParties).Append(',')
                     .Append(r.AngrySeatedParties).Append(',').Append(r.ServedPeople).Append(',')
                     .Append(r.Revenue).Append(',').Append(r.AverageSatisfactionCenti).Append(',')
@@ -358,15 +365,15 @@ namespace Lokanta.Harness
                 sim.AdvanceToNextDay();
             }
 
-            // CIRO KUMULATIF OKUNUYOR, gun raporlarindan toplanmiyor.
+            // REVENUE IS READ CUMULATIVELY, not summed from the day reports.
             //
-            // Toplama bir sinir artigi uretiyordu: AdvanceToNextDay()
-            // vadesi gelen veresiyeyi tahsil ediyor ama gunun raporu
-            // ondan once aliniyor, yani son gunun tahsilati hicbir
-            // rapora girmiyor ve mutabakat kapanmiyordu. Kuyrugu elle
-            // eklemek de tam tutmadi; dogru cevap, ucret ve kirada
-            // oldugu gibi simulasyonun kendi kumulatif sayacini
-            // okumak. Boylece sinir diye bir sey kalmiyor.
+            // Summing produced a boundary remainder: AdvanceToNextDay() collects
+            // the tab entries that have come due, but the day's report is taken
+            // before that, so the last day's collection entered no report at all
+            // and the reconciliation would not close. Adding the tail by hand
+            // did not match exactly either; the right answer is to read the
+            // simulation's own cumulative counter, as is done for wages and
+            // rent. That way there is no boundary at all.
             totalRevenue = sim.TotalRevenue;
 
             agg.Add(sim, peopleServed, partiesLost, trivialWeek, totalRevenue,
@@ -379,18 +386,18 @@ namespace Lokanta.Harness
 
         // -------------------------------------------------------------------
         /// <summary>
-        /// TABAK BASINCI TABLOSU.
+        /// THE PLATE PRESSURE TABLE.
         ///
-        /// docs/14 bulasikciyi bir darbogaz olarak tarif ediyor. Bir
-        /// darbogazin "var olmasi" yetmez, bir yerde HISSEDILMESI gerekir -
-        /// hissedilmeyen mekanik dekorasyondur ve bu projede en kotu
-        /// sonuctur. Bu tablo tam o soruyu soruyor.
+        /// docs/14 describes the dishwasher as a bottleneck. It is not enough
+        /// for a bottleneck to "exist", it has to be FELT somewhere - a mechanic
+        /// nobody feels is decoration, and in this project that is the worst
+        /// possible outcome. This table asks exactly that question.
         /// </summary>
         private static void PlateReport(List<StrategyResult> results)
         {
             Console.WriteLine();
-            Console.WriteLine("=== tabak basinci (60 gun, ortalama) ===");
-            Console.WriteLine("| strateji      | tabaksiz bekleme | en az temiz | en cok kirli |");
+            Console.WriteLine("=== plate pressure (60 days, average) ===");
+            Console.WriteLine("| strategy      | waited, no plate | min clean   | max dirty    |");
             Console.WriteLine("|---------------|-----------------:|------------:|-------------:|");
             foreach (StrategyResult r in results)
                 Console.WriteLine($"| {r.Name,-13} | {r.AvgPlateBlocked,16:0} | "
@@ -399,7 +406,7 @@ namespace Lokanta.Harness
 
         private static void Report(List<StrategyResult> results)
         {
-            Console.WriteLine("| strateji      | son kasa | defter | itibar | masa | kadro | servis | kayip | bosaldi | ilk borc | onemsiz |");
+            Console.WriteLine("| strategy      | end cash |    tab | rep    | tabl | crew  | served | lost  | emptied | debt day | trivial |");
             Console.WriteLine("|---------------|---------:|-------:|-------:|-----:|------:|-------:|------:|--------:|---------:|--------:|");
             foreach (StrategyResult r in results)
             {
@@ -414,69 +421,71 @@ namespace Lokanta.Harness
             }
 
             Console.WriteLine();
-            Console.WriteLine("=== 60 gunun gelir tablosu (ortalama, sikke) ===");
-            // MUTABAKAT SUTUNU var: net ile gercek kasa hareketi
-            // arasindaki fark. Sifir olmali.
+            Console.WriteLine("=== the 60-day income statement (average, coins) ===");
+            // THERE IS A RECONCILIATION COLUMN: the gap between the net and the
+            // real cash movement. It must be zero.
             //
-            // Once zayiat, ekipman ve genisleme satirlari YOKTU ve "net"
-            // gercek kasa hareketinin 2-20 kati cikiyordu. Uc tasarim
-            // sorusunun cevabi ters isaretliydi: arac "yuksek fiyat yine
-            // de kazandiriyor" diyordu, gercekte kaybettiriyordu. Bu
-            // tablolara bakarak alinmis her denge karari supheliydi.
-            Console.WriteLine("| strateji      |    ciro | kurtarma | malzeme |  zayiat |"
-                              + "  cay |    maas |    kira | yatirim |     net |  fark |");
+            // The spoilage, equipment and expansion lines USED TO BE MISSING and
+            // the "net" came out 2-20 times the real cash movement. The answers
+            // to three design questions had the wrong sign: the tool said "the
+            // high price still pays", when in reality it lost money. Every
+            // balance decision taken by looking at these tables was suspect.
+            Console.WriteLine("| strategy      | revenue |   rescue |   stock | spoiled |"
+                              + "  tea |   wages |    rent |  invest |     net |   gap |");
             Console.WriteLine("|---------------|--------:|---------:|--------:|--------:|"
                               + "-----:|--------:|--------:|--------:|--------:|------:|");
             foreach (StrategyResult r in results)
             {
-                // Mutabakat MALZEME HARCAMASIYLA, satilan malin
-                // maliyetiyle degil: kasadan cikan para satin almadir.
-                // Zayiat ayri bir sutun ve NET'TEN DUSULMUYOR - o para
-                // zaten satin alirken cikti; zayiat, alinan malin ne
-                // kadarinin bosa gittigini gosteren bir BILGI satiri.
+                // The reconciliation uses INGREDIENT SPEND, not the cost of
+                // goods sold: what leaves the till is the purchase. Spoilage is
+                // a separate column and is NOT DEDUCTED FROM THE NET - that
+                // money already left when it was bought; spoilage is an
+                // INFORMATION line showing how much of what was bought went to
+                // waste.
                 double ing = r.AvgIngredientSpend;
                 double invest = r.AvgEquipment + r.AvgExpansion;
 
-                // Kurtarma ve kredi de NAKIT HAREKETI: batma merdiveni
-                // ekipman satiyor, dukkan kuculuyor ve kalan borc
-                // siliniyor - hepsi kasaya para sokuyor. Gorunmezse
-                // mutabakat tutmuyor ve fark aciklanamiyor.
+                // Rescue and the loan are CASH MOVEMENTS too: the bankruptcy
+                // ladder sells equipment, the place shrinks and the remaining
+                // debt is written off - all of it puts money into the till. If
+                // it is invisible the reconciliation does not close and the gap
+                // cannot be explained.
                 double inflow = r.AvgRescue + r.AvgLoan;
 
-                // Kredi taksitleri kira sutununda DEGIL: TotalRentPaid
-                // yalnizca kirayi sayiyor. Ayri bir cikis olarak
-                // dusulmezse mutabakat kredinin geri odemesi kadar
-                // sapiyor - makul oyuncuda 6.117 sikke.
-                // CAY DA BIR GIDER.
+                // Loan instalments are NOT in the rent column: TotalRentPaid
+                // counts only the rent. If they are not deducted as a separate
+                // outflow the reconciliation drifts by exactly the loan
+                // repayment - 6,117 coins for the reasonable player.
+                // TEA IS AN EXPENSE TOO.
                 //
-                // Veresiye acilirken ikram edilen cayin bedeli kasadan
-                // cikiyor ve HICBIR sutunda sayilmiyordu: Turk
-                // mutfaginda imzaci botun farki tam olarak o kadardi
-                // (134 sikke). Gorunmez bir gider, mutabakati bozmakla
-                // kalmiyor - mekanigi oldugundan ucuz gosteriyor.
+                // The tea offered when a tab is opened costs money out of the
+                // till and was counted in NO column: in the Turkish cuisine
+                // that was exactly the size of the signature bot's difference
+                // (134 coins). An invisible expense does not merely break the
+                // reconciliation - it makes the mechanic look cheaper than it is.
                 double net = r.AvgRevenue + inflow - ing - r.AvgWages
                              - r.AvgRent - invest - r.AvgLoanRepaid - r.AvgTea;
 
-                // Kasa hareketi: baslangic kasasindan bugune.
+                // Cash movement: from the starting till to today.
                 //
-                // ACIK VERESIYE BURAYA GIRMIYOR. Bir zamanlar ekleniyordu
-                // ve mutabakati BOZUYORDU: veresiyeye yazilan fis
-                // _revenue'ya hic girmiyor (ancak tahsil edilince
-                // giriyor), yani ciro tarafinda karsiligi yok. Turk
-                // mutfaginda imzaci oyuncunun farki -2.441 cikiyordu ve
-                // sutun "sifir olmali" diyordu.
+                // THE OPEN TAB DOES NOT GO IN HERE. It was added once and it
+                // BROKE the reconciliation: a bill written on the tab never
+                // enters _revenue (it only enters when collected), so there is
+                // no counterpart on the revenue side. In the Turkish cuisine
+                // the signature player's gap came out at -2,441 and the column
+                // said "must be zero".
                 //
-                // Acik veresiye kaybolmus degil ama HENUZ GELIR DEGIL:
-                // ne kasada, ne ciroda. Mutabakat ikisini de saymayinca
-                // kapaniyor.
+                // The open tab is not lost, but it IS NOT INCOME YET: neither in
+                // the till nor in the revenue. The reconciliation closes once
+                // it counts neither of them.
                 double moved = r.AvgFinalCash - r.StartCash;
                 double gap = net - moved;
 
-                // Fark SIFIR OLMALI ve olmadigini soyleyen bir sey
-                // olmali: sutun uzun sure -2.441 yaziyordu ve hicbir
-                // uyari cikmiyordu, cunku Warnings() farka hic bakmiyordu.
-                // Kendi kirildigini soylemeyen bir olcum araci, yanlis
-                // olcumu dogru sanmaktan daha kotu.
+                // The gap MUST BE ZERO and something must say when it is not:
+                // the column read -2,441 for a long time and no warning came
+                // out, because Warnings() never looked at the gap. A measuring
+                // tool that does not say when it has broken is worse than
+                // believing a wrong measurement is right.
                 if (System.Math.Abs(gap) > 100)
                     r.Reconciliation = gap;
 
@@ -488,59 +497,60 @@ namespace Lokanta.Harness
                     $"{Coin(gap),5} |");
             }
 
-            // YIL SONU PUANI: kasadan BASKA bir cevap.
+            // THE YEAR-END SCORE: an answer OTHER than the till.
             //
-            // docs/08 kampanyayi yedi eksende puanliyor ve oyuncunun
-            // gordugu sonuc bu. "Son kasa" tek basina yaniltici: eksik
-            // kadroyla calisip parayi biriktiren oyuncu itibar, ekip ve
-            // mudavim eksenlerinde kaybediyor olabilir - ya da
-            // olmayabilir. Tablo o soruyu cevapliyor.
+            // docs/08 scores the campaign on seven axes and that is the result
+            // the player sees. "End cash" on its own is misleading: a player who
+            // runs short-staffed and hoards the money may be losing on the
+            // reputation, crew and regulars axes - or may not be. The table
+            // answers that question.
             Console.WriteLine();
-            Console.WriteLine("=== yil sonu puani (docs/08, 0-100) ===");
-            Console.WriteLine("| strateji      | puan | varlik | itibar | mudavim "
-                              + "| ekip | mekan | saglam | imza | kombo% |");
-            Console.WriteLine("|---------------|-----:|-------:|-------:|--------:"
+            Console.WriteLine("=== year-end score (docs/08, 0-100) ===");
+            Console.WriteLine("| strategy      | score | wealth | rep    | regulars "
+                              + "| crew | place | resil  | sig  | combo% |");
+            Console.WriteLine("|---------------|------:|-------:|-------:|---------:"
                               + "|-----:|------:|-------:|-----:|-------:|");
             foreach (StrategyResult r in results)
                 Console.WriteLine(
-                    $"| {r.Name,-13} | {r.AvgScore,4:0} | {r.AvgScoreWealth,6:0} | "
-                    + $"{r.AvgScoreRep,6:0} | {r.AvgScoreRegulars,7:0} | "
+                    $"| {r.Name,-13} | {r.AvgScore,5:0} | {r.AvgScoreWealth,6:0} | "
+                    + $"{r.AvgScoreRep,6:0} | {r.AvgScoreRegulars,8:0} | "
                     + $"{r.AvgScoreCrew,4:0} | {r.AvgScorePlace,5:0} | "
                     + $"{r.AvgScoreResilience,6:0} | {r.AvgScoreSignature,4:0} | "
                     + $"{r.AvgComboShareBp / 100,6:0.0} |");
 
             Console.WriteLine();
-            Console.WriteLine("=== docs/12 8: aracin cevapladigi sorular ===");
+            Console.WriteLine("=== docs/12 8: the questions the tool answers ===");
             foreach (StrategyResult r in results)
             {
                 Console.WriteLine($"\n{r.Question}");
                 Console.WriteLine($"  -> {r.Verdict()}");
             }
 
-            // MUDAHALE GERCEKTEN OLDU MU.
+            // DID THE INTERVENTION ACTUALLY HAPPEN.
             //
-            // "Reddedilen bir bot, bot degildir": fiyat tavani gelince
-            // yuksek_fiyat botunun komutlari reddediliyordu ve bot
-            // sessizce makul oyuncunun kopyasi olmustu. Mudahalenin
-            // KAZANDIRIP kazandirmadigini sormadan once, mudahalenin
-            // olup olmadigi sorulmali.
-            // KOL BASINA. Tek satirda basilirken iki kolun toplamiydi
-            // ve hangi kolun kac mudahalesinin gectigi okunamiyordu -
-            // oysa sayaclarin yazilma sebebi tam olarak buydu.
+            // "A bot that gets refused is not a bot": once the price ceiling
+            // arrived the high-price bot's commands were being rejected and the
+            // bot had silently become a copy of the reasonable player. Before
+            // asking whether the intervention PAYS, you have to ask whether it
+            // happened at all.
+            // PER ARM. It used to be printed on a single line as the sum of the
+            // two arms, and you could not read how many of which arm's
+            // interventions went through - which was exactly why the counters
+            // were written in the first place.
             Console.WriteLine();
-            Console.WriteLine("=== mudahale (strateji basina) ===");
-            bool hicMudahale = false;
+            Console.WriteLine("=== interventions (per strategy) ===");
+            bool anyIntervention = false;
             foreach (StrategyResult r in results)
             {
                 if (r.InterventionsTried == 0) continue;
-                hicMudahale = true;
-                Console.WriteLine($"  {r.Name,-20} {r.InterventionsApplied,6} gecti / "
-                                  + $"{r.InterventionsTried,6} denendi");
+                anyIntervention = true;
+                Console.WriteLine($"  {r.Name,-20} {r.InterventionsApplied,6} applied / "
+                                  + $"{r.InterventionsTried,6} tried");
             }
-            if (!hicMudahale) Console.WriteLine("  yok");
+            if (!anyIntervention) Console.WriteLine("  none");
 
             Console.WriteLine();
-            Console.WriteLine("=== Uyarilar ===");
+            Console.WriteLine("=== Warnings ===");
             int warnings = 0;
             foreach (StrategyResult r in results)
             {
@@ -550,7 +560,7 @@ namespace Lokanta.Harness
                     warnings++;
                 }
             }
-            if (warnings == 0) Console.WriteLine("  yok");
+            if (warnings == 0) Console.WriteLine("  none");
         }
 
         private static string Coin(double centi)
@@ -569,32 +579,32 @@ namespace Lokanta.Harness
                     return d.FullName;
                 d = d.Parent;
             }
-            throw new InvalidOperationException("Depo koku bulunamadi");
+            throw new InvalidOperationException("Repository root not found");
         }
 
         /// <summary>
-        /// Tanidigimiz butun bayraklar. Baskasi varsa hata.
+        /// Every flag we recognise. Anything else is an error.
         ///
-        /// "--nologo" bizim degil: "dotnet run --nologo" onu tanimadigi
-        /// icin uygulamaya GECIRIYOR. Denetimin ilk kosusunda kalibrasyon
-        /// aracinin tamami bu yuzden durdu; bayragi listeye almak, kendi
-        /// koruma araclarimizin birbirini engellememesi icin.
+        /// "--nologo" is not ours: "dotnet run --nologo" does not recognise it
+        /// and so PASSES IT ON to the application. The whole calibration tool
+        /// stopped on the check's first run because of this; the flag is on the
+        /// list so that our own guard tools do not block one another.
         /// </summary>
         private static readonly string[] KnownFlags =
         {
-            "--seeds", "--days", "--csv", "--mutfak", "--strateji",
-            "--depo-tavan", "--solve",
+            "--seeds", "--days", "--csv", "--cuisine", "--strategy",
+            "--storage-cap", "--solve",
             "--nologo",
         };
 
-        // "--solve" LISTEDE OLMADIGI ICIN RentSolver ERISILEMEZDI:
-        // CheckArgs bayragi tanimiyor, arac "Bilinmeyen bayrak" deyip 2
-        // ile cikiyordu. Kira cozucu yazildi, hic calistirilamadi.
+        // RentSolver WAS UNREACHABLE BECAUSE "--solve" WAS NOT ON THE LIST:
+        // CheckArgs did not recognise the flag, so the tool said "Unknown flag"
+        // and exited with 2. The rent solver was written and could never be run.
         //
-        // "--tohum" LISTEDEN CIKTI: kabul ediliyordu ama kodda tek bir
-        // okuma yoktu. "--tohum 3" yazan kisi hata almiyor, tam kosuyu
-        // aliyor ve filtreledigini saniyordu - CheckArgs'in kendi
-        // yorumundaki tehlikenin aynisi, listenin KENDI ICINDE.
+        // "--tohum" CAME OFF THE LIST: it was accepted but there was not a
+        // single read of it in the code. Someone typing "--tohum 3" got no
+        // error, got the full run, and believed they had filtered - the very
+        // danger CheckArgs was written to prevent, INSIDE the list itself.
 
         private static bool CheckArgs(string[] a)
         {
@@ -609,12 +619,12 @@ namespace Lokanta.Harness
 
                 if (!known)
                 {
-                    Console.Error.WriteLine("Bilinmeyen bayrak: " + a[i]);
+                    Console.Error.WriteLine("Unknown flag: " + a[i]);
                     ok = false;
                 }
             }
             if (!ok)
-                Console.Error.WriteLine("Taninan bayraklar: " + string.Join(" ", KnownFlags));
+                Console.Error.WriteLine("Recognised flags: " + string.Join(" ", KnownFlags));
             return ok;
         }
 
@@ -648,34 +658,33 @@ namespace Lokanta.Harness
         private int _collapseDays, _collapseCount;
 
         public double AvgFinalCash, AvgReputation, AvgTables, AvgStaff, AvgServed, AvgLost;
-        /// <summary>Kosu basina agirlanan GRUP sayisi; AvgLost ile ayni birim.</summary>
+        /// <summary>PARTIES served per run; the same unit as AvgLost.</summary>
         public double AvgServedParties;
 
-        /// <summary>Ana yemeklerin yuzde kaci komboya dondu (bin-puan).</summary>
+        /// <summary>What share of the main dishes became combos (basis points).</summary>
         public double AvgComboShareBp;
         private long _comboShareBp;
 
-        /// <summary>Bu stratejinin kendi mudahale sayaclari.</summary>
+        /// <summary>This strategy's own intervention counters.</summary>
         public int InterventionsTried, InterventionsApplied;
         /// <summary>
-        /// Altmisinci gunde hala DEFTERDE duran para. Kasada degil ama
-        /// kaybolmus da degil - docs/08 yil sonu degerlendirmesi net
-        /// varligi olcuyor, ve tahsil edilmemis veresiye net varligin
-        /// parcasi. Ayri sutun cunku "son kasa" hedefleri buna gore
-        /// kalibre edilmedi.
+        /// Money still ON THE TAB on the sixtieth day. Not in the till, but not
+        /// lost either - the docs/08 year-end evaluation measures net worth, and
+        /// an uncollected tab is part of net worth. A separate column, because
+        /// the "end cash" targets were not calibrated with it included.
         /// </summary>
         public double AvgOpenCredit;
         public double AvgFirstDebtDay, AvgTrivialWeek;
-        /// <summary>Itibarin 20 puanin altina indigi gun; dukkanin bosaldigi an.</summary>
+        /// <summary>The day reputation fell below 20; the moment the place emptied out.</summary>
         public double AvgCollapseDay;
         public double AvgRevenue, AvgWages, AvgRent, AvgTicket, AvgIngredients;
         public double AvgSpoiled, AvgEquipment, AvgExpansion, AvgIngredientSpend;
 
-        /// <summary>Veresiye cayinin bedeli - GORUNMEYEN bir giderdi.</summary>
+        /// <summary>The cost of the tab's tea - an INVISIBLE expense.</summary>
         public double AvgTea;
         private long _teaSpend;
 
-        /// <summary>Gelir tablosu mutabakat farki. Sifir disi = arac kirik.</summary>
+        /// <summary>The income statement's reconciliation gap. Non-zero = the tool is broken.</summary>
         public double Reconciliation;
         public double AvgRescue, AvgLoan, AvgLoanRepaid;
         public double StartCash;
@@ -692,7 +701,7 @@ namespace Lokanta.Harness
         public double ServiceRate => _planned > 0 ? (double)_servedP / _planned : 0;
         public double TurnAwayRate => _planned > 0 ? (double)_turned / _planned : 0;
 
-        /// <summary>Talebin ne kadari agirlandi. Kapali form model %100 varsayiyor.</summary>
+        /// <summary>How much of the demand was served. The closed-form model assumes 100%.</summary>
         public void AddFlow(long planned, long served, long turned)
         {
             _planned += planned; _servedP += served; _turned += turned;
@@ -701,7 +710,7 @@ namespace Lokanta.Harness
         private long _score, _scoreWealth, _scoreRep, _scoreRegulars;
         private long _scoreCrew, _scorePlace, _scoreResilience, _scoreSignature;
 
-        /// <summary>Yil sonu puani (0-100) ve yedi ekseni.</summary>
+        /// <summary>The year-end score (0-100) and its seven axes.</summary>
         public double AvgScore { get { return _runs == 0 ? 0 : (double)_score / _runs; } }
         public double AvgScoreWealth { get { return _runs == 0 ? 0 : (double)_scoreWealth / _runs; } }
         public double AvgScoreRep { get { return _runs == 0 ? 0 : (double)_scoreRep / _runs; } }
@@ -714,7 +723,7 @@ namespace Lokanta.Harness
         private long _plateBlocked, _plateMinClean, _plateMaxDirty;
         private int _plateRuns;
 
-        /// <summary>Tabak basinci: darbogaz isiriyor mu.</summary>
+        /// <summary>Plate pressure: does the bottleneck bite.</summary>
         public void AddPlates(int blocked, int minClean, int maxDirty)
         {
             _plateBlocked += blocked;
@@ -755,30 +764,30 @@ namespace Lokanta.Harness
             _equipment += sim.EquipmentSpend;
             _expansion += sim.ExpansionSpend;
             _openCredit += sim.OpenCredit;
-            // YIL SONU PUANI: docs/08'in asil sonucu.
+            // THE YEAR-END SCORE: what docs/08 is really about.
             //
-            // Bu sutun bir IDDIAYI olcmek icin eklendi. docs/42'de
-            // "eksik kadro parayi kazaniyor, PUANI kaybediyor" diye
-            // yazmistim - ve o cumle olculmemisti. Bu projenin kurali
-            // acik: olculmemis bir cumle, belgede duran bir tahmindir.
-            SeasonScore puan = sim.Score();
-            _score += puan.Total;
-            _scoreWealth += puan.Wealth;
-            _scoreRep += puan.Reputation;
-            _scoreRegulars += puan.Regulars;
-            _scoreCrew += puan.Crew;
-            _scorePlace += puan.Place;
-            _scoreResilience += puan.Resilience;
-            _scoreSignature += puan.Signature;
+            // This column was added to measure a CLAIM. In docs/42 I had written
+            // "short-staffing wins the money and loses the SCORE" - and that
+            // sentence had never been measured. The rule of this project is
+            // plain: an unmeasured sentence is a guess sitting in a document.
+            SeasonScore score = sim.Score();
+            _score += score.Total;
+            _scoreWealth += score.Wealth;
+            _scoreRep += score.Reputation;
+            _scoreRegulars += score.Regulars;
+            _scoreCrew += score.Crew;
+            _scorePlace += score.Place;
+            _scoreResilience += score.Resilience;
+            _scoreSignature += score.Signature;
 
-            // HAM KOMBO ORANI. Imza ekseninin HEDEFI bu olcumden
-            // gelecek; uydurulmus bir hedef ekseni ya doygun ya
-            // erisilmez yapar.
+            // THE RAW COMBO SHARE. The signature axis's TARGET will come from
+            // this measurement; an invented target makes the axis either
+            // saturated or unreachable.
             _comboShareBp += sim.ComboShareBp;
 
             _reputation += sim.ReputationCenti;
             _tables += sim.TableCount;
-            _staff += sim.Cooks + sim.SalonStaff;
+            _staff += sim.Cooks + sim.HallStaff;
             _served += served;
             _lost += lost;
             if (sim.FirstDebtDay > 0) { _debtDays += sim.FirstDebtDay; _debtCount++; }
@@ -820,61 +829,63 @@ namespace Lokanta.Harness
         {
             string cash = (AvgFinalCash / 100.0).ToString("N0", CultureInfo.InvariantCulture);
             if (DebtShare > 0.5)
-                return $"kosularin %{DebtShare * 100:0}'i borca dustu, ortalama {AvgFirstDebtDay:0}. gunde; " +
-                       $"son kasa {cash}";
-            return $"son kasa {cash}, itibar {AvgReputation / 100:0.0}, " +
-                   $"{AvgServed:0} kisi agirlandi, {AvgLost:0} grup masadan kizgin ayrildi";
+                return $"{DebtShare * 100:0}% of the runs fell into debt, on average on day {AvgFirstDebtDay:0}; " +
+                       $"end cash {cash}";
+            return $"end cash {cash}, reputation {AvgReputation / 100:0.0}, " +
+                   $"{AvgServed:0} people served, {AvgLost:0} parties left the table angry";
         }
 
         public IEnumerable<string> Warnings()
         {
-            // docs/12 8.3: ekonomi kacinci haftada onemsizlesiyor
+            // docs/12 8.3: in which week does the economy stop mattering
             if (AvgTrivialWeek > 0 && AvgTrivialWeek < 8)
-                yield return $"{Name}: para {AvgTrivialWeek:0.0}. haftada sorun olmaktan cikiyor " +
-                             "(hedef: 8. haftadan once olmamali)";
+                yield return $"{Name}: money stops being a problem in week {AvgTrivialWeek:0.0} " +
+                             "(target: not before week 8)";
 
             if (Name == "makul" && DebtShare > 0.2)
-                yield return $"makul oyuncu kosularin %{DebtShare * 100:0}'inde borca dusuyor; " +
-                             "ekonomi fazla sert";
+                yield return $"the reasonable player falls into debt in {DebtShare * 100:0}% of runs; " +
+                             "the economy is too harsh";
 
-            // ESIK AYNI BIRIMDEN OLMALI.
+            // THE THRESHOLD MUST BE IN THE SAME UNIT.
             //
-            // AvgLost GRUP, AvgServed KISI sayiyor. Eski satir ikisini
-            // dogrudan karsilastiriyordu: olculen kosuda 2.042 kisi / 16
-            // grup, yani esik 408 - koruma hic atesleyemezdi. Ustelik
-            // metin "dortte bir" diyor, matematik "beste bir" yapiyordu.
+            // AvgLost counts PARTIES, AvgServed counts PEOPLE. The old line
+            // compared the two directly: in the measured run that is 2,042
+            // people / 16 parties, so the threshold was 408 - the guard could
+            // never fire. On top of that the text said "a quarter" while the
+            // arithmetic did "a fifth".
             //
-            // Simdi grup grupla karsilastiriliyor ve esik metinle uyumlu.
+            // Now parties are compared with parties and the threshold matches
+            // the text.
             if (Name == "makul" && AvgServedParties > 0
                 && AvgLost > AvgServedParties / 4)
-                yield return $"makul oyuncu masaya oturan gruplarin dortte birinden "
-                             + $"fazlasini kizgin ugurluyor ({AvgLost:0} / {AvgServedParties:0})";
+                yield return $"the reasonable player sends more than a quarter of the "
+                             + $"seated parties away angry ({AvgLost:0} / {AvgServedParties:0})";
 
-            // ZAYIAT gorunur bir uyari.
+            // SPOILAGE is a visible warning.
             //
-            // Gelir tablosuna eklenene kadar hicbir yerde sayilmiyordu ve
-            // "net" sutunu gercek kasa hareketinin katlariydi. Simdi
-            // sayiliyor ve ortaya cikan sey su: iyi oynayan bir oyuncu bile
-            // aldigi malzemenin yarisini cope atiyor. Bu bir denge sorusu
-            // ve en azindan gorunmesi gerekiyor.
-            // HER STRATEJI ICIN. Once yalnizca "makul" icin bakiliyordu
-            // ve asil ihlal edenler sessizdi: olculdu - Turk mutfaginda
-            // sadece_hal %50,6, fazla_kadro %47,7, yuksek_fiyat %65,7
-            // zayiat veriyor ve arac "Uyarilar: yok" yaziyordu, cunku
-            // makul %29 ile esigin altindaydi.
+            // Until it was added to the income statement it was counted nowhere
+            // and the "net" column was a multiple of the real cash movement. Now
+            // it is counted, and what comes out is this: even a player who plays
+            // well throws away half the stock they buy. That is a balance
+            // question and it must at least be visible.
+            // FOR EVERY STRATEGY. It used to be checked only for "makul" and the
+            // real offenders were silent: measured - in the Turkish cuisine
+            // sadece_hal spoils 50.6%, fazla_kadro 47.7%, yuksek_fiyat 65.7%,
+            // and the tool printed "Warnings: none", because makul was under the
+            // threshold at 29%.
             if (AvgIngredientSpend > 0 && AvgSpoiled > AvgIngredientSpend * 0.4)
-                yield return $"{Name} aldigi malzemenin "
-                             + $"%{AvgSpoiled * 100 / AvgIngredientSpend:0}'ini cope atiyor";
+                yield return $"{Name} throws away "
+                             + $"{AvgSpoiled * 100 / AvgIngredientSpend:0}% of the stock it buys";
 
-            // Arac kendi kirildigini SOYLEMELI. Fark sutunu uzun sure
-            // -2.441 yaziyordu ve hicbir uyari cikmiyordu.
+            // The tool MUST SAY when it has broken. The gap column read -2,441
+            // for a long time and no warning came out.
             if (Reconciliation != 0)
-                yield return $"{Name} gelir tablosu TUTMUYOR: fark "
-                             + $"{Reconciliation / 100.0:N0} sikke";
+                yield return $"{Name}'s income statement DOES NOT RECONCILE: gap "
+                             + $"{Reconciliation / 100.0:N0} coins";
 
             if (Name == "pasif" && DebtShare < 0.5)
-                yield return "pasif oyuncu hic borca dusmuyor; "
-                             + "mudahale etmemenin bedeli yok";
+                yield return "the passive player never falls into debt; "
+                             + "there is no price for not intervening";
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -7,33 +7,35 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Restoran yerlesimini kurar ve dort kademeyi de render eder.
+    /// Builds the restaurant layout and renders all four tiers.
     ///
-    /// Cevapladigi soru: on dort masalik restoran telefon ekranina siyor mu.
-    /// docs/19 B5 en dusuk cihaz 16:9, docs/16 yatay mod. Render en boy
-    /// orani gercek telefon oranında aliniyor.
+    /// The question it answers: does a fourteen-table restaurant fit on a
+    /// phone screen? docs/19 B5 sets the lowest device at 16:9, docs/16 sets
+    /// landscape mode. The render is taken at a real phone's aspect ratio.
     ///
-    /// Dogrulama sahneleri UNLIT malzeme kullaniyor: docs/24, editor toplu
-    /// kipinde URP Lit'in varyantlari derlenmiyor ve isik alan her yuzey
-    /// ayni renge dusuyor. Oyunun kendisi Lit kullanmaya devam ediyor.
+    /// The verification scenes use UNLIT materials: docs/24, in the editor's
+    /// batch mode the URP Lit variants are not compiled and every lit surface
+    /// falls to the same colour. The game itself carries on using Lit.
     /// </summary>
     public static class RestaurantScene
     {
         private const string OutDir = "../tools/art/out/unity";
 
-        // docs/12 kademeler
+        // The docs/12 tiers
         private static readonly int[] Tiers = { 4, 7, 10, 14 };
 
-        // Telefon yatay orani. 20:9 bugunun yaygin orani, 16:9 en dar destek.
+        // The phone's landscape ratio. 20:9 is today's common one, 16:9 is
+        // the narrowest we support.
         private const int ShotWidth = 960;
         private const int ShotHeight = 432;    // 20:9
         private const int NarrowHeight = 540;  // 16:9
 
-        // Olculer metre. docs/24 masa seti 0,86 m tabla, sandalyelerle 2,1 m.
+        // Measurements in metres. docs/24: a table set is a 0.86 m top, 2.1 m
+        // with its chairs.
         private const float CellX = 1.85f;
         private const float CellZ = 1.70f;
 
-        [MenuItem("Lokanta/Restoran yerlesimini render et")]
+        [MenuItem("Lokanta/Render the restaurant layout")]
         public static void Capture()
         {
             try
@@ -42,73 +44,75 @@ namespace Lokanta.EditorTools
                 Directory.CreateDirectory(dir);
                 string stamp = DateTime.Now.ToString("HHmmss");
 
-                Debug.Log("=== Lokanta yerlesim ===");
+                Debug.Log("=== Lokanta layout ===");
 
                 foreach (int tables in Tiers)
                 {
                     Bounds b = Build(tables);
-                    string p = Path.Combine(dir, string.Format("yerlesim_{0:00}_{1}.png", tables, stamp));
+                    string p = Path.Combine(dir, string.Format("layout_{0:00}_{1}.png", tables, stamp));
                     Shoot(p, b, ShotWidth, ShotHeight);
                     Debug.Log(string.Format(
-                        "  {0,2} masa  salon {1:0.0} x {2:0.0} m  yazildi {3}",
+                        "  {0,2} tables  hall {1:0.0} x {2:0.0} m  written {3}",
                         tables, b.size.x, b.size.z, Path.GetFileName(p)));
                 }
 
-                // En dar desteklenen oran, en buyuk kademe
+                // The narrowest supported ratio, at the largest tier
                 Bounds wide = Build(14);
-                string narrow = Path.Combine(dir, "yerlesim_14_16x9_" + stamp + ".png");
+                string narrow = Path.Combine(dir, "layout_14_16x9_" + stamp + ".png");
                 Shoot(narrow, wide, ShotWidth, NarrowHeight);
-                Debug.Log("  14 masa 16:9 yazildi " + Path.GetFileName(narrow));
+                Debug.Log("  14 tables at 16:9 written " + Path.GetFileName(narrow));
 
-                Debug.Log("=== yerlesim tamam ===");
+                Debug.Log("=== layout done ===");
                 if (Application.isBatchMode) EditorApplication.Exit(0);
             }
             catch (Exception e)
             {
-                Debug.LogError("SORUNLAR: yerlesim -> " + e.GetType().Name + ": " + e.Message);
+                Debug.LogError("PROBLEMS: layout -> " + e.GetType().Name + ": " + e.Message);
                 if (Application.isBatchMode) EditorApplication.Exit(2);
             }
         }
 
         // ---------------------------------------------------------------------
-        /// <summary>Kademeyi kurar ve salonun sinir kutusunu doner.</summary>
+        /// <summary>Builds the tier and returns the hall's bounding box.</summary>
         private static Bounds Build(int tableCount)
         {
             Clear();
 
-            // Masalar izgaraya diziliyor; salon derinlemesine degil ENINE
-            // buyuyor, cunku yatay ekranda genislik bol, derinlik kit.
+            // The tables are laid out on a grid; the hall grows in WIDTH and
+            // not in depth, because on a landscape screen width is plentiful
+            // and depth is scarce.
             int cols = Mathf.CeilToInt(Mathf.Sqrt(tableCount * 1.9f));
             int rows = Mathf.CeilToInt(tableCount / (float)cols);
 
             float width = cols * CellX;
             float depth = rows * CellZ;
 
-            // Zemin, salon artı mutfak seridi
+            // The floor: the hall plus the kitchen strip
             const float kitchenDepth = 2.4f;
-            // Zemin, mutfak seridini de kapsayacak sekilde ARKAYA uzuyor;
-            // ilk halinde duvar zeminin disinda kaliyor ve havada duruyordu.
+            // The floor stretches BACKWARDS so that it covers the kitchen strip
+            // as well; in its first form the wall fell outside the floor and
+            // stood in mid-air.
             float floorDepth = depth + kitchenDepth + 1.6f;
             float floorCenterZ = (kitchenDepth - 1.6f) * 0.5f;
-            GameObject floor = Box("Zemin",
+            GameObject floor = Box("Floor",
                 new Vector3(0f, -0.05f, floorCenterZ),
                 new Vector3(width + 2.2f, 0.1f, floorDepth),
                 new Color(0.55f, 0.50f, 0.45f));
 
-            // Arka duvar ve mutfak
+            // The back wall and the kitchen
             float backZ = depth * 0.5f + kitchenDepth * 0.5f;
             float wallZ = floorCenterZ + floorDepth * 0.5f;
-            Box("Duvar", new Vector3(0f, 1.5f, wallZ),
+            Box("Wall", new Vector3(0f, 1.5f, wallZ),
                 new Vector3(width + 2.2f, 3.0f, 0.16f), new Color(0.88f, 0.86f, 0.80f));
 
-            Box("Tezgah", new Vector3(-width * 0.18f, 0.45f, backZ - 0.9f),
+            Box("Counter", new Vector3(-width * 0.18f, 0.45f, backZ - 0.9f),
                 new Vector3(3.6f, 0.9f, 0.62f), new Color(0.72f, 0.18f, 0.14f));
-            Box("Ocak", new Vector3(width * 0.22f, 0.43f, backZ - 0.35f),
+            Box("Stove", new Vector3(width * 0.22f, 0.43f, backZ - 0.35f),
                 new Vector3(1.2f, 0.86f, 0.70f), new Color(0.34f, 0.36f, 0.38f));
-            Box("Dolap", new Vector3(width * 0.40f, 0.95f, backZ - 0.35f),
+            Box("Fridge", new Vector3(width * 0.40f, 0.95f, backZ - 0.35f),
                 new Vector3(0.80f, 1.90f, 0.70f), new Color(0.62f, 0.64f, 0.66f));
 
-            // Masalar
+            // The tables
             int made = 0;
             for (int r = 0; r < rows && made < tableCount; r++)
             {
@@ -122,8 +126,8 @@ namespace Lokanta.EditorTools
                 }
             }
 
-            // Kapi: salonun on kenarinda
-            Box("Kapi", new Vector3(width * 0.36f, 1.05f, -depth * 0.5f - 0.8f),
+            // The door: on the front edge of the hall
+            Box("Door", new Vector3(width * 0.36f, 1.05f, -depth * 0.5f - 0.8f),
                 new Vector3(1.1f, 2.1f, 0.12f), new Color(0.42f, 0.26f, 0.15f));
 
             Bounds b = new Bounds(new Vector3(0f, 0.6f, floorCenterZ), Vector3.zero);
@@ -137,13 +141,13 @@ namespace Lokanta.EditorTools
             Color wood = new Color(0.42f, 0.26f, 0.15f);
             Color seat = new Color(0.72f, 0.18f, 0.14f);
 
-            Box("Masa" + index, at + new Vector3(0f, 0.74f, 0f),
+            Box("Table" + index, at + new Vector3(0f, 0.74f, 0f),
                 new Vector3(0.86f, 0.06f, 0.86f), wood);
-            Box("MasaAyak" + index, at + new Vector3(0f, 0.36f, 0f),
+            Box("TableLeg" + index, at + new Vector3(0f, 0.36f, 0f),
                 new Vector3(0.12f, 0.72f, 0.12f), wood);
-            Box("Sandalye" + index + "a", at + new Vector3(0f, 0.44f, 0.62f),
+            Box("Chair" + index + "a", at + new Vector3(0f, 0.44f, 0.62f),
                 new Vector3(0.40f, 0.05f, 0.40f), seat);
-            Box("Sandalye" + index + "b", at + new Vector3(0f, 0.44f, -0.62f),
+            Box("Chair" + index + "b", at + new Vector3(0f, 0.44f, -0.62f),
                 new Vector3(0.40f, 0.05f, 0.40f), seat);
         }
 
@@ -178,27 +182,27 @@ namespace Lokanta.EditorTools
         }
 
         /// <summary>
-        /// Salonun tamamini cerceveye sigdiran 2.5D kamera.
-        /// Aci sabit; degisen tek sey uzaklik. Boylece kademeler
-        /// karsilastirildiginda perspektif ayni kaliyor.
+        /// A 2.5D camera that fits the whole hall into the frame.
+        /// The angle is fixed; the only thing that changes is the distance. So
+        /// when the tiers are compared the perspective stays the same.
         /// </summary>
         private static void Shoot(string path, Bounds target, int width, int height)
         {
-            GameObject camGo = new GameObject("Kamera");
+            GameObject camGo = new GameObject("Camera");
             Camera cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.93f, 0.94f, 0.91f);
             cam.fieldOfView = 32f;
             cam.aspect = width / (float)height;
 
-            // 2.5D: 30 derece. Ilk denemede 38 dereceydi ve neredeyse
-            // tepeden bakiyordu; duvar yatik bir panel gibi okunuyordu.
+            // 2.5D: 30 degrees. On the first attempt it was 38 degrees and was
+            // looking almost straight down; the wall read as a tilted panel.
             Quaternion rot = Quaternion.Euler(30f, -16f, 0f);
             Vector3 center = target.center;
 
-            // Sinir KURESI degil, KUTUNUN kamera eksenindeki izdusumu.
-            // Kureyle sigdirmak genis yassi bir salonda kareyi %40 doldurup
-            // gerisini bos birakiyordu.
+            // Not the bounding SPHERE but the projection of the BOX onto the
+            // camera's axes. Fitting by the sphere filled 40% of the frame in a
+            // wide flat hall and left the rest empty.
             Quaternion inv = Quaternion.Inverse(rot);
             float maxX = 0f, maxY = 0f, maxZ = 0f;
             Vector3 e = target.extents;
@@ -218,14 +222,15 @@ namespace Lokanta.EditorTools
             float hFov = 2f * Mathf.Atan(Mathf.Tan(vFov * 0.5f) * cam.aspect);
             float distV = maxY / Mathf.Tan(vFov * 0.5f);
             float distH = maxX / Mathf.Tan(hFov * 0.5f);
-            float dist = Mathf.Max(distV, distH) + maxZ + 0.4f;   // %4 kenar payi
+            float dist = Mathf.Max(distV, distH) + maxZ + 0.4f;   // a 4% margin
             dist *= 1.04f;
 
             camGo.transform.position = center - rot * Vector3.forward * dist;
             camGo.transform.rotation = rot;
 
-            // Masa ekranda kac piksel: dokunma hedefi karari buna bagli.
-            GameObject probe = GameObject.Find("Masa0");
+            // How many pixels a table is on screen: the touch target decision
+            // depends on this.
+            GameObject probe = GameObject.Find("Table0");
             if (probe != null)
             {
                 Vector3 p0 = cam.WorldToScreenPoint(probe.transform.position
@@ -233,7 +238,7 @@ namespace Lokanta.EditorTools
                 Vector3 p1 = cam.WorldToScreenPoint(probe.transform.position
                                                     + new Vector3(0.43f, 0f, 0f));
                 float px = Mathf.Abs(p1.x - p0.x);
-                Debug.Log(string.Format("    masa ekranda {0:0} piksel ({1} genislikte)",
+                Debug.Log(string.Format("    a table is {0:0} pixels on screen (at width {1})",
                                         px, width));
             }
 

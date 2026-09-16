@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Lokanta.Core;
@@ -9,37 +9,38 @@ using Lokanta.Core.Sim;
 namespace Lokanta.Harness
 {
     /// <summary>
-    /// Kirayi SIMULASYONDAN arar.
+    /// Searches for the rent FROM THE SIMULATION.
     ///
-    /// Neden gerekti: kira ve genisleme bedelleri `tools/balance/solve.py`
-    /// tarafindan KAPALI FORM haftalik modelden cozulmustu. O model haftada
-    /// 5.200 sikke ciro varsayiyor; simulasyon 2.364 uretiyor. Aradaki fark
-    /// butun stratejileri batiriyor, cunku kira tek basina cironun %82'si
-    /// oluyor.
+    /// Why it was needed: the rent and expansion costs had been solved by
+    /// `tools/balance/solve.py` from the CLOSED-FORM weekly model. That model
+    /// assumes 5,200 coins of revenue a week; the simulation produces 2,364.
+    /// The difference bankrupts every strategy, because the rent alone comes to
+    /// 82% of the revenue.
     ///
-    /// Hangi modelin dogru oldugu ayri bir soru. Ama oyunun oynadigi model
-    /// simulasyon, o yuzden kira ondan turemeli.
+    /// Which model is right is a separate question. But the model the game
+    /// plays is the simulation, so the rent has to be derived from it.
     ///
-    /// Calistirma: dotnet run --project src/Lokanta.Harness -- --solve
+    /// Running it: dotnet run --project src/Lokanta.Harness -- --solve
     /// </summary>
     public static class RentSolver
     {
         public static void Run(EconomyConfig baseEconomy, ContentSet content,
                                TimingConfig timing, int seeds, int days)
         {
-            Console.WriteLine("=== Kira arayicisi ===");
-            Console.WriteLine("Hedef: makul oyuncu artida bitsin, pasif oyuncu batsin.");
+            Console.WriteLine("=== Rent search ===");
+            Console.WriteLine("Target: the reasonable player ends in the black, the passive player goes under.");
             Console.WriteLine();
-            Console.WriteLine("| talep | kira | genisleme | makul kasa | makul borc | pasif kasa | pasif borc | sonuc |");
-            Console.WriteLine("|------:|-----:|----------:|-----------:|-----------:|-----------:|-----------:|-------|");
+            Console.WriteLine("| demand | rent | expansion | reas. cash | reas. debt | pass. cash | pass. debt | verdict |");
+            Console.WriteLine("|-------:|-----:|----------:|-----------:|-----------:|-----------:|-----------:|---------|");
 
             int bestRent = 0, bestUpgrade = 0, bestDemand = 0;
             double bestScore = double.MaxValue;
 
-            // Talep de aranıyor. Hipotez: masa basina gunde 4 kisi gercek bir
-            // lokanta icin cok dusuk. Dort masada 13 musteri, masa basina
-            // gunde 3 devir demek; gercek lokanta iki serviste 4-6 devir yapar.
-            // Kira tek basina aciyi kapatmiyor, o yuzden talep de degisken.
+            // The demand is searched as well. Hypothesis: 4 people per table
+            // per day is far too low for a real restaurant. 13 customers at
+            // four tables means 3 turns per table per day; a real restaurant
+            // does 4-6 turns across two services. The rent alone does not close
+            // the gap, so the demand is a variable too.
             int[] rentScales = { 5000, 7500, 10000 };
             int[] upgradeScales = { 6000, 10000 };
             int[] demandBases = { 4, 6, 8, 10, 12 };
@@ -51,23 +52,23 @@ namespace Lokanta.Harness
                 {
                     EconomyConfig eco = Scale(baseEconomy, rent, up, demand);
 
-                    Outcome makul = Play(eco, content, timing, seeds, days, "makul");
-                    Outcome pasif = Play(eco, content, timing, seeds, days, "pasif");
+                    Outcome reasonable = Play(eco, content, timing, seeds, days, "makul");
+                    Outcome passive = Play(eco, content, timing, seeds, days, "pasif");
 
-                    bool ok = makul.AvgCash > 0 && makul.DebtShare < 0.35
-                              && pasif.DebtShare > 0.5;
+                    bool ok = reasonable.AvgCash > 0 && reasonable.DebtShare < 0.35
+                              && passive.DebtShare > 0.5;
 
-                    // Puan: makul oyuncu baslangicin 2-3 katiyla bitsin.
+                    // Score: the reasonable player should end on 2-3 times the start.
                     double target = baseEconomy.StartingCash * 2.5;
-                    double score = Math.Abs(makul.AvgCash - target) / target
-                                   + makul.DebtShare
-                                   + (1.0 - pasif.DebtShare);
+                    double score = Math.Abs(reasonable.AvgCash - target) / target
+                                   + reasonable.DebtShare
+                                   + (1.0 - passive.DebtShare);
 
                     Console.WriteLine(
                         $"| {demand,2} | {rent / 100.0,4:0.00} | {up / 100.0,9:0.00} | " +
-                        $"{makul.AvgCash / 100.0,10:N0} | {makul.DebtShare,10:P0} | " +
-                        $"{pasif.AvgCash / 100.0,10:N0} | {pasif.DebtShare,10:P0} | " +
-                        $"{(ok ? "TAMAM" : "-"),-5} |");
+                        $"{reasonable.AvgCash / 100.0,10:N0} | {reasonable.DebtShare,10:P0} | " +
+                        $"{passive.AvgCash / 100.0,10:N0} | {passive.DebtShare,10:P0} | " +
+                        $"{(ok ? "OK" : "-"),-7} |");
 
                     if (ok && score < bestScore)
                     {
@@ -82,23 +83,23 @@ namespace Lokanta.Harness
             Console.WriteLine();
             if (bestRent == 0)
             {
-                Console.WriteLine("Hicbir olcek her iki kosulu birden saglamadi.");
-                Console.WriteLine("Kira tek basina yetmiyor demektir; talep, fis ya da");
-                Console.WriteLine("kapasite tarafinda da degisiklik gerekiyor.");
+                Console.WriteLine("No scale satisfied both conditions at once.");
+                Console.WriteLine("That means the rent alone is not enough; the demand, the");
+                Console.WriteLine("ticket or the capacity has to change as well.");
                 return;
             }
 
-            Console.WriteLine($"EN IYI: masa basina {bestDemand} kisi, " +
-                              $"kira olcegi {bestRent / 100.0:0.00}, " +
-                              $"genisleme olcegi {bestUpgrade / 100.0:0.00}");
+            Console.WriteLine($"BEST: {bestDemand} people per table, " +
+                              $"rent scale {bestRent / 100.0:0.00}, " +
+                              $"expansion scale {bestUpgrade / 100.0:0.00}");
             Console.WriteLine();
-            Console.WriteLine("Onerilen kiralar (santi-sikke):");
+            Console.WriteLine("Suggested rents (centi-coins):");
             for (int i = 0; i < baseEconomy.TierCount; i++)
             {
                 TierConfig t = baseEconomy.TierAt(i);
                 Console.WriteLine(
-                    $"  {t.Tables,2} masa  kira {Fx.Bp(t.Rent, bestRent),8:N0}  " +
-                    $"genisleme {Fx.Bp(t.Upgrade, bestUpgrade),8:N0}");
+                    $"  {t.Tables,2} tables  rent {Fx.Bp(t.Rent, bestRent),8:N0}  " +
+                    $"expansion {Fx.Bp(t.Upgrade, bestUpgrade),8:N0}");
             }
         }
 
@@ -118,7 +119,7 @@ namespace Lokanta.Harness
                 e.WeekendDaysPerWeek, demandBase,
                 e.WeekdayMultiplierBp, e.WeekendMultiplierBp, e.IngredientRateBp,
                 e.CookCapacityPerDay, e.CookDailyWage,
-                e.SalonWorkPerCustomerMicro, e.SalonWageNumerator,
+                e.HallWorkPerCustomerMicro, e.HallWageNumerator,
                 e.OwnerWorkMicro, e.WeeklyXpWageGrowthBp, tiers,
                 e.ReputationDecayPerDayCenti, e.SideChanceBp, e.DrinkChanceBp);
         }

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Lokanta.Content;
 using Lokanta.Core.Content;
@@ -11,14 +11,17 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Imza mekanikleri. docs/07: "en onemli satir - satin almanin yeniden
-    /// boyama degil BASKA BIR OYUN oldugunu gosteren sey bu."
+    /// The signature mechanics. docs/07: "the most important line - this is what
+    /// shows that the purchase is A DIFFERENT GAME, not a repaint."
     ///
-    ///   fast food -> kombo ve akis     (fis buyur, mutfak yuku buyur)
-    ///   turk      -> veresiye          (nakit akisi bozulur, sadakat artar)
+    ///   fast food -> the combo and the flow  (the ticket grows, so does the
+    ///                                         kitchen load)
+    ///   turkish   -> the tab                 (the cash flow is disturbed, the
+    ///                                         loyalty rises)
     ///
-    /// docs/23 8.2: mekanik kodda, sayilar veride; blok eksikse mutfak
-    /// yuklenmez. docs/09: mekanik IKINCI MEVSIMIN basinda geliyor.
+    /// docs/23 8.2: the mechanic is in the code, the numbers are in the data; if
+    /// the block is missing the cuisine does not load. docs/09: the mechanic
+    /// arrives at the start of THE SECOND SEASON.
     /// </summary>
     public class SignatureTests
     {
@@ -68,7 +71,7 @@ namespace Lokanta.Core.Tests
             return rep;
         }
 
-        /// <summary>Gunu, veresiye acabilecegi ilk gruba acarak kosar.</summary>
+        /// <summary>Runs the day, opening a tab for the first party it can.</summary>
         private static int RunDayGrantingCredit(Simulation sim, ContentSet c)
         {
             Restock(sim);
@@ -92,29 +95,29 @@ namespace Lokanta.Core.Tests
         }
 
         // ====================================================================
-        // Icerik ve dogrulama
+        // Content and validation
         // ====================================================================
         [Fact]
-        public void Iki_mutfagin_imzasi_farkli()
+        public void The_two_cuisines_have_different_signatures()
         {
             Assert.Equal(SignatureKind.Combo, Content("fastfood").Signature.Kind);
             Assert.Equal(SignatureKind.Credit, Content("turk").Signature.Kind);
         }
 
         [Fact]
-        public void Imza_ikinci_mevsimin_basinda_geliyor()
+        public void The_signature_arrives_at_the_start_of_the_second_season()
         {
-            // docs/09: birinci mevsim menu ve fiyati ogretmekle dolu.
+            // docs/09: the first season is full of teaching the menu and the price.
             EconomyConfig e = Economy();
             foreach (string cuisine in new[] { "fastfood", "turk" })
                 Assert.Equal(e.SeasonDays + 1, Content(cuisine).Signature.FromDay);
         }
 
         [Fact]
-        public void Imza_blogu_yoksa_mutfak_yuklenmiyor()
+        public void The_cuisine_does_not_load_without_a_signature_block()
         {
-            // docs/23 8.2 bunu acikca soyluyor. Sessiz varsayilan, "satin
-            // aldigin mutfak aslinda ayni oyun" demek olurdu.
+            // docs/23 8.2 says so outright. A silent default would amount to "the
+            // cuisine you bought is really the same game".
             ContentException ex = Assert.Throws<ContentException>(
                 () => BuildWith(sig => { sig.Kind = null; }));
             _out.WriteLine(ex.Message);
@@ -122,35 +125,35 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Bilinmeyen_imza_turu_reddediliyor()
+        public void An_unknown_signature_kind_is_rejected()
         {
             Assert.Throws<ContentException>(
                 () => BuildWith(sig => { sig.Kind = "tombala"; }));
         }
 
         [Fact]
-        public void Kombo_mutfagi_rahatlatamaz()
+        public void The_combo_cannot_make_the_kitchen_easier()
         {
-            // docs/07: kombo fisi yukseltir AMA mutfak yukunu artirir.
-            // kitchenLoadBp < 10000 mekanigi tersine cevirir: bedava kazanc.
+            // docs/07: the combo raises the ticket BUT increases the kitchen load.
+            // kitchenLoadBp < 10000 turns the mechanic inside out: free money.
             Assert.Throws<ContentException>(
                 () => BuildWith(sig => { sig.Combo.KitchenLoadBp = 9000; }));
         }
 
         [Fact]
-        public void Kombo_indirimi_olmali()
+        public void The_combo_must_be_a_discount()
         {
             Assert.Throws<ContentException>(
                 () => BuildWith(sig => { sig.Combo.PriceBp = 10000; }));
         }
 
         [Fact]
-        public void Mekanik_geldiginde_kilitli_kombo_reddediliyor()
+        public void A_combo_still_locked_when_the_mechanic_arrives_is_rejected()
         {
             ContentException ex = Assert.Throws<ContentException>(
-                () => BuildWith(sig => { sig.Combo.Items[2] = "buzlu_cay"; }));   // 50. gun
+                () => BuildWith(sig => { sig.Combo.Items[2] = "buzlu_cay"; }));   // day 50
             _out.WriteLine(ex.Message);
-            Assert.Contains("mekanik", ex.Message);
+            Assert.Contains("the mechanic arrives on day", ex.Message);
         }
 
         private static void BuildWith(System.Action<SignatureDto> mutate)
@@ -174,10 +177,10 @@ namespace Lokanta.Core.Tests
         }
 
         // ====================================================================
-        // Kombo
+        // The combo
         // ====================================================================
         [Fact]
-        public void Kombo_ucunu_bir_fiyata_satiyor()
+        public void The_combo_sells_three_for_one_price()
         {
             ContentSet c = Content("fastfood");
             Simulation sim = NewSim("fastfood");
@@ -185,14 +188,14 @@ namespace Lokanta.Core.Tests
 
             long sum = sim.DishPrice(d[0]) + sim.DishPrice(d[1]) + sim.DishPrice(d[2]);
             long combo = sim.ComboPrice();
-            _out.WriteLine($"ayri ayri {sum / 100} sikke, kombo {combo / 100} sikke");
+            _out.WriteLine($"separately {sum / 100} coins, as a combo {combo / 100} coins");
 
-            Assert.True(combo < sum, "kombo indirim olmali");
+            Assert.True(combo < sum, "the combo must be a discount");
             Assert.Equal(Fx.MulDiv(sum, c.Signature.ComboPriceBp, Fx.One), combo);
         }
 
         [Fact]
-        public void Kombo_birinci_mevsimde_acilamiyor()
+        public void The_combo_cannot_be_opened_in_the_first_season()
         {
             Simulation sim = NewSim("fastfood");
             Assert.False(sim.SignatureOpen);
@@ -201,7 +204,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Kombo_ikinci_mevsimde_aciliyor()
+        public void The_combo_opens_in_the_second_season()
         {
             ContentSet c = Content("fastfood");
             Simulation sim = NewSim("fastfood");
@@ -213,15 +216,15 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Kombo_fisi_buyutuyor_ve_mutfagi_yoruyor()
+        public void The_combo_grows_the_ticket_and_tires_the_kitchen()
         {
-            // Ayni tohum, ayni gunler; tek fark kombonun acik olmasi.
-            // docs/07'nin takasi: fis buyur, mutfak yuku buyur.
+            // The same seed, the same days; the only difference is the combo being
+            // open. docs/07's trade-off: the ticket grows, the kitchen load grows.
             long withCombo = ComboRun(true, out int servedOn, out long tickets);
             long without = ComboRun(false, out int servedOff, out long ticketsOff);
 
-            _out.WriteLine($"kombo acik : ciro {withCombo / 100}, {servedOn} kisi, fis {tickets / 100}");
-            _out.WriteLine($"kombo kapali: ciro {without / 100}, {servedOff} kisi, fis {ticketsOff / 100}");
+            _out.WriteLine($"combo open  : revenue {withCombo / 100}, {servedOn} people, ticket {tickets / 100}");
+            _out.WriteLine($"combo closed: revenue {without / 100}, {servedOff} people, ticket {ticketsOff / 100}");
 
             Assert.NotEqual(withCombo, without);
         }
@@ -246,10 +249,10 @@ namespace Lokanta.Core.Tests
         }
 
         // ====================================================================
-        // Veresiye
+        // The tab
         // ====================================================================
         [Fact]
-        public void Veresiye_birinci_mevsimde_acilamiyor()
+        public void A_tab_cannot_be_opened_in_the_first_season()
         {
             Simulation sim = NewSim("turk");
             Assert.False(sim.HasCredit);
@@ -258,30 +261,31 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Veresiye_yalnizca_ADINI_BILDIGIN_kisiye_aciliyor()
+        public void A_tab_is_opened_only_for_someone_WHOSE_NAME_YOU_KNOW()
         {
-            // Kural ICERIKTEN geliyor: duzenli musteri dosyasindaki
-            // veresiyeEligible alani.
+            // The rule comes FROM THE CONTENT: the tab eligibility field in the
+            // regulars file.
             //
-            // Bu test bir zamanlar "sik gelen arketip" diye yaziliydi ve o
-            // dogruydu - duzenli musteri icerigi HENUZ YOKKEN. Icerik
-            // yazilinca kural degisti (Simulation.CreditIdentityOk), test
-            // degismedi ve bir sure yanlis seyi dogruladi: artik YEDEK
-            // kurali sinaliyordu.
+            // This test was once written as "a frequently arriving archetype" and
+            // that was right - while the regulars content DID NOT YET EXIST. Once
+            // the content was written the rule changed
+            // (Simulation.CreditIdentityOk), the test did not, and for a while it
+            // verified the wrong thing: it was testing the FALLBACK rule.
             //
-            // Icerik bunu bilerek boyle kurdu ve dogrusu bu: Nazife Teyze
-            // emekli (orta kademe), Mehmet Dede eski musteri (nadir
-            // kademe) - ikisi de veresiye alabiliyor. Cunku veresiye
-            // SIKLIGA degil TANISIKLIGA aciliyor; adini bildigin kisiye
-            // acilir. Arketip kademesine bakan bir kural, mahallenin
-            // emeklisini kapinin onunde birakirdi.
+            // The content set it up this way deliberately and that is right: Nazife
+            // Teyze is retired (middle tier), Mehmet Dede is a long-standing
+            // customer (rare tier) - both can have a tab. Because a tab is opened on
+            // ACQUAINTANCE, not on FREQUENCY; it is opened for someone whose name
+            // you know. A rule that looked at the archetype tier would leave the
+            // neighbourhood's pensioner standing at the door.
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
             while (sim.Day < sim.SignatureFromDay) RunOneDay(sim, c);
 
-            // AYRI gruplar sayiliyor, tick basina degil: bir grup salonda
-            // yuz tick oturuyor ve tick sayarsak orneklem tek bir masaya
-            // kilitleniyor. Ilk yazimda test tam bu yuzden yanlis kirildi.
+            // DISTINCT parties are counted, not per tick: a party sits in the hall
+            // for a hundred ticks, and counting ticks locks the sample onto a single
+            // table. In my first attempt this is exactly why the test broke
+            // wrongly.
             var seenTier = new Dictionary<int, int>();
             var counted = new HashSet<int>();
 
@@ -300,17 +304,17 @@ namespace Lokanta.Core.Tests
                         int tier = c.Archetypes[sim.PartyArchetype(p)].TierIndex;
                         seenTier.TryGetValue(tier, out int n);
                         seenTier[tier] = n + 1;
-                        // Uygunluk iki sart: ADI BILINEN biri olacak VE
-                        // isteyecek. Yani "uygun ise tanidik" tek yonlu
-                        // bir iddia.
+                        // Eligibility has two conditions: they must be someone
+                        // WHOSE NAME IS KNOWN AND they must ask. So "if eligible
+                        // then acquainted" is a one-way claim.
                         if (!sim.CreditEligible(p)) continue;
 
                         int reg = sim.PartyRegular(p);
                         Assert.True(reg >= 0,
-                            "veresiye isimsiz bir gruba acildi (kademe " + tier + ")");
-                        Assert.True(c.Regulars[reg].VeresiyeEligible,
-                            "veresiye " + c.Regulars[reg].Id
-                            + " icin acildi ama icerik ona izin vermiyor");
+                            "a tab was opened for a nameless party (tier " + tier + ")");
+                        Assert.True(c.Regulars[reg].TabEligible,
+                            "a tab was opened for " + c.Regulars[reg].Id
+                            + " but the content does not allow it");
                     }
                     if (sim.ServiceComplete) break;
                 }
@@ -318,13 +322,13 @@ namespace Lokanta.Core.Tests
                 sim.AdvanceToNextDay();
             }
 
-            foreach (var kv in seenTier) _out.WriteLine($"kademe {kv.Key}: {kv.Value} grup");
-            Assert.True(seenTier.ContainsKey(0), "hic sik gelen musteri gelmedi");
-            Assert.True(seenTier.Count > 1, "yalnizca tek kademe geldi, orneklem yetersiz");
+            foreach (var kv in seenTier) _out.WriteLine($"tier {kv.Key}: {kv.Value} parties");
+            Assert.True(seenTier.ContainsKey(0), "no frequent customer came at all");
+            Assert.True(seenTier.Count > 1, "only one tier came, the sample is too small");
         }
 
         [Fact]
-        public void Veresiye_fisi_kasaya_degil_deftere_yaziyor()
+        public void The_tab_bill_is_written_to_the_book_not_to_the_till()
         {
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
@@ -335,17 +339,17 @@ namespace Lokanta.Core.Tests
             for (int d = 0; d < 30 && sim.OpenCreditCount == 0; d++)
                 granted += RunDayGrantingCredit(sim, c);
 
-            _out.WriteLine($"{granted} gruba veresiye acildi, " +
-                           $"acik hesap {sim.OpenCredit / 100} sikke");
+            _out.WriteLine($"a tab was opened for {granted} parties, " +
+                           $"open balance {sim.OpenCredit / 100} coins");
 
-            Assert.True(granted > 0, "otuz gunde hic veresiye istenmedi");
-            Assert.True(sim.OpenCredit > 0, "fis deftere yazilmadi");
+            Assert.True(granted > 0, "no tab was asked for in thirty days");
+            Assert.True(sim.OpenCredit > 0, "the bill was not written into the book");
             Assert.True(sim.OpenCreditCount > 0);
             Assert.True(cashBefore >= 0);
         }
 
         [Fact]
-        public void Vadesi_gelen_hesap_kapaniyor()
+        public void An_account_that_falls_due_is_closed()
         {
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
@@ -354,52 +358,52 @@ namespace Lokanta.Core.Tests
             for (int d = 0; d < 30 && sim.OpenCreditCount == 0; d++)
                 RunDayGrantingCredit(sim, c);
             int opened = sim.OpenCreditCount;
-            Assert.True(opened > 0, "otuz gunde hic veresiye istenmedi");
+            Assert.True(opened > 0, "no tab was asked for in thirty days");
 
-            // Vade dolana kadar kos: defter bosalmali.
+            // Run until the term is up: the book must empty out.
             for (int d = 0; d <= c.Signature.CreditDueDays + 1; d++) RunOneDay(sim, c);
 
-            _out.WriteLine($"{opened} hesap acildi, vade sonrasi {sim.OpenCreditCount} kaldi");
+            _out.WriteLine($"{opened} accounts opened, {sim.OpenCreditCount} left after the term");
             Assert.True(sim.OpenCreditCount < opened,
-                        "vadesi gelen hesaplar kapanmiyor");
+                        "accounts that fall due are not being closed");
         }
 
         [Fact]
-        public void Isteyeni_geri_cevirmek_itibardan_goturuyor()
+        public void Turning_away_someone_who_asks_costs_reputation()
         {
-            // Mekanigin asil yonu. Veresiye TEKLIF EDILEN bir prim degil,
-            // ISTENEN bir sey; vermeyen kaybediyor. Kilitli yemegi soran
-            // musteri mekanigiyle ayni fikir (docs/34 6).
+            // The mechanic's real direction. A tab is not a bonus that is OFFERED,
+            // it is something that is ASKED FOR; the one who refuses loses. The same
+            // idea as the customer asking for a locked dish (docs/34 6).
             ContentSet c = Content("turk");
 
-            Simulation veren = NewSim("turk");
-            while (veren.Day < veren.SignatureFromDay) RunOneDay(veren, c);
-            for (int d = 0; d < 25; d++) RunDayGrantingCredit(veren, c);
+            Simulation granting = NewSim("turk");
+            while (granting.Day < granting.SignatureFromDay) RunOneDay(granting, c);
+            for (int d = 0; d < 25; d++) RunDayGrantingCredit(granting, c);
 
-            Simulation cevirem = NewSim("turk");
-            while (cevirem.Day < cevirem.SignatureFromDay) RunOneDay(cevirem, c);
-            for (int d = 0; d < 25; d++) RunOneDay(cevirem, c);
+            Simulation refusing = NewSim("turk");
+            while (refusing.Day < refusing.SignatureFromDay) RunOneDay(refusing, c);
+            for (int d = 0; d < 25; d++) RunOneDay(refusing, c);
 
-            _out.WriteLine($"veren     : kasa {veren.Cash / 100}, defter {veren.OpenCredit / 100}, " +
-                           $"itibar {veren.ReputationCenti / 100.0:0.0}, " +
-                           $"sadakat {veren.CreditLoyaltyBp / 100.0:0.0}%");
-            _out.WriteLine($"geri ceviren: kasa {cevirem.Cash / 100}, " +
-                           $"itibar {cevirem.ReputationCenti / 100.0:0.0}");
+            _out.WriteLine($"granting: till {granting.Cash / 100}, book {granting.OpenCredit / 100}, " +
+                           $"reputation {granting.ReputationCenti / 100.0:0.0}, " +
+                           $"loyalty {granting.CreditLoyaltyBp / 100.0:0.0}%");
+            _out.WriteLine($"refusing: till {refusing.Cash / 100}, " +
+                           $"reputation {refusing.ReputationCenti / 100.0:0.0}");
 
-            // Veren, defteriyle birlikte geri cevirenin gerisinde kalmamali:
-            // mekanik bir CEZA degil, bir takas.
-            long verenVarlik = veren.Cash + veren.OpenCredit;
-            _out.WriteLine($"veren net varlik {verenVarlik / 100}, " +
-                           $"geri ceviren {cevirem.Cash / 100}");
-            Assert.True(veren.CreditLoyaltyBp > 0, "tahsil edilen hesap sadakat birakmiyor");
+            // Counting the book, the one who grants must not end up behind the one
+            // who refuses: the mechanic is a trade-off, not a PENALTY.
+            long grantingNetWorth = granting.Cash + granting.OpenCredit;
+            _out.WriteLine($"granting net worth {grantingNetWorth / 100}, " +
+                           $"refusing {refusing.Cash / 100}");
+            Assert.True(granting.CreditLoyaltyBp > 0, "a collected account leaves no loyalty behind");
         }
 
         [Fact]
-        public void Veresiye_bir_TAKAS_hem_kazandiriyor_hem_batiyor()
+        public void The_tab_is_a_TRADE_OFF_it_both_pays_and_sinks_you()
         {
-            // Ayni tohum: biri veresiye acan, biri acmayan. Ikisi de
-            // gecerli oynanis olmali - biri digerini her kosuda ezerse
-            // mekanik karar degil, dugme olur.
+            // The same seed: one opens tabs, the other does not. Both have to be
+            // valid ways to play - if one crushes the other on every run the
+            // mechanic is a button, not a decision.
             ContentSet c = Content("turk");
 
             Simulation a = NewSim("turk");
@@ -410,27 +414,27 @@ namespace Lokanta.Core.Tests
             while (b.Day < b.SignatureFromDay) RunOneDay(b, c);
             for (int d = 0; d < 20; d++) RunOneDay(b, c);
 
-            _out.WriteLine($"veresiyeci : kasa {a.Cash / 100}, itibar {a.ReputationCenti / 100.0:0.0}, " +
-                           $"acik {a.OpenCredit / 100}");
-            _out.WriteLine($"pesinci    : kasa {b.Cash / 100}, itibar {b.ReputationCenti / 100.0:0.0}");
+            _out.WriteLine($"tab keeper : till {a.Cash / 100}, reputation {a.ReputationCenti / 100.0:0.0}, " +
+                           $"open {a.OpenCredit / 100}");
+            _out.WriteLine($"cash only  : till {b.Cash / 100}, reputation {b.ReputationCenti / 100.0:0.0}");
 
-            // Veresiyeci daha az NAKIT tutuyor: mekanigin bedeli bu.
+            // The tab keeper holds less CASH: that is the mechanic's price.
             Assert.True(a.Cash <= b.Cash + a.OpenCredit,
-                        "veresiye nakit akisini hic bozmuyor");
+                        "the tab does not disturb the cash flow at all");
         }
 
         [Fact]
-        public void Kayit_veresiye_defterini_tasiyor()
+        public void The_save_carries_the_tab_book()
         {
             ContentSet c = Content("turk");
             Simulation sim = NewSim("turk");
             while (sim.Day < sim.SignatureFromDay) RunOneDay(sim, c);
 
-            // Isteyen cikana kadar kos: %12'lik bir olasilik, tek gunde
-            // hic gelmeyebilir.
+            // Run until someone asks: it is a 12% chance, and on any single day
+            // nobody may come.
             for (int d = 0; d < 30 && sim.OpenCreditCount == 0; d++)
                 RunDayGrantingCredit(sim, c);
-            Assert.True(sim.OpenCreditCount > 0, "otuz gunde hic veresiye istenmedi");
+            Assert.True(sim.OpenCreditCount > 0, "no tab was asked for in thirty days");
 
             JsonStateWriter w = new JsonStateWriter();
             sim.Write(w);

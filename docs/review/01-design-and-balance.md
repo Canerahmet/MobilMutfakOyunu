@@ -1,87 +1,87 @@
-# Değerlendirme 1: Oyun Tasarımı ve Denge
+# Review 1: Game Design and Balance
 
-**Bakış açısı:** Yönetim ve tycoon oyunlarında on beş yıllık kıdemli oyun tasarımcısı ve ekonomi dengeleyicisi
-**Sorumlu kalemler:** A4, A5, A6, A7, A8
-**Tarih:** 9 Eylül 2026
+**Perspective:** senior game designer and economy balancer with fifteen years in management and tycoon games
+**Items owned:** A4, A5, A6, A7, A8
+**Date:** 9 September 2026
 
 ---
 
-## Genel değerlendirme
+## Overall assessment
 
-Planın yapısı doğru ve nadir görülecek kadar iyi gerekçelendirilmiş: sekiz ilke araştırmaya bağlı, her sayı "hipotez" diye etiketlenmiş, test soruları önceden yazılmış. Ama sayısal katman kendi içinde tutmuyor. 12 §6'daki büyüme tablosu 12 §5.1'deki müşteri formülünden türemiyor; 14'teki kadro tablosu 14'teki kapasite sayılarından türemiyor; talep (formül) ile kapasite (personel) hiçbir yerde birbiriyle uzlaştırılmamış. Bunun üstüne günlük döngünün dört kararından üçü (fiyat, atama, kombo) birinci gün çözülüp bir daha dokunulmayan düğmelere dönüşüyor. Verdikt: Faz 0 tablosu bu tablolardan değil, formüllerden başlamalı; tablolar sonuç olmalı, girdi değil.
+The structure of the plan is right and argued for unusually well: eight principles tied back to the research, every number labelled a "hypothesis", the test questions written before the answers. But the numeric layer does not hold together. The growth table in 12 §6 does not follow from the customer formula in 12 §5.1; the crew table in 14 does not follow from the capacity numbers in 14; demand (a formula) and capacity (staff) are nowhere reconciled with each other. On top of that, three of the four decisions in the daily loop (price, assignment, combo) turn into buttons that are solved on day one and never touched again. Verdict: the Phase 0 table must start from the formulas, not from these tables; the tables should be output, not input.
 
-## En güçlü üç yön
+## The three strongest things
 
-1. **İtibar formülünün kendini frenlemesi** (12 §5.1, §5.5). 0,5 tabanı sayesinde itibar sıfırda bile 4 masaya 8 müşteri geliyor; düşük hacimde günlük değişim de küçülüyor. Toparlanma yavaş ama hiçbir zaman imkânsız değil. Bu, araştırmadaki "sert batma" tuzağına karşı doğru matematik.
-2. **Dürüst bilgi tasarımı.** Huylar işe almadan önce görünür (14 İşe alım), imza mekaniği yıl sonu puanına eksen olarak bağlı (08 Mutfağa özel eksen). "Yönetim oyunu, kumar değil" cümlesi sayılara yansımış.
-3. **Haftalık toplu ödeme artı genişlemenin kirayı büyütmesi** (02 §4, 12 §2). Ekonominin önemsizleşmesini engelleyebilecek tek mekanizma bu ve 12 §7'deki "kaçıncı haftada para sorun değil" sorusu tam doğru test.
+1. **The reputation formula brakes itself** (12 §5.1, §5.5). Because of the 0.5 floor, even at zero reputation 8 customers come to 4 tables; at low volume the daily swing shrinks as well. Recovery is slow but never impossible. This is the right maths against the "hard collapse" trap in the research.
+2. **Honest information design.** Traits are visible before you hire (14, Hiring); the signature mechanic is bound to the year-end score as an axis (08, The cuisine-specific axis). The sentence "a management game, not a gamble" has made it into the numbers.
+3. **The weekly lump payment plus expansion raising the rent** (02 §4, 12 §2). This is the only mechanism that can stop the economy from becoming irrelevant, and the question in 12 §7 — "by which week does money stop being a problem" — is exactly the right test.
 
-## En riskli beş sorun
+## The five riskiest problems
 
-### 1. Büyüme tablosu kendi formülünden türemiyor; ekonomi ya önemsizleşiyor ya tavana çarpıyor (A4, A7)
+### 1. The growth table does not follow from its own formula; the economy either becomes irrelevant or hits a ceiling (A4, A7)
 
-12 §5.1'in kendi örnekleri "7 masa, itibar 55 → 29", "10 masa, itibar 70 → 48", "14 masa, itibar 85 → 76" diyor. Aynı dosyanın §6 tablosu neredeyse aynı girdilerle 21, 34, 48 yazıyor. Yeniden hesap:
+12 §5.1's own examples say "7 tables, reputation 55 → 29", "10 tables, reputation 70 → 48", "14 tables, reputation 85 → 76". The §6 table in the same file writes 21, 34, 48 for almost the same inputs. Recomputed:
 
-- Hafta 1: 13 × 50 × 7 = 4.550; ×0,68 = 3.094; −980 −1.800 = **+314**. Tutuyor. Ama hafta sonu katsayısı 1,25 hiç uygulanmamış.
-- Hafta 2: 15 × 52 × 7 = 5.460; ×0,68 = 3.713; −2.780 = **+933**. Tablo +560 diyor, tutmuyor.
-- Hafta 3, formülle: 28 × 1,02 = 29 müşteri. 29 × 56 × 7 = 11.368; ×0,68 = 7.730; −2.520 −3.400 = **+1.810**. Tablo −322 diyor. "Genişleme haftası zarar ettiriyor, büyümek önce bedelini ödetiyor" anlatısı bir tasarım kararı değil, aritmetik hatasının sonucu.
-- Hafta 5, formülle: 40 × 1,18 = 47 müşteri → net **+4.964** (tablo +1.066). Hafta 8: 56 × 1,38 = 77 → 40.425 ciro, net **+12.789**, marj %31,6 (tablo +6.006, %19,8).
-- Hafta 7 maaşı: 2×980 + 3×770 + 700 + 630 = **5.600**, tablo 5.740.
-- Nakit: 8.000 +314 +560 −2.500 −322 +982 −4.500 +1.066 +2.808 = **6.408**. Son genişleme 8.000; oyuncu 1.592 açıkta. 12 §6'daki "kasayı 1.462'ye indiriyorsun" ancak 7. haftanın kârı eklenirse çıkıyor, ama o satır zaten 14 masa ve 7.200 kira varsayıyor. Döngüsel.
+- Week 1: 13 × 50 × 7 = 4,550; ×0.68 = 3,094; −980 −1,800 = **+314**. That holds. But the 1.25 weekend factor has never been applied.
+- Week 2: 15 × 52 × 7 = 5,460; ×0.68 = 3,713; −2,780 = **+933**. The table says +560; it does not hold.
+- Week 3, by the formula: 28 × 1.02 = 29 customers. 29 × 56 × 7 = 11,368; ×0.68 = 7,730; −2,520 −3,400 = **+1,810**. The table says −322. The story that "the expansion week costs you money, growth makes you pay first" is not a design decision, it is the result of an arithmetic error.
+- Week 5, by the formula: 40 × 1.18 = 47 customers → net **+4,964** (table: +1,066). Week 8: 56 × 1.38 = 77 → 40,425 revenue, net **+12,789**, margin 31.6% (table: +6,006, 19.8%).
+- Week 7 wages: 2×980 + 3×770 + 700 + 630 = **5,600**; the table says 5,740.
+- Cash: 8,000 +314 +560 −2,500 −322 +982 −4,500 +1,066 +2,808 = **6,408**. The last expansion costs 8,000; the player is 1,592 short. The line in 12 §6, "it takes your till down to 1,462", only comes out if week 7's profit is added — but that row already assumes 14 tables and 7,200 rent. Circular.
 
-İki çıkış var, ikisi de kötü. Tablo müşteri sütunu talepse ekonomi 5. haftada önemsizleşiyor (üstüne bkz. sorun 4, fiyat). Sütun "servis edilen"se, yani kapasite tavanıysa, 14 masada her gün 19, hafta sonu 38 müşteri kapıdan dönüyor; itibar ancak talep = kapasite olduğu yerde dengeleniyor: 56 × (0,5 + i/100) = 58 → **i ≈ 54**. Tablodaki 88 itibara hiç ulaşılamıyor ve yıl sonu İtibar ekseni oyuncunun becerisiyle değil personel tavanıyla kapanıyor.
+There are two ways out and both are bad. If the customer column of the table is demand, the economy becomes irrelevant by week 5 (see also problem 4, price). If the column is "served", i.e. a capacity ceiling, then at 14 tables 19 customers are turned away every day and 38 at the weekend; reputation only settles where demand = capacity: 56 × (0.5 + r/100) = 58 → **r ≈ 54**. The 88 reputation in the table is never reachable, and the year-end Reputation axis is closed not by the player's skill but by the staff cap.
 
-**Düzeltme:** §6 tablosunu silip formülden hafta sonu katsayısıyla yeniden üret. Müşteri sütununu "talep" olarak tanımla, taşma (talep − kapasite) için ayrı bir itibar cezası yaz. Haftalık kira ve ücretleri, formül kaynaklı ciroya göre 8. haftada net marj %20'yi geçmeyecek şekilde yeniden ölçekle. Mutfak terimi ekle: 07'nin vaat ettiği "ritim" farkı formülde yok, Türk ve fast food örnek marjları da aynı bantta (%63-80).
+**Fix:** delete the §6 table and regenerate it from the formula, with the weekend factor. Define the customer column as "demand" and write a separate reputation penalty for overflow (demand − capacity). Rescale weekly rent and wages against formula-derived revenue so that net margin does not exceed 20% by week 8. Add a cuisine term: the difference in "rhythm" that 07 promises is not in the formula at all, and the Turkish and fast food example margins sit in the same band (63-80%).
 
-### 2. Kapasite modeli kadro tablosuyla çelişiyor; tavan 8 bir tuzak (A8)
+### 2. The capacity model contradicts the crew table; a cap of 8 is a trap (A8)
 
-14'teki taban kapasiteler garson 16, aşçı 20, bulaşıkçı 26, kasiyer 34. 58 müşteri için gereken: 3 aşçı, 4 garson, 2 kasiyer, 3 bulaşıkçı = **12 kişi**. Patron 12 alsa 11. Tavan 8. "Tavan tam olarak ihtiyaca göre ayarlandı" cümlesi kendi sayılarıyla yanlış. Ayrıca bulaşıkçı 26 ile ilk değil, en sert darboğaz; "üçüncü sırada" iddiası tutmuyor. Kadro tablosunun 21 satırında patron kasa ve bulaşığı tek başına tutuyor ama kapasitesi 12. Deneyimle +%30 diye yazılan telafi kampanyada ulaşılamıyor: günde 1 puan, 30 puanda seviye → ilk çalışan 60. günde 2. seviyede, +%20.
+The base capacities in 14 are waiter 16, cook 20, dishwasher 26, cashier 34. What 58 customers need: 3 cooks, 4 waiters, 2 cashiers, 3 dishwashers = **12 people**. Even if the owner takes 12 of them, that is 11. The cap is 8. The sentence "the cap was tuned exactly to the need" is wrong by its own numbers. And the dishwasher, at 26, is the hardest bottleneck, not the first one; the claim that it comes "third" does not hold. In row 21 of the crew table the owner covers the till and the washing-up alone, but his capacity is 12. The compensation written down as "+30% with experience" is unreachable within the campaign: 1 point a day, a level every 30 points → the first employee reaches level 2 on day 60, at +20%.
 
-Moral tarafı da tek yönlü: "üst üste yoğun gün −3" tanımsız ve 14 masada her gün yoğun. Haftada −21 + 5 = **−16**; 70'ten 15'e 3,5 haftada iniyor, izin günü mekaniği ise hâlâ "karar bekliyor". Zam reddi ise bedelsiz: moral −20 ile 50'ye düşmek sadece "hafif hata şansı", haftada +5 ile geri geliyor. "Zam mı yeni ucuz biri mi" kararı yok, her zaman reddet.
+The morale side is one-directional too: "−3 for consecutive busy days" is undefined and at 14 tables every day is busy. That is −21 + 5 = **−16** a week; morale falls from 70 to 15 in three and a half weeks, while the day-off mechanic is still "pending decision". Refusing a raise costs nothing: dropping to 50 morale with −20 only means "a slight chance of mistakes", and +5 a week brings it back. There is no "a raise or a cheaper new hire" decision — always refuse.
 
-**Düzeltme:** Kadro tablosunu kapasitelerden türet, ya kapasiteleri yükselt (öneri: garson 20, aşçı 24, bulaşıkçı 40, kasiyer 50) ya talebi düşür (masa × 3). Tavanı 3/5/7/9 yapıp her kademede bir yuva boşluk bırak. Patronun 12'sini "her sabah tek bir role atanır" yap; bu, sabah tezgâhına gerçek bir karar ekler. "Yoğun"u kapasitenin %90'ı olarak tanımla, morale bir denge terimi ekle (öneri: normal gün +1). Reddedilen zamda deneyim kazanımı dursun. İzin günü kararı "evet" olsun; o gün o rolün kapasitesi sıfır, dolayısıyla bir planlama kararı.
+**Fix:** derive the crew table from the capacities; either raise the capacities (suggested: waiter 20, cook 24, dishwasher 40, cashier 50) or lower demand (tables × 3). Make the cap 3/5/7/9 and leave one empty slot at every tier. Make the owner's 12 "assigned to a single role each morning"; that adds a real decision to the morning counter. Define "busy" as 90% of capacity and add a balancing term to morale (suggested: +1 on a normal day). Stop experience gain on a refused raise. Make the day-off decision a "yes": on that day that role's capacity is zero, which makes it a planning decision.
 
-### 3. Servis ölçeği, sabır ve "nadir" arketipler birbirine uymuyor (A7)
+### 3. Service scale, patience and "rare" archetypes do not fit each other (A7)
 
-12 §5.2: servis ≈ 120 saniye, sabır 8-40 saniye. 58 müşteri 120 saniyede 2 saniyede bir müşteri demek; Türk mutfağında %60 öğle dilimine düşüyor (12 §5.6), dilimler eşitse 30 saniyede 35 kişi, saniyede birden fazla. 8-12 saniyelik sabır, birkaç müşterilik kuyruk demek. 3-5 müdahale hakkıyla bu okunmaz; 02'nin "dar boğazı gör ve aç" vaadi partikül sistemine dönüşür. Ayrıca müşteri kişi mi grup mu belli değil; Aile 3-5 kişiyken fiş 50-75 kişi başı görünüyor.
+12 §5.2: service ≈ 120 seconds, patience 8-40 seconds. 58 customers in 120 seconds means one customer every 2 seconds; in Turkish cuisine 60% fall into the lunch slot (12 §5.6), and if the slots are equal that is 35 people in 30 seconds, more than one a second. A patience of 8-12 seconds means a queue of a handful of customers. With 3-5 interventions this is unreadable; 02's promise of "see the bottleneck and open it" turns into a particle system. It is also unclear whether a customer is a person or a party: a Family is 3-5 people while the bill, 50-75, looks per person.
 
-11'deki "nadir %5, kampanya boyunca birkaç kez gelir" iddiası da yanlış: 58 müşteride günde ~3, kampanyada yaklaşık 2.000 müşteri üstünden ~100 nadir ziyaret. Ağırlığı 8 olan eleştirmen dört günde bir gelirse itibar formülü tek başına ondan sallanır.
+11's claim that "rare, 5%, comes a few times over the campaign" is wrong as well: at 58 customers that is ~3 a day, about 100 rare visits over roughly 2,000 customers in the campaign. If a critic with a weight of 8 turns up every fourth day, the reputation formula swings on him alone.
 
-**Düzeltme:** Servis süresi kademeyle ölçeklensin (02'nin 90-180 sn bandında: 4 masada 120, 14 masada 180). Hız için müşteri grup sayılsın, fiş kişi başı kalsın. Nadir kademe yüzdeden çıkıp takvime bağlansın (öneri: kampanyada 8-12 olay), bir akşam önce hesap ekranında haber verilsin. Bu aynı zamanda sorun 4'ün ilacı.
+**Fix:** scale service time with tier (inside 02's 90-180 s band: 120 at 4 tables, 180 at 14). Count customers as parties for throughput and keep the bill per person. Take the rare tier off a percentage and bind it to a calendar (suggested: 8-12 events per campaign), announced the evening before on the books screen. This is also the cure for problem 4.
 
-### 4. Döngü 20. günde otomatikleşiyor: üç karar birinci gün çözülüyor (A4, A6)
+### 4. The loop goes on autopilot by day 20: three decisions are solved on day one (A4, A6)
 
-12 §5.3 ve §5.4 ile: fiyat %20 üstü, ortalama duyarlılık −20 → memnuniyet 80 → eşik 60'ın üstünde, memnun. Toleranslı −8. Sadece pazarlıkçı (orta kademe) gider. Erken oyunda bekleme sıfıra yakınken %20-25 üstü fiyat baskın strateji; bu, tablodaki cironun üstüne bir %20 daha bindiriyor ve 02 §6'daki "fiyat kararı 6. bölümde de önemli olmalı" hedefini boşa çıkarıyor. Araştırmadaki Supermarket Simulator "her şeye %7, şikayet sıfır" örneği tam bu çözülmüşlük. İstasyon ataması gün içinde değişmiyor ve talep karışımı değişmediği için bir kez kuruluyor. Kombo bir kez kurulan ayar mı, günlük karar mı, yazılmamış. Menüde yemeklerin marj dışında parametresi yok (09 "Sonraki adım" hazırlık süresi vaat etti, 12 vermedi); 12 burgerin arasından seçim marj sıralamasına iner. Hal ise iki ilkeyle çelişiyor: 02 ilke 2 "malzeme siparişi otomatikleşir" derken 02 §3.1 halı "ikinci döngü" yapıyor; fast food'da %80 malzeme bozulmadığı için hal "ucuz günde stokla" oyununa dönüyor, üstelik ücretsiz ve öğretici mutfakta. 26+12 malzeme kalemi tek tek alınırsa 40-60 dokunuş bütçesi (ilke 6) daha servis başlamadan biter.
+From 12 §5.3 and §5.4: price 20% above, average sensitivity −20 → satisfaction 80 → above the threshold of 60, satisfied. Tolerant is −8. Only the bargain-hunter (middle tier) leaves. Early on, with waiting near zero, pricing 20-25% above is the dominant strategy; that stacks another 20% on top of the revenue in the table and defeats 02 §6's goal that "the price decision must still matter in chapter 6". The Supermarket Simulator example from the research — "7% on everything, zero complaints" — is exactly this solvedness. Station assignment does not change during the day and, because the demand mix does not change, it is set once. Whether the combo is a setting made once or a daily decision is not written down. Dishes have no parameter other than margin (09's "Next step" promised a prep time, 12 did not deliver it); choosing among 12 burgers comes down to sorting by margin. And the Market contradicts two principles: 02 principle 2 says "ingredient ordering becomes automatic" while 02 §3.1 makes the Market "the second loop"; because 80% of fast food ingredients do not spoil, the Market becomes a game of "stock up on a cheap day" — and in the free, tutorial cuisine at that. If 26+12 ingredient lines are bought one by one, the 40-60 touch budget (principle 6) is spent before service even starts.
 
-**Düzeltme:** Fiyat cezası doğrusal olmaktan çıksın, %10 üstünde hızlansın ve toleransı itibara bağlansın (yüksek itibar daha yüksek fiyat taşır) ki fiyat itibar hareket ettikçe yeniden karar olsun. Her yemek dört parametre taşısın: hazırlık süresi, istasyon, en az bir bozulabilir malzeme, arketip çekimi. Hal otomatik taban sipariş artı günde 3-5 elle "fırsat/risk" satırı olsun. Kombo, o günkü hal fiyatına bağlı günlük karar olsun.
+**Fix:** make the price penalty non-linear, accelerating above 10%, and tie tolerance to reputation (a high reputation carries a higher price) so that price becomes a decision again whenever reputation moves. Give every dish four parameters: prep time, station, at least one perishable ingredient, archetype pull. Make the Market an automatic baseline order plus 3-5 manual "opportunity/risk" lines a day. Make the combo a daily decision tied to that day's market price.
 
-### 5. Dördüncü mevsim plato, imza mekanikleri yarı reskin (A5, A6)
+### 5. The fourth season is a plateau, and the signature mechanics are half reskin (A5, A6)
 
-09 İlerleme eğrisi: 46-60. günlerde yeni sistem yok, 5 yemek, kadro tavanda, son genişleme alınmış (ya da sorun 1'e göre alınamamış). 45-90 dakika düz oyun; araştırma §3 madde 6 ve Supermarket Simulator geç oyun şikayetiyle doğrudan çelişiyor. 08 bunu "ustalık" diye savunuyor ama ustalık için değişen bir şey lazım.
+09, Progression curve: on days 46-60 there is no new system, 5 dishes, the crew at its cap, the last expansion bought (or, per problem 1, unbuyable). 45-90 minutes of flat play; that contradicts research §3 item 6 and the Supermarket Simulator late-game complaint head on. 08 defends it as "mastery", but mastery needs something that changes.
 
-Mekanikler: Japon çorba suyu gerçekten farklı bir karar şekli (sabah miktar tahmini). Türk veresiye şu hâliyle vergi: tutar, vade, tahsilat takvimi, ödememe olasılığı yazılmamış; 8.000 sermaye ve 2.780'lik haftalık ödemede 55'lik bir yemeğin veresiyesi gürültü. Kombo bir düğme. İtalyan kurs zamanlaması masa başına karar ister, 3-5 müdahale bütçesiyle çelişir.
+The mechanics: the Japanese soup stock really is a different shape of decision (estimating the quantity in the morning). The Turkish tab, as it stands, is a tax: the amount, the term, the collection calendar and the chance of non-payment are not written down; with 8,000 capital and a 2,780 weekly payment, credit on a 55 dish is noise. The combo is a button. Italian course timing wants a per-table decision, which conflicts with a budget of 3-5 interventions.
 
-**Düzeltme:** 4. mevsime olay zinciri: eleştirmen finali geri sayımlı, rakip restoran 3. mevsime çekilsin, bir festival haftası (talep artar, tavan geçici gevşer). Bu yapılmayacaksa kampanya 45 güne insin, 08 zaten soruyor. Veresiye tahsilatı kira gününden farklı fazda bir takvime bağlansın (memur maaş günü, 1 ve 15); defter görünür olsun; haftalık cironun anlamlı bir payı veresiyeye gidebilsin. Menü yuvası masa kademesiyle büyüsün (öneri 4/5/6/8) ki araştırmadaki Cat Cafe "açılıyor ama kullanamıyorsun" şikayeti tekrarlanmasın; 32 yemek ancak parametrelerle anlamlı, aksi hâlde v1'in 20'si yeterliydi.
+**Fix:** an event chain for season 4: the critic finale on a countdown, a rival restaurant pulled into season 3, one festival week (demand rises, the cap loosens temporarily). If that is not going to happen, cut the campaign to 45 days — 08 is already asking. Tie tab collection to a calendar out of phase with rent day (the civil-servant payday, the 1st and the 15th); make the book visible; let a meaningful share of weekly revenue go on the tab. Grow the menu slots with the table tier (suggested 4/5/6/8) so that the research's Cat Cafe complaint — "it unlocks but you cannot use it" — is not repeated; 32 dishes are only meaningful with parameters, otherwise v1's 20 were enough.
 
-## Kalem kararları
+## Item decisions
 
-| Kalem | Karar | Gerekçe |
+| Item | Decision | Reasoning |
 |---|---|---|
-| A4 Ekonomi sayıları | DÜZELT | Fiyat, ücret, kira, kredi yapısı başlangıç için uygun. §6 tablosu §5.1'den hafta sonu katsayısıyla yeniden üretilecek; 2. hafta neti (933 ≠ 560), 7. hafta maaşı (5.600 ≠ 5.740), son genişleme nakit sırası düzeltilecek; formüle mutfak terimi eklenecek. |
-| A5 İçerik envanteri | DÜZELT | 32 yemek kalabilir, ama her yemek dört parametre (hazırlık süresi, istasyon, bozulabilir malzeme, arketip çekimi) taşımadan onaylanmaz; menü yuvası kademeyle büyüsün. |
-| A6 İlerleme eğrisi | DÜZELT | İmza mekaniğinin 16. günde gelmesi doğru. 4. mevsime olay zinciri gelmezse kampanya 45 güne insin; son genişleme 7. hafta sonuna alınsın. |
-| A7 Müşteri sistemi | DÜZELT | Arketip ve sıklık yapısı iyi. Müşteri = kişi/grup netleşsin, nadir kademe takvime bağlansın, servis süresi ölçeklensin, taşma modeli ve doğrusal olmayan fiyat cezası yazılsın. |
-| A8 Personel sistemi | DÜZELT | Huy tasarımı ve basit yapay zekâ kararı doğru. Kadro tablosu kapasitelerden türetilsin, bulaşıkçı darboğazı kabul edilsin veya kapasite yükselsin, patronun 12'si günlük tek role atansın, "yoğun gün" tanımlansın, zam reddi bedelli olsun, izin günü "evet". |
+| A4 Economy numbers | REVISE | Price, wage, rent and loan structure are a fine starting point. The §6 table will be regenerated from §5.1 with the weekend factor; week 2's net (933 ≠ 560), week 7's wages (5,600 ≠ 5,740) and the cash ordering of the final expansion will be corrected; a cuisine term will be added to the formula. |
+| A5 Content inventory | REVISE | 32 dishes may stay, but they are not approved until every dish carries four parameters (prep time, station, perishable ingredient, archetype pull); menu slots should grow with the tier. |
+| A6 Progression curve | REVISE | The signature mechanic arriving on day 16 is right. If no event chain comes for season 4, cut the campaign to 45 days; move the last expansion to the end of week 7. |
+| A7 Customer system | REVISE | The archetype and frequency structure is good. Settle customer = person/party, bind the rare tier to a calendar, scale service time, and write the overflow model and the non-linear price penalty. |
+| A8 Staff system | REVISE | The trait design and the decision to keep the AI simple are right. Derive the crew table from the capacities, either accept the dishwasher bottleneck or raise the capacity, assign the owner's 12 to a single role per day, define "busy day", make refusing a raise cost something, day off "yes". |
 
-## Cevapsız sorular
+## Unanswered questions
 
-1. Müşteri sayısı kişi mi, grup mu? Fiş tutarı kişi başı mı? Formül ve kapasite hangi birimde?
-2. Genişleme mevsime mi nakde mi kilitli? 8.000 sermayeyle 2.500'lük ilk genişleme 1. gün alınabiliyor.
-3. Talep kapasiteyi aşınca ne oluyor: müşteri kapıdan mı dönüyor, kuyruğa mı giriyor, itibar cezası kaç?
-4. Küçülme (kademe 5) kirayı da düşürüyor mu? Gönüllü küçülme var mı? 02 §5'teki "12 masa → 6" hangi kademe; kademeler 4/7/10/14.
-5. Patronun 12 müşterisi tek rolde mi, üç rolde toplam mı?
-6. Servis 120 saniye sabit mi, dört dilim eşit mi, kademeyle uzuyor mu?
-7. Kredi vadesi 8 hafta kampanya sonunu aşıyor. Yıl sonu Varlık ekseni açık borcu nasıl sayıyor? 4 haftalık vade olacak mı?
-8. Veresiye: tavan tutar, vade, tahsilat takvimi, ödememe olasılığı, sadakatin sayısal karşılığı.
-9. Hiç genişlemeyen oyuncu 4 masada sonsuza kadar kârda kalıyor (+314 ile +933/hafta). Batma merdiveni sadece hırslıya mı işleyecek, yoksa mevsimlik kira artışı gibi bir baskı olacak mı?
-10. Kombo günlük karar mı, bir kez kurulan ayar mı? Hal fast food'da %20 bozulmayla neyi zorlayacak?
+1. Is the customer count people or parties? Is the bill per person? Which unit are the formula and the capacity in?
+2. Is expansion gated by season or by cash? With 8,000 capital the first 2,500 expansion can be bought on day 1.
+3. What happens when demand exceeds capacity: does the customer turn away at the door, join a queue, and what is the reputation penalty?
+4. Does downsizing (tier 5) lower the rent as well? Is voluntary downsizing possible? Which tier is "12 tables → 6" in 02 §5; the tiers are 4/7/10/14.
+5. Are the owner's 12 customers in one role, or a total across three roles?
+6. Is service a fixed 120 seconds, are the four slots equal, does it lengthen with the tier?
+7. The 8-week loan term runs past the end of the campaign. How does the year-end Assets axis count outstanding debt? Will there be a 4-week term?
+8. The tab: cap amount, term, collection calendar, chance of non-payment, the numeric value of loyalty.
+9. A player who never expands stays in profit at 4 tables forever (+314 to +933 a week). Is the collapse ladder only going to bite the ambitious, or will there be a pressure such as a seasonal rent rise?
+10. Is the combo a daily decision or a setting made once? With 20% spoilage in fast food, what will the Market actually force?

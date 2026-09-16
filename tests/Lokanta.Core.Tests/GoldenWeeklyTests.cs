@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -20,7 +20,7 @@ namespace Lokanta.Core.Tests
         [JsonProperty("weekendCustomers")] public int WeekendCustomers { get; set; }
         [JsonProperty("weekCustomers")] public int WeekCustomers { get; set; }
         [JsonProperty("cooks")] public int Cooks { get; set; }
-        [JsonProperty("salon")] public int Salon { get; set; }
+        [JsonProperty("hall")] public int Hall { get; set; }
         [JsonProperty("crewTotal")] public int CrewTotal { get; set; }
         [JsonProperty("staffCap")] public int StaffCap { get; set; }
         [JsonProperty("revenue")] public long Revenue { get; set; }
@@ -40,13 +40,14 @@ namespace Lokanta.Core.Tests
     }
 
     /// <summary>
-    /// docs/23-core-contract.md 10, son kabul olcutu:
-    /// C# cekirdek ile tools/balance/model.py sekiz haftalik tabloda eslesmeli.
+    /// docs/23-core-contract.md 10, the final acceptance criterion:
+    /// the C# core and tools/balance/model.py must match across the eight-week
+    /// table.
     ///
-    /// Bu, tek bir testte uc seyi birden dogruluyor:
-    ///   1. Fx tamsayi aritmetigi ondalik modelden sapmiyor
-    ///   2. Icerik JSON'u dogru yukleniyor
-    ///   3. Talep, kadro ve haftalik hesap formulleri dogru cevrildi
+    /// This validates three things in a single test:
+    ///   1. Fx integer arithmetic does not drift from the decimal model
+    ///   2. the content JSON loads correctly
+    ///   3. the demand, crew and weekly account formulas were ported correctly
     /// </summary>
     public class GoldenWeeklyTests
     {
@@ -54,7 +55,7 @@ namespace Lokanta.Core.Tests
         {
             string path = Path.Combine(Paths.Golden, "weekly.json");
             Assert.True(File.Exists(path),
-                "Altin veri yok. Once 'python tools/balance/export.py' calistirin. Beklenen: " + path);
+                "No golden data. Run 'python tools/balance/export.py' first. Expected: " + path);
             return JsonConvert.DeserializeObject<GoldenFile>(File.ReadAllText(path));
         }
 
@@ -72,7 +73,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Musteri_sayilari_birebir_esitr()
+        public void The_customer_counts_match_exactly()
         {
             GoldenFile golden = LoadGolden();
             WeekResult[] got = RunModel(golden, LoadConfig());
@@ -81,16 +82,16 @@ namespace Lokanta.Core.Tests
             {
                 GoldenWeek g = golden.Weeks[i];
                 Assert.True(g.WeekdayCustomers == got[i].WeekdayCustomers,
-                    $"H{g.Week} hafta ici: beklenen {g.WeekdayCustomers}, gelen {got[i].WeekdayCustomers}");
+                    $"W{g.Week} weekday: expected {g.WeekdayCustomers}, got {got[i].WeekdayCustomers}");
                 Assert.True(g.WeekendCustomers == got[i].WeekendCustomers,
-                    $"H{g.Week} hafta sonu: beklenen {g.WeekendCustomers}, gelen {got[i].WeekendCustomers}");
+                    $"W{g.Week} weekend: expected {g.WeekendCustomers}, got {got[i].WeekendCustomers}");
                 Assert.True(g.WeekCustomers == got[i].WeekCustomers,
-                    $"H{g.Week} hafta toplami: beklenen {g.WeekCustomers}, gelen {got[i].WeekCustomers}");
+                    $"W{g.Week} week total: expected {g.WeekCustomers}, got {got[i].WeekCustomers}");
             }
         }
 
         [Fact]
-        public void Kadro_birebir_esittir()
+        public void The_crew_matches_exactly()
         {
             GoldenFile golden = LoadGolden();
             WeekResult[] got = RunModel(golden, LoadConfig());
@@ -99,16 +100,16 @@ namespace Lokanta.Core.Tests
             {
                 GoldenWeek g = golden.Weeks[i];
                 Assert.True(g.Cooks == got[i].Crew.Cooks,
-                    $"H{g.Week} asci: beklenen {g.Cooks}, gelen {got[i].Crew.Cooks}");
-                Assert.True(g.Salon == got[i].Crew.Salon,
-                    $"H{g.Week} salon: beklenen {g.Salon}, gelen {got[i].Crew.Salon}");
+                    $"W{g.Week} cooks: expected {g.Cooks}, got {got[i].Crew.Cooks}");
+                Assert.True(g.Hall == got[i].Crew.Hall,
+                    $"W{g.Week} hall: expected {g.Hall}, got {got[i].Crew.Hall}");
                 Assert.True(g.CrewTotal == got[i].Crew.Total,
-                    $"H{g.Week} toplam kadro: beklenen {g.CrewTotal}, gelen {got[i].Crew.Total}");
+                    $"W{g.Week} crew total: expected {g.CrewTotal}, got {got[i].Crew.Total}");
             }
         }
 
         [Fact]
-        public void Para_alanlari_tolerans_icinde_esitr()
+        public void The_money_fields_match_within_tolerance()
         {
             GoldenFile golden = LoadGolden();
             long tol = golden.ToleranceCenti;
@@ -118,13 +119,13 @@ namespace Lokanta.Core.Tests
             {
                 GoldenWeek g = golden.Weeks[i];
                 WeekResult r = got[i];
-                Near(g.Week, "ciro", g.Revenue, r.Revenue, tol);
-                Near(g.Week, "malzeme", g.Ingredients, r.Ingredients, tol);
-                Near(g.Week, "maas", g.Wages, r.Wages, tol);
-                Near(g.Week, "kira", g.Rent, r.Rent, 0);
-                Near(g.Week, "genisleme", g.Expansion, r.Expansion, 0);
+                Near(g.Week, "revenue", g.Revenue, r.Revenue, tol);
+                Near(g.Week, "ingredients", g.Ingredients, r.Ingredients, tol);
+                Near(g.Week, "wages", g.Wages, r.Wages, tol);
+                Near(g.Week, "rent", g.Rent, r.Rent, 0);
+                Near(g.Week, "expansion", g.Expansion, r.Expansion, 0);
                 Near(g.Week, "net", g.Net, r.Net, tol);
-                Near(g.Week, "kasa", g.Cash, r.Cash, tol);
+                Near(g.Week, "cash", g.Cash, r.Cash, tol);
             }
         }
 
@@ -132,11 +133,11 @@ namespace Lokanta.Core.Tests
         {
             long diff = Math.Abs(expected - actual);
             Assert.True(diff <= tol,
-                $"H{week} {field}: beklenen {expected}, gelen {actual}, fark {diff} santi-sikke (tolerans {tol})");
+                $"W{week} {field}: expected {expected}, got {actual}, difference {diff} centi-coins (tolerance {tol})");
         }
 
         [Fact]
-        public void Tasarim_kisitlari_hala_gecerli()
+        public void The_design_constraints_still_hold()
         {
             GoldenFile golden = LoadGolden();
             EconomyConfig cfg = LoadConfig();
@@ -146,33 +147,34 @@ namespace Lokanta.Core.Tests
             {
                 WeekResult r = got[i];
                 Assert.True(r.CrewWithinCap,
-                    $"H{r.Week} kadro tavani asiyor: {r.Crew.Total}/{r.StaffCap}");
-                Assert.True(r.Cash > 0, $"H{r.Week} kasa eksiye dustu: {r.Cash}");
+                    $"W{r.Week} exceeds the crew cap: {r.Crew.Total}/{r.StaffCap}");
+                Assert.True(r.Cash > 0, $"W{r.Week} the till went negative: {r.Cash}");
 
                 if (r.Expansion > 0)
-                    Assert.True(r.Net < 0, $"H{r.Week} genisleme haftasi zarar etmiyor: {r.Net}");
+                    Assert.True(r.Net < 0, $"W{r.Week} an expansion week does not lose money: {r.Net}");
                 else
-                    Assert.True(r.Net > 0, $"H{r.Week} olgun hafta zarar ediyor: {r.Net}");
+                    Assert.True(r.Net > 0, $"W{r.Week} a mature week loses money: {r.Net}");
 
                 if (i > 0)
                     Assert.True(r.Crew.Total >= got[i - 1].Crew.Total,
-                        $"H{r.Week} kadro geri gidiyor");
+                        $"W{r.Week} the crew goes backwards");
             }
 
-            // Ilk ise alim ikinci haftada olmali: senaryo degil, is yuku sonucu
+            // The first hire must fall in the second week: not a script, a result of the workload
             Assert.Equal(1, got[0].Crew.Total);
             Assert.Equal(2, got[1].Crew.Total);
         }
 
         [Theory]
-        [InlineData("tr-TR")]   // noktali/noktasiz i tuzagi
+        [InlineData("tr-TR")]   // the dotted/dotless i trap
         [InlineData("en-US")]
-        [InlineData("de-DE")]   // ondalik ayraci virgul
-        [InlineData("ar-SA")]   // farkli rakam sekilleri
-        public void Kultur_sonucu_degistirmez(string cultureName)
+        [InlineData("de-DE")]   // comma as the decimal separator
+        [InlineData("ar-SA")]   // different digit shapes
+        public void The_culture_does_not_change_the_result(string cultureName)
         {
-            // docs/23 4.3 kultur testi. Gelistiricinin makinesi Turkce,
-            // oyuncularin cogunun degil: hata sadece burada gorunmez.
+            // The docs/23 4.3 culture test. The developer's machine is Turkish,
+            // most of the players' machines are not: the bug is invisible here
+            // and only here.
             CultureInfo previous = Thread.CurrentThread.CurrentCulture;
             try
             {
@@ -199,7 +201,7 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Ayni_girdi_ayni_ciktiyi_verir()
+        public void The_same_input_gives_the_same_output()
         {
             GoldenFile golden = LoadGolden();
             EconomyConfig cfg = LoadConfig();

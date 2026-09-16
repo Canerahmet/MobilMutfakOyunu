@@ -9,12 +9,12 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Yerellestirme tamligi.
+    /// Localisation completeness.
     ///
-    /// Uretec (tools/content/gen_loc.py) zaten dogruluyor, ama uretec
-    /// ELLE calistiriliyor. Yeni bir yemek eklenip metin tablosu
-    /// yenilenmezse oyunda "dish.pide" yazan bir dugme cikar - ve bu,
-    /// hicbir sey kirilmadan olur. Test o araligi kapatiyor.
+    /// The generator (tools/content/gen_loc.py) already validates this, but the
+    /// generator is run BY HAND. If a new dish is added and the string table is
+    /// not regenerated, a button reading "dish.pide" appears in the game - and
+    /// it happens without anything breaking. This test closes that gap.
     /// </summary>
     public class LocTests
     {
@@ -27,7 +27,7 @@ namespace Lokanta.Core.Tests
                 new DirectoryContentSource(Paths.Content), "loc/tr.json");
         }
 
-        /// <summary>Icerikteki butun *Key alanlari.</summary>
+        /// <summary>Every *Key field in the content.</summary>
         private static HashSet<string> RequiredKeys()
         {
             HashSet<string> keys = new HashSet<string>();
@@ -60,39 +60,40 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Icerigin_istedigi_her_metin_var()
+        public void Every_string_the_content_asks_for_exists()
         {
             var table = Table();
             var needed = RequiredKeys();
 
             List<string> missing = needed.Where(k => !table.ContainsKey(k)).OrderBy(k => k).ToList();
-            _out.WriteLine($"{needed.Count} anahtar isteniyor, tabloda {table.Count} var");
+            _out.WriteLine($"{needed.Count} keys are required, the table holds {table.Count}");
 
             Assert.True(missing.Count == 0,
-                "Eksik metin:\n" + string.Join("\n", missing.Take(20)));
+                "Missing string:\n" + string.Join("\n", missing.Take(20)));
         }
 
         [Fact]
-        public void Icerikte_olmayan_metin_yok()
+        public void There_is_no_string_without_a_counterpart_in_the_content()
         {
-            // Silinen bir yemegin metni tabloda kalirsa kimse fark etmez -
-            // ama bir sonraki okuyan onun hala kullanildigini sanir.
+            // If a deleted dish's string stays in the table nobody notices - but
+            // the next person to read it assumes it is still in use.
             var table = Table();
             var needed = RequiredKeys();
 
-            // Ekranin kendi metin aileleri icerikte gecmez; onlar
-            // fazlalik degil. "ui." arayuz, "notice." olay bildirimleri,
-            // "score." yil sonu eksenleri, ".desc" aciklamalar.
+            // The screen's own string families never appear in the content;
+            // they are not surplus. "ui." the interface, "notice." the event
+            // notifications, "score." the year-end axes, ".desc" the
+            // descriptions.
             //
-            // AYNI LISTE tools/content/gen_loc.py:SCREEN_KEY icinde de
-            // duruyor ve ikisi AYRISABILIR - IKI KEZ AYRISTI: once
-            // ".desc" uretecte eklendi burada eklenmedi (on iki metin
-            // "fazlalik" sayildi), sonra "badge." ayni sekilde.
+            // THE SAME LIST also sits in tools/content/gen_loc.py:SCREEN_KEY and
+            // the two CAN DRIFT APART - THEY DRIFTED TWICE: first ".desc" was
+            // added to the generator and not here (twelve strings were counted
+            // as "surplus"), then "badge." in the same way.
             //
-            // Ucuncusu icin beklemedik: gen_loc.py artik bu dosyayi
-            // OKUYUP iki listeyi karsilastiriyor ve ayrisirsa uretimi
-            // reddediyor. Yani bu yorumun "birini degistiren otekini de
-            // degistirmeli" uyarisi artik bir dilek degil, bir kontrol.
+            // We did not wait for a third: gen_loc.py now READS this file and
+            // compares the two lists, and refuses to generate if they have
+            // drifted. So this comment's warning that "whoever changes one must
+            // change the other" is no longer a wish, it is a check.
             List<string> orphan = table.Keys
                 .Where(k => !k.StartsWith("ui.")
                             && !k.StartsWith("notice.")
@@ -104,81 +105,83 @@ namespace Lokanta.Core.Tests
                 .OrderBy(k => k).ToList();
 
             Assert.True(orphan.Count == 0,
-                "Icerikte karsiligi olmayan metin:\n" + string.Join("\n", orphan.Take(20)));
+                "String with no counterpart in the content:\n" + string.Join("\n", orphan.Take(20)));
         }
 
         /// <summary>
-        /// HER HUYUN SESI VAR MI - IKI DILDE.
+        /// DOES EVERY TRAIT HAVE A VOICE - IN BOTH LANGUAGES.
         ///
-        /// `.voice` ailesi hicbir denetimin kapsaminda degildi: icerik
-        /// dosyalari `.voice` istemiyor (nameKey degil), iki oksuz
-        /// kontrolu de aileyi MUAF tutuyor, ve turun kontrolu de
-        /// yakalayamiyordu - `Loc.T` eksik anahtarda "[anahtar]"
-        /// donduruyor, kart da ayni cagriyi yapiyor, yani iki taraf
-        /// birden ayni yanlis dizeyi uretip yesil geciyordu.
+        /// The `.voice` family was inside no check's scope at all: the content
+        /// files do not ask for `.voice` (it is not a nameKey), both of the
+        /// orphan checks EXEMPT the family, and the smoke tour's check could not
+        /// catch it either - `Loc.T` returns "[key]" for a missing key and the
+        /// card makes the same call, so both sides produced the same wrong string
+        /// and passed green.
         ///
-        /// Yani on ucuncu bir huy eklense, oyuncuya "[trait.x.voice]"
-        /// gosterilir ve on uc denetimin hicbiri konusmazdi.
+        /// So if a thirteenth trait were added, the player would be shown
+        /// "[trait.x.voice]" and not one of the thirteen checks would speak up.
         /// </summary>
         [Fact]
-        public void Her_huyun_sesi_var()
+        public void Every_trait_has_a_voice()
         {
             List<TraitDto> traits = Newtonsoft.Json.JsonConvert
                 .DeserializeObject<List<TraitDto>>(
                     File.ReadAllText(Path.Combine(Paths.Content,
                                                   "staff-traits.json")));
 
-            foreach (string dil in new[] { "tr", "en" })
+            foreach (string language in new[] { "tr", "en" })
             {
                 var table = ContentLoader.ReadStringMap(
-                    new DirectoryContentSource(Paths.Content), "loc/" + dil + ".json");
+                    new DirectoryContentSource(Paths.Content), "loc/" + language + ".json");
 
-                List<string> eksik = traits
+                List<string> missing = traits
                     .Select(t => "trait." + t.Id + ".voice")
                     .Where(k => !table.ContainsKey(k)
                                 || string.IsNullOrWhiteSpace(table[k]))
                     .ToList();
 
-                Assert.True(eksik.Count == 0,
-                    dil + " dilinde sesi olmayan huy: " + string.Join(", ", eksik));
+                Assert.True(missing.Count == 0,
+                    "trait with no voice in " + language + ": " + string.Join(", ", missing));
             }
         }
 
         [Fact]
-        public void Hicbir_metin_bos_degil()
+        public void No_string_is_blank()
         {
             var blank = Table().Where(kv => string.IsNullOrWhiteSpace(kv.Value))
                                .Select(kv => kv.Key).OrderBy(k => k).ToList();
-            Assert.True(blank.Count == 0, "Bos metin:\n" + string.Join("\n", blank));
+            Assert.True(blank.Count == 0, "Blank string:\n" + string.Join("\n", blank));
         }
 
         [Fact]
-        public void Duzenli_musterilerin_UC_sahnesi_de_yazili()
+        public void All_THREE_beats_of_the_regulars_are_written()
         {
-            // docs/09: "her birinin uc ile dort sahnelik hikayesi var."
-            // Sahne esigi icerikte, METNI burada; ikisi ayrisirsa oyuncu
-            // hak ettigi sahneyi bos bir kutu olarak gorur.
+            // docs/09: "each of them has a story of three or four beats."
+            // The beat's threshold is in the content, its TEXT is here; if the
+            // two drift apart the player sees the beat they have earned as an
+            // empty box.
             var table = Table();
             foreach (string cuisine in new[] { "fastfood", "turk" })
             {
                 ContentSet c = ContentSetLoader.Load(Paths.Content, cuisine);
                 foreach (RegularDef r in c.Regulars)
                 {
-                    Assert.True(table.ContainsKey(r.NameKey), r.Id + " adi yok");
-                    Assert.True(table.ContainsKey(r.JobKey), r.Id + " meslegi yok");
+                    Assert.True(table.ContainsKey(r.NameKey), r.Id + " has no name");
+                    Assert.True(table.ContainsKey(r.JobKey), r.Id + " has no job");
                     foreach (StoryBeat b in r.Story)
                         Assert.True(table.ContainsKey(b.TextKey),
-                                    r.Id + " " + b.Beat + ". sahnesi yok");
+                                    r.Id + " has no beat " + b.Beat);
                 }
             }
         }
 
         [Fact]
-        public void Turkce_karakterler_kayipsiz()
+        public void Turkish_characters_survive_intact()
         {
-            // Bu test bir kodlama hatasini yakalamak icin: dosya UTF-8
-            // yazilmazsa "Çorbası" -> "Ã‡orbasÄ±" olur ve JSON gecerli
-            // kaldigi icin hicbir sey kirilmaz.
+            // This test is here to catch an encoding bug: if the file is not
+            // written as UTF-8, every Turkish letter in a dish name comes back as
+            // two Latin-1 characters (a C-cedilla turns into "A-tilde" plus a
+            // control picture), and because the JSON stays valid nothing breaks.
             var table = Table();
             Assert.Equal("Mercimek Çorbası", table["dish.mercimek_corbasi"]);
             Assert.Equal("Yoğurt", table["ingredient.yogurt"]);
@@ -187,7 +190,7 @@ namespace Lokanta.Core.Tests
             int withDiacritics = table.Values.Count(
                 v => v.IndexOfAny(new[] { 'ç', 'ğ', 'ı', 'ö', 'ş', 'ü',
                                           'Ç', 'Ğ', 'İ', 'Ö', 'Ş', 'Ü' }) >= 0);
-            _out.WriteLine($"{withDiacritics} metinde Turkce karakter var");
+            _out.WriteLine($"{withDiacritics} strings contain Turkish characters");
             Assert.True(withDiacritics > 150);
         }
     }

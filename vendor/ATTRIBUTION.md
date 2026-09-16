@@ -1,107 +1,118 @@
-# Üçüncü taraf varlıklar — kaynak ve lisans kaydı
+# Third-party assets — source and licence record
 
-Bu dosya **zorunlu**. Oyuna giren her dış dosyanın nereden geldiği ve
-hangi lisansla kullanıldığı burada yazılı olmalı.
+This file is **mandatory**. Where every external file that enters the game came
+from, and under which licence it is used, has to be written down here.
 
-Sebebi ticari: yayın öncesi lisans gözden geçirmesi ancak böyle
-yapılabilir. "Bunu nereden indirmiştik?" sorusunun cevabı olmayan bir
-dosya, yayınlanamaz bir dosyadır.
+The reason is commercial: the pre-release licence review can only be done this
+way. A file with no answer to "where did we download this from?" is a file that
+cannot be published.
 
-## Kural
+## The rule
 
-1. Her indirilen paket önce `vendor/` altına, **zip hâliyle** iner.
-2. Zip'in içindeki `License.txt` **silinmez** ve projeye birlikte taşınır.
-3. Bu tabloya bir satır eklenir: ne, nereden, hangi lisans, ne zaman.
-4. Lisans CC0 / CC-BY / MIT dışında bir şeyse **kullanılmaz**, önce sorulur.
+1. Every downloaded package lands under `vendor/` first, **as the zip**.
+2. The `License.txt` inside the zip is **never deleted** and travels into the project with the asset.
+3. A row is added to this table: what, from where, which licence, when.
+4. If the licence is anything other than CC0 / CC-BY / MIT it is **not used** — ask first.
 
-## Tablo
+## The table
 
-| Paket | Sürüm | Kaynak | Lisans | İndirme | Kullanım |
+| Package | Version | Source | Licence | Downloaded | Used for |
 |---|---|---|---|---|---|
-| Kenney Food Kit | 2.0 | https://kenney.nl/assets/food-kit | CC0 1.0 | 2026-09-11 | Tabak, yemek ve mutfak nesneleri |
-| Kenney Furniture Kit | 2.0 | https://kenney.nl/assets/furniture-kit | CC0 1.0 | 2026-09-11 | Masa, sandalye, dolap, tezgâh |
-| Kenney Mini Characters | 1.0 | https://kenney.nl/assets/mini-characters | CC0 1.0 | 2026-09-11 | Müşteri ve personel figürleri **ve 32 animasyon klibi** |
-| Kenney Modular Characters | 1.0 | https://kenney.nl/assets/modular-characters | CC0 1.0 | 2026-09-11 | **KULLANILMIYOR** — paket 2B sprite çıktı, 3B gardırop değil |
+| Kenney Food Kit | 2.0 | https://kenney.nl/assets/food-kit | CC0 1.0 | 2026-09-11 | Plates, food and kitchen objects |
+| Kenney Furniture Kit | 2.0 | https://kenney.nl/assets/furniture-kit | CC0 1.0 | 2026-09-11 | Tables, chairs, cabinets, counters |
+| Kenney Mini Characters | 1.0 | https://kenney.nl/assets/mini-characters | CC0 1.0 | 2026-09-11 | Customer and staff figures **and 32 animation clips** |
+| Kenney Modular Characters | 1.0 | https://kenney.nl/assets/modular-characters | CC0 1.0 | 2026-09-11 | **NOT USED** — the package turned out to be 2D sprites, not a 3D wardrobe |
 
-## Yapıya motorun kendisinin soktuğu bileşenler
+## Components the engine itself puts into the build
 
-Bunlar indirilmedi; Unity yapı alırken APK'ya koyuyor. Yine de **dağıtılan
-yazılım** oldukları için defterde yerleri var — denetimde bu tablo yoktu ve
-APK'nın içindeki hiçbir üçüncü taraf bileşen kayıtlı değildi.
+These were not downloaded; Unity puts them into the APK when it builds. They
+are **distributed software** nonetheless, so they have a place in the ledger —
+this table did not exist at audit time, and not one of the third-party
+components inside the APK was on record.
 
-| Bileşen | Lisans | Nereden |
+| Component | Licence | From where |
 |---|---|---|
 | Newtonsoft.Json | MIT (James Newton-King) | `com.unity.nuget.newtonsoft-json` |
-| AndroidX (28 modül) | Apache-2.0 | Unity Android oynatıcısı |
-| Kotlin stdlib + kotlinx-coroutines | Apache-2.0 | AndroidX bağımlılığı |
+| AndroidX (28 modules) | Apache-2.0 | Unity Android player |
+| Kotlin stdlib + kotlinx-coroutines | Apache-2.0 | AndroidX dependency |
 | libc++_shared | Apache-2.0 with LLVM Exception | Android NDK |
-| Swappy (libswappywrapper) | Apache-2.0 | Unity kare hızı eşitleme |
-| Unity çalışma zamanı (libunity, libil2cpp) | Unity Companion / EULA | Motor |
+| Swappy (libswappywrapper) | Apache-2.0 | Unity frame pacing |
+| Unity runtime (libunity, libil2cpp) | Unity Companion / EULA | The engine |
 
-**Kural güncellendi:** yukarıdaki 1. maddede "CC0/CC-BY/MIT dışında bir şey
-kullanılmaz" yazıyordu; Apache-2.0 zaten kaçınılmaz olarak içeride ve
-ticari kullanıma açık. Kural artık **CC0 / CC-BY / MIT / Apache-2.0 /
-SIL OFL** dışındaki lisanslar için geçerli.
+**The rule has been updated:** item 1 above used to say "anything other than
+CC0/CC-BY/MIT is not used"; Apache-2.0 is unavoidably inside already and it is
+open to commercial use. The rule now applies to licences other than **CC0 /
+CC-BY / MIT / Apache-2.0 / SIL OFL**.
 
-## Animasyon
+## Animation
 
-Karakter animasyonları **ayrı bir indirme değil** — Mini Characters
-paketinin FBX'lerinin içinde geliyor. Her figürde 32 klip var; oyun
-beşini kullanıyor: `idle`, `walk`, `sit`, `interact-right` (aşçı tezgâhta),
-`holding-both` (garson tabak taşıyor).
+The character animations are **not a separate download** — they come inside the
+FBX files of the Mini Characters package. Every figure has 32 clips; the game
+uses five: `idle`, `walk`, `sit`, `interact-right` (the cook at the counter),
+`holding-both` (the waiter carrying a plate).
 
-İskelet bütün figürlerde aynı olduğu için klipler tek bir denetleyiciden
-(`Art/Animator/Character.controller`) sürülüyor. Lisans paketin
-kendisiyle aynı: CC0.
+Because the skeleton is the same in every figure, the clips are driven from a
+single controller (`Art/Animator/Character.controller`). The licence is the same
+as the package's own: CC0.
 
-Quaternius veya Mixamo'ya **gerek kalmadı**; dışarıdan klip
-indirilmedi.
+Quaternius and Mixamo **turned out not to be needed**; no clip was downloaded
+from outside.
 
-## CC0 ne demek
+## What CC0 means
 
-Creative Commons Zero: kamu malına bırakılmış. Kişisel, eğitim ve
-**ticari** kullanım serbest, atıf **zorunlu değil**. Kenney'in kendi
-lisans metninden: *"You can use this content for personal, educational,
+Creative Commons Zero: released into the public domain. Personal, educational
+and **commercial** use are free, attribution is **not required**. From Kenney's
+own licence text: *"You can use this content for personal, educational,
 and commercial purposes."*
 
-Atıf zorunlu olmasa da **yapılacak** — yapımcı ekranında Kenney'in adı
-geçiyor. Zorunlu olmayan bir teşekkürü atlamak ucuzluk olur.
+Attribution is not required but it **will be given** — Kenney's name appears on
+the credits screen. Skipping a thank-you that costs nothing would be cheap.
 
-## Kendi ürettiklerimiz
+## Our own work
 
-Aşağıdakiler kodla üretiliyor, dış kaynak yok, lisans sorunu yok:
+The following are produced in code: no external source, no licence question.
 
-| Ne | Nerede |
+| What | Where |
 |---|---|
-| Bütün ses efektleri | `unity/Assets/Lokanta/Game/Sfx.cs` — dalga biçimi kodda sentezleniyor |
-| Müzik | `unity/Assets/Lokanta/Game/Music.cs` — sürekli sentez, dosya yok |
-| Kat planı ve oda geometrisi | `unity/Assets/Lokanta/Game/RoomPlan.cs` |
-| Uygulama simgesi | `unity/Assets/Lokanta/Editor/IconShot.cs` — oyunun kendi sahnesinden render ediliyor (Kenney CC0 modelleri) |
-| Açılış ekranı zemini | `IconShot.Apply()` — düz renk, görsel yok |
-| Bütün arayüz | `unity/Assets/Lokanta/Game/Ui/` — UI Toolkit, kodla kuruluyor |
-| Bütün içerik (yemek, malzeme, arketip, müşteri) | `tools/content/`, `tools/balance/` |
+| All sound effects | `unity/Assets/Lokanta/Game/Sfx.cs` — the waveform is synthesised in code |
+| Music | `unity/Assets/Lokanta/Game/Music.cs` — continuous synthesis, no file |
+| Floor plan and room geometry | `unity/Assets/Lokanta/Game/RoomPlan.cs` |
+| Application icon | `unity/Assets/Lokanta/Editor/IconShot.cs` — rendered from the game's own scene (Kenney CC0 models) |
+| Splash screen background | `IconShot.Apply()` — flat colour, no image |
+| The whole interface | `unity/Assets/Lokanta/Game/Ui/` — UI Toolkit, built in code |
+| All content (dishes, ingredients, archetypes, customers) | `tools/content/`, `tools/balance/` |
 
-## Yazı tipi
+## Typeface
 
-| Paket | Sürüm | Kaynak | Lisans | İndirme | Kullanım |
+| Package | Version | Source | Licence | Downloaded | Used for |
 |---|---|---|---|---|---|
-| Rubik | değişken (wght) | https://github.com/google/fonts/tree/main/ofl/rubik | SIL OFL 1.1 | 2026-09-11 | Bütün arayüz yazısı |
+| Rubik | variable (wght) | https://github.com/google/fonts/tree/main/ofl/rubik | SIL OFL 1.1 | 2026-09-11 | All interface text |
+| Noto Sans SC | Regular | https://fonts.google.com/noto/specimen/Noto+Sans+SC | SIL OFL 1.1 | 2026-09-16 | Chinese interface text |
 
-**Telif satırı:** *Rubik — Copyright 2015 The Rubik Project Authors (https://github.com/googlefonts/rubik), SIL Open Font License 1.1.*
-OFL hem lisans adını hem telif bildirimini istiyor; oyun içindeki
-**Açık kaynak lisansları** ekranı ikisini de gösteriyor.
+**Copyright line:** *Rubik — Copyright 2015 The Rubik Project Authors (https://github.com/googlefonts/rubik), SIL Open Font License 1.1.*
 
-SIL Open Font License 1.1 ticari kullanıma açık; tek şart yazı tipini
-**tek başına satmamak** ve türetilmiş bir yazı tipini aynı lisansla
-dağıtmak. Oyunun içinde gömülü kullanım serbest.
-Lisans metni: `unity/Assets/Lokanta/Art/Fonts/License.txt`.
+**Copyright line:** *Noto Sans SC — Copyright 2014-2021 Adobe (http://www.adobe.com/), SIL Open Font License 1.1.*
 
-**Neden ayrı bir yazı tipi indirildi:** Unity'nin varsayılan çalışma
-zamanı teması editörde çalışıyor ama **yapıda yazı tipini çözemedi** —
-ilk masaüstü yapısında düğmeler çiziliyor, üzerlerinde hiçbir yazı
-görünmüyordu.
+A SECOND TYPEFACE IS A SECOND LICENCE TEXT. Rubik carries Latin, Cyrillic,
+Hebrew and Arabic but no CJK, so the Chinese table needed its own font. Saying
+"the other one is OFL too" does not satisfy a licence: the full text ships
+separately at `Resources/licenses/noto-sans-sc-ofl.txt` and appears on the
+in-game Licences screen. This row was missing here for a day - the Art copy
+of this ledger had it and this one did not, which is exactly the divergence
+rule 5 below warns about.
+OFL asks for both the licence name and the copyright notice; the in-game
+**Open source licences** screen shows both.
 
-**Kapsama denetleniyor:** `python tools/art/check_font.py` oyunun
-gösterebileceği her karakteri yazı tipiyle karşılaştırıyor. İlk
-koşuda dört eksik buldu (₺, →, ≡, ★); üçü çizilen öğeye
-dönüştürüldü, para işareti genel para işareti (¤) oldu.
+SIL Open Font License 1.1 is open to commercial use; the only conditions are not
+to **sell the typeface on its own** and to distribute a derived typeface under
+the same licence. Embedded use inside the game is free.
+Licence text: `unity/Assets/Lokanta/Art/Fonts/License.txt`.
+
+**Why a separate typeface was downloaded:** Unity's default runtime theme works
+in the editor but **could not resolve the typeface in a build** — in the first
+desktop build the buttons were drawn with no text visible on them at all.
+
+**Coverage is checked:** `python tools/art/check_font.py` compares every
+character the game can display against the typeface. On its first run it found
+four missing (₺, →, ≡, ★); three were turned into drawn elements, and the
+currency sign became the generic currency sign (¤).

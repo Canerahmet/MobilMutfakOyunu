@@ -5,32 +5,32 @@ using UnityEngine;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// content/ klasorunu Assets/Resources/content/ altina kopyalar.
+    /// Copies the content/ folder under Assets/Resources/content/.
     ///
-    /// Neden kopya: icerik projenin kokunde uretiliyor (tools/balance,
-    /// tools/content) ve orasi Unity'nin gormedigi bir yer. Unity'nin
-    /// gordugu tek senkron kaynak Resources.
+    /// Why a copy: content is generated at the root of the project
+    /// (tools/balance, tools/content) and that is somewhere Unity cannot see.
+    /// The only synchronised source Unity does see is Resources.
     ///
-    /// Neden .json degil .txt DEGIL: Unity .json uzantisini zaten TextAsset
-    /// olarak iceri aliyor, yani yeniden adlandirmaya gerek yok.
+    /// Why NOT renamed from .json to .txt: Unity already imports the .json
+    /// extension as a TextAsset, so there is no need to rename anything.
     ///
-    /// KOPYA URETILEN BIR SEY. Assets/Resources/content altinda elle
-    /// duzenleme yapilmamali; her calistirmada silinip yeniden yaziliyor.
+    /// THE COPY IS A GENERATED THING. Nothing under Assets/Resources/content
+    /// should be edited by hand; it is deleted and rewritten on every run.
     /// </summary>
     public static class SyncContent
     {
         private const string Target = "Assets/Resources/content";
 
-        [MenuItem("Lokanta/Icerigi Resources'a kopyala")]
+        [MenuItem("Lokanta/Copy content into Resources")]
         public static void Run()
         {
             string root = Path.GetDirectoryName(Application.dataPath);      // unity/
-            string repo = Path.GetDirectoryName(root);                      // proje koku
+            string repo = Path.GetDirectoryName(root);                      // the project root
             string source = Path.Combine(repo, "content");
 
             if (!Directory.Exists(source))
             {
-                Debug.LogError("Icerik klasoru yok: " + source);
+                Debug.LogError("No content folder: " + source);
                 return;
             }
 
@@ -49,15 +49,15 @@ namespace Lokanta.EditorTools
             }
 
             AssetDatabase.Refresh();
-            Debug.Log(string.Format("{0} icerik dosyasi kopyalandi -> {1}", files, Target));
+            Debug.Log(string.Format("{0} content files copied -> {1}", files, Target));
         }
 
         /// <summary>
-        /// Kopyanin GUNCEL oldugunu dogrular. Bayat bir kopya, oyunun
-        /// dengesi degismis gibi gorunmesine yol acar ve sebebini bulmak
-        /// saatler alir - bu projede tam olarak bu sinif hata iki kez oldu.
+        /// Checks that the copy is UP TO DATE. A stale copy makes it look as
+        /// though the game's balance has changed, and finding the reason takes
+        /// hours - exactly this class of bug has happened twice on this project.
         /// </summary>
-        [MenuItem("Lokanta/Icerik kopyasi guncel mi")]
+        [MenuItem("Lokanta/Is the content copy up to date")]
         public static void Check()
         {
             string root = Path.GetDirectoryName(Application.dataPath);
@@ -67,7 +67,7 @@ namespace Lokanta.EditorTools
 
             if (!Directory.Exists(dest))
             {
-                Debug.LogWarning("Resources kopyasi hic olusturulmamis.");
+                Debug.LogWarning("The Resources copy has never been created.");
                 return;
             }
 
@@ -80,9 +80,9 @@ namespace Lokanta.EditorTools
                 if (File.ReadAllText(to) != File.ReadAllText(path)) stale++;
             }
 
-            if (missing == 0 && stale == 0) Debug.Log("Icerik kopyasi guncel.");
+            if (missing == 0 && stale == 0) Debug.Log("The content copy is up to date.");
             else Debug.LogWarning(string.Format(
-                "Icerik kopyasi BAYAT: {0} eksik, {1} farkli. Lokanta menusunden kopyala.",
+                "The content copy is STALE: {0} missing, {1} different. Copy it from the Lokanta menu.",
                 missing, stale));
         }
     }

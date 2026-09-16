@@ -1,36 +1,41 @@
 # -*- coding: utf-8 -*-
 """
-Ingilizce metin tablosu. gen_loc.py bunu okuyup content/loc/en.json uretir.
+English string table. gen_loc.py reads it and produces content/loc/en.json.
 
-NEDEN AYRI DOSYA, AYRI URETEC DEGIL:
+WHY A SEPARATE FILE AND NOT A SEPARATE GENERATOR:
 
-Iki dil TEK uretecten cikiyor ve uretec ikisinin ANAHTARLARININ AYNI
-oldugunu dogruluyor. Ayri bir arac, iki tablonun sessizce ayrismasi
-demekti - bu projede ayni sayiyi iki yere yazmak bes kez ayristi ve
-metinde ayrisma "[ui.staff.hire]" yazan bir dugme demek.
+Both languages come out of ONE generator, and that generator verifies
+that the two tables HAVE THE SAME KEYS. A separate tool would have meant
+the two tables drifting apart in silence - in this project, writing the
+same number in two places has drifted five times, and drift in text
+means a button that reads "[ui.staff.hire]".
 
-CEVIRI KARARLARI:
+TRANSLATION DECISIONS:
 
-  Malzemeler TAMAMEN cevriliyor: betimleyiciler (Tuz -> Salt).
+  Ingredients are translated IN FULL: they are descriptive ("Tuz" ->
+  Salt).
 
-  Yemekler DEGISKEN. Turk mutfaginda dunyaca taninan adlar KORUNUYOR
-  (Lahmacun, Doner, Iskender, Baklava gibi) cunku onlar ozel ad; bir
-  Ingiliz menusunde de oyle yaziyor. Betimleyici olanlar CEVRILIYOR
-  (Mercimek Corbasi -> Lentil Soup), cunku "Mercimek Corbasi" yazan bir
-  satir Ingilizce oynayan icin bilgi tasimiyor. Korunan adlarin yaninda
-  gerektiginde kisa bir aciklama var (Karniyarik -> "Karniyarik (Stuffed
+  Dishes VARY. In the Turkish kitchen the names the world already knows
+  are KEPT (Lahmacun, Doner, Iskender, Baklava and the like) because
+  they are proper nouns; an English menu writes them that way too. The
+  descriptive ones are TRANSLATED ("Mercimek Corbasi" -> Lentil Soup),
+  because a line reading "Mercimek Corbasi" carries no information for
+  somebody playing in English. Where a kept name needs it, a short
+  explanation sits beside it ("Karniyarik" -> "Karniyarik (Stuffed
   Aubergine)").
 
-  Duzenli musterilerin sahneleri OYUNUN SESI. Birebir degil, ayni seyi
-  ayni tonda soyleyecek sekilde cevrildi: kisa, gundelik, tek bir sey
-  anlatan cumleler (docs/16 dokunus butcesi).
+  The regulars' scenes are THE GAME'S VOICE. Not word for word, but
+  translated so as to say the same thing in the same tone: short,
+  everyday sentences that each tell one thing (the touch budget in
+  docs/16).
 
-  Turkce ozel adlar (Hasan Usta, Nazife Teyze) KORUNUYOR; unvanlar
-  Ingilizce okuyucuya anlam tasimadigi icin meslek satirinda aciklaniyor.
+  Turkish proper names (Hasan Usta, Nazife Teyze) are KEPT; the titles
+  carry no meaning for an English reader, so the occupation line says
+  who these people are.
 """
 
 # ---------------------------------------------------------------------------
-# Malzeme adlari
+# Ingredient names
 # ---------------------------------------------------------------------------
 INGREDIENTS = {
     "tuz": "Salt", "karabiber": "Black Pepper", "zeytinyagi": "Olive Oil",
@@ -68,7 +73,7 @@ INGREDIENTS = {
 }
 
 # ---------------------------------------------------------------------------
-# Yemek adlari
+# Dish names
 # ---------------------------------------------------------------------------
 DISHES = {
     # fast food
@@ -86,7 +91,7 @@ DISHES = {
     "buzlu_cay": "Iced Tea", "dondurma": "Ice Cream",
     "elmali_turta": "Apple Pie", "cikolatali_kek": "Chocolate Cake",
     "donut": "Donut", "brownie": "Brownie", "waffle": "Waffle",
-    # turk -- taninan adlar korunuyor, betimleyiciler cevriliyor
+    # turk -- the known names are kept, the descriptive ones translated
     "kuru_fasulye": "Kuru Fasulye (Bean Stew)", "nohut": "Chickpea Stew",
     "etli_turlu": "Meat & Vegetable Stew",
     "karniyarik": "Karnıyarık (Stuffed Aubergine)",
@@ -107,7 +112,7 @@ DISHES = {
 }
 
 # ---------------------------------------------------------------------------
-# Musteri arketipleri
+# Customer archetypes
 # ---------------------------------------------------------------------------
 ARCHETYPES = {
     "yalniz_musteri": "Solo Diner", "cift": "Couple", "aile": "Family",
@@ -131,7 +136,7 @@ ARCHETYPES = {
 }
 
 # ---------------------------------------------------------------------------
-# Personel huylari, roller, istasyonlar
+# Staff traits, roles, stations
 # ---------------------------------------------------------------------------
 TRAITS = {
     "hizli_ama_daginik": "Fast but Messy",
@@ -209,11 +214,11 @@ CUISINES = {"fastfood": "Fast Food", "turk": "Turkish Restaurant"}
 STORAGE = {"soguk_hava": "Cold Store"}
 
 # ---------------------------------------------------------------------------
-# Isimli duzenli musteriler: ad, meslek ve UC SAHNE
+# Named regulars: name, occupation and THREE SCENES
 #
-# Adlar korunuyor. "Usta", "Teyze", "Abla", "Dede" unvanlari Ingilizce
-# okuyucuya anlam tasimiyor ama adin PARCASI - birakiliyor ve meslek
-# satiri kim olduklarini soyluyor.
+# The names are kept. The titles "Usta", "Teyze", "Abla" and "Dede"
+# carry no meaning for an English reader, but they are PART of the name
+# - they stay, and the occupation line says who the person is.
 # ---------------------------------------------------------------------------
 REGULARS = {
     "hasan_usta": ("Hasan Usta", "Machinist across the street", [
@@ -319,8 +324,9 @@ REGULARS = {
 }
 
 # ---------------------------------------------------------------------------
-# Arayuz metinleri AYRI DOSYADA (loc_en_ui.py): kaynaklari farkli.
-# Icerik metinleri content/*.json'dan turiyor, arayuz metinleri elle
-# yaziliyor - ayri tutmak hangisinin nereden geldigini belli ediyor.
+# Interface text lives in a SEPARATE FILE (loc_en_ui.py): the sources
+# differ. Content text is derived from content/*.json, interface text is
+# written by hand - keeping them apart makes it obvious which of the two
+# comes from where.
 # ---------------------------------------------------------------------------
 from loc_en_ui import UI    # noqa: E402

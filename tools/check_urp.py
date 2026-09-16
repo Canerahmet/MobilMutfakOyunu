@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
-"""ProjectSetup.cs ile LokantaURP.asset aynı şeyi mi söylüyor.
+"""Do ProjectSetup.cs and LokantaURP.asset say the same thing?
 
-Neden var: render ayarları **iki yerde** yazılı. `LokantaURP.asset`
-Unity'nin okuduğu dosya; `ProjectSetup.ConfigureUrp` ise aynı alanları
-kurulum sırasında yeniden yazan kod. İkisi ayrıştığında hiçbir test
-kırılmıyor — oyun sessizce eski ayarla derleniyor.
+Why it exists: the render settings are written in **two places**.
+`LokantaURP.asset` is the file Unity reads; `ProjectSetup.ConfigureUrp`
+is the code that rewrites the same fields during setup. When the two
+drift apart no test breaks — the game quietly builds with the old
+setting.
 
-Ayrıştı da: performans turu `.asset` dosyasını elle düzeltti (MSAA 4→1,
-render ölçeği 1→0,8), `ProjectSetup` ise eski değerleri yazmaya devam
-etti. `ApplyAll` koşturan biri bütün performans işini geri alıyordu ve
-bunu görmenin hiçbir yolu yoktu.
+And they did drift: the performance pass fixed the `.asset` file by hand
+(MSAA 4→1, render scale 1→0.8) while `ProjectSetup` went on writing the
+old values. Anyone who ran `ApplyAll` undid the whole performance effort
+and there was no way to see it.
 
-Aynı sayıyı iki yere yazmak bu projede beşinci kez ayrıştı; bu betik
-altıncıyı yakalamak için.
+Writing the same number in two places has drifted five times in this
+project; this script is here to catch the sixth.
 
-Çıkış kodu 0 temiz, 1 ayrışma var.
+Exit code 0 clean, 1 they have drifted.
 """
 from __future__ import print_function
 
@@ -27,68 +28,69 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETUP = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Editor", "ProjectSetup.cs")
 ASSET = os.path.join(ROOT, "unity", "Assets", "Settings", "LokantaURP.asset")
 
-# SetUrpField(so, "m_X", p => p.<tur>Value = <deger>, "...")
+# SetUrpField(so, "m_X", p => p.<kind>Value = <value>, "...")
 CALL = re.compile(
-    r'SetUrpField\(\s*so\s*,\s*"(?P<alan>\w+)"\s*,\s*'
-    r'p\s*=>\s*p\.(?P<tur>\w+)\s*=\s*(?P<deger>[^,]+?)\s*,',
+    r'SetUrpField\(\s*so\s*,\s*"(?P<field>\w+)"\s*,\s*'
+    r'p\s*=>\s*p\.(?P<kind>\w+)\s*=\s*(?P<value>[^,]+?)\s*,',
     re.S)
 
 
-def beklenen(tur, deger):
-    """C# tarafındaki değeri, .asset dosyasındaki sayıya çevirir."""
-    deger = deger.strip()
-    if tur == "boolValue":
-        return 1.0 if deger == "true" else 0.0
-    if tur in ("intValue", "enumValueIndex"):
-        return float(int(deger))
-    if tur == "floatValue":
-        return float(deger.rstrip("fF"))
-    return None                       # tanimadigimiz tur: atla
+def expected(kind, value):
+    """Turns the value on the C# side into the number in the .asset file."""
+    value = value.strip()
+    if kind == "boolValue":
+        return 1.0 if value == "true" else 0.0
+    if kind in ("intValue", "enumValueIndex"):
+        return float(int(value))
+    if kind == "floatValue":
+        return float(value.rstrip("fF"))
+    return None                       # a kind we do not know: skip it
 
 
 def main():
     for p in (SETUP, ASSET):
         if not os.path.exists(p):
-            print("dosya yok: %s" % p)
+            print("file not found: %s" % p)
             return 1
 
-    kod = io.open(SETUP, encoding="utf-8").read()
-    varlik = io.open(ASSET, encoding="utf-8").read()
+    code = io.open(SETUP, encoding="utf-8").read()
+    asset = io.open(ASSET, encoding="utf-8").read()
 
-    # .asset satirlari: "  m_MSAA: 1"
-    icinde = {}
-    for satir in varlik.splitlines():
-        m = re.match(r"\s*(m_\w+):\s*([-\d.]+)\s*$", satir)
+    # .asset lines: "  m_MSAA: 1"
+    in_asset = {}
+    for line in asset.splitlines():
+        m = re.match(r"\s*(m_\w+):\s*([-\d.]+)\s*$", line)
         if m:
-            icinde[m.group(1)] = float(m.group(2))
+            in_asset[m.group(1)] = float(m.group(2))
 
-    kirik, bakilan, atlanan = [], 0, []
-    for m in CALL.finditer(kod):
-        alan, tur, deger = m.group("alan"), m.group("tur"), m.group("deger")
-        bek = beklenen(tur, deger)
-        if bek is None:
-            atlanan.append("%s (%s)" % (alan, tur))
+    broken, examined, skipped = [], 0, []
+    for m in CALL.finditer(code):
+        field, kind, value = m.group("field"), m.group("kind"), m.group("value")
+        want = expected(kind, value)
+        if want is None:
+            skipped.append("%s (%s)" % (field, kind))
             continue
-        if alan not in icinde:
-            # Alan .asset'te skaler degil (nesne, dizi) ya da bu surumde yok.
-            atlanan.append("%s (varlikta skaler degil)" % alan)
+        if field not in in_asset:
+            # The field is not a scalar in the .asset (object, array) or
+            # does not exist in this version.
+            skipped.append("%s (not a scalar in the asset)" % field)
             continue
-        bakilan += 1
-        if abs(icinde[alan] - bek) > 1e-6:
-            kirik.append("  %-36s kod %-8g varlik %-8g"
-                         % (alan, bek, icinde[alan]))
+        examined += 1
+        if abs(in_asset[field] - want) > 1e-6:
+            broken.append("  %-36s code %-8g asset %-8g"
+                          % (field, want, in_asset[field]))
 
-    if kirik:
-        print("URP AYARLARI AYRISMIS (%d alan):" % len(kirik))
-        for k in kirik:
+    if broken:
+        print("URP SETTINGS HAVE DRIFTED (%d fields):" % len(broken))
+        for k in broken:
             print(k)
-        print("\n  ProjectSetup.ConfigureUrp ve Assets/Settings/LokantaURP.asset")
-        print("  ayni sayiyi soylemeli. ApplyAll kosturmak aksi halde")
-        print("  varliktaki degeri sessizce geri aliyor.")
+        print("\n  ProjectSetup.ConfigureUrp and Assets/Settings/LokantaURP.asset")
+        print("  must say the same number. Otherwise running ApplyAll")
+        print("  silently reverts the value in the asset.")
         return 1
 
-    print("sonuc     : %d URP alani ayni%s" % (
-        bakilan, (", %d atlandi" % len(atlanan)) if atlanan else ""))
+    print("result    : %d URP fields match%s" % (
+        examined, (", %d skipped" % len(skipped)) if skipped else ""))
     return 0
 
 

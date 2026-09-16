@@ -10,11 +10,11 @@ using UnityEngine.UIElements;
 namespace Lokanta.EditorTools
 {
     /// <summary>
-    /// Oynanabilir sahneyi kurar: Lokanta > Oyun sahnesini kur.
+    /// Builds the playable scene: Lokanta > Build the game scene.
     ///
-    /// Sahne URETILEN bir sey. Elle kurulan bir sahne, kimin neyi nereye
-    /// bagladigini kimsenin hatirlamadigi bir ikili dosyaya donuyor;
-    /// burasi o baglantilarin YAZILI ve tekrar edilebilir hali.
+    /// The scene is a GENERATED thing. A scene put together by hand turns into
+    /// a binary file where nobody remembers who wired what to where; this is
+    /// those connections WRITTEN DOWN and repeatable.
     /// </summary>
     public static class BuildGameScene
     {
@@ -24,7 +24,7 @@ namespace Lokanta.EditorTools
         private const string ThemePath =
             "Assets/UI Toolkit/UnityThemes/UnityDefaultRuntimeTheme.tss";
 
-        [MenuItem("Lokanta/Oyun sahnesini kur")]
+        [MenuItem("Lokanta/Build the game scene")]
         public static void Run()
         {
             SyncContent.Run();
@@ -33,30 +33,31 @@ namespace Lokanta.EditorTools
             var scene = EditorSceneManager.NewScene(
                 NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            // --- isik ---------------------------------------------------------
-            // Siddetler OLCULEREK bulundu. Ilk yapida salon karanlik
-            // ciktı ve sebebi anlasilmadi: onizleme araci sahnenin
-            // isiklarina KENDI isiklarini ekliyordu, yani gordugum kare
-            // iki kat aydinliktı. Arac duzeltildikten sonra gercek deger
-            // gorunur oldu.
-            GameObject sun = new GameObject("Gunes");
+            // --- light --------------------------------------------------------
+            // The intensities were found BY MEASURING. In the first build the
+            // hall came out dark and the reason was not clear: the preview tool
+            // was adding ITS OWN lights on top of the scene's, so the frame I
+            // was looking at was twice as bright. Once the tool was fixed the
+            // real value became visible.
+            GameObject sun = new GameObject("Sun");
             Light light = sun.AddComponent<Light>();
             light.type = LightType.Directional;
             light.intensity = 1.45f;
             light.color = new Color(1f, 0.96f, 0.90f);
             light.shadows = LightShadows.Soft;
-            // Sag ustten: odalarin sol ve arka duvarlari yuksek, bu aci
-            // golgeyi kat planinin uzerine degil disina atiyor.
+            // From the top right: the rooms' left and back walls are tall, and
+            // this angle throws the shadow outside the floor plan rather than
+            // across it.
             sun.transform.rotation = Quaternion.Euler(52f, 208f, 0f);
 
-            // Ortam isigi: dusuk poligonlu bir sahnede golgede kalan
-            // yuzler tamamen siyaha dusuyor ve nesne siluetini kaybediyor.
-            // Duz bir ortam rengi, o yuzleri okunur tutuyor.
+            // Ambient light: in a low-poly scene the faces left in shadow fall
+            // to pure black and the object loses its silhouette. A flat ambient
+            // colour keeps those faces readable.
             RenderSettings.ambientMode =
                 UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.29f, 0.31f, 0.36f);
 
-            GameObject fill = new GameObject("Dolgu");
+            GameObject fill = new GameObject("Fill");
             Light fillLight = fill.AddComponent<Light>();
             fillLight.type = LightType.Directional;
             fillLight.intensity = 0.55f;
@@ -64,9 +65,9 @@ namespace Lokanta.EditorTools
             fillLight.shadows = LightShadows.None;
             fill.transform.rotation = Quaternion.Euler(28f, 40f, 0f);
 
-            // AKSAM ICI DOLGUSU: disarisi kararirken salonun kendi
-            // sicak isigi. Gunduz kapali duruyor (DayLight aciyor).
-            GameObject warm = new GameObject("SicakDolgu");
+            // THE EVENING FILL: the hall's own warm light as it darkens
+            // outside. During the day it stays off (DayLight turns it on).
+            GameObject warm = new GameObject("WarmFill");
             Light warmLight = warm.AddComponent<Light>();
             warmLight.type = LightType.Directional;
             warmLight.intensity = 0f;
@@ -75,8 +76,8 @@ namespace Lokanta.EditorTools
             warmLight.enabled = false;
             warm.transform.rotation = Quaternion.Euler(62f, 20f, 0f);
 
-            // --- kamera -------------------------------------------------------
-            GameObject camGo = new GameObject("Kamera");
+            // --- camera -------------------------------------------------------
+            GameObject camGo = new GameObject("Camera");
             Camera cam = camGo.AddComponent<Camera>();
             cam.tag = "MainCamera";
             cam.clearFlags = CameraClearFlags.SolidColor;
@@ -84,52 +85,52 @@ namespace Lokanta.EditorTools
             CameraRig rig = camGo.AddComponent<CameraRig>();
             camGo.AddComponent<AudioListener>();
 
-            // --- salon --------------------------------------------------------
-            GameObject viewGo = new GameObject("Restoran");
+            // --- hall --------------------------------------------------------
+            GameObject viewGo = new GameObject("Restaurant");
             RestaurantView view = viewGo.AddComponent<RestaurantView>();
             WireArt(view);
 
-            // --- oyun ---------------------------------------------------------
-            GameObject appGo = new GameObject("Oyun");
+            // --- game ---------------------------------------------------------
+            GameObject appGo = new GameObject("Game");
             GameApp app = appGo.AddComponent<GameApp>();
 
-            GameObject musicGo = new GameObject("Muzik");
+            GameObject musicGo = new GameObject("Music");
             musicGo.transform.SetParent(appGo.transform, false);
             musicGo.AddComponent<AudioSource>();
             Music music = musicGo.AddComponent<Music>();
 
-            // --- arayuz -------------------------------------------------------
-            GameObject uiGo = new GameObject("Arayuz");
+            // --- interface ----------------------------------------------------
+            GameObject uiGo = new GameObject("Ui");
             UIDocument doc = uiGo.AddComponent<UIDocument>();
             doc.panelSettings = PanelSettings();
             UiRoot ui = uiGo.AddComponent<UiRoot>();
             ui.Font = AssetDatabase.LoadAssetAtPath<Font>(
                 "Assets/Lokanta/Art/Fonts/Rubik.ttf");
             if (ui.Font == null)
-                Debug.LogWarning("Yazi tipi yok: Assets/Lokanta/Art/Fonts/Rubik.ttf");
+                Debug.LogWarning("No font: Assets/Lokanta/Art/Fonts/Rubik.ttf");
 
-            // CJK YAZI TIPI: Cince icin. Rubik CJK tasimiyor.
+            // THE CJK FONT: for Chinese. Rubik carries no CJK.
             ui.FontCJK = AssetDatabase.LoadAssetAtPath<Font>(
                 "Assets/Lokanta/Art/Fonts/NotoSansSC-Lokanta.ttf");
             if (ui.FontCJK == null)
                 Debug.LogWarning(
-                    "CJK yazi tipi yok: Assets/Lokanta/Art/Fonts/NotoSansSC-Lokanta.ttf"
-                    + " - Cince secilirse butun metin bos kutu cikar.");
+                    "No CJK font: Assets/Lokanta/Art/Fonts/NotoSansSC-Lokanta.ttf"
+                    + " - if Chinese is chosen every string comes out as empty boxes.");
 
             app.Ui = ui;
             app.View = view;
             app.Rig = rig;
 
-            // GUN ISIGI: isiklar, kamera ve sokak lambalari tek bir
-            // bilesende toplaniyor. Sokak lambalari RestaurantView
-            // kuruldugunda olusuyor, o yuzden BURADA degil sahne
-            // kurulumunun sonunda baglaniyor.
-            DayLight gun = appGo.AddComponent<DayLight>();
-            gun.Sun = light;
-            gun.Fill = fillLight;
-            gun.Warm = warmLight;
-            gun.Cam = cam;
-            app.Light = gun;
+            // DAYLIGHT: the lights, the camera and the street lamps are
+            // gathered into one component. The street lamps are created when
+            // RestaurantView is built, which is why this is wired at the END of
+            // the scene build and not HERE.
+            DayLight day = appGo.AddComponent<DayLight>();
+            day.Sun = light;
+            day.Fill = fillLight;
+            day.Warm = warmLight;
+            day.Cam = cam;
+            app.Light = day;
             app.Music = music;
             ui.App = app;
             view.App = app;
@@ -138,43 +139,47 @@ namespace Lokanta.EditorTools
             EditorSceneManager.SaveScene(scene, ScenePath);
             AddToBuild();
 
-            Debug.Log("Sahne kuruldu: " + ScenePath + "  (Play'e bas)");
+            Debug.Log("Scene built: " + ScenePath + "  (press Play)");
         }
 
         // =====================================================================
         /// <summary>
-        /// Prefablari sahnedeki alanlara baglar.
+        /// Wires the prefabs into the scene's fields.
         ///
-        /// FBX'in kendisi DEGIL, ArtPrefabs'in urettigi prefab: FBX'e
-        /// dogrudan baglandiginda malzeme yeniden eslemesi devreye girmiyor
-        /// ve her sey URP'de magenta cikiyor. Prefabin icinde malzeme de
-        /// olcek de pismis durumda.
+        /// NOT the FBX itself but the prefab ArtPrefabs generates: wired
+        /// straight to an FBX, the material remapping never kicks in and
+        /// everything comes out magenta under URP. In the prefab both the
+        /// material and the scale are already baked in.
         ///
-        /// Resources yerine dogrudan baglama, cunku Resources'a konan her
-        /// sey derlemeye giriyor. Burada baglanan bir model yalnizca bu
-        /// sahne yuklendiginde bellege geliyor.
+        /// Wired directly rather than through Resources, because everything
+        /// put into Resources goes into the build. A model wired here only
+        /// comes into memory when this scene is loaded.
         /// </summary>
         private static void WireArt(RestaurantView view)
         {
-            // DORTGEN masa: dort oturak dort kenara oturuyor. Yuvarlak
-            // (aslinda altigen) masada oturaklarin ikisi koseye
-            // dusuyordu - altigenin kenarlari 60 derecede, oturaklar
-            // 90 derecede ve ikisi hizalanamiyor.
-            view.TablePrefab = Prefab("Mobilya/table");
-            view.ChairPrefab = Prefab("Mobilya/chairCushion");
-            view.StovePrefab = Prefab("Mobilya/kitchenStove");
-            view.FridgePrefab = Prefab("Mobilya/kitchenFridgeLarge");
-            view.CounterPrefab = Prefab("Mobilya/kitchenCabinet");
-            view.ShelfPrefab = Prefab("Mobilya/bookcaseClosedDoors");
-            view.SinkPrefab = Prefab("Mobilya/kitchenSink");
-            view.PlantPrefab = Prefab("Mobilya/pottedPlant");
-            view.PlatePrefab = Prefab("Yemek/plate-deep");
-
-            // SAYDAM MALZEMELER: varlik olarak baglaniyor.
+            // A SQUARE table: four seats sit on four sides. On the round
+            // (actually hexagonal) table two of the seats were landing on a
+            // corner - a hexagon's sides are at 60 degrees, the seats at 90,
+            // and the two cannot be lined up.
             //
-            // Calisma aninda kurulan saydam malzemenin golgelendirici
-            // varyanti yapiya girmiyor ve cihazda opak ciziliyor -
-            // editorde gorunmeyen bir hata sinifi.
+            // The folder is "Furniture" on disk (it used to be "Mobilya"), and
+            // "Food" (it used to be "Yemek"). A path left behind by that rename
+            // loads nothing and the scene comes up with no furniture at all.
+            view.TablePrefab = Prefab("Furniture/table");
+            view.ChairPrefab = Prefab("Furniture/chairCushion");
+            view.StovePrefab = Prefab("Furniture/kitchenStove");
+            view.FridgePrefab = Prefab("Furniture/kitchenFridgeLarge");
+            view.CounterPrefab = Prefab("Furniture/kitchenCabinet");
+            view.ShelfPrefab = Prefab("Furniture/bookcaseClosedDoors");
+            view.SinkPrefab = Prefab("Furniture/kitchenSink");
+            view.PlantPrefab = Prefab("Furniture/pottedPlant");
+            view.PlatePrefab = Prefab("Food/plate-deep");
+
+            // TRANSPARENT MATERIALS: wired as assets.
+            //
+            // A transparent material built at run time does not get its shader
+            // variant into the build and is drawn opaque on the device - a
+            // class of bug that is invisible in the editor.
             view.WallMaterial = Mat("custom_wall");
             view.DoorMaterial = Mat("custom_door");
             view.GlassMaterial = Mat("custom_glass");
@@ -182,32 +187,34 @@ namespace Lokanta.EditorTools
             view.CeilingGlowMaterial = Mat("custom_ceilinglight");
             view.WaterMaterial = Mat("custom_water");
 
-            // ASCININ ELINDEKI MALZEMELER. Dort ayri sebze/et: ayni
-            // asci ayni istasyonda hep ayni seyi tasiyor, yani goruntu
-            // titremiyor ama mutfakta cesit var.
+            // THE INGREDIENTS IN THE COOK'S HAND. Four different
+            // vegetables/meats: the same cook at the same station always
+            // carries the same thing, so the picture does not flicker, but
+            // there is variety across the kitchen.
             view.IngredientPrefabs = new[]
             {
-                Prefab("Yemek/tomato"), Prefab("Yemek/onion"),
-                Prefab("Yemek/meat-patty"), Prefab("Yemek/cheese"),
+                Prefab("Food/tomato"), Prefab("Food/onion"),
+                Prefab("Food/meat-patty"), Prefab("Food/cheese"),
             };
 
             List<GameObject> customers = new List<GameObject>();
             foreach (string s in new[] { "a", "b", "c", "d", "e", "f" })
             {
-                GameObject f = Prefab("Karakter/character-female-" + s);
-                GameObject m = Prefab("Karakter/character-male-" + s);
+                GameObject f = Prefab("Characters/character-female-" + s);
+                GameObject m = Prefab("Characters/character-male-" + s);
                 if (f != null) customers.Add(f);
                 if (m != null) customers.Add(m);
             }
             view.CustomerPrefabs = customers.ToArray();
 
-            // Personel AYRI figurler: salonda kimin calisan kimin musteri
-            // oldugu ayirt edilebilmeli. Ayni havuzdan secmek, on dort
-            // masalik bir salonda kimin garson oldugunu belirsizlestirirdi.
+            // Staff are SEPARATE figures: in the hall you have to be able to
+            // tell who works there and who is a customer. Drawing from the same
+            // pool would leave it unclear who the waiter is in a hall of
+            // fourteen tables.
             List<GameObject> staff = new List<GameObject>();
             foreach (string s in new[] { "a", "b", "c" })
             {
-                GameObject m = Prefab("Karakter/character-male-" + s);
+                GameObject m = Prefab("Characters/character-male-" + s);
                 if (m != null) staff.Add(m);
             }
             view.StaffPrefabs = staff.ToArray();
@@ -217,17 +224,17 @@ namespace Lokanta.EditorTools
             if (view.ChairPrefab == null) missing++;
             if (customers.Count == 0) missing++;
             if (missing > 0)
-                Debug.LogWarning(missing + " prefab baglanamadi. "
-                    + "'python tools/art/import_vendor.py' calistirilmis mi?");
+                Debug.LogWarning(missing + " prefabs could not be wired. "
+                    + "Has 'python tools/art/import_vendor.py' been run?");
         }
 
-        private static Material Mat(string ad)
+        private static Material Mat(string name)
         {
             Material m = AssetDatabase.LoadAssetAtPath<Material>(
-                "Assets/Lokanta/Art/Materials/" + ad + ".mat");
+                "Assets/Lokanta/Art/Materials/" + name + ".mat");
             if (m == null)
-                Debug.LogError("SORUNLAR: malzeme yok: " + ad
-                               + " ('Lokanta/Model prefablarini uret' calistir)");
+                Debug.LogError("PROBLEMS: no material: " + name
+                               + " (run 'Lokanta/Generate the model prefabs')");
             return m;
         }
 
@@ -235,25 +242,25 @@ namespace Lokanta.EditorTools
         {
             string path = Prefabs + "/" + relative + ".prefab";
             GameObject go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (go == null) Debug.LogWarning("Prefab yok: " + path);
+            if (go == null) Debug.LogWarning("No prefab: " + path);
             return go;
         }
 
         // =====================================================================
         /// <summary>
-        /// UI Toolkit panel ayari.
+        /// The UI Toolkit panel setting.
         ///
-        /// Olcek FIZIKSEL, referans cozunurlukten DEGIL.
+        /// The scale is PHYSICAL, NOT from a reference resolution.
         ///
-        /// Once "ScaleWithScreenSize" kullaniliyordu ve o kip ekranin
-        /// PIKSEL SAYISINI takip ediyor, fiziksel boyutunu degil. Olculdu:
-        /// 2400x1080 bir telefonda 52 birimlik bir dokunma hedefi 31,7 dp
-        /// cikiyordu - Google'in 48 dp asgarisinin ucte bir altinda. Ayni
-        /// hesapla govde yazisi 10,4 sp, kucuk yazi 8,5 sp oluyordu; yani
-        /// aciklayici metnin tamami okunamaz haldeydi.
+        /// "ScaleWithScreenSize" was used before, and that mode follows the
+        /// screen's PIXEL COUNT, not its physical size. Measured: on a
+        /// 2400x1080 phone a 52-unit touch target came out at 31.7 dp - a third
+        /// below Google's 48 dp minimum. By the same arithmetic body text
+        /// became 10.4 sp and small text 8.5 sp; that is, every line of
+        /// explanatory text was unreadable.
         ///
-        /// ConstantPhysicalSize + 160 dpi referansiyla 1 birim TAM 1 dp.
-        /// Theme'deki sayilar artik yazdiklari seyi soyluyor.
+        /// With ConstantPhysicalSize and a 160 dpi reference, 1 unit is EXACTLY
+        /// 1 dp. The numbers in the theme now say what they mean.
         /// </summary>
         private static PanelSettings PanelSettings()
         {
@@ -265,22 +272,23 @@ namespace Lokanta.EditorTools
             }
 
             ps.scaleMode = PanelScaleMode.ConstantPhysicalSize;
-            ps.referenceDpi = 160f;      // 1 birim = 1 dp
+            ps.referenceDpi = 160f;      // 1 unit = 1 dp
             ps.fallbackDpi = 160f;
 
-            // Tema PROJEDEKI dosyadan.
+            // The theme comes from THE FILE IN THE PROJECT.
             //
-            // Once paket yolundan yukleniyordu:
+            // It used to be loaded from the package path:
             //   Packages/com.unity.ui/PackageResources/.../DefaultRuntimeTheme.tss
-            // Unity 6'da UI Toolkit bir paket degil, yerlesik modul - o yol
-            // yok, LoadAssetAtPath null donuyor ve panel TEMASIZ kaliyordu.
-            // Uc ayri belirti bu tek satirdan geliyordu: yapida hicbir yazi
-            // gorunmuyordu, Slider bombos ciziliyordu, ve ScrollView'in
-            // kaydirma cubugu hic cizilmiyordu - yani oyuncu bir listenin
-            // devami oldugunu anlayamiyordu.
+            // In Unity 6 UI Toolkit is not a package but a built-in module -
+            // that path does not exist, LoadAssetAtPath returns null and the
+            // panel was left WITH NO THEME. Three separate symptoms came from
+            // this one line: no text at all was visible in the build, the
+            // Slider was drawn completely empty, and the ScrollView's scroll
+            // bar was never drawn - so the player could not tell that a list
+            // carried on below.
             ps.themeStyleSheet = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(ThemePath);
             if (ps.themeStyleSheet == null)
-                Debug.LogWarning("SORUNLAR: arayuz temasi yuklenemedi: " + ThemePath);
+                Debug.LogWarning("PROBLEMS: the interface theme could not be loaded: " + ThemePath);
 
             EditorUtility.SetDirty(ps);
             AssetDatabase.SaveAssets();

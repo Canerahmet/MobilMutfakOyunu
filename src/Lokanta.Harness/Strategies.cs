@@ -1,11 +1,12 @@
-using Lokanta.Core.Economy;
+﻿using Lokanta.Core.Economy;
 using Lokanta.Core.Sim;
 
 namespace Lokanta.Harness
 {
     /// <summary>
-    /// Denge aracinin oynattigi oyuncu stratejileri.
-    /// docs/12-economy.md 8: aracin cevaplamasi gereken sorular bunlarla olculuyor.
+    /// The player strategies the balance harness plays.
+    /// docs/12-economy.md 8: the questions the tool has to answer are measured
+    /// with these.
     /// </summary>
     public interface IStrategy
     {
@@ -15,52 +16,58 @@ namespace Lokanta.Harness
         void OnEvening(Simulation sim, in DayReport report);
 
         /// <summary>
-        /// Servis sirasinda, elli tikta bir. Imza mekanikleri burada
-        /// isliyor: veresiye odeme aninda aciliyor, kombo siparis aninda.
+        /// During service, once every fifty ticks. The signature mechanics run
+        /// here: the tab opens at the moment of payment, the combo at the moment
+        /// of ordering.
         ///
-        /// ARAYUZDE ve varsayilan govdesi BOS. Once boyle degildi:
-        /// Program.cs bir tur kontrolu zinciriyle dagitiyordu
-        /// ("strategy is SignaturePlayer sp") ve zincirde olmayan yeni
-        /// bir strateji SESSIZCE hicbir sey yapmiyordu - bot kosuyor
-        /// gorunup olcumu bos donduruyordu. `erken_tahsilat` eklenirken
-        /// tam bu oldu: sonucu `makul` ile BAYT BAYT ayni cikti.
+        /// ON THE INTERFACE, with an EMPTY default body. It was not like this
+        /// before: Program.cs dispatched through a chain of type checks
+        /// ("strategy is SignaturePlayer sp") and a new strategy that was not in
+        /// the chain SILENTLY did nothing - the bot looked like it was running
+        /// and returned an empty measurement. That is exactly what happened when
+        /// `erken_tahsilat` was added: its result came out BYTE FOR BYTE
+        /// identical to `makul`.
         ///
-        /// Varsayilan govde sayesinde yeni bir strateji artik yalnizca
-        /// metodu yazarak katiliyor; unutulabilecek bir kayit yeri yok.
+        /// Thanks to the default body a new strategy now takes part simply by
+        /// writing the method; there is no registration point left to forget.
         /// </summary>
         void DuringService(Simulation sim) { }
     }
 
     /// <summary>
-    /// Hic mudahale etmeyen oyuncu. Hal'e gitmiyor, ise almiyor, genislemiyor.
-    /// Soru 1: kacinci gunde batar.
+    /// The player who never intervenes. Does not go to the market, does not
+    /// hire, does not expand.
+    /// Question 1: on which day do they go under.
     /// </summary>
     public sealed class PassivePlayer : IStrategy
     {
         public string Name => "pasif";
-        public string Question => "Hic mudahale etmeyen oyuncu kacinci gunde batar";
+        public string Question => "On which day does a player who never intervenes go under";
         public void OnMorning(Simulation sim) { }
         public void OnEvening(Simulation sim, in DayReport report) { }
     }
 
-    /// <summary>Her sabah hal'e giden ama baska hicbir sey yapmayan oyuncu.</summary>
+    /// <summary>The player who goes to the market every morning and does nothing else.</summary>
     /// <summary>
-    /// Ekipman alma kurali. Kizgin musteriye degil KAPASITEYE bakiyor:
-    /// masa sayisinin gerektirdigi kademeden geride kalan istasyon varsa
-    /// ve kasa fiyatin iki katini tasiyorsa alinir.
+    /// The equipment buying rule. It looks at CAPACITY, not at angry customers:
+    /// if a station lags behind the tier the table count demands and the till
+    /// carries twice the price, it is bought.
     ///
-    /// Kadro kararinda ayni hatanin yapildigi ve denge aracinin yakaladigi
-    /// not: yanlis sinyalden ise alim maaslari 19.647'den 10.446'ya dusurdu.
+    /// A note on the same mistake being made in the crew decision, which the
+    /// balance harness caught: hiring off the wrong signal dropped wages from
+    /// 19,647 to 10,446.
     /// </summary>
     /// <summary>
-    /// Ise alim secimi. docs/14: uc aday gorunur, oyuncu secer.
+    /// The hiring choice. docs/14: three candidates are shown, the player picks.
     ///
-    /// Bu sinifin varlik sebebi olculdu: aday havuzu OLMADAN huy bir
-    /// piyangoydu ve pahali bir kadro cekmek iyi oyuncunun itibarini
-    /// 96,5'ten 87'ye indiriyordu. Secim, mekanigin eksik olan yarisiydi.
+    /// This class's reason to exist was measured: WITHOUT a candidate pool a
+    /// trait was a lottery, and drawing an expensive crew took the good player's
+    /// reputation from 96.5 down to 87. The choice was the missing half of the
+    /// mechanic.
     ///
-    /// Bot secimi basit ve savunulabilir: HIZ EKSI UCRET. Gercek oyuncu
-    /// da bu iki sayiya bakar; hangisine agirlik verdigi ona kalmis.
+    /// The bot's choice is simple and defensible: SPEED MINUS WAGE. A real
+    /// player looks at those two numbers too; which of them they weight is up
+    /// to them.
     /// </summary>
     public static class Hiring
     {
@@ -76,22 +83,22 @@ namespace Lokanta.Harness
         }
 
         /// <summary>
-        /// Kotu bir personeli, belirgin olarak daha iyi bir adayla
-        /// degistirir. Bir kez yaptiysa true doner.
+        /// Replaces a bad member of staff with a clearly better candidate.
+        /// Returns true if it did so once.
         ///
-        /// Bu, huy sisteminin eksik yarisiydi. Huy rastgele geliyor ve
-        /// bot ona TEPKI VEREMIYORDU: suratsiz bir garson altmis gun
-        /// boyunca her masaya -6 puan yaziyor, memnuniyet 9.000'den
-        /// 5.000'e siziyor, dukkan dort masada kaliyor ve kosu tek bir
-        /// zar atisi yuzunden kayboluyordu.
+        /// This was the missing half of the trait system. The trait arrived at
+        /// random and the bot COULD NOT REACT TO IT: a surly waiter wrote -6
+        /// points on every table for sixty days, satisfaction leaked from 9,000
+        /// to 5,000, the place stayed at four tables, and the run was lost to a
+        /// single roll of the dice.
         ///
-        /// Esik GENIS (3.000 puan) ve degisim BEDELLI: giden kisinin
-        /// deneyimi sifirlaniyor. Yani "her gun en iyiyi ara" degil,
-        /// "gercekten kotuyse degistir".
+        /// The threshold is WIDE (3,000 points) and the swap COSTS something:
+        /// the departing person's experience is reset. So it is not "look for
+        /// the best every day" but "replace them if they really are bad".
         /// </summary>
         public static bool ReplaceWorst(Simulation sim, int pool)
         {
-            int count = pool == 0 ? sim.Cooks : sim.SalonStaff;
+            int count = pool == 0 ? sim.Cooks : sim.HallStaff;
             if (count == 0) return false;
 
             int worst = -1, worstScore = int.MaxValue;
@@ -105,15 +112,16 @@ namespace Lokanta.Harness
             int cand = Pick(sim, pool);
             int candScore = sim.CandidateScore(pool, cand);
             if (candScore == int.MinValue) return false;
-            // Esik 1.200. Ilk deger 3.000 idi ve huy puanlarinin toplam
-            // yayilimi ~4.700; yani degistirme neredeyse hic tetiklenmiyordu
-            // ve mekanik yine karar degil zar olarak kaliyordu. 1.200,
-            // "suratsiz garson yerine iyi anlasan garson" farkini yakaliyor.
+            // The threshold is 1,200. The first value was 3,000 and the total
+            // spread of the trait scores is ~4,700; so the replacement almost
+            // never fired and the mechanic remained a dice roll rather than a
+            // decision. 1,200 catches the difference between "a surly waiter"
+            // and "a waiter you get on with".
             if (candScore - worstScore < 1200) return false;
 
-            // EN KOTU kisiyi cikariyor. Komut artik indis aliyor; indissiz
-            // gonderildiginde her zaman sonuncu gidiyordu ve "en kotuyu
-            // degistir" stratejisi aslinda "sonuncuyu degistir"di.
+            // It removes the WORST person. The command now takes an index; sent
+            // without one it always removed the last person, and the "replace
+            // the worst" strategy was really "replace the last one".
             sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, pool, worst));
             sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, pool, cand));
             return true;
@@ -123,31 +131,30 @@ namespace Lokanta.Harness
     public static class Equipment
     {
         /// <summary>
-        /// Botun cikabilecegi EN UST soguk hava kademesi. Olcum icin.
+        /// The HIGHEST cold storage tier the bot may climb to. For measurement.
         ///
-        /// Merdivenin her basamaginin kendini odeyip odemedigi ancak
-        /// basamaklar TEK TEK kapatilarak olculebiliyor. Bu bir zamanlar
-        /// content/equipment.json'a erisilemez fiyatlar yazarak
-        /// yapiliyordu ve iki kez icerigi yamali birakti: olcum sureci
-        /// oldurulunce geri alma calismiyor, ve bir sonraki kalibrasyon
-        /// 99.000.000 sikkelik bir depoyla kosuyor.
+        /// Whether each rung of the ladder pays for itself can only be measured
+        /// by closing the rungs ONE BY ONE. This used to be done by writing
+        /// unreachable prices into content/equipment.json, and twice it left the
+        /// content patched: if the measuring run is killed the undo does not
+        /// happen, and the next calibration runs with a 99,000,000-coin storage.
         ///
-        /// Bir bayrak, icerigi hic ellemeden ayni seyi olcuyor.
+        /// A flag measures the same thing without touching the content at all.
         /// </summary>
         public static int StorageCap = int.MaxValue;
 
         public static void Upgrade(Simulation sim, long cashMultiple = 2)
         {
-            // HAFTALIK ODEME KORUNUYOR. Ekipman alimi kirayi ve maasi
-            // yiyemez.
+            // THE WEEKLY PAYMENT IS PROTECTED. Buying equipment must not eat the
+            // rent and the wages.
             //
-            // Bu satir olculerek eklendi: adlandirilmis ekipman gelince
-            // planci stratejisi 56. gunde 19.649'dan 330'a dustu, ertesi
-            // gun malzeme alamadi, servisi sifira indi ve itibari uc gunde
-            // 100'den 31'e cokdu. Gercek oyuncu maas gunu yaklasirken
-            // waffle makinesi almaz.
+            // This line was added after a measurement: when named equipment
+            // arrived, the planner strategy dropped from 19,649 to 330 on day
+            // 56, could not buy stock the next morning, its service fell to zero
+            // and its reputation collapsed from 100 to 31 in three days. A real
+            // player does not buy a waffle iron with payday coming up.
             long safety = sim.WeeklyFixedCost();
-            // Once ZORUNLU olan: masa sayisinin gerektirdigi yuva.
+            // First the MANDATORY thing: the slot the table count demands.
             for (int st = 0; st < sim.StationCount; st++)
             {
                 if (sim.StationTier(st) >= sim.RequiredStationTier(st)) continue;
@@ -155,33 +162,35 @@ namespace Lokanta.Harness
                 if (price < 0 || sim.Cash < price * cashMultiple) continue;
                 if (sim.Cash - price < safety) continue;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.BuyEquipment, st));
-                return;      // gunde bir ekipman; kasayi tek sabahta bosaltma
+                return;      // one piece of equipment a day; do not empty the till in one morning
             }
 
-            // Sonra ISTEGE BAGLI olan: asciyi erken birakan yukseltmeler
-            // ve soguk hava. Yalnizca kasa rahatken, cunku bunlar zorunlu
-            // degil. Oyunun "sekizinci haftada bile bir sey icin
-            // biriktiriyorsun" hedefi (docs/12 7) buradan besleniyor.
-            // Kredi varken istege bagli yukseltme yok - BIR ISTISNA ile:
-            // adlandirilmis ekipman MENU aciyor ve musteriler o yemekleri
-            // aktif olarak SORUYOR (docs/34 6). Kredi bittiginde almak,
-            // altmis gunun yarisini "yok" cevabi vererek gecirmek demek.
+            // Then the OPTIONAL things: upgrades that free the cook earlier, and
+            // cold storage. Only while the till is comfortable, because these are
+            // not mandatory. The game's goal of "even in the eighth week you are
+            // saving up for something" (docs/12 7) is fed from here.
+            // No optional upgrade while there is a loan - with ONE EXCEPTION:
+            // named equipment opens up the MENU and customers actively ASK for
+            // those dishes (docs/34 6). Buying it once the loan is paid off means
+            // spending half of the sixty days answering "we haven't got any".
             //
-            // Olculdu: Turk mutfagina doner ve pide gelince genislemeyen
-            // stratejinin itibari 85,1'den 50,7'ye dustu, cunku kredisi
-            // vardi ve ocagi HIC alamiyordu; her gun sorulan yemege yok
-            // diyordu. Ekonomi degil bot hataliydi.
+            // Measured: when doner and pide arrived in the Turkish cuisine the
+            // non-expanding strategy's reputation fell from 85.1 to 50.7, because
+            // it had a loan and could NEVER buy the grill; every day it said no
+            // to a dish people asked for. It was the bot that was wrong, not the
+            // economy.
             bool tightBudget = sim.HasLoan;
 
-            // Soguk hava once: menu genisligi aciyor, yani hem ortalama
-            // fisi hem memnuniyeti besliyor. Tek bir istasyon yuvasindan
-            // daha genis etkili.
-            // Soguk hava kredi varken de alinabiliyor, ama iki haftalik
-            // gideri koruyarak. Tamamen yasaklamak olculdu ve pahaliydi:
-            // huy ucretleri gelince butce oynadi, kredi daha erken cekildi,
-            // ve kredi soguk havayi kilitleyince menu daralip memnuniyet
-            // dustu. Soguk hava kendi parasini cikaran bir yatirim - kredi
-            // varken YASAK degil, DIKKATLI alinmali.
+            // Cold storage first: it opens up menu width, so it feeds both the
+            // average ticket and satisfaction. Wider in effect than any single
+            // station slot.
+            // Cold storage can be bought with a loan outstanding too, but keeping
+            // two weeks of costs in hand. Banning it outright was measured and it
+            // was expensive: when the trait wages arrived the budget wobbled, the
+            // loan was taken earlier, and with the loan locking out cold storage
+            // the menu narrowed and satisfaction fell. Cold storage is an
+            // investment that pays for itself - with a loan outstanding it should
+            // not be BANNED, it should be bought CAREFULLY.
             long cold = sim.StorageTier >= StorageCap ? -1 : sim.NextStoragePrice();
             long coldSafety = tightBudget ? safety * 2 : safety;
             if (cold >= 0 && sim.Cash >= cold * (cashMultiple + 2)
@@ -196,24 +205,25 @@ namespace Lokanta.Harness
                 long price = sim.NextEquipmentPrice(st);
                 if (price < 0 || sim.Cash < price * (cashMultiple + 2)) continue;
                 if (sim.Cash - price < safety) continue;
-                // Kredi varken YALNIZCA menu acan ekipman, ve iki haftalik
-                // sabit gideri koruyarak. Bir hafta yetmiyor: planci
-                // stratejisi genisleme takvimini kaciriyordu (12,5 masa,
-                // hedef 13) cunku parayi ocaga yatirip kademeyi geciktirdi.
+                // With a loan outstanding, ONLY equipment that opens up the menu,
+                // and keeping two weeks of fixed costs in hand. One week is not
+                // enough: the planner strategy was missing its expansion schedule
+                // (12.5 tables against a target of 13) because it put the money
+                // into a grill and delayed the tier.
                 if (tightBudget && !sim.IsCuisineStation(st)) continue;
                 if (tightBudget && sim.Cash - price < safety * 2) continue;
 
-                // Adlandirilmis ekipman (tas firin, doner ocagi, pide firini)
-                // MENU aciyor, kapasite acmiyor. Dort masada oturan bir
-                // lokantanin acacak yeri yok: menuyu genisletmek stogu boler
-                // ve parayi yatirim degil GIDER yapar.
+                // Named equipment (stone oven, doner grill, pide oven) opens up
+                // the MENU, not capacity. A restaurant sitting at four tables has
+                // nowhere to open up to: widening the menu splits the stock and
+                // turns the money from an investment into an EXPENSE.
                 //
-                // Olculdu: Turk mutfagina doner ve pide gelince genislemeyen
-                // strateji 10.200 sikkeyi uc ocaga yatirdi, son kasasi
-                // 8.748'e dustu ve buyume carpani 4,14'e cikti - yani
-                // "genislemek fazla odullendiriyor" gibi gorundu. Ekonomi
-                // degil BOT hataliydi: gercek oyuncu dort masaya ucuncu
-                // firini almaz.
+                // Measured: when doner and pide arrived in the Turkish cuisine
+                // the non-expanding strategy put 10,200 coins into three grills,
+                // its end cash fell to 8,748 and the growth multiplier rose to
+                // 4.14 - which made it look as though "expanding is rewarded too
+                // much". It was the BOT that was wrong, not the economy: a real
+                // player does not buy a third oven for four tables.
                 if (sim.IsCuisineStation(st) && sim.TableCount <= 4
                     && price * 6 > sim.Cash) continue;
 
@@ -227,26 +237,26 @@ namespace Lokanta.Harness
     public sealed class RestockOnly : IStrategy
     {
         public string Name => "sadece_hal";
-        public string Question => "Sadece malzeme alip baska hicbir sey yapmayan ne kazanir";
+        public string Question => "What does a player who only buys stock and does nothing else earn";
 
         public void OnMorning(Simulation sim) { Restock(sim); }
         public void OnEvening(Simulation sim, in DayReport report) { }
 
-        /// <summary>Onerilen stogu siparis eder. Kasa yetmezse kismi kalir.</summary>
+        /// <summary>Orders the recommended stock. If the till is short it stays partial.</summary>
         public static void Restock(Simulation sim)
         {
             Restock(sim, false);
         }
 
         /// <summary>
-        /// Sabah halden malzeme alir.
+        /// Buys stock at the market in the morning.
         ///
-        /// stockAhead: soguk hava varsa ve malzeme BUGUN ucuzsa fazladan
-        /// alir. Ucuzluk iki kaynaktan gelir: mevsim (yavas, ongorulebilir)
-        /// ve halin gunluk oynamasi (hizli, ongorulemez). Ikisi de tek
-        /// basina bir karar degil, sadece bir gider oynamasi; karar olmasi
-        /// icin ucuzken alip saklayabilmek gerekiyor. Soguk hava merdiveni
-        /// tam olarak bunu satiyor - docs/12 3.
+        /// stockAhead: if there is cold storage and the stock is cheap TODAY, it
+        /// buys extra. Cheapness comes from two sources: the season (slow,
+        /// predictable) and the market's daily swing (fast, unpredictable).
+        /// Neither is a decision on its own, only a swing in an expense; for it
+        /// to be a decision you have to be able to buy cheap and keep it. The
+        /// cold storage ladder sells exactly that - docs/12 3.
         /// </summary>
         public static void Restock(Simulation sim, bool stockAhead)
         {
@@ -257,18 +267,19 @@ namespace Lokanta.Harness
 
                 if (stockAhead && sim.CanKeep(i))
                 {
-                    // Bugunku fiyat, yil ortalamasinin altindaysa stok yap.
-                    // Ortalama halin oynamasini icermez (oynamanin ortalamasi
-                    // 1.0), yani karsilastirma mevsim + hal toplamini olcer.
+                    // If today's price is below the year's average, stock up.
+                    // The average does not include the market's swing (the mean
+                    // of the swing is 1.0), so the comparison measures the sum
+                    // of season + market.
                     long today = sim.IngredientPriceToday(i);
                     long mean = sim.IngredientPriceMean(i);
                     if (mean > 0 && today * 100 < mean * 92)
                     {
-                        // Tavan MaxUsefulDays'ten geliyor, elle yazilan
-                        // bir sayidan degil: arayuz oyuncuya "en fazla uc
-                        // gunluk" diyecekken botun dort gunluk almasi,
-                        // aracin oyuncunun goremeyecegi bir stratejiyi
-                        // olcmesi demekti.
+                        // The cap comes from MaxUsefulDays, not from a
+                        // hand-written number: with the interface about to tell
+                        // the player "three days at most", a bot buying four
+                        // days' worth would mean the tool was measuring a
+                        // strategy the player cannot see.
                         int days = sim.KeepDays(i);
                         int cap = sim.MaxUsefulDays(i);
                         if (days > cap) days = cap;
@@ -282,113 +293,115 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Makul oyuncu: kizgin musteri gorunce ise alir, kasa yeterliyse
-    /// ve itibar tasiyorsa genisler. Soru 2: yili hangi net varlikla bitirir.
+    /// The reasonable player: hires when they see angry customers, expands if
+    /// the till allows and the reputation carries it. Question 2: what net worth
+    /// do they end the year with.
     /// </summary>
     public sealed class ReasonablePlayer : IStrategy
     {
         private readonly bool _expand;
         private int _lastServiceRateBp = 10_000;
 
-        /// <summary>Kac gundur salon kadrosu fazla. Ucte cikariyor.</summary>
-        private int _fazlaGun;
+        /// <summary>How many days the hall crew has been over strength. Lets one go on the third.</summary>
+        private int _surplusDays;
 
         /// <summary>
-        /// Kredi cekmeye izin var mi. Yalnizca OLCUM icin: kredisiz
-        /// stratejisi bunu kapatip ayni oyuncuyu kosuyor, boylece tek
-        /// degisken kredi oluyor.
+        /// Whether taking a loan is allowed. For MEASUREMENT only: the no-loan
+        /// strategy switches this off and runs the same player, so that the loan
+        /// is the single variable.
         /// </summary>
         public static bool AllowLoan = true;
 
         /// <summary>
-        /// Salon kadrosunu kapasite modelinin istediginden KAC KISI
-        /// eksik tutacagi. Yalnizca OLCUM icin.
+        /// HOW MANY PEOPLE short of what the capacity model asks for the hall
+        /// crew will be kept. For MEASUREMENT only.
         ///
-        /// Neden var: mudahalenin degeri rahat bir restoranda olculemez.
-        /// Olculdu - mudahaleci bot 1440 mudahalenin 1440'ini gecirdi ve
-        /// makul oyuncuyla AYNI sayida kisi agirladi. Sebep tavan: iyi
-        /// yonetilen bir dukkanda gunde ~0,3 grup kaciyor, yani
-        /// kurtarilacak bir sey yok.
+        /// Why it exists: the value of an intervention cannot be measured in a
+        /// comfortable restaurant. Measured - the interventionist bot got 1440
+        /// of 1440 interventions through and served the SAME number of people as
+        /// the reasonable player. The reason is the ceiling: in a well run place
+        /// about 0.3 parties a day are lost, so there is nothing to save.
         ///
-        /// Bu kol, ayni oyuncuyu bir garson eksikle kosturuyor; o zaman
-        /// kaybedilen grup sayisi anlamli hale geliyor ve "mudahale ise
-        /// yariyor mu" sorusu gercekten sorulabiliyor.
+        /// This arm runs the same player one waiter short; then the number of
+        /// parties lost becomes meaningful and the question "does intervening
+        /// work" can really be asked.
         /// </summary>
-        public static int SalonShort = 0;
+        public static int HallShort = 0;
 
         public ReasonablePlayer(bool expand = true) { _expand = expand; }
 
         public string Name => _expand ? "makul" : "genislemeyen";
         public string Question => _expand
-            ? "Iyi oynayan oyuncu yili hangi net varlikla bitirir"
-            : "Hic genislemeyen oyuncu ne kadar kazaniyor";
+            ? "What net worth does a player who plays well end the year with"
+            : "How much does a player who never expands earn";
 
         public void OnMorning(Simulation sim)
         {
-            // Once menuyu talebe gore daralt, SONRA hal'e git.
+            // Narrow the menu to the demand FIRST, THEN go to the market.
             //
-            // Genis menu tasimak pahali: menude duran her yemek icin bir
-            // gruba yetecek malzeme stoklanmali ve bozulabilir olanlar her
-            // gun sifirlaniyor. On iki ana yemekli menu, gunde on uc
-            // musterisi olan bir dukkani batiriyor. Hal asamasinin gerilimi
-            // tam olarak bu.
+            // Carrying a wide menu is expensive: for every dish on the menu you
+            // have to stock enough for one party, and the perishables reset every
+            // day. A twelve main course menu bankrupts a place with thirteen
+            // customers a day. That is exactly where the tension of the market
+            // phase comes from.
             NarrowMenu(sim);
 
-            // Kasa iki haftalik sabit gideri karsilamiyorsa kredi cek.
-            // docs/12 4 bu durum icin var. Kredisiz oyuncu bir kez
-            // bosalinca malzeme alamiyor ve toparlanamiyor.
+            // If the till cannot cover two weeks of fixed costs, take a loan.
+            // docs/12 4 exists for this situation. A player without a loan, once
+            // emptied out, cannot buy stock and cannot recover.
             if (AllowLoan && !sim.HasLoan && sim.Cash < sim.WeeklyFixedCost() * 2)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.TakeLoan, 0));
 
             RestockOnly.Restock(sim, stockAhead: true);
 
-            // Ekipman genislemeden ONCE geliyor. Masasi dolmayan bir
-            // restoran yeni masa degil, yetisemeyen bir mutfak icin
-            // ekipman almali.
+            // The equipment comes BEFORE the expansion. A restaurant whose tables
+            // do not fill up should buy equipment for a kitchen that cannot keep
+            // up, not new tables.
             Equipment.Upgrade(sim);
 
             if (!_expand) return;
 
-            // Bir sonraki kademeye gecmeye gucu yetiyorsa ve itibar
-            // yeterliyse genisle. Kasayi tamamen bosaltma.
+            // If they can afford the next tier and the reputation is good enough,
+            // expand. Do not empty the till completely.
             for (int t = 0; t < sim.TierCount; t++)
             {
                 if (sim.TablesAtTier(t) <= sim.TableCount) continue;
                 long cost = sim.UpgradeCostFor(t);
 
-                // Genislemenin uc sarti: para var, itibar var ve mevcut
-                // dukkan zaten talebi karsilayabiliyor. Ucuncusu olmadan
-                // oyuncu doldurmadigi masalara kira odemeye basliyor.
+                // Three conditions for expanding: there is money, there is
+                // reputation, and the current place can already meet the demand.
+                // Without the third the player starts paying rent on tables they
+                // do not fill.
                 bool canServe = _lastServiceRateBp > 8500;
 
-                // BORCU VARKEN GENISLEMIYOR - ve bu kural OLCULDU,
-                // kusurlu bulundu, ama DUZELTILMEDI. Sebebi asagida.
+                // IT DOES NOT EXPAND WHILE IT HAS A DEBT - and this rule was
+                // MEASURED, found faulty, but NOT FIXED. The reason is below.
                 //
-                // Kural makul oyuncuyu kendi eliyle sakatliyor: krediye
-                // hic dokunmayan ayni oyuncu (kredisiz stratejisi) 14
-                // masaya ve 100 itibara cikip 27.853 ile bitiriyor,
-                // makul ise 7,4 masada kalip 25.424 ile. Yani kredi
-                // cekmek buyume egrisini SEKIZ HAFTA kapatiyor - ve
-                // bunu yapan ekonomi degil, botun kendi kurali.
+                // The rule cripples the reasonable player by its own hand: the
+                // same player that never touches a loan (the no-loan strategy)
+                // climbs to 14 tables and 100 reputation and finishes on 27,853,
+                // while the reasonable one stays at 7.4 tables and finishes on
+                // 25,424. So taking a loan shuts down the growth curve for EIGHT
+                // WEEKS - and it is the bot's own rule that does it, not the
+                // economy.
                 //
-                // Kapi "karsilayabiliyor mu"ya cevrildi ve olculdu:
+                // The gate was turned into "can it afford it" and measured:
                 //
-                //   pay = 4 taksit        makul 14 masa, 43.746 - plancıyı GECIYOR
-                //   pay = kalan borcun
-                //         tamami         makul 14 masa, 39.877 - yine geciyor
-                //   kalibrasyon cezasi   9 -> 32, dort hedef daha kiriliyor:
-                //                        imzaci/makul 0,84 ve 0,82 (taban 0,90),
-                //                        turk buyume carpani 4,20 (tavan 4,0),
-                //                        para makul'de de onemsizlesiyor
+                //   share = 4 instalments   reasonable 14 tables, 43,746 - BEATS the planner
+                //   share = the whole
+                //           remaining debt  reasonable 14 tables, 39,877 - still beats it
+                //   calibration penalty     9 -> 32, four more targets break:
+                //                           imzaci/makul 0.84 and 0.82 (floor 0.90),
+                //                           Turkish growth multiplier 4.20 (ceiling 4.0),
+                //                           money becomes trivial for makul too
                 //
-                // Yani duzeltme dogru ama TEK BASINA yapilamaz: butun
-                // kalibrasyon hedefleri bu sakat referansa gore
-                // ayarlanmis, ve referansi degistirmek sabit noktayi,
-                // kiralari ve hedef bantlari yeniden turetmeyi
-                // gerektiriyor. Yarim ayarlanmis bir denge, belgelenmis
-                // bir kusurdan kotudur.
+                // So the fix is right but it CANNOT BE MADE ON ITS OWN: all the
+                // calibration targets are tuned against this crippled reference,
+                // and changing the reference means re-deriving the fixed point,
+                // the rents and the target bands. A half-tuned balance is worse
+                // than a documented flaw.
                 //
-                // Ayrintili kayit ve kapatma sirasi: docs/12 8d.
+                // The full record and the order in which to close it: docs/12 8d.
                 if (sim.Cash > cost * 2 && sim.ReputationCenti > 4500 && canServe
                     && !sim.HasLoan)
                     sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, t));
@@ -397,47 +410,46 @@ namespace Lokanta.Harness
         }
 
         /// <summary>
-        /// Talebin kaldiracagi kadar ana yemek acik tutar, gerisini kapatir.
-        /// Kaba kural: her ana yemege gunde en az dort kisi dusmeli.
+        /// Keeps as many main dishes open as the demand will bear and closes the
+        /// rest. Rough rule: every main course needs at least four people a day.
         /// </summary>
         private static void NarrowMenu(Simulation sim)
         {
             int people = sim.ExpectedPeopleToday();
 
-            // Menu genisligini SOGUK HAVA belirliyor. Soguk hava yokken
-            // bozulabilir her sey gece oldugu icin menude duran her yemek
-            // her gun yeniden stoklanmali ve arta kalan cope gidiyor;
-            // o yuzden ana yemek basina dort musteri istiyoruz. Soguk hava
-            // arta kalani yasattigi icin bu esik dusuyor.
+            // COLD STORAGE decides the menu width. Without cold storage
+            // everything perishable goes off overnight, so every dish on the
+            // menu has to be restocked daily and the leftovers go in the bin;
+            // that is why we want four customers per main course. Cold storage
+            // keeps the leftovers alive, so this threshold falls.
             //
-            // Otuz iki yemeklik icerik envanterinin var olma sebebi bu:
-            // yukseltme, menu genisligi satin aliyor.
-            // T2 ILE T3 AYNI DEGIL.
+            // This is why a content inventory of thirty-two dishes exists: the
+            // upgrade buys menu width.
+            // T2 AND T3 ARE NOT THE SAME.
             //
-            // Once { 4, 3, 2, 2 } yaziyordu: en ust kademe, bir
-            // oncekinden fazla hicbir sey vermiyordu. Bot da haliyle
-            // onu hic almiyordu - olcum "t3 hic satin alinmiyor" diye
-            // cikiyor ve bu bir ICERIK bulgusu sanilıyordu, oysa
-            // BOTUN tablosuydu. Simulasyon t3'te menuyu daha da
-            // genisletmeye izin veriyor (Awaited cezasi oranli), yani
-            // botun o firsati gormesi gerekiyor.
+            // It used to read { 4, 3, 2, 2 }: the top tier gave nothing more
+            // than the one before it. Naturally the bot never bought it - the
+            // measurement came out as "t3 is never bought" and that was taken
+            // for a CONTENT finding, when it was really the BOT's doing. The
+            // simulation does allow the menu to widen further at t3 (the Awaited
+            // penalty is proportional), so the bot has to see that opportunity.
             int[] perMain = { 4, 3, 2, 1 };
             int need = perMain[sim.StorageTier < perMain.Length ? sim.StorageTier : perMain.Length - 1];
             int allowedMains = people / need;
             if (allowedMains < 2) allowedMains = 2;
 
-            // ISIMLI MUSTERININ SEVDIGI YEMEK ONCE.
+            // THE NAMED CUSTOMER'S FAVOURITE DISH COMES FIRST.
             //
-            // Duzenli musteri sevdigi yemegi menude bulamazsa memnuniyeti
-            // dusuyor (docs/11). Menuyu kor bir sirayla daraltmak, tam da
-            // o mekanigin cezasini her gun odemek demek - olcum bunu
-            // yakaladi: iyi oyuncunun itibari 96,5'ten 87'ye indi ve bazi
-            // kosularda dukkan bosaldi. Ekonomi degil BOT hataliydi;
-            // gercek oyuncu Hasan Usta'nin kuru fasulyesini menuden
-            // cikarmaz.
+            // If a regular cannot find their favourite dish on the menu their
+            // satisfaction drops (docs/11). Narrowing the menu in a blind order
+            // means paying that mechanic's penalty every single day - and the
+            // measurement caught it: the good player's reputation fell from 96.5
+            // to 87 and in some runs the place emptied out. It was the BOT that
+            // was wrong, not the economy; a real player does not take Hasan
+            // Usta's kuru fasulye off the menu.
             //
-            // Bu, mekanigin yarattigi KARAR: menu genisligi sinirli ve
-            // isimli musterinin favorisi o sinirdan bir yer aliyor.
+            // This is the DECISION the mechanic creates: menu width is limited
+            // and the named customer's favourite takes one of those places.
             int kept = 0;
             for (int pass = 0; pass < 2; pass++)
             {
@@ -452,8 +464,8 @@ namespace Lokanta.Harness
                     }
 
                     bool favourite = sim.IsFavouriteOfArrivedRegular(i);
-                    if (pass == 0 && !favourite) continue;      // once favoriler
-                    if (pass == 1 && favourite) continue;       // sonra kalanlar
+                    if (pass == 0 && !favourite) continue;      // favourites first
+                    if (pass == 1 && favourite) continue;       // then the rest
 
                     bool on = kept < allowedMains;
                     if (on) kept++;
@@ -468,71 +480,74 @@ namespace Lokanta.Harness
                 _lastServiceRateBp = (int)Lokanta.Core.Fx.MulDiv(
                     report.ServedParties, Lokanta.Core.Fx.One, report.PlannedParties);
 
-            // Kadro KAPASITE MODELINDEN okunur, kizgin musteri sayisindan degil.
+            // The crew is read FROM THE CAPACITY MODEL, not from the number of
+            // angry customers.
             //
-            // Ilk hali "iki gun ust uste kizgin musteri varsa ise al" diyordu.
-            // Ama kizgin musteri her zaman kadro sinyali degil: sabri kisa bir
-            // arketip zirvede bekleyip cikabilir, stok tukenmis olabilir.
-            // Denge araci sonucu gosterdi: dort masada iki salon personeli,
-            // haftalik 2.408 sikke maas, kira 1.950. Kapasite modeli o hacimde
-            // sifir salon personeli istiyor; patron tek basina yetiyor.
-            // KADRO BUGUNE GORE, ISTEN CIKARMA ISRARA GORE.
+            // The first version said "hire if there were angry customers two days
+            // running". But an angry customer is not always a crew signal: an
+            // archetype with a short fuse may wait through the peak and walk out,
+            // or the stock may have run out. The balance harness showed the
+            // result: two hall staff on four tables, 2,408 coins of wages a week
+            // against a rent of 1,950. At that volume the capacity model asks for
+            // zero hall staff; the owner alone is enough.
+            // THE CREW FOLLOWS TODAY, THE SACKING FOLLOWS PERSISTENCE.
             //
-            // RequiredCrewToday artik gercekten BUGUNU olcuyor (eskiden
-            // her gun hafta sonu zirvesini veriyordu). Bu dogru ama
-            // botu her hafta ise alip cikarmaya iter: cuma tut,
-            // pazartesi kov. Isten cikarma DENEYIMI sifirliyor, yani
-            // churn bedava degil.
+            // RequiredCrewToday now really measures TODAY (it used to return the
+            // weekend peak every day). That is right, but it pushes the bot into
+            // hiring and firing every week: hire on Friday, sack on Monday. Firing
+            // resets EXPERIENCE, so churn is not free.
             //
-            // Kural: eksikse HEMEN al, fazlaysa UC GUN ust uste fazla
-            // olsun. Gercek oyuncu da hafta sonu icin tuttugu garsonu
-            // pazartesi kovmaz.
+            // The rule: if short, hire IMMEDIATELY; if over strength, wait for
+            // THREE DAYS IN A ROW. A real player does not sack the waiter they
+            // hired for the weekend on the Monday either.
             //
-            // KARAR AKSAM VERILIYOR AMA YARINI ETKILIYOR.
+            // THE DECISION IS TAKEN IN THE EVENING BUT IT AFFECTS TOMORROW.
             //
-            // Burasi OnEvening: AdvanceToNextDay bu cagridan SONRA
-            // geliyor, yani "bugun"un gun tipiyle kurulan kadro yarin
-            // sahaya cikiyor. 5. gun (hafta ici) aksami hafta ici
-            // kadrosuna gore karar veriliyor, 6. gune (hafta sonu)
-            // eksik kadroyla giriliyordu. Metodun adi dogruydu,
-            // CAGIRANI yanlis gunu soruyordu.
+            // This is OnEvening: AdvanceToNextDay comes AFTER this call, so a crew
+            // set up for "today's" day type walks out onto the floor tomorrow. The
+            // decision on the evening of day 5 (a weekday) was being taken against
+            // the weekday crew, and day 6 (the weekend) was entered short-handed.
+            // The method's name was right, its CALLER was asking about the wrong
+            // day.
             Crew need = sim.RequiredCrewTomorrow();
 
-            if (sim.Cooks < need.Cooks && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            if (sim.Cooks < need.Cooks && sim.Cooks + sim.HallStaff < sim.StaffCap)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, Hiring.Pick(sim, 0)));
-                _fazlaGun = 0;
+                _surplusDays = 0;
                 return;
             }
-            int salonHedef = need.Salon - SalonShort;
-            if (salonHedef < 0) salonHedef = 0;
+            int hallTarget = need.Hall - HallShort;
+            if (hallTarget < 0) hallTarget = 0;
 
-            _fazlaGun = sim.SalonStaff > salonHedef ? _fazlaGun + 1 : 0;
+            _surplusDays = sim.HallStaff > hallTarget ? _surplusDays + 1 : 0;
 
-            if (sim.SalonStaff < salonHedef && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            if (sim.HallStaff < hallTarget && sim.Cooks + sim.HallStaff < sim.StaffCap)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, Hiring.Pick(sim, 1)));
                 return;
             }
 
-            // Kadro dogruysa KALITESINE bak: elindeki kisi kapidaki adaydan
-            // belirgin olarak kotuyse degistir. Salon once, cunku salon
-            // huyu her masaya dogrudan yaziliyor.
-            // Kosul ">=" - "==" degil. Ilk yazim tam esitlik ariyordu ve
-            // kapasite modeli cogu gun tam esitlik vermiyor; degistirme
-            // neredeyse hic calismadi. Kotu bir garsonla altmis gun
-            // gecirmek, mekanigin cezasini almak ama kararini hic
-            // vermemek demekti.
-            if (sim.SalonStaff >= salonHedef && sim.SalonStaff > 0
+            // If the crew size is right, look at its QUALITY: if someone on the
+            // books is clearly worse than the candidate at the door, replace
+            // them. The hall first, because a hall trait is written directly onto
+            // every table.
+            // The condition is ">=", not "==". The first version looked for exact
+            // equality, and the capacity model does not give exact equality on
+            // most days; the replacement almost never ran. Spending sixty days
+            // with a bad waiter meant taking the mechanic's penalty without ever
+            // taking its decision.
+            if (sim.HallStaff >= hallTarget && sim.HallStaff > 0
                 && Hiring.ReplaceWorst(sim, 1)) return;
             if (sim.Cooks >= need.Cooks && Hiring.ReplaceWorst(sim, 0)) return;
 
-            // Fazla kadro dogrudan zarar: maas musteri gelsin gelmesin odeniyor.
-            if (sim.SalonStaff > salonHedef && _fazlaGun >= 3)
+            // Surplus crew is a direct loss: the wage is paid whether the
+            // customers come or not.
+            if (sim.HallStaff > hallTarget && _surplusDays >= 3)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1,
-                                      sim.SalonStaff - 1));
-                _fazlaGun = 0;
+                                      sim.HallStaff - 1));
+                _surplusDays = 0;
             }
             else if (sim.Cooks > need.Cooks && sim.Cooks > 1)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 0,
@@ -541,19 +556,19 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Fiyati surekli piyasa ustunde tutan oyuncu.
-    /// Soru 4: bu strateji kazaniyor mu.
+    /// The player who keeps their prices permanently above the market.
+    /// Question 4: does this strategy pay.
     /// </summary>
     /// <summary>
-    /// Fiyati piyasanin ALTINDA tutan oyuncu.
+    /// The player who keeps their prices BELOW the market.
     ///
-    /// yuksek_fiyat'in karsiti ve arac uzun sure ASIMETRIKTI: asiri
-    /// fiyatlamayi olcuyor, indirim kirmayi olcmuyordu. Oysa gercek bir
-    /// oyuncunun ilk refleksi cogu zaman "ucuzlatayim, kalabalik gelsin".
+    /// The opposite of yuksek_fiyat, and the tool was ASYMMETRIC for a long
+    /// time: it measured overpricing but not undercutting. And yet a real
+    /// player's first reflex is usually "let me cut the price and pull a crowd".
     ///
-    /// Fiyatin talebe DOGRUDAN etkisi yok (DemandModel fiyat almiyor);
-    /// tek yol memnuniyet uzerinden itibar. Yani bu strateji ayni
-    /// zamanda o dolayli yolun gercekten calisip calismadigini sinıyor.
+    /// Price has no DIRECT effect on demand (DemandModel does not take a price);
+    /// the only route is reputation, through satisfaction. So this strategy also
+    /// tests whether that indirect route works at all.
     /// </summary>
     public sealed class CheapPricer : IStrategy
     {
@@ -561,14 +576,14 @@ namespace Lokanta.Harness
         private bool _applied;
 
         public string Name => "ucuz_fiyat";
-        public string Question => "Fiyati piyasanin altinda tutmak kazandiriyor mu";
+        public string Question => "Does keeping prices below the market pay";
 
         public void OnMorning(Simulation sim)
         {
             if (!_applied)
             {
-                // %15 alti: icerikteki underpriceFloorBp tabani tam
-                // burada, yani asagisi saf ciro kaybi olmali.
+                // 15% under: the content's underpriceFloorBp floor sits exactly
+                // here, so anything below it should be pure lost revenue.
                 for (int i = 0; i < 64; i++)
                 {
                     long baseline = sim.BasePriceOf(i);
@@ -588,18 +603,18 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// ANA YEMEGE DOKUNMADAN yanlari, icecekleri ve tatlilari uc katina
-    /// cikaran oyuncu. Bir acigin kalici nobetcisi.
+    /// The player who triples the sides, the drinks and the desserts WITHOUT
+    /// TOUCHING the main course. The permanent sentry over one particular hole.
     ///
-    /// Duzeltmeden once: memnuniyet yalnizca ana yemegin fiyatina
-    /// bakiyordu (ComputeSatisfaction), fis ise dort kalemi birden
-    /// yaziyordu (OrderPrice). Yani 32 yemegin 20'si sinirsizca
-    /// pahalilastirilabiliyor ve musteri hic tepki vermiyordu.
-    /// Olculdu: Turk mutfaginda tek icecegi 16'dan 160'a cikarmak
-    /// +109.000 santi, kampanyanin butun karinin ALTI KATI.
+    /// Before the fix: satisfaction looked only at the main course's price
+    /// (ComputeSatisfaction), while the bill charged for all four items
+    /// (OrderPrice). So 20 of the 32 dishes could be made arbitrarily expensive
+    /// and the customer never reacted at all. Measured: in the Turkish cuisine,
+    /// taking a single drink from 16 to 160 was worth +109,000 centi - SIX TIMES
+    /// the entire profit of the campaign.
     ///
-    /// Beklenen sonuc: `makul`u GECMEMELI. Gecerse ceza yine yalnizca
-    /// bir kaleme bakiyor demektir.
+    /// The expected result: it MUST NOT BEAT `makul`. If it does, the penalty is
+    /// once again looking at a single item.
     /// </summary>
     public sealed class ExtrasGouger : IStrategy
     {
@@ -607,7 +622,7 @@ namespace Lokanta.Harness
         private bool _applied;
 
         public string Name => "pahali_ekstra";
-        public string Question => "Ana yemege dokunmadan ekstralari pahalilastirmak kazandiriyor mu";
+        public string Question => "Does making the extras expensive without touching the main course pay";
 
         public void OnMorning(Simulation sim)
         {
@@ -615,13 +630,13 @@ namespace Lokanta.Harness
             {
                 for (int i = 0; i < sim.DishCount; i++)
                 {
-                    if (sim.IsMainDish(i)) continue;          // ana yemek ELLENMIYOR
+                    if (sim.IsMainDish(i)) continue;          // the main course IS NOT TOUCHED
                     long baseline = sim.BasePriceOf(i);
                     if (baseline <= 0) continue;
-                    // TAVANIN ALTINDA: 2,3 kat. Uc kat yazmak artik
-                    // REDDEDILIYOR (overpriceCeilingBp 25000) ve
-                    // reddedilen bir komut hicbir seyi sinamaz - bot
-                    // sessizce "makul oyuncu"ya donusurdu.
+                    // BELOW THE CEILING: 2.3 times. Writing three times is now
+                    // REJECTED (overpriceCeilingBp 25000), and a command that is
+                    // rejected tests nothing - the bot would silently have turned
+                    // into the "reasonable player".
                     sim.Apply(new Command(sim.TickIndex, CommandKind.SetPrice,
                                           i, (int)(baseline * 23 / 10)));
                 }
@@ -637,21 +652,21 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// KOMBOYU ACIP EKSTRALARI SISIREN BOT.
+    /// THE BOT THAT OPENS THE COMBO AND INFLATES THE EXTRAS.
     ///
-    /// Neden var: acik tam iki botun KESISIMINDE duruyordu.
-    /// "pahali_ekstra" ekstralari pahalilastiriyor ama komboyu
-    /// ACMIYOR; "imzaci" komboyu aciyor ama fiyata DOKUNMUYOR. Ikisini
-    /// birlestiren bot yoktu ve o yuzden denge araci yillarca yesil
-    /// kaldi.
+    /// Why it exists: the hole sat exactly at the INTERSECTION of two bots.
+    /// "pahali_ekstra" makes the extras expensive but does NOT OPEN the combo;
+    /// "imzaci" opens the combo but does NOT TOUCH the prices. There was no bot
+    /// that combined the two, and that is why the balance harness stayed green
+    /// for so long.
     ///
-    /// Olculen istismar: kombo acikken yan ve icecegin fiyati
-    /// memnuniyete HIC girmiyordu (yalnizca ana yemek olculuyordu) ve
-    /// fiyatin tavani yoktu - bot 24,8 MILYON sikke topluyordu, taban
-    /// kosunun 1470 kati.
+    /// The exploit measured: with the combo open, the price of the side and the
+    /// drink entered satisfaction NOT AT ALL (only the main course was measured)
+    /// and there was no price ceiling - the bot piled up 24.8 MILLION coins,
+    /// 1470 times the baseline run.
     ///
-    /// Bu bot artik bir DENETIM: kasasi makul oyuncunun birkac katini
-    /// gecerse acik geri gelmis demektir.
+    /// This bot is now a GUARD: if its till gets to a few times the reasonable
+    /// player's, the hole is back.
     /// </summary>
     public sealed class ComboGouger : IStrategy
     {
@@ -659,7 +674,7 @@ namespace Lokanta.Harness
         private bool _applied;
 
         public string Name => "kombo_sismesi";
-        public string Question => "Komboyu acip ekstralari sismek kazandiriyor mu";
+        public string Question => "Does opening the combo and inflating the extras pay";
 
         public void OnMorning(Simulation sim)
         {
@@ -671,16 +686,16 @@ namespace Lokanta.Harness
             if (_applied) return;
             _applied = true;
 
-            // Ana yemege DOKUNMADAN ekstralari elden geldigince pahali
-            // yap. Tavan varsa komut reddedilir ve fiyat piyasada kalir;
-            // yoksa yirmi kat yazilir.
+            // Make the extras as expensive as possible WITHOUT TOUCHING the main
+            // course. If there is a ceiling the command is rejected and the price
+            // stays at the market; if there is not, twenty times gets written.
             for (int i = 0; i < sim.DishCount; i++)
             {
                 if (sim.IsMainDish(i)) continue;
                 long baseline = sim.BasePriceOf(i);
                 if (baseline <= 0) continue;
-                // Tavanin hemen altinda: 2,4 kat. Daha fazlasi
-                // reddediliyor ve bot hicbir seyi sinamaz olurdu.
+                // Just under the ceiling: 2.4 times. More than that is rejected
+                // and the bot would test nothing.
                 sim.Apply(new Command(sim.TickIndex, CommandKind.SetPrice,
                                       i, (int)(baseline * 24 / 10)));
             }
@@ -701,16 +716,15 @@ namespace Lokanta.Harness
         private readonly string _name;
 
         /// <summary>
-        /// ZAM BANDI ARTIK IKI NOKTADAN OLCULUYOR.
+        /// THE MARKUP BAND IS NOW MEASURED FROM TWO POINTS.
         //
-        /// Fiyat botlari 8500 (ucuz), 13000, 23000 ve 24000 bp'de
-        /// duruyordu; 10000 ile 13000 ARASINDA hicbir olcum yoktu.
-        /// Onemliydi, cunku fiyatin talebe dogrudan kanali yok -
-        /// tek yol memnuniyet -> itibar, ve itibar kademe tavanina
-        /// kirpiliyor. Tavandaki oyuncu icin memnuniyet kaybi
-        /// hicbir sey satin almiyor olabilir, yani kucuk bir zam
-        /// BEDAVA olabilir. Bunu ancak bandin icinden bir bot
-        /// gosterir.
+        /// The price bots sat at 8500 (cheap), 13000, 23000 and 24000 bp; there
+        /// was no measurement at all BETWEEN 10000 and 13000. That mattered,
+        /// because price has no direct channel to demand - the only route is
+        /// satisfaction -> reputation, and reputation is clamped to the tier's
+        /// ceiling. For a player at that ceiling a loss of satisfaction may buy
+        /// nothing at all, which means a small markup may be FREE. Only a bot
+        /// from inside the band can show that.
         /// </summary>
         public GreedyPricer(int markupBp = 13000, string name = "yuksek_fiyat")
         {
@@ -719,13 +733,13 @@ namespace Lokanta.Harness
         }
 
         public string Name => _name;
-        public string Question => "Fiyati surekli piyasa ustunde tutan strateji kazaniyor mu";
+        public string Question => "Does a strategy that keeps prices permanently above the market pay";
 
         public void OnMorning(Simulation sim)
         {
             if (!_applied)
             {
-                // Fiyatlar bir kez ayarlanir; SetPrice mutlak deger aliyor.
+                // The prices are set once; SetPrice takes an absolute value.
                 for (int i = 0; i < 64; i++)
                 {
                     long baseline = sim.BasePriceOf(i);
@@ -745,13 +759,15 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Parayi gorur gormez genisleyen oyuncu. Servis orani sartini aramiyor.
-    /// Olctugu sey: makul oyuncunun %85 servis orani kapisi fazla mi siki.
+    /// The player who expands the moment they see money. Does not look for the
+    /// service rate condition.
+    /// What it measures: is the reasonable player's 85% service rate gate too
+    /// tight.
     /// </summary>
     public sealed class Expansionist : IStrategy
     {
         public string Name => "atilgan";
-        public string Question => "Genisleme kapilari fazla mi siki";
+        public string Question => "Are the expansion gates too tight";
 
         public void OnMorning(Simulation sim)
         {
@@ -763,7 +779,8 @@ namespace Lokanta.Harness
             for (int t = 0; t < sim.TierCount; t++)
             {
                 if (sim.TablesAtTier(t) <= sim.TableCount) continue;
-                // Tek sart: parasi yetsin. Itibar ve servis orani aranmiyor.
+                // One condition only: can they afford it. No reputation and no
+                // service rate are required.
                 if (sim.Cash > sim.UpgradeCostFor(t))
                     sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, t));
                 break;
@@ -773,19 +790,19 @@ namespace Lokanta.Harness
         public void OnEvening(Simulation sim, in DayReport report)
         {
             Crew need = sim.RequiredCrewToday();
-            if (sim.Cooks < need.Cooks && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            if (sim.Cooks < need.Cooks && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, Hiring.Pick(sim, 0)));
-            else if (sim.SalonStaff < need.Salon && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            else if (sim.HallStaff < need.Hall && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, Hiring.Pick(sim, 1)));
-            else if (sim.SalonStaff > need.Salon)
+            else if (sim.HallStaff > need.Hall)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1));
         }
     }
 
     /// <summary>
-    /// Kapali form modelin takvimine gore genisleyen oyuncu:
-    /// 15. gun 7 masa, 29. gun 10 masa, 43. gun 14 masa.
-    /// Olctugu sey: o takvim simulasyonda karsilanabiliyor mu.
+    /// The player who expands on the closed-form model's schedule:
+    /// 7 tables on day 15, 10 tables on day 29, 14 tables on day 43.
+    /// What it measures: can that schedule be met in the simulation.
     /// </summary>
     public sealed class PlannerSchedule : IStrategy
     {
@@ -793,7 +810,7 @@ namespace Lokanta.Harness
         private int _next;
 
         public string Name => "planci";
-        public string Question => "Kapali form modelin genisleme takvimi karsilanabiliyor mu";
+        public string Question => "Can the closed-form model's expansion schedule be met";
 
         public void OnMorning(Simulation sim)
         {
@@ -802,7 +819,8 @@ namespace Lokanta.Harness
             if (!sim.HasLoan && sim.Cash < sim.WeeklyFixedCost() * 2)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.TakeLoan, 0));
 
-            // Takvim masaya bakiyor; mutfak da o masaya yetismek zorunda.
+            // The schedule watches the tables; the kitchen has to keep up with
+            // those tables too.
             Equipment.Upgrade(sim);
 
             if (_next >= Days.Length || sim.Day < Days[_next]) return;
@@ -819,22 +837,22 @@ namespace Lokanta.Harness
         public void OnEvening(Simulation sim, in DayReport report)
         {
             Crew need = sim.RequiredCrewToday();
-            if (sim.Cooks < need.Cooks && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            if (sim.Cooks < need.Cooks && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, Hiring.Pick(sim, 0)));
-            else if (sim.SalonStaff < need.Salon && sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            else if (sim.HallStaff < need.Hall && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, Hiring.Pick(sim, 1)));
-            else if (sim.SalonStaff > need.Salon)
+            else if (sim.HallStaff > need.Hall)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1));
         }
     }
 
     /// <summary>
-    /// Malzemeden kisan oyuncu: her seyi EN UCUZ kaliteden aliyor,
-    /// baska her sey makul oyuncu gibi.
+    /// The player who skimps on ingredients: buys everything at the CHEAPEST
+    /// quality, everything else just like the reasonable player.
     ///
-    /// Olctugu soru: malzemeden kismak gecerli bir strateji mi, tuzak mi.
-    /// Icerik en hassas alti malzemeyi ET yapmis, yani cevabin menuye
-    /// gore degismesi bekleniyor.
+    /// The question it measures: is skimping on ingredients a valid strategy or
+    /// a trap. The content has made the six most sensitive ingredients MEAT, so
+    /// the answer is expected to vary with the menu.
     /// </summary>
     public sealed class CheapIngredients : IStrategy
     {
@@ -842,7 +860,7 @@ namespace Lokanta.Harness
         private bool _set;
 
         public string Name => "ucuz_malzeme";
-        public string Question => "Malzemeden kismak kazandiriyor mu";
+        public string Question => "Does skimping on ingredients pay";
 
         public void OnMorning(Simulation sim)
         {
@@ -861,31 +879,31 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Servis sirasinda MUDAHALE eden oyuncu: makul oyuncu gibi oynuyor,
-    /// ayrica gun icinde sabri en az kalan masalara patron hakkini
-    /// harciyor.
+    /// The player who INTERVENES during service: plays like the reasonable
+    /// player, and on top of that spends the owner's attention on the tables
+    /// with the least patience left.
     ///
-    /// Olctugu soru: docs/02'nin cekirdek dongusu -- "servis sirasinda
-    /// sadece krizlere mudahale edersin" -- gercekten kazandiriyor mu.
-    /// Mudahale hakki gun basina sinirli ve cay ikrami parayla.
+    /// The question it measures: does docs/02's core loop -- "during service you
+    /// only intervene in crises" -- actually pay. Interventions are limited per
+    /// day and the free tea costs money.
     /// </summary>
     /// <summary>
-    /// Imza mekanigini kullanan oyuncu. docs/07: mekanik mutfagi mutfaktan
-    /// ayiran tek sey, o yuzden ONU KULLANMAK kazandirmali - ama mecbur
-    /// birakmamali. Bu strateji o bandi olcuyor.
+    /// The player who uses the signature mechanic. docs/07: the mechanic is the
+    /// one thing that separates one cuisine from another, so USING IT has to
+    /// pay - without becoming compulsory. This strategy measures that band.
     ///
-    /// Fast food -> komboyu ikinci mevsimde acar ve acik tutar.
-    /// Turk       -> veresiyeyi SECEREK acar: yalnizca cay ikram ettigi
-    ///               gruba, gunde en fazla ikisine, ve acik hesap tavani
-    ///               bir haftalik sabit gideri gecmiyorsa.
+    /// Fast food -> opens the combo in the second season and keeps it open.
+    /// Turkish   -> opens the tab SELECTIVELY: only for the party it offered tea
+    ///              to, at most two a day, and only while the open balance stays
+    ///              under one week of fixed costs.
     /// </summary>
     public sealed class SignaturePlayer : IStrategy
     {
         /// <summary>
-        /// Veresiye icin en az ziyaret sayisi. 0 = herkese.
-        /// STATIK: her strateji basinda yeniden yaziliyor, yoksa bir
-        /// sonraki kol seciciligi miras alir ve olcum sessizce baska
-        /// bir seyi olcer.
+        /// The minimum number of visits for a tab. 0 = everyone.
+        /// STATIC: rewritten at the start of every strategy, otherwise the next
+        /// arm inherits the selectiveness and the measurement silently measures
+        /// something else.
         /// </summary>
         public static int MinVisits;
 
@@ -893,15 +911,15 @@ namespace Lokanta.Harness
         private int _grantedToday;
 
         public string Name => "imzaci";
-        public string Question => "Imza mekanigini kullanmak kazandiriyor mu";
+        public string Question => "Does using the signature mechanic pay";
 
         public void OnMorning(Simulation sim)
         {
             _grantedToday = 0;
             _inner.OnMorning(sim);
 
-            // Kombo bedava degil (mutfagi yoruyor) ama menude tutmasi
-            // gereken uc kalem zaten acilis menusunun icinde.
+            // The combo is not free (it tires the kitchen out) but the three
+            // items it has to keep on the menu are already in the opening menu.
             if (sim.HasCombo && !sim.ComboEnabled)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.SetCombo, 1));
         }
@@ -912,48 +930,49 @@ namespace Lokanta.Harness
         }
 
         /// <summary>
-        /// ZIRVEDE KOMBOYU KAPATAN KOL. 0 = hic kapatma.
+        /// THE ARM THAT CLOSES THE COMBO AT THE PEAK. 0 = never close.
         ///
-        /// Tasarimin yazili niyeti: "kombo mutfak yukunu de artirdigi
-        /// icin zirvede kapatmak MESRU bir oyun ve eksen onu
-        /// cezalandirmamali". Ama o oyunu oynayan bir bot yoktu, yani
-        /// eksenin hedefi ancak UYDURULARAK konabilirdi. Bu kol onu
-        /// olcuyor: salon doluluk esigini gecince kombo kapaniyor,
-        /// dusunce yeniden aciliyor.
+        /// The design's written intention: "because the combo also increases the
+        /// kitchen load, closing it at the peak is a LEGITIMATE play and the axis
+        /// must not punish it". But there was no bot playing that way, so the
+        /// axis's target could only have been INVENTED. This arm measures it: the
+        /// combo closes once hall occupancy passes a threshold and reopens when
+        /// it falls back.
         ///
-        /// STATIK: her strateji basinda yeniden yaziliyor.
+        /// STATIC: rewritten at the start of every strategy.
         /// </summary>
         public static int CloseAtOccupancyBp;
 
-        /// <summary>Veresiye ISTEYENE veriyor. Servis sirasinda cagriliyor.</summary>
+        /// <summary>Grants a tab to WHOEVER ASKS. Called during service.</summary>
         public void DuringService(Simulation sim)
         {
-            // Zirvede kombo kapaniyor: mutfagi rahatlatmak icin.
+            // The combo closes at the peak: to give the kitchen some relief.
             if (CloseAtOccupancyBp > 0 && sim.HasCombo && sim.TableCount > 0)
             {
-                int dolulukBp = sim.OccupiedTables * 10000 / sim.TableCount;
-                bool olmali = dolulukBp < CloseAtOccupancyBp;
-                if (sim.ComboEnabled != olmali)
-                    sim.Apply(new Command(sim.TickIndex, CommandKind.SetCombo, olmali ? 1 : 0));
+                int occupancyBp = sim.OccupiedTables * 10000 / sim.TableCount;
+                bool shouldBeOpen = occupancyBp < CloseAtOccupancyBp;
+                if (sim.ComboEnabled != shouldBeOpen)
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.SetCombo, shouldBeOpen ? 1 : 0));
             }
 
             if (!sim.HasCredit || _grantedToday >= 4) return;
 
-            // Acik hesap bir haftalik sabit gideri gecerse dur: veresiye
-            // nakit akisini bozar, ve bozulan nakit akisi kirayi odeyemez.
+            // Stop if the open balance exceeds one week of fixed costs: a tab
+            // disturbs the cash flow, and a disturbed cash flow cannot pay the
+            // rent.
             if (sim.OpenCredit > sim.WeeklyFixedCost()) return;
 
             for (int p = 0; p < Simulation.MaxParties; p++)
             {
                 if (!sim.CreditEligible(p)) continue;
 
-                // GUVEN ESIGI: kime yazdigi onemli mi?
+                // THE TRUST THRESHOLD: does it matter who you write it for?
                 //
-                // Tahsilat sansi artik musterinin ziyaret sayisina
-                // bagli. Bu kol sifir esikle herkese yaziyor; secici
-                // kol yalnizca tanidiklara. Ikisinin farki, "kime
-                // yazayim" sorusunun GERCEKTEN bir karar olup
-                // olmadigini soyluyor - tek kol, bir cevap.
+                // The chance of collecting now depends on the customer's visit
+                // count. This arm writes for everyone with a threshold of zero;
+                // the picky arm writes only for the people it knows. The
+                // difference between the two tells us whether "who should I
+                // write it for" is REALLY a decision - one arm, one answer.
                 if (MinVisits > 0)
                 {
                     int r = sim.PartyRegular(p);
@@ -961,10 +980,11 @@ namespace Lokanta.Harness
                 }
 
 
-                // Cay veresiyenin PARCASI: ExtendCredit onu kendi oduyor,
-                // gunluk mudahale hakkini yemiyor. Ilk yazimda cay bir
-                // mudahaleydi ve butce yetmedigi icin veresiyelerin cogu
-                // caysiz aciliyordu - yani tahsilat primi hic isletilemedi.
+                // The tea is PART of the tab: ExtendCredit pays for it itself and
+                // does not eat into the daily intervention budget. In the first
+                // version the tea was an intervention, and because the budget ran
+                // out most tabs were opened without one - so the collection bonus
+                // was never exercised at all.
                 sim.Apply(new Command(sim.TickIndex, CommandKind.ExtendCredit, p));
                 if (++_grantedToday >= 4) return;
             }
@@ -972,40 +992,40 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// SABIRLI MUDAHALECI: haklarini SAKLIYOR.
+    /// THE PATIENT INTERVENTIONIST: it SAVES its interventions.
     ///
-    /// "mudahaleci" ile tek farki zamanlama - ikisi de ayni fiilleri
-    /// ayni siraya gore kullaniyor. Fark, bu kolun bir masa uyari
-    /// esiginin altina inmeden HICBIR hak harcamamasi.
+    /// Its only difference from "mudahaleci" is the timing - both use the same
+    /// actions in the same order. The difference is that this arm spends NOTHING
+    /// until a table drops below the warning threshold.
     ///
-    /// Neden ayri bir kol: mudahalenin degeri olculurken bot haklarini
-    /// gunun ilk seksen saniyesinde yakiyordu, zirve ise ikinci
-    /// dilimde. Yani "mudahale kazandiriyor mu" sorusu, oyuncunun
-    /// verdigi TEK gercek karari ("simdi mi, zirvede mi") sabit
-    /// tutarak - ustelik en kotu degerinde - olculuyordu.
+    /// Why it is a separate arm: while the value of intervening was being
+    /// measured, the bot was burning its budget in the first eighty seconds of
+    /// the day, while the peak is in the second slot. So the question "does
+    /// intervening pay" was being measured with the player's ONLY real decision
+    /// ("now, or at the peak") held fixed - and held at its worst value at that.
     ///
-    /// Bu kol mudahaleciyi GECERSE mekanik saglam, sorun oyuncuya
-    /// "sakla" demeyi ogretmemek. Gecmezse mekanigin kendisi zayif.
-    /// Tek kol, bir cevap.
+    /// If this arm BEATS the interventionist the mechanic is sound and the
+    /// problem is failing to teach the player to hold back. If it does not, the
+    /// mechanic itself is weak. One arm, one answer.
     /// </summary>
     /// <summary>
-    /// SECICI VERESIYECI: yalnizca TANIDIGA yaziyor.
+    /// THE PICKY CREDITOR: writes a tab only for PEOPLE IT KNOWS.
     ///
-    /// "imzaci" ile tek farki bu; ikisi de ayni gunlerde ayni sayida
-    /// hesap acabiliyor. Fark, bu kolun musteriyi taniyip tanimadigina
-    /// bakmasi.
+    /// That is its only difference from "imzaci"; both can open the same number
+    /// of tabs on the same days. The difference is that this arm looks at whether
+    /// it recognises the customer.
     ///
-    /// Neden ayri bir kol: tahsilat sansi artik ziyaret sayisina bagli
-    /// ama bunun bir KARAR uretip uretmedigi, ancak seciciligi olculerek
-    /// bilinir. Bu kol imzaciyi gecerse soru gercek; gecmezse guven
-    /// boyutu yalnizca bir sayi.
+    /// Why it is a separate arm: the chance of collecting now depends on the
+    /// visit count, but whether that produces a DECISION can only be known by
+    /// measuring the selectiveness. If this arm beats the signature player the
+    /// question is real; if it does not, the trust dimension is just a number.
     /// </summary>
     public sealed class PickyCreditor : IStrategy
     {
         private readonly SignaturePlayer _inner = new SignaturePlayer();
 
         public string Name => "secici_veresiye";
-        public string Question => "Veresiyeyi yalnizca TANIDIGA acmak kazandiriyor mu";
+        public string Question => "Does opening a tab only for PEOPLE YOU KNOW pay";
 
         public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
         public void OnEvening(Simulation sim, in DayReport report)
@@ -1016,52 +1036,54 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// BULASIKCI AYIRAN: bir salon calisanini lavaboya adiyor.
+    /// THE ONE WHO ASSIGNS A DISHWASHER: puts one hall worker on the sink.
     ///
-    /// Neden gerekli: `CommandKind.SetDishwashers` arayuzde ve testlerde
-    /// vardi ama HICBIR BOT kullanmiyordu - yani tabak darbogazinin
-    /// karari olculmemisti. Aracin kendi ciktisi darbogazin GERCEK
-    /// oldugunu soyluyor ("tabaksiz bekleme" makul icin 206 kez), ama
-    /// "bir kisiyi lavaboya ayirmak kazandiriyor mu" sorusunu hicbir
-    /// sey cevaplayamiyordu.
+    /// Why it is needed: `CommandKind.SetDishwashers` existed in the interface
+    /// and in the tests but NO BOT used it - so the plate bottleneck's decision
+    /// had never been measured. The tool's own output says the bottleneck is
+    /// REAL ("waited, no plate" is 206 times for makul), but nothing could answer
+    /// the question "does putting one person on the sink pay".
     ///
-    /// Takas net: lavaboya ayrilan kisi salonda YOK. Yani tabak
-    /// darbogazini acmak, servis darbogazini daraltiyor.
+    /// The trade-off is clean: the person on the sink is NOT in the hall. So
+    /// opening up the plate bottleneck narrows the service bottleneck.
     /// </summary>
     public sealed class DishDuty : IStrategy
     {
-        // PLANCI'NIN USTUNE kuruldu, makul'un degil.
+        // BUILT ON TOP OF THE PLANNER, not on the reasonable player.
         //
-        // Ilk hali ReasonablePlayer'i sariyordu ve o oyuncu dort salon
-        // calisanina HIC ulasmiyor (kadrosu 4'te, salonu ~3'te kaliyor).
-        // Sonuc `makul` ile BAYT BAYT ayni cikti - esik hic tetiklenmedi
-        // ve bunu yalnizca iki satirin ayni olmasi soyledi. Adanmis
-        // bulasikci zaten BUYUK dukkanin sorusu.
+        // Its first version wrapped ReasonablePlayer, and that player NEVER
+        // reaches four hall workers (its crew stops at 4, its hall at ~3). The
+        // result came out BYTE FOR BYTE identical to `makul` - the threshold
+        // never fired, and the only thing that said so was the two rows being
+        // identical. A dedicated dishwasher is a BIG restaurant's question
+        // anyway.
         private readonly PlannerSchedule _inner = new PlannerSchedule();
 
         /// <summary>
-        /// Kac salon calisanindan sonra biri lavaboya adaniyor.
+        /// From how many hall workers on someone is dedicated to the sink.
         ///
-        /// Esik OLCULEREK secildi. Ilk deneme 2 idi ve kucuk dukkanda da
-        /// ayiriyordu; olculen sey "bulasikci kazandiriyor mu" degil
-        /// "erken ayirmak kaybettiriyor mu" oluyordu. Ayni tuzaga gecen
-        /// tur PeakCloser'da dusulmustu.
+        /// The threshold was chosen BY MEASUREMENT. The first attempt was 2 and
+        /// it assigned someone in a small restaurant too; what was being measured
+        /// was not "does a dishwasher pay" but "does assigning one too early
+        /// lose". The same trap had been fallen into on the previous round with
+        /// PeakCloser.
         /// </summary>
         private const int DedicateFrom = 4;
 
         public string Name => "bulasikci";
-        public string Question => "Bir kisiyi lavaboya ayirmak kazandiriyor mu";
+        public string Question => "Does putting one person on the sink pay";
 
         public void OnMorning(Simulation sim)
         {
             _inner.OnMorning(sim);
 
-            // Salon iki kisiyi bulunca biri lavaboya. Tek garsonken
-            // ayirmak salonu BOSALTIR - o zaman olculen sey bulasik
-            // karari degil, garsonsuz kalmak olurdu.
-            int hedef = sim.SalonStaff >= DedicateFrom ? 1 : 0;
-            if (sim.Dishwashers != hedef)
-                sim.Apply(new Command(sim.TickIndex, CommandKind.SetDishwashers, hedef));
+            // Once the hall reaches two people, one goes to the sink. Assigning
+            // one while there is a single waiter EMPTIES the hall - and then what
+            // would be measured is not the dishwashing decision but being left
+            // without a waiter.
+            int target = sim.HallStaff >= DedicateFrom ? 1 : 0;
+            if (sim.Dishwashers != target)
+                sim.Apply(new Command(sim.TickIndex, CommandKind.SetDishwashers, target));
         }
 
         public void OnEvening(Simulation sim, in DayReport report)
@@ -1071,23 +1093,23 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// ERKEN TAHSILATCI: defteri vadesinden once kovaliyor.
+    /// THE EAGER COLLECTOR: chases the tab before it falls due.
     ///
-    /// Neden gerekli: `CommandKind.CollectCredit` simulasyonda eksiksiz
-    /// yaziliydi, arayuzu de var ("Simdi kovala") - ama HICBIR BOT ona
-    /// basmiyordu. Yani mekanigin ikinci karari, tasarimin "tahsilat
-    /// guvene baglidir" diye sattigi sey, hic OLCULMEMISTI.
+    /// Why it is needed: `CommandKind.CollectCredit` was written out in full in
+    /// the simulation and it even has an interface ("Chase it now") - but NO BOT
+    /// ever pressed it. So the mechanic's second decision, the thing the design
+    /// sells as "collection depends on trust", had NEVER BEEN MEASURED.
     ///
-    /// Takas net: kovalamak sansi YARIYA indiriyor ve tutmazsa hesap
-    /// orada kapaniyor - ama parayi yedi gun beklemeden aliyorsun.
-    /// Soru bu yuzden "sabir mi nakit mi".
+    /// The trade-off is clean: chasing HALVES the chance and if it fails the tab
+    /// closes there and then - but you get the money without waiting seven days.
+    /// The question is therefore "patience or cash".
     /// </summary>
     public sealed class EagerCollector : IStrategy
     {
         private readonly SignaturePlayer _inner = new SignaturePlayer();
 
         public string Name => "erken_tahsilat";
-        public string Question => "Defteri vadesinden once kovalamak kazandiriyor mu";
+        public string Question => "Does chasing the tab before it falls due pay";
 
         public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
 
@@ -1095,9 +1117,10 @@ namespace Lokanta.Harness
         {
             _inner.OnEvening(sim, report);
 
-            // SONDAN BASA: kovalamak hesabi kapatiyor ve kalanlar
-            // kayiyor. Bastan gidersek her kapanista bir hesap atlanir
-            // ve bot "kovaliyor" gorunup yarisini kovalamamis olur.
+            // BACK TO FRONT: chasing closes the tab and the rest shift down. If
+            // we went front to back, one tab would be skipped on every close and
+            // the bot would look like it was chasing while having chased only
+            // half of them.
             for (int i = sim.TabCount - 1; i >= 0; i--)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CollectCredit, i));
         }
@@ -1106,21 +1129,23 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// ZIRVEDE KAPATAN IMZACI.
+    /// THE SIGNATURE PLAYER WHO CLOSES AT THE PEAK.
     ///
-    /// "imzaci" ile tek farki: salon dolulugu %75'i gecince komboyu
-    /// kapatiyor, dusunce aciyor. Tasarimin MESRU dedigi oyun bu.
+    /// Its only difference from "imzaci": it closes the combo once hall occupancy
+    /// passes 75% and opens it again when it falls back. This is the play the
+    /// design calls LEGITIMATE.
     ///
-    /// Neden gerekli: imza ekseninin hedefi bu oyunun ulastigi paya gore
-    /// konmali, yoksa hedef uydurulmus olur - ve kodun kendi uyarisi
-    /// "uydurulmus bir hedef ekseni ya doygun ya erisilmez yapar" diyor.
+    /// Why it is needed: the signature axis's target has to be set against the
+    /// share this play reaches, otherwise the target is invented - and the code's
+    /// own warning says "an invented target makes the axis either saturated or
+    /// unreachable".
     /// </summary>
     public sealed class PeakCloser : IStrategy
     {
         private readonly SignaturePlayer _inner = new SignaturePlayer();
 
         public string Name => "zirvede_kapat";
-        public string Question => "Zirvede komboyu kapatmak kazandiriyor mu";
+        public string Question => "Does closing the combo at the peak pay";
 
         public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
         public void OnEvening(Simulation sim, in DayReport report)
@@ -1135,7 +1160,7 @@ namespace Lokanta.Harness
         private readonly ReasonablePlayer _inner = new ReasonablePlayer();
 
         public string Name => "sabirli_mudahale";
-        public string Question => "Mudahaleyi ZIRVEYE saklamak kazandiriyor mu";
+        public string Question => "Does saving the intervention FOR THE PEAK pay";
 
         public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
         public void OnEvening(Simulation sim, in DayReport report)
@@ -1149,7 +1174,7 @@ namespace Lokanta.Harness
         private readonly ReasonablePlayer _inner = new ReasonablePlayer();
 
         public string Name => "mudahaleci";
-        public string Question => "Servis sirasinda mudahale kazandiriyor mu";
+        public string Question => "Does intervening during service pay";
 
         public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
 
@@ -1159,58 +1184,57 @@ namespace Lokanta.Harness
         }
 
         /// <summary>
-        /// Servis sirasinda cagriliyor. Sabri en az kalan, henuz
-        /// mudahale gormemis masaya patron ilgisi gosteriyor.
+        /// Called during service. Shows the owner's attention to the table with
+        /// the least patience left that has not been intervened on yet.
         /// </summary>
         /// <summary>
-        /// Kac mudahale DENENDI ve kaci GECTI.
+        /// How many interventions were TRIED and how many WENT THROUGH.
         ///
-        /// "Reddedilen bir bot, bot degildir" (bu proje fiyat tavaninda
-        /// ogrendi: tavan gelince yuksek_fiyat botunun fiyatlari
-        /// reddediliyordu ve bot sessizce makul oyuncunun kopyasi
-        /// olmustu). Mudahalenin etkisini olcmeden once mudahalenin
-        /// GERCEKTEN olup olmadigi olculmeli.
+        /// "A bot that gets refused is not a bot" (this project learnt that on
+        /// the price ceiling: once the ceiling arrived the yuksek_fiyat bot's
+        /// prices were being rejected and the bot had silently become a copy of
+        /// the reasonable player). Before measuring the effect of an intervention
+        /// you have to measure whether the intervention REALLY happened.
         /// </summary>
         public static int Tried, Applied;
 
         /// <summary>
-        /// Sayaclari sifirlar. Strateji basinda cagriliyor.
+        /// Resets the counters. Called at the start of every strategy.
         ///
-        /// STATIK OLDUKLARI ICIN SART: DuringService'i hem "mudahale"
-        /// hem "baskili_mudahale" cagiriyor. Sifirlanmadan iki kolun
-        /// toplami tek satirda basiliyordu ve sayaclarin var olus
-        /// sebebi - KOL BASINA "mudahale gercekten oldu mu" - okunamaz
-        /// hale geliyordu.
+        /// REQUIRED BECAUSE THEY ARE STATIC: DuringService is called by both
+        /// "mudahale" and "baskili_mudahale". Without a reset the sum of the two
+        /// arms was printed on a single line and the counters' reason to exist -
+        /// "did the intervention really happen", PER ARM - became unreadable.
         /// </summary>
         public static void ResetCounters() { Tried = 0; Applied = 0; }
 
         /// <summary>
-        /// CAY MI, ILGI MI - ARTIK BIR SORU.
+        /// TEA OR ATTENTION - NOW A QUESTION.
         ///
-        /// Cay eskiden her eksende ilginin altindaydi ve bu bot ona hic
-        /// basmiyordu; yani "uc fiilden biri olu" tespitinin kanitlarindan
-        /// biri botun kendi davranisiydi. Cay artik BEKLEYEN HERKESE
-        /// gidiyor, yani kalabalikta degeri ilgiyi geciyor olabilir.
+        /// The tea used to be below attention on every axis and this bot never
+        /// pressed it; so one of the pieces of evidence for "one of the three
+        /// actions is dead" was the bot's own behaviour. The tea now goes to
+        /// EVERYONE WAITING, so in a crowd its value may exceed attention's.
         ///
-        /// Kural: kac masa bekliyorsa. Esik ve ustunde salona cay, altinda
-        /// tek masaya ilgi. Esigin dogru yerde olup olmadigi ancak
-        /// olculerek bilinir - bu yuzden esik bir PARAMETRE.
+        /// The rule: how many tables are waiting. At the threshold and above, tea
+        /// for the hall; below it, attention for a single table. Whether the
+        /// threshold is in the right place can only be known by measuring - which
+        /// is why the threshold is a PARAMETER.
         /// </summary>
         public static int TeaThreshold = 3;
 
         /// <summary>
-        /// SABIRLI KIP: hak yalnizca GERCEK baski varken harcaniyor.
+        /// PATIENT MODE: the budget is spent only when there is REAL pressure.
         ///
-        /// Bot haklarini her 20 sim-saniyede bir yakiyordu, yani
-        /// gunde dort hak 480 saniyelik gunun ilk ~80 saniyesinde
-        /// bitiyordu - zirve ise ikinci dilimde. Yani "mudahale
-        /// kazandiriyor mu" sorusunun cevabi, mekanigi degil BOTUN
-        /// KOTU OYNAMASINI olcuyor olabilirdi. Oyuncunun verdigi
-        /// tek gercek karar - "simdi mi, zirvede mi" - sabit
-        /// tutulmustu, ustelik en kotu degerinde.
+        /// The bot was burning its budget every 20 sim-seconds, so four
+        /// interventions a day ran out in roughly the first 80 seconds of a
+        /// 480-second day - while the peak is in the second slot. So the answer to
+        /// "does intervening pay" may have been measuring not the mechanic but
+        /// THE BOT PLAYING BADLY. The player's only real decision - "now, or at
+        /// the peak" - had been held fixed, and at its worst value at that.
         ///
-        /// Bu kip onu serbest birakiyor: bir masa uyari esiginin
-        /// altina inmeden hicbir hak harcanmiyor.
+        /// This mode sets it free: no budget is spent until a table drops below
+        /// the warning threshold.
         /// </summary>
         public static bool OnlyWhenUrgent;
 
@@ -1218,57 +1242,57 @@ namespace Lokanta.Harness
         {
             if (sim.InterventionsLeft <= 0) return;
 
-            // Sabirli kipte: kimse kritik degilse hicbir sey yapma.
+            // In patient mode: if nobody is critical, do nothing.
             if (OnlyWhenUrgent && !sim.AnyPartyCritical) return;
 
-            // MUTFAK once. Sabri biten musteriyi yatistirmak semptomu
-            // orter; tikanan istasyonu acmak sebebi cozer ve o istasyonda
-            // bekleyen HERKESI birden kurtarir.
+            // THE KITCHEN first. Calming a customer whose patience has run out
+            // covers the symptom; clearing the blocked station solves the cause
+            // and rescues EVERYONE waiting at that station at once.
             int station = sim.BusiestStation();
             if (station >= 0)
             {
-                int once = sim.InterventionsLeft;
+                int before = sim.InterventionsLeft;
                 Tried++;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
                                       station, (int)InterventionKind.RushStation));
-                if (sim.InterventionsLeft < once) Applied++;
+                if (sim.InterventionsLeft < before) Applied++;
                 if (sim.InterventionsLeft <= 0) return;
             }
 
-            // COK MASA BEKLIYORSA SALONA CAY.
+            // IF MANY TABLES ARE WAITING, TEA FOR THE HALL.
             if (TeaThreshold > 0 && sim.WaitingParties >= TeaThreshold)
             {
-                int oncesi = sim.InterventionsLeft;
+                int beforeTea = sim.InterventionsLeft;
                 Tried++;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
                                       -1, (int)InterventionKind.FreeTea));
-                if (sim.InterventionsLeft < oncesi) Applied++;
+                if (sim.InterventionsLeft < beforeTea) Applied++;
                 if (sim.InterventionsLeft <= 0) return;
             }
 
             int worst = sim.MostImpatientParty();
             if (worst < 0) return;
 
-            int oncekiHak = sim.InterventionsLeft;
+            int beforeAttention = sim.InterventionsLeft;
             Tried++;
             sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
                                   worst, (int)InterventionKind.OwnerAttention));
-            if (sim.InterventionsLeft < oncekiHak) Applied++;
+            if (sim.InterventionsLeft < beforeAttention) Applied++;
         }
     }
 
     /// <summary>
-    /// BASKI ALTINDAKI OYUNCU: bir garson eksik.
+    /// THE PLAYER UNDER PRESSURE: one waiter short.
     ///
-    /// Iki kopyasi kosuyor - biri mudahale ediyor, biri etmiyor - ve
-    /// aralarindaki TEK fark bu. Rahat bir restoranda mudahalenin
-    /// olculemedigi zaten olculmustu (1440/1440 gecti, sonuc degismedi);
-    /// bu cift, sorunun "mekanik zayif mi" mi yoksa "zaten kurtarilacak
-    /// bir sey yok mu" oldugunu ayiriyor.
+    /// Two copies of it run - one intervenes, one does not - and that is the ONLY
+    /// difference between them. It had already been measured that intervening
+    /// cannot be detected in a comfortable restaurant (1440/1440 went through and
+    /// the result did not change); this pair separates whether the problem is "is
+    /// the mechanic weak" or "is there nothing to save in the first place".
     ///
-    /// Eksik kadro bilincli bir secim: gercek oyuncu da maas kismak
-    /// icin bunu yapiyor ve oyunun vaadi tam da o anda devreye giriyor -
-    /// "patronsun, yetismediginde sen mudahale edersin".
+    /// The short crew is a deliberate choice: a real player does this too, to save
+    /// on wages, and the game's promise kicks in at exactly that moment - "you
+    /// are the owner, when they cannot keep up, you step in".
     /// </summary>
     public sealed class PressuredPlayer : IStrategy
     {
@@ -1282,8 +1306,8 @@ namespace Lokanta.Harness
         public string Name => _intervene ? "baskili_mudahale" : "baskili";
 
         public string Question => _intervene
-            ? "Kadro yetismezken mudahale kurtariyor mu"
-            : "Bir garson eksik calismak ne kaybettiriyor";
+            ? "Does intervening rescue things when the crew cannot keep up"
+            : "What does working one waiter short cost";
 
         public void OnMorning(Simulation sim) { _inner.OnMorning(sim); }
 
@@ -1294,29 +1318,30 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Krediye hic dokunmayan oyuncu.
+    /// The player who never touches a loan.
     ///
-    /// docs/12 8'in ALTINCI SORUSU: "kredi cekmek ise yariyor mu, yoksa
-    /// tuzak mi". Arac o soruyu soruyor ve hicbir strateji cevaplayamiyordu
-    /// - makul, planci ve atilgan krediyi firsatci aliyor, KREDISIZ bir
-    /// kontrol yoktu. Yani bir tasarim sorusunun cevabi olculmeden
-    /// "biliniyor" sayiliyordu.
+    /// docs/12 8's SIXTH QUESTION: "does taking a loan work, or is it a trap".
+    /// The tool asks that question and no strategy could answer it - makul,
+    /// planci and atilgan all take the loan opportunistically, and there was no
+    /// LOAN-FREE control. So the answer to a design question was being treated as
+    /// "known" without ever being measured.
     ///
-    /// Soru simdi anlamli, cunku kredinin bir ARAYUZU var: mekanik
-    /// cekirdekte eksiksiz yaziliydi ve hicbir ekranda dugmesi yoktu.
+    /// The question is meaningful now because the loan has an INTERFACE: the
+    /// mechanic was written out in full in the core and had a button on no screen
+    /// at all.
     /// </summary>
     public sealed class NoLoanPlayer : IStrategy
     {
         private readonly ReasonablePlayer _inner = new ReasonablePlayer();
 
         public string Name => "kredisiz";
-        public string Question => "Kredi cekmek ise yariyor mu, yoksa tuzak mi";
+        public string Question => "Does taking a loan work, or is it a trap";
 
         public void OnMorning(Simulation sim)
         {
-            // Makul oyuncunun kendisi, TEK farkla: kredi yok.
-            // ReasonablePlayer krediyi kendi karar veriyor, o yuzden
-            // burada engellemek icin bayrak gerekiyor.
+            // The reasonable player itself, with ONE difference: no loan.
+            // ReasonablePlayer decides on the loan itself, so a flag is needed to
+            // block it here.
             ReasonablePlayer.AllowLoan = false;
             try { _inner.OnMorning(sim); }
             finally { ReasonablePlayer.AllowLoan = true; }
@@ -1329,31 +1354,32 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Menude TEK ana yemek tutan oyuncu. Bir KABUL TESTI.
+    /// The player who keeps a SINGLE main course on the menu. An ACCEPTANCE TEST.
     ///
-    /// Dar menu bir zamanlar kesin baskin stratejiydi ve arac bunu
-    /// goremiyordu, cunku hicbir strateji denemiyordu: menuden cikarilan
-    /// yemek "sorulmus" sayilmiyordu, yani daraltmanin talep tarafinda
-    /// sifir bedeli vardi. Olculdu - bu strateji makul oyuncuyu fast
-    /// food'da %12, Turk mutfaginda %38 geciyordu.
+    /// A narrow menu was once the decisively dominant strategy and the tool could
+    /// not see it, because no strategy was trying it: a dish taken off the menu
+    /// was not counted as "asked for", so narrowing cost nothing at all on the
+    /// demand side. Measured - this strategy beat the reasonable player by 12% in
+    /// fast food and by 38% in the Turkish cuisine.
     ///
-    /// Bu satirlar o hatanin REGRESYON KORUMASI: tek_yemek makul'u bir
-    /// daha gecerse, Awaited() yine menuyu gormuyor demektir.
+    /// These lines are that bug's REGRESSION GUARD: if tek_yemek beats makul
+    /// again, Awaited() is failing to see the menu once more.
     /// </summary>
     public sealed class OneDishPlayer : IStrategy
     {
         private readonly ReasonablePlayer _inner = new ReasonablePlayer();
 
         public string Name => "tek_yemek";
-        public string Question => "Menuyu tek yemege daraltmak kazandiriyor mu";
+        public string Question => "Does narrowing the menu down to a single dish pay";
 
         public void OnMorning(Simulation sim)
         {
             _inner.OnMorning(sim);
 
-            // Makul oyuncu menuyu zaten talebe gore daraltti; bu oyuncu
-            // BIR ana yemek disinda hepsini kapatiyor. Yan ve icecekler
-            // duruyor: olculen sey menu GENISLIGI, menunun varligi degil.
+            // The reasonable player has already narrowed the menu to the demand;
+            // this player closes everything but ONE main course. The sides and
+            // drinks stay: what is measured is menu WIDTH, not the existence of a
+            // menu.
             int kept = -1;
             for (int i = 0; i < sim.DishCount; i++)
             {
@@ -1371,29 +1397,30 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Menuyu HIC daraltmayan oyuncu: kilidi acilan her ana yemek
-    /// menude kaliyor.
+    /// The player who NEVER narrows the menu: every main course that unlocks
+    /// stays on it.
     ///
-    /// tek_yemek'in KARSITI ve ayni sorunun oteki ucu. docs/32 "soguk
-    /// hava menu genisligi satin aldiriyor" diyor; o cumle ancak genis
-    /// menu bir SEY kazandiriyorsa dogru. Dar menunun bedeli olcüldu
-    /// (tek_yemek iflas ediyor), genis menunun odulu olculmedi.
+    /// The OPPOSITE of tek_yemek and the other end of the same question. docs/32
+    /// says "cold storage makes you buy menu width"; that sentence is only true
+    /// if a wide menu earns SOMETHING. The cost of a narrow menu had been
+    /// measured (tek_yemek goes bankrupt), the reward of a wide one had not.
     ///
-    /// Ikisi birden olculmeden merdiven fiyatlandirilamaz: depo, genis
-    /// menuyu TASINABILIR kiliyor, yani odulu genis menunun odulu.
+    /// The ladder cannot be priced until both are measured: the storage makes a
+    /// wide menu AFFORDABLE, so its reward is the wide menu's reward.
     /// </summary>
     public sealed class WideMenuPlayer : IStrategy
     {
         private readonly ReasonablePlayer _inner = new ReasonablePlayer();
 
         public string Name => "genis_menu";
-        public string Question => "Menuyu hic daraltmamak kazandiriyor mu";
+        public string Question => "Does never narrowing the menu pay";
 
         public void OnMorning(Simulation sim)
         {
             _inner.OnMorning(sim);
 
-            // Makul oyuncu menuyu daraltti; bu oyuncu hepsini geri aciyor.
+            // The reasonable player narrowed the menu; this player opens it all
+            // back up.
             for (int i = 0; i < sim.DishCount; i++)
             {
                 if (sim.IsOnMenu(i) || !sim.IsUnlocked(i)) continue;
@@ -1408,22 +1435,23 @@ namespace Lokanta.Harness
     }
 
     /// <summary>
-    /// Kadroyu tavana kadar sisiren oyuncu. Fazla kadronun cezasini olcer.
+    /// The player who inflates the crew right up to the cap. Measures the penalty
+    /// for being overstaffed.
     /// </summary>
     public sealed class OverStaffer : IStrategy
     {
         public string Name => "fazla_kadro";
-        public string Question => "Kadroyu tavana dayamak kazandiriyor mu";
+        public string Question => "Does running the crew up to the cap pay";
 
         public void OnMorning(Simulation sim)
         {
             RestockOnly.Restock(sim);
-            while (sim.Cooks + sim.SalonStaff < sim.StaffCap)
+            while (sim.Cooks + sim.HallStaff < sim.StaffCap)
             {
-                int pool = sim.SalonStaff <= sim.Cooks ? 1 : 0;
-                int before = sim.Cooks + sim.SalonStaff;
+                int pool = sim.HallStaff <= sim.Cooks ? 1 : 0;
+                int before = sim.Cooks + sim.HallStaff;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, pool, Hiring.Pick(sim, pool)));
-                if (sim.Cooks + sim.SalonStaff == before) break;
+                if (sim.Cooks + sim.HallStaff == before) break;
             }
         }
 

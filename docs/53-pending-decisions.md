@@ -1,506 +1,545 @@
-# 53 — Bekleyen kararlar kapandı: bulaşıkçı, kombo, personelin sesi
+# 53 — The pending decisions closed: dishwasher, combo, the staff's voice
 
-*15 Eylül 2026.* Kullanıcı bekleyen tasarım kararlarını devretti:
+*15 September 2026.* The user handed over the pending design decisions:
 
 > *"Tüm bu bekleyen kararlar için farklı agentlar ile ayrı ayrı düşün ve en iyi
 > yolu kendin uygula. Repliklerin doğal olmasına dikkat et, bunun için
 > internetteki kaynaklardan faydalanabilirsin. Bulaşıkçı için de benzer oyun
 > varsa oradaki mekanikleri ek olarak incelemek isteyebilirsin."*
+>
+> *("For all these pending decisions, think about each one separately with
+> different agents and implement the best path yourself. Take care that the lines
+> sound natural — you can draw on sources on the internet for that. For the
+> dishwasher, if there is a similar game you may also want to look at the
+> mechanics there.")*
 
-İki araştırma turu koştu (on iki sevk edilmiş oyunun mekaniği; oyun yazarlığı
-ve Türkçe lokanta/zincir konuşma kaydı), sonra ölçüm. **Bu belgenin asıl
-konusu, ölçümün beni iki kez yanılttığı yer.**
+Two rounds of research ran (the mechanics of twelve shipped games; game writing
+and a record of Turkish restaurant/chain speech), and then measurement. **The real
+subject of this document is the place where the measurement misled me twice.**
 
 ---
 
-## 1. Ölçtüğüm "iyileşme" yoktu — yapılar farklıydı
+## 1. The "improvement" I measured was not there — the builds were different
 
-Bulaşıkçının domine bir seçenek olduğunu [49](49-unreachable-mechanics.md)
-yazmıştı: tabaksız bekleme `planci` 263'e karşı `bulasikci` **349**.
+[49](49-unreachable-mechanics.md) had written that the dishwasher is a dominated
+option: waiting with no plate, `planci` 263 against `bulasikci` **349**.
 
-İki değişiklik yazdım ve 12 tohumda **349 → 275 → 229** gördüm. Temiz bir
-iyileşme hikâyesiydi ve **yanlıştı**: 349 sayısı docs/49'dan geliyordu, yani
-self servisten, günün sivriltilmesinden, kiradan ve yıkama hızından *önceki*
-bir yapıdan. Kendi yapımda "önce"yi hiç ölçmemiştim.
+I wrote two changes and saw **349 → 275 → 229** over 12 seeds. It was a clean
+improvement story and it was **wrong**: the number 349 came from docs/49, that is,
+from a build *before* self service, before the sharpening of the day, before the
+rent and before the washing speed. I had never measured the "before" on my own
+build.
 
-Ölçtüm. Aynı yapı, 32 tohum:
+I measured it. Same build, 32 seeds:
 
-| strateji | HEAD | kriz devri | + boşta-dönüş |
+| strategy | HEAD | crisis handover | + idle-return |
 |---|---:|---:|---:|
-| makul | 255 | **240** | 240 |
-| planci | 179 | 180 | 180 |
-| imzaci | 193 | **186** | 186 |
-| **bulaşıkçı** | **198** | **197** | **216** |
+| `makul` | 255 | **240** | 240 |
+| `planci` | 179 | 180 | 180 |
+| `imzaci` | 193 | **186** | 186 |
+| **`bulasikci`** | **198** | **197** | **216** |
 
-İki şey birden çıktı:
+Two things came out at once:
 
-**(a) Açık karar kendiliğinden kapanmıştı.** Bugünkü yapıda bulaşıkçı 198'e
-karşı 179 — docs/49'un yazdığı 349'a karşı 263 uçurumu yok. Aradaki
-değişiklikler (self servis, sivri gün, uzman yıkama hızı) sorunu zaten
-büyük ölçüde eritmiş. *Açık bir kararı yeniden ölçmeden çözmeye kalkışmak,
-olmayan bir hastalığı tedavi etmektir.*
+**(a) The open decision had closed itself.** In today's build the dishwasher is
+198 against 179 — nothing like the 349-against-263 chasm docs/49 wrote down. The
+changes in between (self service, the sharp day, the specialist's washing speed)
+have already largely dissolved the problem. *Setting out to solve an open decision
+without re-measuring it is treating a disease that is not there.*
 
-**(b) "Düzeltmem" bozuyordu.** Boşta-dönüş kolu bulaşıkçıyı 197'den 216'ya
-çıkardı.
+**(b) My "fix" was making it worse.** The idle-return arm took the dishwasher from
+197 to 216.
 
 ---
 
-## 2. Araştırma haklıydı, ama benim vakam değildi
+## 2. The research was right, but mine was not the case
 
-On iki oyun tarandı (RimWorld, Dwarf Fortress, Two Point Hospital, PlateUp!,
-Overcooked, Prison Architect, Tavern Keeper, Supermarket Simulator…). Bulgu
-kesin: **sevk edilmiş hiçbir oyunda uzman işe almak genel havuzu sessizce
-kapatmıyor.** Dışlama ya oyuncunun seçtiği bir kip (Dwarf Fortress'te
-*Everybody / Nobody / Only selected* üçlüsü), ya bir onay kutusu, ya da kaba
-personel sınıfları arasında. Kuyruk teorisindeki adı **de-pooling**: ayrı
-kuyruk, ortak havuzdan kötüdür.
+Twelve games were swept (RimWorld, Dwarf Fortress, Two Point Hospital, PlateUp!,
+Overcooked, Prison Architect, Tavern Keeper, Supermarket Simulator…). The finding
+is unambiguous: **in no shipped game does hiring a specialist silently switch off
+the general pool.** The exclusion is either a mode the player chooses (Dwarf
+Fortress's *Everybody / Nobody / Only selected* trio), or a checkbox, or it sits
+between coarse staff classes. Its name in queueing theory is **de-pooling**: a
+separate queue is worse than a shared pool.
 
-Supermarket Simulator tam bu hatayı sevk etmiş: kasiyeri kovup kasaya kendin
-geçmek daha kârlı, ve forumun en çok tekrarlanan isteği *"boştaki personel
-yardım etsin"*.
+Supermarket Simulator shipped exactly this mistake: sacking the cashier and
+working the till yourself is more profitable, and the forum's most repeated
+request is "let the idle staff help".
 
-Ben de onu yaptım — ve **ölçüm hayır dedi.** İki deneme, ikisi de makuldü:
+I did the same — and **the measurement said no.** Two attempts, both reasonable:
 
-| deneme | gerekçe | sonuç | ölçek |
+| attempt | rationale | result | scale |
 |---|---|---:|---|
-| yıkayacak şey yokken salona dönsün | de-pooling'i kapat | 197 → **216** | 32 tohum, HEAD'e karşı |
-| yığın bir eşiği geçmeden yıkamasın | uzman tek tabak için lavaboya gitmesin | 229 → **293** | 12 tohum, **aynı ölçekte değil** |
+| return to the hall when there is nothing to wash | close the de-pooling | 197 → **216** | 32 seeds, against HEAD |
+| do not wash until the pile passes a threshold | do not send the specialist to the sink for a single plate | 229 → **293** | 12 seeds, **not the same scale** |
 
-İkinci satır sadece **yönü** gösteriyor; 229 rakamı §1'de çürütülen 12
-tohumluk zincirin ucundan geliyor ve 32 tohumluk tabloyla karşılaştırılamaz.
-Aynı tabloda yan yana koymak, bu belgenin şikâyet ettiği hatanın tekrarıydı —
-ölçek sütunu o yüzden var.
+The second row only shows the **direction**; the figure 229 comes off the end of
+the 12-seed chain refuted in §1 and cannot be compared with the 32-seed table.
+Putting them side by side in the same table would have been a repeat of the error
+this document complains about — hence the scale column.
 
-İkisi de aynı şeyi bozuyor: **uzmanın bütün değeri aralıksız ve hemen
-yıkamasında.** Salona dönen bulaşıkçı, tabak kirlendiğinde bir müşteri işine
-bağlı kalıyor ve lavaboya geç dönüyor. Beklemeye alınan bulaşıkçı ise yığını
-büyütüyor.
+Both break the same thing: **the specialist's whole value is in washing without a
+break and immediately.** A dishwasher who returns to the hall is tied to a customer
+task when a plate gets dirty, and comes back to the sink late. A dishwasher put on
+hold, meanwhile, grows the pile.
 
-Kullanıcının kuralı (*"bulaşıkçı alınca herkes kendi işini yapar"*) yerinde
-kalıyor — ama artık **varsayım olarak değil, ölçüm olarak.**
+The user's rule (*"bulaşıkçı alınca herkes kendi işini yapar"* — "once you take on
+a dishwasher everybody does their own job") stands — but now **as a measurement,
+not as an assumption.**
 
-*Bir araştırma bulgusu ne kadar sağlam olursa olsun, senin vakanda geçerli
-olduğunu ölçmeden uygulamak, akıl yürütmeyle yazılmış bir koruma yazmaktır.*
+*However solid a research finding is, applying it without measuring that it holds
+in your case is writing a protection by reasoning.*
 
 ---
 
-## 3. Kalan ve tutulan tek değişiklik: mutfak durduğunda salon lavaboya
+## 3. The one change that remained and was kept: the hall goes to the sink when the kitchen stalls
 
-Temiz tabak bitince tabak dolum döngüsü **komple duruyor**: pişmiş yemek
-tezgâhta bekliyor. O anda bir garsonun yeni sipariş alması değersiz iş.
+When the clean plates run out the plate-filling loop **stops completely**: cooked
+food waits on the counter. At that moment a waiter taking a new order is worthless
+work.
 
-Bu dal artık **müşteri işinden önce** geliyor.
+That branch now comes **before** customer work.
 
-docs/49'da aynı fikir denenmiş ve 351 → 351 vermişti. Sebep: istisna müşteri
-işinden *sonra* yazılmış ve "boş kişi" aramıştı; zirvede salon dolu olduğu
-için hiç ateşlenmedi. **Boş kişi aramak yanlış soruydu** — doğru soru "şu an
-yapılan iş değerli mi".
+The same idea was tried in docs/49 and gave 351 → 351. The reason: the exception
+was written *after* customer work and looked for a "free person"; because the hall
+is full at the peak it never fired. **Looking for a free person was the wrong
+question** — the right question is "is the work being done right now worth
+anything".
 
-### İlk yazımda üç kusur vardı; eleştiri turu buldu
+### My first version had three faults; the critique round found them
 
-1. **Bayrak mandallanıyordu.** `PlateUp()`'ın "pişmiş grup yok" çıkışı
-   `_plateStalled`'ı temizlemiyordu. Tıkanan grup sabırsızlanıp kalkınca
-   (`LeaveAngry` `_pCooked`'u sıfırlamıyor) bayrak takılı kalıyor, salon kriz
-   dalında kilitleniyor, kimse sipariş almadığı için yeni pişmiş grup da
-   oluşmuyordu — bayrak kendini besliyordu. Beteri: o durumda **raporladığım
-   tek ölçüt düşüyor**, çünkü kalkan müşteri tıkanmayı da götürüyor. Ölçüm
-   kendi en kötü hâline karşı kördü.
-2. **Eşik yoktu.** Tek kirli tabak için beş sunucu birden lavaboya gidiyor,
-   dördü boş dönüyordu.
-3. **Sayaç karışıyordu.** Kriz yıkaması `_salonRushWashes`'e ekleniyordu —
-   `PlateTests`'in bulaşıkçı iddiasını taşıyan sayaç. Kendi yorumunun
-   yasakladığı karışım.
+1. **The flag latched.** `PlateUp()`'s "no cooked party" exit did not clear
+   `_plateStalled`. When the blocked party got impatient and left (`LeaveAngry`
+   does not zero `_pCooked`) the flag stayed stuck, the hall locked into the crisis
+   branch, and because nobody was taking orders no new cooked party formed either —
+   the flag was feeding itself. Worse: in that state **the only yardstick I was
+   reporting falls**, because the departing customer takes the blockage with them.
+   The measurement was blind to its own worst case.
+2. **There was no threshold.** Five servers went to the sink for a single dirty
+   plate, four of them coming back empty-handed.
+3. **The counter was being muddled.** Crisis washes were being added to
+   `_hallRushWashes` — the counter that carries `PlateTests`'s dishwasher claim. The
+   very mixing its own comment forbids.
 
-Üçü de düzeltildi; bayrak artık her tick yeniden hesaplanan bir **türev**,
-yani kayda da determinizm karmasına da girmesi gerekmiyor.
+All three were fixed; the flag is now a **derived value** recomputed every tick, so
+it need not enter the save or the determinism hash.
 
-### Düzeltmeden sonra, bütün eksenler (32 tohum, Türk mutfağı)
+### After the fix, every axis (32 seeds, Turkish cuisine)
 
-| strateji | tabaksız | ağırlanan grup | son kasa | kızgın |
+| strategy | waited, no plate | parties served | end cash | angry |
 |---|---:|---:|---:|---:|
-| makul | 255 → **240** | 1883 → 1883 | 18.439 → 18.442 | 7 → 7 |
-| planci | 179 → **178** | 2567 → 2552 | 23.443 → 23.490 | 16 → 16 |
-| imzaci | 193 → **186** | 1849 → 1849 | 15.074 → 15.075 | 7 → 7 |
-| bulaşıkçı | 198 → **195** | 2547 → 2534 | 23.607 → 23.749 | 15 → 15 |
+| `makul` | 255 → **240** | 1883 → 1883 | 18,439 → 18,442 | 7 → 7 |
+| `planci` | 179 → **178** | 2567 → 2552 | 23,443 → 23,490 | 16 → 16 |
+| `imzaci` | 193 → **186** | 1849 → 1849 | 15,074 → 15,075 | 7 → 7 |
+| `bulasikci` | 198 → **195** | 2547 → 2534 | 23,607 → 23,749 | 15 → 15 |
 
-Artık hiçbir strateji HEAD'in gerisinde değil. Ama dürüst kalan iki şey var:
+No strategy is now behind HEAD. But two things remain honest:
 
-- **Bedel ağırlanan grupta görünüyor:** `planci` −15, `bulaşıkçı` −13 grup
-  (%0,6). Sunucuyu müşteriden çekmenin karşılığı bu. Kasa yine de yükseldiği
-  için takas kabul edildi, ama takasın olmadığını söylemek yanlış olurdu.
-- **Dağılım ölçülmedi.** Ne stddev ne güven aralığı var; küçük farklar
-  gürültüden ayrılamaz.
+- **The cost shows up in parties served:** `planci` −15, `bulasikci` −13 parties
+  (0.6%). That is what pulling a server off customers costs. The trade was accepted
+  because the till still went up, but saying there is no trade would be wrong.
+- **The distribution was not measured.** There is no stddev and no confidence
+  interval; small differences cannot be told from noise.
 
-Bu tabloyu ilk yazımda tek sütunla vermiştim. *İyileştirdiğim ekseni ölçüp
-tehlikeye attığımı ölçmemek, bu belgenin şikâyet ettiği şeyin kendisi.*
+I gave this table with a single column in my first version. *Measuring the axis I
+improved and not measuring the one I put at risk is the very thing this document
+complains about.*
 
-RimWorld'ün **yangın** davranışı da tam bu kalıp: nadir, ağır, kapsamlı bir
-koşul normal önceliği geçer.
+RimWorld's **fire** behaviour is exactly this pattern: a rare, heavy, sweeping
+condition overrides normal priority.
 
 ---
 
-## 4. Kombo: cevap self servisle tersine dönmüş
+## 4. The combo: self service inverted the answer
 
-[45](45-design-review.md) §18 kombo ekseninin "var olmayan bir stratejiyi
-koruduğunu" yazmıştı: `zirvede_kapat` ile `imzaci` **birebir aynı 2016 grubu**
-ağırlıyordu, çünkü kombonun mutfak yükü ısırmıyordu.
+[45](45-design-review.md) §18 had written that the combo axis "protects a strategy
+that does not exist": `zirvede_kapat` and `imzaci` were serving **exactly the same
+2016 parties**, because the combo's kitchen load did not bite.
 
-O ölçüm **self servisten önceydi.** Fast food'un salon yükü yarıya inince
-darboğaz mutfağa geçti. Yeniden ölçüldü:
+That measurement was **from before self service.** Once fast food's hall load
+halved, the bottleneck moved into the kitchen. Re-measured:
 
-**12 tohum, fast food, 60 gün — ve kriz dalı yokken ölçüldü:**
+**12 seeds, fast food, 60 days — and measured with the crisis branch absent:**
 
-| strateji | son kasa | servis | kombo% | tabaksız |
+| strategy | end cash | served | combo% | waited, no plate |
 |---|---:|---:|---:|---:|
-| makul (kombo yok) | 22.492 | 2617 | %0,0 | 846 |
-| imzacı (hep açık) | 22.163 | 2559 | %18,1 | 1018 |
-| **zirvede_kapat** | **23.474** | 2564 | %16,8 | **792** |
+| `makul` (no combo) | 22,492 | 2617 | 0.0% | 846 |
+| `imzaci` (always on) | 22,163 | 2559 | 18.1% | 1018 |
+| **`zirvede_kapat`** | **23,474** | 2564 | 16.8% | **792** |
 
-İki uyarı, ikisi de bu belgenin kendi tezinden çıkıyor:
+Two warnings, both following from this document's own thesis:
 
-- **12 tohum.** §1 tam da 12 tohumluk bir sonucun 32'de çürüdüğünü anlatıyor.
-  Bu tablo o riske açık ve yeniden ölçülmeden kapanmış sayılmamalı.
-- **Tabaksız sütunu §1'inkiyle kıyaslanamaz** (846 vs 240): farklı mutfak,
-  farklı tohum sayısı, ve kriz dalı henüz yokken.
+- **12 seeds.** §1 describes exactly how a 12-seed result was refuted at 32. This
+  table is exposed to that risk and should not count as closed until it is
+  re-measured.
+- **The no-plate column cannot be compared with §1's** (846 vs 240): a different
+  cuisine, a different seed count, and the crisis branch not yet present.
 
-Kombo artık **58 grup kaybettiriyor** ve zirvede kapatmak hep açık tutmayı
-**+1.311** geçiyor (bu ölçekte +%5,9 ve −%2,2; dağılım ölçülmedi).
+The combo now **costs 58 parties** and closing at the peak beats keeping it on all
+the time by **+1,311** (at this scale +5.9% and −2.2%; the distribution was not
+measured).
 
-Vaadin **"mutfağı yorar"** yarısı destekleniyor (tabaksız 1018 > 846).
-**"Ortalama fişi yükseltir"** yarısı için tabloda sütun yok — kasadan geri
-hesaplarsan +%0,8 çıkıyor ama son kasa masraf sonrası, yani fiş değil. Yani
-"ilk kez doğru" dediğim şeyin yarısı hâlâ ölçülmemiş durumda.
+The **"it tires the kitchen"** half of the promise is supported (no-plate 1018 >
+846). For the **"it raises the average ticket"** half there is no column in the
+table — back-computing from the till gives +0.8%, but end cash is after costs, so
+it is not the ticket. So half of what I called "right for the first time" is still
+unmeasured.
 
-**Dengeye dokunulmadı** — yazılı bant (`imzaci/makul` %90–130) zaten
-sağlanıyor: %98,5 (hep açık) ve %104,4 (zirvede kapat).
+**The balance was not touched** — the written band (`imzaci/makul` 90–130%) is
+already met: 98.5% (always on) and 104.4% (close at the peak).
 
-**Eksen de düz kalıyor, ve bu artık bir eksiklik değil:** iyi oyunun payı
-*daha düşük* (%16,8 < %18,1). Oran tabanlı hiçbir hedef bunu düzeltemez;
-hedefi yükseltmek daha kötü oynayanı ödüllendirirdi.
+**The axis stays flat too, and that is no longer a shortcoming:** the good game's
+share is *lower* (16.8% < 18.1%). No ratio-based target can fix that; raising the
+target would reward the worse player.
 
-### Ama düğmeye hiç basılmıyordu
+### But the button was never pressed
 
-Kombo düğmesi `GameScreen`'de vardı ve **tur ona hiç basmıyordu.** Bu projede
-tıpatıp aynı boş kapsam iki kez çıktı (`SetQuality`, `CollectCredit`):
-mekanik çekirdekte eksiksiz, ekranda düğmesi var, komutun geçtiğini kimse
-ölçmüyor.
+The combo button was in `GameScreen` and **the tour never pressed it.** Exactly the
+same empty coverage has come up twice in this project (`SetQuality`,
+`CollectCredit`): the mechanic complete in the core, a button on the screen, nobody
+measuring that the command gets through.
 
-Üstelik kombo artık **oyunun en iyi oyununun tek kapısı**. Komut geçmeseydi o
-oyun oynanamazdı ve hiçbir şey bunu söylemezdi. Tur artık iki yönlü basıyor:
-çeviriyor, doğruluyor, geri alıyor.
+On top of that the combo is now **the only door to the game's best game.** Had the
+command not got through, that game could not be played and nothing would have said
+so. The tour now presses in both directions: turns it on, verifies, turns it back.
 
 ---
 
-## 5. Personelin sesi: yirmi müdavimin altmış satırı vardı, personelin sıfır
+## 5. The staff's voice: twenty regulars had sixty lines, the staff had zero
 
-| | müdavim | personel (önce) |
+| | regular | staff (before) |
 |---|---|---|
-| metin anahtarı | 5 (`ad`, `iş`, 3 sahne) | **0** |
-| ekranda | akşam tam ekran sahne | ad + rol + iki kuru etiket |
+| string keys | 5 (name, job, 3 beats) | **0** |
+| on screen | a full-screen evening beat | name + role + two dry labels |
 
-Oyunun tamamındaki tek yarı-anlatı personel dizesi `ui.staff.inherited` idi.
+The only semi-narrative staff string in the whole game was `ui.staff.inherited`.
 
-### Uygulanan: huyun sesi
+### What was built: the voice of the trait
 
-Araştırmanın en yüksek kaldıraçlı bulgusu Two Point Hospital'in yapısal
-numarası: **mekanik ad ile insan cümlesi ayrı iki dize.** `Cheap` mekaniği,
-*"Will work for peanuts"* metni.
+The research's highest-leverage finding was Two Point Hospital's structural trick:
+**the mechanical name and the human sentence are two separate strings.** The
+mechanic `Cheap`, the text *"Will work for peanuts"*.
 
-`trait.<id>.desc` mekaniği anlatmaya devam ediyor ("günün son çeyreğinde
-yavaşlar"). Yeni `trait.<id>.voice` kişiyi anlatıyor:
+`trait.<id>.desc` goes on describing the mechanic ("slows down in the last quarter
+of the day"). The new `trait.<id>.voice` describes the person:
 
 ```
 Çabuk Yorulan   .desc  "Günün son çeyreğinde yavaşlar."
+                       ("Slows down in the last quarter of the day.")
                 .voice "Akşama doğru ayakları konuşmaya başlıyor."
+                       ("Towards evening their feet start talking.")
 
 Huysuz          .desc  "Ekibin moralini aşağı çeker."
+                       ("Drags the team's morale down.")
                 .voice "Herkesle bir derdi var. Çoğunda da haklı."
+                       ("Has a problem with everyone. Right about most of them.")
 
 Tecrübeli       .desc  "Pahalıdır, hızlıdır, daha fazla gelişmez."
+                       ("Expensive, fast, will not improve further.")
                 .voice "Otuz yıldır bu iş. Öğretilecek bir şey kalmamış."
+                       ("Thirty years at this. Nothing left to teach them.")
 ```
 
-On iki huy × iki dil. Aday kartında, rol başlığının hemen altında ve
-**birinci** huydan geliyor —
-iki ses üst üste binince kişi değil liste okunuyor. Oyuncunun bir personeli
-dikkatle okuduğu tek an orası.
+Twelve traits × two languages. It sits on the candidate card, immediately under the
+role heading, and comes from the **first** trait — when two voices stack up you read
+a list, not a person. That is the one moment the player reads a staff member
+carefully.
 
-### Sesin kuralları (uydurulmadı, çıkarıldı)
+### The rules of the voice (not invented, derived)
 
-- **Davranışı adlandır, kişiyi değil.** Dwarf Fortress "tembel" demiyor,
-  *"finds obligations confining"* diyor. "Huysuz"un satırı onu kötü ilan
-  etmiyor, çoğunda haklı buluyor.
-- **Açıklamayı esirge.** RimWorld: *"Somehow, HE survived."* Müdavim sesi
-  zaten böyle: *"Oturuyor, sen biliyorsun."*
-- **Düz ve kısa.** Sevk edilmiş bark yazısının tek ortak uyarısı: şirinliğe
-  uzanan replik üçüncü saatte ekşir, onuncu saatte dayanılmaz olur.
-- **Simülasyonun yalanlayabileceği hiçbir şey söyleme** — Ludeon'un kendi
-  yazım kılavuzunun kuralı, ve bu projenin "çağrı yeri yalan söyleyen alan"
-  kuralının aynısı.
+- **Name the behaviour, not the person.** Dwarf Fortress does not say "lazy", it
+  says *"finds obligations confining"*. "Huysuz"'s line does not declare them bad,
+  it finds them right about most of it.
+- **Withhold the explanation.** RimWorld: *"Somehow, HE survived."* The regulars'
+  voice already works like this: *"Oturuyor, sen biliyorsun."* ("They sit down, you
+  know the rest.")
+- **Plain and short.** The single shared warning of shipped barks: a line that
+  reaches for cuteness sours in the third hour and is unbearable in the tenth.
+- **Never say anything the simulation can contradict** — Ludeon's own writing
+  guide's rule, and the same as this project's "a field its call sites lie to" rule.
 
-### Yapılmayanlar ve sebepleri
+### What was not done, and why
 
-**Fonetik şive yok.** *Geliyom*, *napıyon*, *uşağum* — hiçbiri. Belgelenen
-alay göstergesi tam olarak bu. Personel standart yazılı Türkçe konuşuyor,
-sınıf sözdizimiyle.
+**No phonetic dialect.** `Geliyom`, `napıyon`, `uşağum` (rural-accented spellings of
+"I'm coming", "what are you doing", "my lad") — none of it. That is precisely the
+documented marker of mockery. The staff speak standard written Turkish, with class
+syntax.
 
-**"Evet, Şef!" yok.** O, fes takmış bir "Yes, Chef!". Belgelenen karşılık
-heyecansız *"Tamam şef"*, lokantada *"tamam usta"* ya da *"eyvallah"*.
+**No "Evet, Şef!"** ("Yes, Chef!"). That is a "Yes, Chef!" wearing a fez. The
+documented reply is an unexcited *"Tamam şef"* ("OK chef"), or in a restaurant
+*"tamam usta"* ("OK boss") or *"eyvallah"* ("right you are").
 
-**Üç isimli personel yazılmadı.** [14](14-staff-system.md) bunu tasarlamış
-— mutfak başına elle yazılmış üç kişi, sabit huylar, kendi sahneleri — ve
-**hiç uygulanmamış**: ne içerik dosyası, ne anahtar, ne kod yolu. Müdavim
-altyapısı (`StoryBeat`, kapı, `StoryScreen`) aynen kullanılabilir; eksik olan
-içerik, ve o içerik kullanıcının sesi.
+**The three named staff were not written.** [14](14-staff-system.md) designed this
+— three hand-written people per cuisine, fixed traits, their own beats — and it has
+**never been implemented**: no content file, no key, no code path. The regulars'
+infrastructure (`StoryBeat`, the gate, `StoryScreen`) can be used as is; what is
+missing is the content, and that content is the user's voice.
 
-**Uzun kıdem anı yazılmadı.** Araştırma bunu *sahipsiz en güçlü an* olarak
-işaretledi ve Türkçe kaynaklardaki asıl şikâyetle örtüşüyor: bulaşıkçı
-kendine *"restoranın kalbi"* diyor ama *"hiçbir şey yapmıyormuşuz gibi
-görünüyoruz"*. Yani **"beni gör" diyen bir satır "bana zam ver"den daha
-sert iner.** Ama kıdem takibi `SaveVersion` artırır ve göç yolu yazılmadan
-sürüm artırmak altmış günlük kampanyaları siler ([README](README.md)).
-Sıradaki iş bu.
-
----
-
-## 6. Denetimin kendisinde üçüncü bir kopya vardı
-
-`.voice` ailesi eklenince metin denetimi kırmızı yandı: *"LocTests.cs'de YOK:
-.voice"* — oysa eklemiştim.
-
-Sebep: aile listesi **üç yerde** duruyordu. İki kopyayı karşılaştıran kontrol
-(`gen_loc.py` ↔ `LocTests.cs`) kendi prob listesini elle tutuyordu. İki kopyayı
-denetleyen bir kontrol, üçüncü bir kopya üzerine kurulamaz.
-
-İki taraf da artık **kaynaktan** okunuyor. Mutasyonla doğrulandı: `.voice`
-testten çıkarılınca üretim reddediyor.
+**The long-tenure moment was not written.** The research flagged this as *the
+strongest unclaimed moment*, and it matches the real complaint in the Turkish
+sources: the dishwasher calls himself "the heart of the restaurant" but says "it
+looks like we do nothing". So **a line that says "see me" lands harder than one
+that says "give me a raise".** But tracking tenure raises `SaveVersion`, and
+raising the version without a migration path wipes sixty-day campaigns
+([README](README.md)). That is the next job.
 
 ---
 
-## 7. Eleştiri turu: iki agent, yirmi bir bulgu, altı gerçek kusur
+## 6. There was a third copy inside the audit itself
 
-Kullanıcı *"sonrasında farklı agentlarla eleştir ve karara bağla"* demişti.
-İki düşman gözü koştu — biri mekaniğe ve ölçüme, biri Türkçe repliklere. İkisi
-de işe yaradı ve **ikisi de bu belgenin ilk hâlinde yalan bulduğu için asıl
-değerini gösterdi.**
+When the `.voice` family was added the text audit went red: *"not in LocTests.cs :
+.voice"* — even though I had added it.
 
-### Koda inen kusurlar
+The reason: the family list sat in **three places**. The check comparing the two
+copies (`gen_loc.py` ↔ `LocTests.cs`) was keeping its own probe list by hand. A
+check that audits two copies cannot be built on a third copy.
 
-**Bayrak mandallanıyordu** (§3'te anlatıldı) — en ciddi olanı, ve ölçümün
-kendisi ona karşı kördü.
-
-**Tur kontrolü totolojiydi.** `Loc.T` eksik anahtarda `[anahtar]` döndürüyor,
-kart da aynı çağrıyı yapıyor. Yani **çeviri hiç yokken iki taraf da aynı
-yanlış dizeyi üretiyor ve kontrol yeşil geçiyordu.** Kendi mutasyonum bunu
-yakalayamazdı çünkü kartın dizesini değiştirmiştim, anahtarı değil. Artık iki
-şart birden aranıyor, ve ayrıca `Her_huyun_sesi_var` testi eklendi: on üçüncü
-bir huy eklense on üç denetimin hiçbiri konuşmazdı.
-
-**Denetimin kendisi vekile dönmüştü.** §6'da aile listesini kaynaktan okumaya
-çevirmiştim — ve o, davranışsal bir probu **metinsel** bir probla değiştirmek
-oldu: "kaynakta yazıyor mu" diye soruyordu, "gerçekten muaf mı" diye değil.
-Şimdi ikisi birden: aileler kaynaktan çıkarılıyor, sonra her biri
-`SCREEN_KEY`'e **soruluyor**. İki yönde de mutasyonla doğrulandı.
-
-**Yorumda ölçülmemiş iddia.** Kriz dalının yorumu "bulaşıkçı varken kriz zaten
-oluşmuyor" diyordu. Ölçüm tersini söylüyor (bulaşıkçı kolu oynuyor, yani dal
-ateşleniyor). Yorum düzeltildi: dal bulaşıkçıdan bağımsız ateşleniyor **ve
-öyle olmalı** — duran bir mutfakta bulaşıkçı zaten geride kalmış demektir.
-
-### Repliklerde: iki satır simülasyonun yalanladığı şeyi söylüyordu
-
-Belgeye *"simülasyonun yalanlayabileceği hiçbir şey söyleme"* diye yazdığım
-kuralı, aynı oturumda iki kez çiğnemişim:
-
-- `CleanlinessBp` **yalnızca** `TraitSum(1, ...)` ile, yani salonda masa
-  toplarken okunuyor. Aşçıya düşen "Hızlı ama Dağınık"ın hiçbir bedeli yok —
-  ama satırım mutfak tezgâhını işaret ediyordu, yani etkinin *kanıtlanabilir
-  şekilde olmadığı* yeri.
-- `MoraleAura` iki havuzdan da toplanıyor, yani bulaşıkçıya da düşüyor — ama
-  satırım "O mutfaktayken" diyordu.
-
-Dokuz satır yeniden yazıldı. İki dil hatası da çıktı: *"elleri birbirine
-dolanıyor"* deyimin yarım hatırlanmış hâliydi (doğrusu **eli ayağına
-dolaşmak**), *"ayakları konuşmaya başlıyor"* ise İngilizce bir deyimin
-kalıbıydı. İngilizce tabloda da sahipsiz iyelik sızmıştı (*"the hands get
-tangled"*) ve iki satırda zamir yanlış öncüle bağlanıyordu.
-
-Üç satır olduğu gibi kaldı — en iyisi `suratsiz`: *"İşini yapar, konuşmaz.
-Bazı masalar üstüne alınıyor."* Kişiyi yargılamıyor, mekaniği birebir
-karşılıyor, ve tepkiyi simülasyonun koyduğu yere — müşteriye — koyuyor.
-
-*Kendi kuralını yazdığın belgede o kuralı çiğnemek, kuralın işe yaradığını
-gösterir: onu bulan şey kuralın kendisiydi.*
+Both sides are now read **from the source**. Verified by mutation: when `.voice` is
+taken out of the test, generation refuses.
 
 ---
 
-## 8. Kayıt göç yolu: kural yazılmıştı, iki yerde uygulanmıştı
+## 7. The critique round: two agents, twenty-one findings, six real faults
 
-Personelin uzun kıdem anını yazmak `SaveVersion` artırmayı gerektiriyordu ve
-[README](README.md) bunu yasaklıyordu: *"Bunu yazmadan içerik yaması
-çıkarılmamalı."*
+The user had said:
 
-Bakınca kural **iki dosyada yazılıydı** — `StateIO.cs` ve `Simulation.Save.cs`
-ikisi de *"yeni alanlar `Has()` ile okunur ve yoksa varsayılanda bırakılır"*
-diyordu. Sayınca: **126 okumanın 2'sinde** uygulanmış. Yine akıl yürütmeyle
-yazılmış, hiç koşturulmamış bir koruma.
+> *"sonrasında farklı agentlarla eleştir ve karara bağla"*
+>
+> *("afterwards, critique it with different agents and settle it")*
 
-### `Has()` zaten yanlış araçtı
+Two hostile eyes ran — one on the mechanic and the measurement, one on the Turkish
+lines. Both were useful, and **both showed their real worth by finding lies in the first version of
+this very document.**
 
-Bütün okumaları `Has()` ile sarmak mekanizmayı kurardı ama bir şeyi de yok
-ederdi: **`Has()` bir alanın yokluğunu her zaman meşru sayar.** Yani gerçekten
-bozuk bir kayıtla eski bir kaydı ayırt edemez. 21. sürüm kaydında `badges`
-yoksa o kayıt bozuktur ve patlaması *doğrudur*.
+### Faults that went down into the code
 
-Doğru araç **sürüm kapısı**:
+**The flag latched** (described in §3) — the most serious one, and the measurement
+itself was blind to it.
+
+**The tour's check was a tautology.** `Loc.T` returns `[key]` for a missing key, and
+the card makes the same call. So **when the translation was absent entirely, both
+sides produced the same wrong string and the check passed green.** My own mutation
+could not have caught this, because I changed the card's string, not the key. Both
+conditions are looked for now, and the `Every_trait_has_a_voice` test was added as
+well: were a thirteenth trait added, none of the thirteen audits would have spoken.
+
+**The audit itself had turned into a proxy.** In §6 I had changed the family list
+to be read from the source — and that meant replacing a behavioural probe with a
+**textual** one: it was asking "is it written in the source", not "is it really
+exempt". Now it is both: the families are extracted from the source, and then each
+one is **asked** of `SCREEN_KEY`. Verified by mutation in both directions.
+
+**An unmeasured claim in a comment.** The crisis branch's comment said "a crisis
+does not form anyway when there is a dishwasher". The measurement says the opposite
+(the dishwasher arm moves, so the branch fires). The comment was corrected: the
+branch fires independently of the dishwasher **and it should** — in a stopped
+kitchen the dishwasher is already behind.
+
+### In the lines: two of them said things the simulation contradicts
+
+The rule I had written into this document — *"never say anything the simulation can
+contradict"* — I broke twice in the same session:
+
+- `CleanlinessBp` is read **only** through `TraitSum(1, ...)`, that is, while
+  clearing tables in the hall. "Hızlı ama Dağınık" ("Fast but Messy") falling to a
+  cook costs nothing at all — but my line pointed at the kitchen counter, the very
+  place where the effect *demonstrably does not exist*.
+- `MoraleAura` is summed from both pools, so it falls to the dishwasher too — but my
+  line said "when they are in the kitchen".
+
+Nine lines were rewritten. Two language errors also came out: *"elleri birbirine
+dolanıyor"* was a half-remembered idiom (the correct one is **eli ayağına
+dolaşmak**, "to get all in a fluster"), and *"ayakları konuşmaya başlıyor"* was the
+mould of an English idiom. An ownerless possessive had leaked into the English
+table too (*"the hands get tangled"*) and in two lines the pronoun was attached to
+the wrong antecedent.
+
+Three lines were left exactly as they were — the best of them is `suratsiz`:
+*"İşini yapar, konuşmaz. Bazı masalar üstüne alınıyor."* ("Does the work, says
+nothing. Some tables take it personally.") It does not judge the person, it matches
+the mechanic exactly, and it puts the reaction where the simulation puts it — on the
+customer.
+
+*Breaking your own rule in the document where you wrote it shows the rule works: what
+found it was the rule itself.*
+
+---
+
+## 8. The save migration path: the rule had been written, it had been applied in two places
+
+Writing the staff's long-tenure moment required raising `SaveVersion`, and
+[README](README.md) forbade it: *"No content patch should be shipped before this is
+written."*
+
+Looking closer, the rule was written in **two files** — `StateIO.cs` and
+`Simulation.Save.cs` both said *"new fields are read through `Has()` and left at
+their default when absent"*. Counting: applied in **2 of 126 reads**. Again a
+protection written by reasoning and never run.
+
+### `Has()` was the wrong tool anyway
+
+Wrapping every read in `Has()` would have set up the mechanism, but it would also
+have destroyed something: **`Has()` always treats a field's absence as
+legitimate.** So it cannot tell a genuinely corrupt save from an old one. If
+`badges` is missing from a version 21 save, that save is corrupt and blowing up is
+*correct*.
+
+The right tool is a **version gate**:
 
 ```csharp
-if (version >= 21) { ...21'de eklenen alanlar... }
+if (version >= 21) { ...the fields added in 21... }
 ```
 
-Eski kayıtta atlanıyor, 21. sürüm kaydında eksikse hâlâ patlıyor. İkisi
-ayrışıyor.
+It is skipped in an old save, and it still blows up if it is missing from a version
+21 save. The two are kept apart.
 
-### Ve mekanizmanın koştuğu kanıtlandı
+### And it was proved the mechanism runs
 
-`Eski_surum_kaydi_aciliyor` gerçek bir 21. sürüm kaydı üretiyor, 21'de eklenen
-altı alanı siliyor, sürümü 20 yapıyor ve yüklüyor — yani yayından sonraki
-gerçek durumun aynısı. Ölçüt iki yönlü: kayıt **açılacak** *ve* eksik alanlar
-**varsayılanda kalacak**; yalnızca birincisini sormak, her şeyi sıfırlayan bir
-göç yolunu da yeşil geçirirdi.
+`An_old_version_save_opens` produces a real version 21 save, deletes the six fields
+added in 21, sets the version to 20 and loads it — that is, exactly the real
+situation after release. The yardstick is two-sided: the save **must open** *and*
+the missing fields **must stay at their defaults**; asking only the first would have
+passed a migration path that reset everything.
 
-`Cok_eski_surum_reddediliyor` da kapının hâlâ bir kapı olduğunu söylüyor —
-yoksa "her sürümü kabul et, alanları boş bırak" gibi bir uygulama da geçerdi.
+`A_version_that_is_too_old_is_rejected` says that the gate is still a gate —
+otherwise an implementation of the form "accept every version, leave the fields
+empty" would have passed too.
 
-**Testin kendi içine koyduğum doğrulama satırı beni bir kez durdurdu:** ilk
-yazımda alanları `header` düğümünde aradım, oysa sürüm orada ama alanlar
-`restaurant`'ta. O satır olmasaydı test hiçbir şey silmeden, mekanizmayı hiç
-sınamadan yeşil geçecekti — *kurduğu "eski kayıt" gerçek olmayan bir göç
-testi, göç testi değildir.*
+**The validation line I put inside the test stopped me once:** in my first version I
+looked for the fields in the `header` node, whereas the version is there but the
+fields are in `restaurant`. Without that line the test would have passed green
+without deleting anything and without exercising the mechanism at all — *a migration
+test whose "old save" is not real is not a migration test.*
 
-Mutasyonla da doğrulandı: kapı `if (true)` yapılınca test
-`Kayitta alan yok: badges` ile kırmızı yanıyor.
+Verified by mutation too: with the gate made `if (true)`, the test goes red with
+`a field that should be in a version 21 save is missing: badges`.
 
-`MinReadableVersion = 20` — bir adım geri. Daha eskisi **uydurma olurdu**:
-9–14 arası sürümlerin neyi değiştirdiği belgesiz, yani onlar için doğru kapıyı
-kimse yazamaz. Yayınlanmış kayıt da yok.
+`MinReadableVersion = 20` — one step back. Anything older **would be invented**:
+what versions 9–14 changed is undocumented, so nobody can write the right gate for
+them. And there is no released save either.
 
-Böylece personelin uzun kıdem anının önündeki engel kalktı.
+With that, the obstacle in front of the staff's long-tenure moment was cleared.
 
 ---
 
-## 9. Göç yolunu kurarken bulunan yalan: "0 gün çalıştı"
+## 9. The lie found while building the migration path: "worked 0 days"
 
-Uzun kıdem anını yazmak için kıdeme bakınca `StaffDaysWorked` çıktı — ve
-**kıdem döndürmüyordu, deneyim döndürüyordu** (`_cookXpDays`). Deneyim ise
-huya bağlı:
+Looking at tenure in order to write the long-tenure moment turned up
+`StaffDaysWorked` — and **it was not returning tenure, it was returning
+experience** (`_cookXpDays`). Experience depends on the trait:
 
-| huy | `XpBp` | ekranda görünen |
+| trait | `XpBp` | shown on screen |
 |---|---:|---|
-| `tecrubeli` | 0 | altmış gün çalışan kişi **"0 gün"** |
-| `cirak` | 20000 (2×) | otuz gün çalışan kişi **"60 gün"** |
+| `tecrubeli` | 0 | a person who has worked sixty days: **"0 gün"** ("0 days") |
+| `cirak` | 20000 (2×) | a person who has worked thirty days: **"60 gün"** ("60 days") |
 
-Personel kartı `"Seviye {seviye} ({gün} gün)"` yazıyor. Yani oyuncuya, altmış
-gündür dükkânda olan birinin hiç çalışmadığı söyleniyordu. **Aynı oturumda
-repliklerde düzelttiğim hatanın kod tarafındaki kardeşi:** simülasyonun
-yalanladığı bir sayıyı ekrana yazmak.
+The staff card says `"Seviye {level} ({days} gün)"` ("Level {level} ({days}
+days)"). So the player was being told that somebody who had been in the shop for
+sixty days had never worked. **The code-side sibling of the error I fixed in the
+lines in the same session:** writing a number on screen that the simulation
+contradicts.
 
-Kıdem artık ayrı izleniyor (`_cookTenure` / `_salonTenure`), huydan bağımsız,
-her çalışılan gün +1. İşten çıkarmadaki kaydırmaya da eklendi — XP'nin gittiği
-her yere kıdem de gidiyor, yoksa çıkarılan kişinin kıdemi yerine geçene
-yapışırdı.
+Tenure is now tracked separately (`_cookTenure` / `_hallTenure`), independent of the
+trait, +1 for every day worked. It was added to the shift-down on dismissal too —
+tenure goes everywhere XP goes, or the dismissed person's tenure would stick to
+whoever replaced them.
 
-`SaveVersion` 21 → 22, ve bu **az önce yazılan göç yolunun ilk gerçek
-kullanımı**. Eski kayıtta kıdem yok; sıfırdan sayılmaya başlıyor. Uydurmak
-(örneğin XP'den türetmek) tam da düzeltilen yalanı başka bir kılıkta geri
-getirirdi.
+`SaveVersion` 21 → 22, and this is **the first real use of the migration path just
+written**. There is no tenure in an old save; it starts counting from zero. Making
+it up (deriving it from XP, say) would have brought the very lie being fixed back in
+another disguise.
 
-### Test iki kez zayıf yazıldı
+### The test was written weakly twice
 
-Birincisi **sonsuz döngüye** girdi: `while (gun < 12) { sim.Tick(); }` yazdım,
-oysa gün ancak `OpenService` + `CloseDay` + `AdvanceToNextDay` ile dönüyor.
+The first one went into an **infinite loop**: I wrote `while (day < 12) { sim.Tick(); }`,
+whereas the day only turns over with `OpenService` + `CloseDay` + `AdvanceToNextDay`.
 
-İkincisi **hiçbir şey ölçmüyordu**: yalnızca devralınan aşçıya bakıyordu ve
-onun huyu yok, yani deneyimi de kıdemi kadar artıyor — `StaffDaysWorked`'i
-yine XP'ye bağlayan bir gerileme orada **eşit** çıkar ve test sessizce
-geçerdi. Şimdi test aday havuzlarında bir `tecrubeli` arıyor, işe alıyor, ve
-*"elli günde bir `tecrubeli` aday çıkmadı — test ölçüm yapamadı"* diye ayrı
-bir kol taşıyor.
+The second **measured nothing**: it only looked at the inherited cook, and that cook
+has no trait, so their experience rises at the same rate as their tenure — a
+regression tying `StaffDaysWorked` back to XP comes out **equal** there and the test
+would have passed silently. Now the test looks for a `tecrubeli` in the candidate
+pools, hires them, and carries a separate arm saying *"no 'tecrubeli' candidate
+appeared in fifty days - the test could not measure"*.
 
-Mutasyonla doğrulandı: `StaffDaysWorked` yine XP döndürünce test kırmızı
-yanıyor.
+Verified by mutation: when `StaffDaysWorked` returns XP again, the test goes red.
 
-### Ve ekranda görüldü — ama ilk bakılan kare yanlış kareydi
+### And it was seen on screen — but the first frame I looked at was the wrong frame
 
-Kod düzeldi, test geçti, mutasyon kanıtladı. Sonra tur karesine baktım:
-personel kartı **"Seviye 0 (0 gün)"** yazıyordu.
+The code was fixed, the test passed, the mutation proved it. Then I looked at the
+tour frame: the staff card said **"Seviye 0 (0 gün)"** ("Level 0 (0 days)").
 
-Bir an düzeltmenin tutmadığını sandım. Tutmuştu — **kare 1. günün sabahıydı**
-ve orada "0 gün" doğru: kimse henüz bir gün çalışmamış.
+For a moment I thought the fix had not held. It had — **the frame was the morning of
+day 1**, and there "0 days" is correct: nobody has worked a day yet.
 
-Bunun asıl anlamı şu: **hata zaten o karede görünmezdi.** Kart aylarca "0 gün"
-yazsa bile birinci günün karesi aynı şeyi gösterirdi. Yani bu hatayı yakalayan
-bir kontrol, günün ilerisine bakmak zorunda.
+What this really means is: **the bug would have been invisible in that frame
+anyway.** Even if the card had said "0 days" for months, the first day's frame would
+show the same thing. So a check that catches this bug has to look further into the
+day.
 
-Tur artık 5. günde personel ekranını açıyor ve ölçütü ekrandaki metin:
+The tour now opens the staff screen on day 5 and its yardstick is the text on
+screen:
 
 ```
-tamam : Kidem ilerliyor (5. gun, 4 gun)
-tamam : Personel kartinda kidem gercek sayiyi gosteriyor
+ok   : Tenure advances (day 5, 4 days)
+ok   : The staff card shows the real tenure number
 ```
 
-*Bir sayının doğru olduğunu görmek için doğru ana bakmak gerekiyor; yanlış an,
-yanlış cevabı da doğru gösterir.*
+*To see that a number is right you have to look at the right moment; the wrong
+moment makes the wrong answer look right too.*
 
 ---
 
-## 10. Uzun kıdem anı: sahipsiz an yazıldı
+## 10. The long-tenure moment: the unclaimed moment was written
 
-Araştırma bunu *"sahipsiz en güçlü an"* diye işaretlemişti — taradığı on iki
-oyunun **hiçbirinde** uzun kıdem için yazılmış bir satır yok. Ve Türkçe
-kaynaklardaki asıl dertle örtüşüyor: bulaşıkçı kendine *"restoranın kalbi"*
-diyor ama *"hiçbir şey yapmıyormuşuz gibi görünüyoruz"*. **"Beni gör" diyen
-bir satır "bana zam ver"den daha sert iniyor.**
+The research had flagged this as *"the strongest unclaimed moment"* — **none** of
+the twelve games it swept has a line written for long tenure. And it matches the
+real grievance in the Turkish sources: the dishwasher calls himself "the heart of
+the restaurant" but says "it looks like we do nothing". **A line that says "see me"
+lands harder than one that says "give me a raise".**
 
-Otuzuncu günde, nişanlarla aynı aileden bir **tanıma**: oyuncu bir şey
-yapmıyor, bir şey *olduğu* için söyleniyor.
+On the thirtieth day, a **recognition** from the same family as the badges: the
+player does not do something, something is said because something *is*.
 
-| mutfak | satır |
+| cuisine | line |
 |---|---|
-| esnaf lokantası | *"{ad} 30 gündür burada. Artık sormadan biliyor."* |
-| zincir | *"{ad} 30 gündür vardiyada. Yeni gelenler ona soruyor."* |
+| tradesman's restaurant (`notice.tenure_lokanta`) | *"{ad} 30 gündür burada. Artık sormadan biliyor."* ("{name} has been here 30 days. Doesn't need to ask any more.") |
+| chain (`notice.tenure_zincir`) | *"{ad} 30 gündür vardiyada. Yeni gelenler ona soruyor."* ("{name} has worked 30 days of shifts. The new starters come to them with their questions.") |
 
-**İki ayrı satır**, çünkü araştırma iki mekânın farklı şeyden gurur duyup
-farklı şeyden şikâyet ettiğini söylüyordu: lokantada ilişki **ustaya ve işe**,
-zincirde **vardiyaya ve sisteme**. Tek satır ikisini de genel yapardı.
+**Two separate lines**, because the research said the two places take pride in and
+complain about different things: in a restaurant the relationship is **to the boss
+and to the craft**, in a chain **to the shift and to the system**. A single line
+would have made both of them generic.
 
-Eşik otuz gün — uydurulmadı, iki sınırdan çıktı. Çok küçük olsaydı (yedi gibi)
-her hafta biri için çıkar ve tanıma olmaktan çıkıp gürültüye dönerdi; nişanlar
-bir kez tam bunu yaptı ([47](47-recognition-and-report-card.md)). Çok büyük olsaydı (elli
-gibi) yalnızca ilk gün alınıp hiç değiştirilmeyen kadro için çıkar, yani
-oyuncunun kararıyla ilgisi kalmazdı.
+The threshold is thirty days — not invented, derived from two limits. Had it been
+too small (seven, say) one would come out for somebody every week and it would stop
+being recognition and turn into noise; the badges did exactly this once
+([47](47-recognition-and-report-card.md)). Had it been too large (fifty, say) it
+would only come out for a crew hired on day one and never changed, so it would have
+nothing to do with the player's decisions.
 
-### Üç ölçüm, üçü de ayrı soru soruyor
+### Three measurements, each asking a different question
 
-1. **Çekirdekte ateşliyor mu** — birim testi, ve **kişi başına tam bir kez**.
-   "En az bir kez" demek, eşiği `>=` gibi davranan bir sürümü de yeşil
-   geçirirdi ve o, bildirim şeridini tek cümleyle doldururdu.
-2. **Oyuncuya ulaşıyor mu** — tur, bildirim şeridini tarıyor. Bu projede
-   "mekanik çekirdekte eksiksiz, oyuncuya hiç ulaşmıyor" **üç kez** çıktı.
-3. **Doğru kaydı konuşuyor mu** — iki mutfak ayrı koşuldu.
+1. **Does it fire in the core** — a unit test, and **exactly once per person**.
+   Saying "at least once" would have passed a version treating the threshold like
+   `>=` too, and that would have filled the notice strip with a single sentence.
+2. **Does it reach the player** — the tour, scanning the notice strip. "The mechanic
+   is complete in the core and never reaches the player" has come up **three times**
+   in this project.
+3. **Does it speak the right record** — the two cuisines were run separately.
 
-### İki testi de yanlış yazdım, ikisi de kendini söyledi
+### I wrote both tests wrong, and both said so themselves
 
-**Birim testi** "tam bir kez" diye **toplamı** tutuyordu ve kırmızı yandı:
-30. günde **iki kişi** birden eşiği geçiyor (devralınan aşçı ve salondaki).
-İki bildirim doğru — iki ayrı insan. Yanlış olan beklentiydi; sayaç kişi
-başına çevrildi.
+**The unit test** kept a **total** for "exactly once" and went red: on day 30 **two
+people** cross the threshold at once (the inherited cook and the one in the hall).
+Two notices is correct — two separate human beings. What was wrong was the
+expectation; the counter was turned into a per-person one.
 
-**Tur kontrolü** beklenen metni `StaffName(0, 0)`'dan kuruyordu ve kırmızı
-yandı. Tanı gösterdi ki bildirim **oradaydı**, ama salondakinin adıyla
-(*"Aslı 30 gündür burada"*) — üç yuvalı şerit aynı gün gelen iki satırdan
-birini dışarıda bırakıyor. Hangi **adın** kaldığı turun işi değil; soru
-*"böyle bir satır oyuncuya ulaştı mı"*. Kontrol kişiye değil **ana** bağlandı.
+**The tour's check** built the expected text from `StaffName(0, 0)` and went red. The
+diagnostic showed the notice **was there**, but with the hall person's name (*"Aslı
+30 gündür burada"* — "Aslı has been here 30 days") — a three-slot strip leaves out
+one of two lines arriving on the same day. Which **name** survives is not the tour's
+business; the question is *"did a line like this reach the player"*. The check was
+tied to the **moment**, not the person.
 
-*İki hata da aynı aileden: ölçütü kişiye bağlamak, ölçmek istediğin şey an
-olduğunda yanlış cevabı da doğru gösterir.*
+*Both errors are from the same family: tying the yardstick to the person, when the
+thing you want to measure is the moment, makes the wrong answer look right too.*

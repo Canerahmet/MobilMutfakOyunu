@@ -10,7 +10,7 @@
   ],
   "eatMs": 38000,
   "selfService": false,
-  "salonRoles": [
+  "hallRoles": [
     "garson",
     "bulasikci",
     "kasiyer"

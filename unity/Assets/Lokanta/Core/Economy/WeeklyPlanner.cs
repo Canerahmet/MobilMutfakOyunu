@@ -2,13 +2,13 @@ using System;
 
 namespace Lokanta.Core.Economy
 {
-    /// <summary>Bir haftanin planlanan durumu: kademe, itibar, ortalama fis.</summary>
+    /// <summary>A week's planned state: tier, reputation, average ticket.</summary>
     public readonly struct WeekPlan
     {
         public readonly int Week;
         public readonly int Tables;
         public readonly int ReputationCenti;
-        public readonly long Ticket;       // ortalama fis, santi-sikke
+        public readonly long Ticket;       // average ticket, centi-coins
 
         public WeekPlan(int week, int tables, int reputationCenti, long ticket)
         {
@@ -16,7 +16,7 @@ namespace Lokanta.Core.Economy
         }
     }
 
-    /// <summary>Bir haftanin hesabi. Butun para alanlari santi-sikke.</summary>
+    /// <summary>A week's books. Every money field is in centi-coins.</summary>
     public readonly struct WeekResult
     {
         public readonly int Week;
@@ -50,11 +50,12 @@ namespace Lokanta.Core.Economy
     }
 
     /// <summary>
-    /// Kapali form haftalik plan modeli.
+    /// The closed-form weekly plan model.
     ///
-    /// Bu, tick simulasyonunun YERINE gecmez; onun ULASMASI GEREKEN hedefidir.
-    /// tools/balance/model.py ile ayni sonucu uretmek zorunda ve bunu
-    /// GoldenWeeklyTests dogruluyor. Ayrisirlarsa biri hatali demektir.
+    /// This does NOT REPLACE the tick simulation; it is the target the tick
+    /// simulation HAS TO REACH. It must produce the same result as
+    /// tools/balance/model.py, and GoldenWeeklyTests verifies that. If the
+    /// two diverge, it means one of them is wrong.
     /// </summary>
     public static class WeeklyPlanner
     {
@@ -68,10 +69,10 @@ namespace Lokanta.Core.Economy
             int weekendDays = cfg.WeekendDaysPerWeek;
             int weekCustomers = weekday * (7 - weekendDays) + weekend * weekendDays;
 
-            // Kadro zirve gune kurulur.
+            // The crew is sized for the peak day.
             Crew crew = StaffingModel.Required(weekend, cfg);
 
-            // Talep degil, GERCEKLESEN ciro. Bkz. EconomyConfig.RealisationBp.
+            // Not demand, but REALISED revenue. See EconomyConfig.RealisationBp.
             long demandRevenue = (long)weekCustomers * plan.Ticket;
             long revenue = Fx.Bp(demandRevenue, cfg.RealisationBp);
             long ingredients = Fx.Bp(revenue, cfg.IngredientRateBp);
@@ -87,7 +88,7 @@ namespace Lokanta.Core.Economy
                                   rent, expansion, net, cash);
         }
 
-        /// <summary>Bir plan dizisini bastan sona hesaplar ve kasayi biriktirir.</summary>
+        /// <summary>Computes a sequence of plans end to end, accumulating the till.</summary>
         public static WeekResult[] Run(WeekPlan[] plans, EconomyConfig cfg)
         {
             if (plans == null) throw new ArgumentNullException(nameof(plans));

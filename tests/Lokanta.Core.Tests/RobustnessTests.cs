@@ -10,13 +10,13 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Oyunu KIRAN durumlar. Hepsi bir QA incelemesinde bulundu ve
-    /// hepsi gercek bir oyuncunun karsilasabilecegi bir yoldan geliyor:
-    /// telefonu kilitlemek, uzun oynamak, bozulmus bir kayit.
+    /// Situations that BREAK the game. All of them were found in a QA pass and all
+    /// of them come down a road a real player could travel: locking the phone,
+    /// playing for a long time, a corrupted save.
     ///
-    /// Bu dosya bir regresyon duvari. Her testin basindaki yorum, hatanin
-    /// NASIL tetiklendigini anlatiyor - cunku duzeltmeyi geri alan biri
-    /// once o cumleyi okumali.
+    /// This file is a regression wall. The comment at the head of each test
+    /// explains HOW the bug was triggered - because anyone about to undo the fix
+    /// should read that sentence first.
     /// </summary>
     public sealed class RobustnessTests
     {
@@ -47,7 +47,7 @@ namespace Lokanta.Core.Tests
             return w.ToJson();
         }
 
-        /// <summary>Tamponu bosaltir ve DishUnlocked olaylarini sayar.</summary>
+        /// <summary>Drains the buffer and counts the DishUnlocked events.</summary>
         private static int CountUnlocks(Simulation sim)
         {
             SimEvent[] buf = new SimEvent[4096];
@@ -60,15 +60,15 @@ namespace Lokanta.Core.Tests
 
         // =====================================================================
         [Fact]
-        public void Ucret_zammi_tavanli_ve_tasmiyor()
+        public void The_wage_rise_is_capped_and_does_not_overflow()
         {
-            // Serbest oyunda ucret haftada %2,2 BILESIK buyuyordu ve
-            // tavani yoktu; gelir ise masa ve itibar tavanina bagli.
-            // Yuz dorduncu haftada PowNano long'u tasiyor ve istisna
-            // CloseDay'in ORTASINDA atiyordu: itibar dusmus, stok
-            // yaslanmis, ama asama gecmemis. Oyuncu "Gunu Kapat"a her
-            // bastiginda ayni zarar bir kez daha isliyor ve gun asla
-            // kapanmiyordu.
+            // In free play the wage grew at 2.2% COMPOUND a week with no ceiling,
+            // while the income is bound by the table and reputation ceilings. In
+            // the one hundred and fourth week PowNano overflowed a long and the
+            // exception was thrown IN THE MIDDLE of CloseDay: the reputation had
+            // fallen, the stock had aged, but the phase had not advanced. Every
+            // time the player pressed "Close the day" the same damage was applied
+            // once more and the day never closed.
             EconomyConfig cfg = Economy();
             Crew crew = new Crew(3, 3);
 
@@ -79,20 +79,21 @@ namespace Lokanta.Core.Tests
             foreach (int week in new[] { 8, 28, 52, 104, 520, 5200 })
             {
                 long bill = StaffingModel.WeeklyWageBill(crew, week, cfg);
-                _out.WriteLine($"hafta {week,5}: {bill} ({(double)bill / week1:0.00} kat)");
+                _out.WriteLine($"week {week,5}: {bill} ({(double)bill / week1:0.00} times)");
 
-                Assert.True(bill >= prev, "ucret geriye gitti: hafta " + week);
+                Assert.True(bill >= prev, "the wage went backwards: week " + week);
                 Assert.True(bill <= week1 * 2,
-                            "ucret iki kati asti: hafta " + week + " -> " + bill);
+                            "the wage passed twice the start: week " + week + " -> " + bill);
                 prev = bill;
             }
         }
 
         [Fact]
-        public void Gun_kapanisi_uzun_oyunda_atmiyor()
+        public void Closing_the_day_does_not_throw_in_a_long_game()
         {
-            // Yukaridakinin ucu ucuna karsiligi: yalnizca formul degil
-            // GUNUN KENDISI de kapanabilmeli. Ikiyuz gun oynaniyor.
+            // The end-to-end counterpart of the one above: it is not just the
+            // formula, THE DAY ITSELF has to be able to close. Two hundred days are
+            // played.
             Simulation sim = NewSim();
             for (int day = 1; day <= 200; day++)
             {
@@ -101,19 +102,19 @@ namespace Lokanta.Core.Tests
                 Assert.Equal(DayPhase.Evening, sim.Phase);
                 sim.AdvanceToNextDay();
             }
-            _out.WriteLine($"200 gun sonra kasa {sim.Cash}, itibar {sim.ReputationCenti}");
+            _out.WriteLine($"after 200 days: till {sim.Cash}, reputation {sim.ReputationCenti}");
             Assert.Equal(201, sim.Day);
         }
 
         // =====================================================================
         [Fact]
-        public void Gun_ici_sayaclar_kayitta_duruyor()
+        public void The_within_day_counters_survive_a_save()
         {
-            // Aksam raporu yuklemeden sonra YALAN SOYLUYORDU: ucret,
-            // kira ve zayiat kaydedilmedigi icin "Gunun kari" haftanin
-            // en buyuk giderini yok sayip buyuk bir arti gosteriyordu.
+            // The evening report LIED after a load: because the wages, the rent and
+            // the spoilage were not saved, "today's profit" ignored the week's
+            // biggest expense and showed a large surplus.
             //
-            // Tetikleme: kira gununu kapat, telefonu kilitle, geri don.
+            // To trigger it: close the rent day, lock the phone, come back.
             Simulation sim = NewSim();
             for (int day = 1; day <= 7; day++)
             {
@@ -124,16 +125,16 @@ namespace Lokanta.Core.Tests
             }
 
             DayReport before = sim.BuildDayReport();
-            _out.WriteLine($"once : ucret {before.WageCost}, kira {before.RentCost}, "
-                           + $"zayiat {before.SpoiledValue}, ciro {sim.TotalRevenue}");
+            _out.WriteLine($"before: wages {before.WageCost}, rent {before.RentCost}, "
+                           + $"spoilage {before.SpoiledValue}, revenue {sim.TotalRevenue}");
 
             string json = Save(sim);
             Simulation loaded = NewSim();
             loaded.Restore(new JsonStateReader(json));
 
             DayReport after = loaded.BuildDayReport();
-            _out.WriteLine($"sonra: ucret {after.WageCost}, kira {after.RentCost}, "
-                           + $"zayiat {after.SpoiledValue}, ciro {loaded.TotalRevenue}");
+            _out.WriteLine($"after : wages {after.WageCost}, rent {after.RentCost}, "
+                           + $"spoilage {after.SpoiledValue}, revenue {loaded.TotalRevenue}");
 
             Assert.Equal(before.WageCost, after.WageCost);
             Assert.Equal(before.RentCost, after.RentCost);
@@ -143,13 +144,12 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Yuklenen_oyun_eski_yemekleri_yeniden_duyurmuyor()
+        public void A_loaded_game_does_not_announce_old_dishes_again()
         {
-            // _dishWasUnlocked kaydedilmiyordu ve kurucu onu BIRINCI
-            // GUNUN durumuyla dolduruyordu. Otuzuncu gunden bir kayit
-            // acip ilerleyince, aradaki butun yemekler yeniden "acildi"
-            // diye duyuruluyordu: her biri icin bir bildirim ve bir
-            // seviye atlama sesi.
+            // _dishWasUnlocked was not saved and the constructor filled it with
+            // DAY ONE's state. Opening a save from day thirty and moving on, every
+            // dish in between was announced as "unlocked" all over again: a
+            // notification and a level-up sound for each one.
             Simulation sim = NewSim();
             for (int day = 1; day <= 30; day++)
             {
@@ -163,32 +163,32 @@ namespace Lokanta.Core.Tests
 
             loaded.Apply(new Command(loaded.TickIndex, CommandKind.OpenService));
             loaded.Apply(new Command(loaded.TickIndex, CommandKind.CloseDay));
-            CountUnlocks(loaded);          // gunun olaylarini temizle
+            CountUnlocks(loaded);          // clear the day's events
             loaded.AdvanceToNextDay();
 
             int announced = CountUnlocks(loaded);
 
-            _out.WriteLine($"yuklemeden sonraki gunde duyurulan yemek: {announced}");
+            _out.WriteLine($"dishes announced on the day after loading: {announced}");
             Assert.True(announced <= 2,
-                        "yukleme sonrasi eski yemekler yeniden duyuruldu: " + announced);
+                        "old dishes were announced again after loading: " + announced);
         }
 
         // =====================================================================
         [Fact]
-        public void Onerilen_stok_TEK_komut()
+        public void The_recommended_restock_is_a_SINGLE_command()
         {
-            // Arayuz malzeme basina bir OrderIngredient gonderiyordu ve
-            // gunluk komut siniri 256: "Onerilen stogu al" dugmesine bes
-            // kez basmak gunun butcesini bitiriyor, sonrasinda fiyat,
-            // menu, ise alim, ekipman, genisleme, mudahale ve veresiye
-            // dahil HER komut sessizce reddediliyordu.
+            // The interface sent one OrderIngredient per ingredient and the daily
+            // command limit is 256: pressing "Buy the recommended stock" five times
+            // exhausted the day's budget, after which EVERY command - price, menu,
+            // hiring, equipment, expansion, intervention and tab included - was
+            // silently rejected.
             //
-            // Test iki seyi birden soyluyor: komut GERCEKTEN aliyor, ve
-            // bunu gunlukte tek yer kaplayarak yapiyor.
-            // BIR GUN OYNANIYOR, cunku acilis stogu tam bir gunluk:
-            // birinci sabah RecommendedRestock her kalem icin sifir
-            // donuyor ve alinacak bir sey olmuyor. Testin olctugu sey
-            // "komut aliyor mu", "stok bos mu" degil.
+            // The test says two things at once: the command really does BUY, and it
+            // does so taking a single place in the log.
+            // ONE DAY IS PLAYED FIRST, because the opening stock is exactly one
+            // day's worth: on the first morning RecommendedRestock returns zero for
+            // every item and there is nothing to buy. What the test measures is
+            // "does the command buy", not "is the stock empty".
             Simulation sim = NewSim();
             sim.Apply(new Command(sim.TickIndex, CommandKind.TakeLoan, 2));
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
@@ -203,19 +203,21 @@ namespace Lokanta.Core.Tests
             sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
 
             for (int i = 0; i < sim.IngredientCount; i++) stockAfter += sim.StockOf(i);
-            _out.WriteLine($"stok {stockBefore} -> {stockAfter}, "
-                           + $"kasa {cashBefore} -> {sim.Cash}");
+            _out.WriteLine($"stock {stockBefore} -> {stockAfter}, "
+                           + $"till {cashBefore} -> {sim.Cash}");
 
-            Assert.True(stockAfter > stockBefore, "stok artmadi");
-            Assert.True(sim.Cash < cashBefore, "para harcanmadi");
+            Assert.True(stockAfter > stockBefore, "the stock did not increase");
+            Assert.True(sim.Cash < cashBefore, "no money was spent");
 
-            // ASIL OLCU: gunluk komut butcesi. Yuz kez basmak bile
-            // butceyi bitirmemeli - tek komutun yeri bir.
+            // THE REAL MEASURE: the daily command budget. Even pressing it a
+            // hundred times must not exhaust the budget - one command takes one
+            // place.
             for (int k = 0; k < 100; k++)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.OrderRecommended));
 
-            // Butce bittiyse asama komutu disinda her sey reddedilir;
-            // fiyat komutu hala geciyorsa butce duruyordur.
+            // If the budget is exhausted everything but a phase command is
+            // rejected; if a price command still goes through, the budget is
+            // intact.
             long priceBefore = sim.DishPrice(0);
             sim.Apply(new Command(sim.TickIndex, CommandKind.SetPrice, 0,
                                   (int)(priceBefore + 100)));
@@ -226,15 +228,15 @@ namespace Lokanta.Core.Tests
         [Theory]
         [InlineData("storageTier", 9)]
         [InlineData("quality", 7)]
-        public void Bozuk_kayit_YUKLEMEDE_yakalaniyor(string field, int bad)
+        public void A_corrupt_save_is_caught_ON_LOAD(string field, int bad)
         {
-            // Validate'in kendi yorumu "hata OYUNCUYA, oyunun icine
-            // girmeden once soyleniyor" diyor. Bu iki alan agi geciyordu
-            // ve oyun ICINDE cokuyordu: soguk hava kademesi her
-            // CloseDay'de, kalite ise fiyat tablosunda.
+            // Validate's own comment says "the error is told TO THE PLAYER, before
+            // they get inside the game". These two fields slipped through the net
+            // and brought things down INSIDE the game: the cold storage tier on
+            // every CloseDay, the quality in the price table.
             //
-            // Yuva "saglam" gorunup oyunun acilip oynanamamasi, acik
-            // hata vermekten daha kotu.
+            // A slot that looks "sound" while the game opens and cannot be played
+            // is worse than an outright error.
             Simulation sim = NewSim();
             string json = Save(sim);
 
@@ -247,9 +249,9 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
-        /// "alan": sayi -> "alan": yeni. Kayit duz JSON oldugu icin
-        /// metin uzerinde yapmak yeterli ve testin nereye dokundugu
-        /// okunur kaliyor.
+        /// "field": number -> "field": new value. Because the save is plain JSON,
+        /// doing it on the text is enough and it keeps what the test touches
+        /// readable.
         /// </summary>
         private static string Replace(string json, string field, int value)
         {

@@ -1,106 +1,106 @@
-# Kayıt Sistemi
+# Save System
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddesi:** A11
-**Durum:** Yazıldı, karar bekliyor
-
----
-
-## Neden bu kadar önemli
-
-Üç karar bu sistemi zorunlu kıldı:
-
-1. **Mutfak kilidi.** Her kayıt bir mutfağa kilitli ve oyun bitene kadar değişmiyor.
-2. **Birden fazla yuva şartı.** Tek yuva olsaydı ikinci mutfağı satın alan oyuncu mevcut oyununu silmek zorunda kalırdı. İade ve kötü yorum üretirdi.
-3. **Mobil oturum.** Oyun her an kapanabilir. Telefon çalar, uygulama arka plana atılır, pil biter. Oyuncu hiçbir zaman ilerleme kaybetmemeli.
+**Last updated:** 9 September 2026
+**Register item:** A11
+**Status:** Written, awaiting decision
 
 ---
 
-## Dört yuva
+## Why it matters this much
 
-| Kural | Karar |
+Three decisions made this system mandatory:
+
+1. **The cuisine lock.** Every save is locked to a cuisine and does not change until the game ends.
+2. **The more-than-one-slot condition.** With a single slot, a player who bought the second cuisine would have to delete their current game. That would produce refunds and bad reviews.
+3. **Mobile sessions.** The game can close at any moment. The phone rings, the app is pushed to the background, the battery dies. The player must never lose progress.
+
+---
+
+## Four slots
+
+| Rule | Decision |
 |---|---|
-| Yuva sayısı | 4 |
-| Yuva başına mutfak | Bir tane, oluşturulurken seçilir, sonra değişmez |
-| Yuvalar arası ilişki | Yok, tamamen bağımsız |
-| Silme | Serbest, ama onay ister |
-| Aynı mutfaktan birden fazla yuva | Serbest |
+| Number of slots | 4 |
+| Cuisine per slot | One, chosen when it is created, unchanged afterwards |
+| Relationship between slots | None, completely independent |
+| Deleting | Free, but it asks for confirmation |
+| More than one slot with the same cuisine | Allowed |
 
-Yuva ekranında her yuva şunları gösterir: mutfak, gün, kasa, itibar ve varsa kazanılmış plaket.
+On the slot screen, every slot shows: the cuisine, the day, the till, the reputation and the plaque if one has been won.
 
-### Kilit ne zaman kesinleşiyor
+### When the lock becomes final
 
-Mutfak seçimi **üçüncü günün sonuna kadar** serbestçe sıfırlanabilir. Oyuncu yanlış seçim yaptığını yirmi dakika sonra anlarsa kapana kısılmıyor.
+The cuisine choice can be reset freely **until the end of the third day**. A player who realises twenty minutes later that they chose wrong is not trapped.
 
-Üçüncü günden sonra kilit kalıcı. Değiştirmek için yeni yuva açmak gerekiyor.
+After the third day the lock is permanent. Changing it means opening a new slot.
 
 ---
 
-## Ne kaydediliyor
+## What is saved
 
-Kayıt iki parçadan oluşuyor: **durum** ve **tohum**.
+A save is made of two parts: **the state** and **the seed**.
 
-### Durum
+### The state
 
-| Grup | İçerik |
+| Group | Contents |
 |---|---|
-| Zaman | Gün numarası, mevsim, günün hangi aşaması |
-| Para | Kasa, kredi bakiyesi, kalan taksit sayısı |
-| İtibar | Mevcut değer, son yedi günün geçmişi |
-| Mekân | Genişleme kademesi, yerleşim düzeni, sahip olunan ekipman ve yükseltmeler |
-| Personel | Her çalışanın kimliği, rolü, huyları, morali, deneyimi, istasyonu |
-| Stok | Malzeme miktarları, kalite kademeleri, tazelik sayaçları |
-| Menü | Bugünkü menü, her yemeğin fiyatı, açılmış yemekler |
-| Müşteriler | Düzenli müşteri ilerlemeleri, hikaye sahneleri, veresiye defteri |
-| Batma | Merdivenin hangi kademesinde olduğu, varsa ültimatom geri sayımı |
-| Servis | Servis ortasındaysa masaların ve siparişlerin anlık durumu |
+| Time | Day number, season, which phase of the day |
+| Money | The till, the loan balance, the number of instalments left |
+| Reputation | The current value, the last seven days' history |
+| Venue | The expansion tier, the layout, the equipment and upgrades owned |
+| Staff | Each worker's identity, role, traits, morale, experience, station |
+| Stock | Ingredient amounts, quality tiers, freshness counters |
+| Menu | Today's menu, the price of every dish, the dishes unlocked |
+| Customers | Regulars' progress, story scenes, the tab book |
+| Bankruptcy | Which rung of the ladder it is on, and the ultimatum countdown if there is one |
+| Service | If it is mid-service, the instantaneous state of the tables and the orders |
 
-### Tohum
+### The seed
 
-Rastgelelik tohumu ve tüketilen adım sayısı. Çekirdek deterministik olduğu için **durum artı tohum, günü birebir yeniden üretmeye yeter.**
+The randomness seed and the number of steps consumed. Because the core is deterministic, **the state plus the seed is enough to reproduce the day exactly.**
 
-Bunun getirileri:
-- Kayıt dosyası küçük kalıyor
-- Hata ayıklarken bir gün tekrar oynatılabiliyor
-- Platformlar arasında taşınabilir
+What that buys:
+- The save file stays small
+- While debugging, a day can be replayed
+- It is portable between platforms
 
 ---
 
-## Ne zaman kaydediliyor
+## When it is saved
 
-**Kural: her aşama geçişinde ve her anlamlı karardan sonra.**
+**The rule: on every phase transition and after every meaningful decision.**
 
-| An | Kayıt |
+| Moment | Saved |
 |---|---|
-| Hal aşaması bitti | Evet |
-| Tezgâh aşaması bitti | Evet |
-| Servis başladı | Evet |
-| Servis sırasında, her 10 saniyede | Evet |
-| Gün sonu hesabı kapandı | Evet |
-| Satın alma yapıldı | Evet |
-| Uygulama arka plana atıldı | Evet, hemen |
+| The market phase ended | Yes |
+| The counter phase ended | Yes |
+| Service started | Yes |
+| During service, every 10 seconds | Yes |
+| The end-of-day accounts closed | Yes |
+| A purchase was made | Yes |
+| The app was pushed to the background | Yes, immediately |
 
-Servis sırasındaki periyodik kayıt sayesinde uygulama kapansa bile oyuncu en fazla on saniye kaybediyor.
+Thanks to the periodic save during service, even if the app closes the player loses at most ten seconds.
 
-**Manuel kayıt yok.** Oyuncu kaydetmeyi düşünmek zorunda kalmamalı. Mobilde manuel kayıt bir tasarım hatasıdır.
-
----
-
-## Bozulmaya karşı koruma
-
-Kayıt yazarken elektrik kesilmesi veya uygulamanın öldürülmesi gerçek bir risk. Üç önlem:
-
-1. **Atomik yazma.** Önce geçici dosyaya yazılır, tamamlandığı doğrulanır, sonra asıl dosyanın üstüne taşınır. Yarım dosya asla oluşmaz.
-2. **Bir önceki kaydın yedeği.** Her yuva iki dosya tutar: güncel ve bir önceki. Güncel okunamazsa öncekine dönülür ve oyuncu bilgilendirilir.
-3. **Sağlama toplamı.** Her dosyanın sonunda içeriğin sağlaması bulunur. Uyuşmazsa dosya bozuk kabul edilir.
-
-Kurtarma sırası: güncel dosya, sonra yedek, sonra hata mesajı. **Sessizce sıfırlanmış bir oyuna asla dönülmez.** Oyuncuya ne olduğu açıkça söylenir.
+**No manual saving.** The player should never have to think about saving. On mobile, manual saving is a design mistake.
 
 ---
 
-## Sürüm göçü
+## Protection against corruption
 
-Oyun güncellendiğinde eski kayıtlar açılabilmeli. Bir mobil oyunda bu pazarlık konusu değil, çünkü oyuncu güncellemeyi seçmiyor.
+A power cut or the app being killed while a save is being written is a real risk. Three measures:
+
+1. **Atomic writes.** It is written to a temporary file first, the completion is verified, and then it is moved over the real file. A half-written file is never created.
+2. **A backup of the previous save.** Every slot keeps two files: the current one and the previous one. If the current one cannot be read, it falls back to the previous one and the player is told.
+3. **A checksum.** A checksum of the contents sits at the end of every file. If it does not match, the file is treated as corrupt.
+
+The recovery order: the current file, then the backup, then an error message. **It never silently returns to a reset game.** The player is told plainly what happened.
+
+---
+
+## Version migration
+
+When the game updates, old saves must still open. In a mobile game this is not negotiable, because the player does not choose the update.
 
 ```json
 {
@@ -111,47 +111,47 @@ Oyun güncellendiğinde eski kayıtlar açılabilmeli. Bir mobil oyunda bu pazar
 }
 ```
 
-**Kural:** her sürüm artışı için bir göç fonksiyonu yazılır. Göçler sırayla uygulanır, yani sürüm 1'den gelen kayıt 1→2 ve 2→3 fonksiyonlarından geçer.
+**The rule:** a migration function is written for every version increment. Migrations are applied in order, so a save coming from version 1 passes through the 1→2 and 2→3 functions.
 
-**Göç fonksiyonları asla silinmez.** Beş sürüm sonra bile ilk sürümden gelen bir kayıt açılabilmeli.
+**Migration functions are never deleted.** Even five versions later, a save from the first version must still open.
 
-**Yeni alanların varsayılanı olmalı.** Eski kayıtta olmayan bir alan eklenirse, göç fonksiyonu ona makul bir değer verir. Örneğin veresiye defteri eklendiğinde eski kayıtlar boş defterle devam eder.
+**New fields must have a default.** If a field that is not in the old save is added, the migration function gives it a sensible value. For example, when the tab book was added, old saves carry on with an empty book.
 
 ---
 
-## Bulut kaydı
+## Cloud saves
 
-Bulut kaydı bir port arayüzünün arkasında. Mobilde iCloud ve Google Play, Steam'de Steam Cloud.
+Cloud saving sits behind a port interface. iCloud and Google Play on mobile, Steam Cloud on Steam.
 
-| Kural | Karar |
+| Rule | Decision |
 |---|---|
-| Ne zaman yüklenir | Gün sonunda ve uygulama arka plana atıldığında |
-| Çakışma | Oyuncuya sorulur, iki kaydın günü ve kasası gösterilir |
-| Otomatik birleştirme | Yok. Yönetim oyununda birleştirme yanlış sonuç üretir |
-| Bulut kapalıysa | Oyun normal çalışır, sadece yerel kayıt |
+| When it uploads | At the end of the day and when the app is pushed to the background |
+| Conflict | The player is asked; the day and the till of both saves are shown |
+| Automatic merging | None. In a management game, merging produces a wrong result |
+| If the cloud is off | The game runs normally, only the local save |
 
-Çakışmada otomatik seçim yapmamak bilinçli. Oyuncunun iki cihazda oynadığı senaryoda hangi ilerlemenin kaybedileceğine oyun karar vermemeli.
-
----
-
-## Mimari yeri
-
-Kayıt sistemi **çekirdeğe ait değil.** Çekirdek durumu üretir ve okur, ama dosyayı yazan uygulama katmanıdır. Dosyanın nereye yazıldığı ise port arayüzünün arkasındadır.
-
-```
-Çekirdek        durumu üretir, serileştirilebilir tutar
-Uygulama        ne zaman kaydedileceğine karar verir, göçü uygular
-ISaveStore      dosyayı nereye yazacağını bilir
-ICloudSave      buluta yükler
-```
-
-Bu ayrım sayesinde denge aracı da kayıt yükleyip belli bir günden simülasyon başlatabilir.
+Not choosing automatically in a conflict is deliberate. In a scenario where the player plays on two devices, the game should not decide which progress is lost.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Its place in the architecture
 
-1. Dört yuva yeterli mi
-2. Mutfak kilidinin serbest sıfırlanma süresi üç gün mü olmalı
-3. Servis sırasındaki kayıt aralığı on saniye mi olmalı
-4. Bulut çakışmasında oyuncuya sormak yerine daha ileri olanı seçmek daha mı iyi olur
+The save system **does not belong to the core.** The core produces and reads the state, but it is the application layer that writes the file. And where the file is written sits behind a port interface.
+
+```
+Core            produces the state, keeps it serialisable
+Application     decides when to save, applies the migration
+ISaveStore      knows where to write the file
+ICloudSave      uploads to the cloud
+```
+
+Thanks to this separation, the balance tool can also load a save and start a simulation from a particular day.
+
+---
+
+## Details awaiting a decision
+
+1. Are four slots enough
+2. Should the free-reset period for the cuisine lock be three days
+3. Should the save interval during service be ten seconds
+4. Would it be better, on a cloud conflict, to pick the further-advanced one instead of asking the player

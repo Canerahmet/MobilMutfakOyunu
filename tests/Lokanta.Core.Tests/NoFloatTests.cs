@@ -11,11 +11,12 @@ using Xunit;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// docs/23-core-contract.md 2.5 yansima testi.
+    /// The docs/23-core-contract.md 2.5 reflection test.
     ///
-    /// Neden: IL2CPP (Android), Mono (editor) ve RyuJIT (denge araci) kayan
-    /// nokta islemlerini farkli sirayla yapabilir. Tamsayi toplama her yerde ayni.
-    /// Cekirdekte tek bir float bile determinizmi bozar.
+    /// Why: IL2CPP (Android), Mono (the editor) and RyuJIT (the balance harness)
+    /// may perform floating point operations in a different order. Integer
+    /// addition is the same everywhere. A single float in the core breaks
+    /// determinism.
     /// </summary>
     public class NoFloatTests
     {
@@ -28,18 +29,19 @@ namespace Lokanta.Core.Tests
         private static Assembly Core => typeof(Fx).Assembly;
 
         /// <summary>
-        /// Taranan tipler: yalnizca SIMULASYON.
+        /// The types scanned: the SIMULATION only.
         ///
-        /// Ayni derlemede Lokanta.Game.RoomPlan da var - kat plani, metre
-        /// cinsinden. Orada kayan nokta DOGRU: 18,0 x 9,6 m bir arsayi
-        /// tamsayiyla yazmak, olcuyu santimetreye cevirip her yerde
-        /// bolmek demekti ve hicbir sey kazandirmazdi.
+        /// The same assembly also holds Lokanta.Game.RoomPlan - the floor plan,
+        /// in metres. Floating point is RIGHT there: writing an 18.0 x 9.6 m plot
+        /// as integers would mean converting the measurement to centimetres and
+        /// dividing everywhere, and would have gained nothing.
         ///
-        /// Determinizm kurali simulasyona ait: ayni komut dizisi her
-        /// platformda ayni sonucu vermeli (docs/23 2.5). Kat plani sonuca
-        /// girmiyor; ekranda nerede durdugunu soyluyor. Kural GENISLETILMEDI,
-        /// KAPSAMI YAZILDI - bu ayrim yazilmadigi surece bir gun birisi
-        /// simulasyona float sokmak icin bu testi gevsetir.
+        /// The determinism rule belongs to the simulation: the same sequence of
+        /// commands must give the same result on every platform (docs/23 2.5).
+        /// The floor plan does not enter the result; it says where things stand
+        /// on screen. The rule was NOT WIDENED, its SCOPE WAS WRITTEN DOWN -
+        /// unless that distinction is written down, one day somebody will loosen
+        /// this test in order to slip a float into the simulation.
         /// </summary>
         private static IEnumerable<Type> Scanned()
         {
@@ -70,7 +72,7 @@ namespace Lokanta.Core.Tests
             BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
         [Fact]
-        public void Cekirdekte_hicbir_alan_kayan_noktali_degil()
+        public void No_field_in_the_core_is_floating_point()
         {
             List<string> bad = new List<string>();
             foreach (Type t in Scanned())
@@ -78,11 +80,11 @@ namespace Lokanta.Core.Tests
                     if (IsForbidden(f.FieldType))
                         bad.Add($"{t.FullName}.{f.Name} : {f.FieldType.Name}");
 
-            Assert.True(bad.Count == 0, "Kayan noktali alan(lar):\n" + string.Join("\n", bad));
+            Assert.True(bad.Count == 0, "Floating point field(s):\n" + string.Join("\n", bad));
         }
 
         [Fact]
-        public void Cekirdekte_hicbir_ozellik_kayan_noktali_degil()
+        public void No_property_in_the_core_is_floating_point()
         {
             List<string> bad = new List<string>();
             foreach (Type t in Scanned())
@@ -90,11 +92,11 @@ namespace Lokanta.Core.Tests
                     if (IsForbidden(p.PropertyType))
                         bad.Add($"{t.FullName}.{p.Name} : {p.PropertyType.Name}");
 
-            Assert.True(bad.Count == 0, "Kayan noktali ozellik(ler):\n" + string.Join("\n", bad));
+            Assert.True(bad.Count == 0, "Floating point propert(ies):\n" + string.Join("\n", bad));
         }
 
         [Fact]
-        public void Cekirdekte_hicbir_metot_kayan_nokta_alip_vermez()
+        public void No_method_in_the_core_takes_or_returns_floating_point()
         {
             List<string> bad = new List<string>();
             foreach (Type t in Scanned())
@@ -113,101 +115,101 @@ namespace Lokanta.Core.Tests
                             bad.Add($"{t.FullName}..ctor({p.Name} : {p.ParameterType.Name})");
             }
 
-            Assert.True(bad.Count == 0, "Kayan noktali imza(lar):\n" + string.Join("\n", bad));
+            Assert.True(bad.Count == 0, "Floating point signature(s):\n" + string.Join("\n", bad));
         }
 
         /// <summary>
-        /// KAYNAK METIN TARAMASI - yansimanin GOREMEDIGI yer.
+        /// THE SOURCE TEXT SCAN - the place reflection CANNOT SEE.
         ///
-        /// Ustteki uc test yalnizca ALAN, OZELLIK ve IMZA bakiyor.
-        /// Metot GOVDESINDEKI bir yerel degisken hepsinden gecer:
+        /// The three tests above look only at FIELDS, PROPERTIES and SIGNATURES.
+        /// A local variable in a method BODY passes all of them:
         ///
         ///     private void X() { double k = a / (double)b; ... }
         ///
-        /// Oysa determinizmi bozan tam olarak odur - platformdan
-        /// platforma farkli yuvarlanan bir ara hesap, imzada hicbir iz
-        /// birakmiyor. Koruma sanildigindan DARDI.
+        /// And yet that is exactly what breaks determinism - an intermediate
+        /// calculation that rounds differently from platform to platform leaves
+        /// no trace at all in a signature. The guard was NARROWER than it looked.
         ///
-        /// Yorumlar ve metin sabitleri ayiklanıyor: "double" kelimesi
-        /// bir aciklamada gecebilir ve gecmeli.
+        /// Comments and string literals are stripped out: the word "double" can
+        /// appear in an explanation, and it should be allowed to.
         /// </summary>
         [Fact]
-        public void Cekirdek_kaynaginda_kayan_nokta_yok()
+        public void No_floating_point_in_the_core_source()
         {
-            string kok = Path.Combine(Paths.Root, "unity", "Assets", "Lokanta", "Core");
-            Assert.True(Directory.Exists(kok), "Cekirdek kaynak agaci bulunamadi: " + kok);
+            string root = Path.Combine(Paths.Root, "unity", "Assets", "Lokanta", "Core");
+            Assert.True(Directory.Exists(root), "Core source tree not found: " + root);
 
-            // Kelime sinirinda: "Doubled" ya da "floating" yakalanmasin.
-            Regex yasak = new Regex(@"\b(float|double|decimal)\b");
+            // On a word boundary: do not catch "Doubled" or "floating".
+            Regex banned = new Regex(@"\b(float|double|decimal)\b");
             List<string> bad = new List<string>();
 
-            string[] dosyalar = Directory.GetFiles(kok, "*.cs", SearchOption.AllDirectories);
+            string[] files = Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories);
 
-            // TARAMA GERCEKTEN OLDU MU.
+            // DID THE SCAN ACTUALLY HAPPEN.
             //
-            // Yol yanlis olsa ya da agac tasinsa dongu hic donmez ve
-            // test "hicbir ihlal yok" diye YESIL kalirdi - bu projenin
-            // en sik yakaladigi hata sinifi. Sayi bugunku 14'un altinda
-            // tutuldu ki dosya silinmesi testi kirmasin, ama sifir
-            // dosya asla gecmesin.
-            Assert.True(dosyalar.Length >= 8,
-                $"cekirdekte yalnizca {dosyalar.Length} kaynak dosya tarandi - "
-                + "yol yanlis olabilir: " + kok);
+            // If the path were wrong, or if the tree moved, the loop would never
+            // turn and the test would stay GREEN saying "no violations" - the
+            // class of bug this project catches most often. The number is kept
+            // below today's 14 so that deleting a file does not break the test,
+            // but zero files must never pass.
+            Assert.True(files.Length >= 8,
+                $"only {files.Length} source files were scanned in the core - "
+                + "the path may be wrong: " + root);
 
-            foreach (string dosya in dosyalar)
+            foreach (string file in files)
             {
-                string[] satirlar = File.ReadAllLines(dosya);
-                bool blokYorum = false;
-                for (int i = 0; i < satirlar.Length; i++)
+                string[] lines = File.ReadAllLines(file);
+                bool inBlockComment = false;
+                for (int i = 0; i < lines.Length; i++)
                 {
-                    string satir = Temizle(satirlar[i], ref blokYorum);
-                    if (satir.Length == 0) continue;
-                    if (!yasak.IsMatch(satir)) continue;
-                    bad.Add($"{Path.GetFileName(dosya)}:{i + 1}: {satirlar[i].Trim()}");
+                    string line = Strip(lines[i], ref inBlockComment);
+                    if (line.Length == 0) continue;
+                    if (!banned.IsMatch(line)) continue;
+                    bad.Add($"{Path.GetFileName(file)}:{i + 1}: {lines[i].Trim()}");
                 }
             }
 
             Assert.True(bad.Count == 0,
-                "Cekirdek kaynaginda kayan nokta:" + NL + string.Join(NL, bad));
+                "Floating point in the core source:" + NL + string.Join(NL, bad));
         }
 
-        /// <summary>Yorumlari ve metin sabitlerini satirdan atar.</summary>
-        private static string Temizle(string satir, ref bool blokYorum)
+        /// <summary>Throws the comments and string literals out of a line.</summary>
+        private static string Strip(string line, ref bool inBlockComment)
         {
             StringBuilder sb = new StringBuilder();
-            bool metin = false;
-            for (int i = 0; i < satir.Length; i++)
+            bool inString = false;
+            for (int i = 0; i < line.Length; i++)
             {
-                if (blokYorum)
+                if (inBlockComment)
                 {
-                    if (i + 1 < satir.Length && satir[i] == '*' && satir[i + 1] == '/')
+                    if (i + 1 < line.Length && line[i] == '*' && line[i + 1] == '/')
                     {
-                        blokYorum = false;
+                        inBlockComment = false;
                         i++;
                     }
                     continue;
                 }
-                if (metin)
+                if (inString)
                 {
-                    if (satir[i] == BackSlash) { i++; continue; }
-                    if (satir[i] == '"') metin = false;
+                    if (line[i] == BackSlash) { i++; continue; }
+                    if (line[i] == '"') inString = false;
                     continue;
                 }
-                if (satir[i] == '"') { metin = true; continue; }
-                if (i + 1 < satir.Length && satir[i] == '/' && satir[i + 1] == '/') break;
-                if (i + 1 < satir.Length && satir[i] == '/' && satir[i + 1] == '*')
+                if (line[i] == '"') { inString = true; continue; }
+                if (i + 1 < line.Length && line[i] == '/' && line[i + 1] == '/') break;
+                if (i + 1 < line.Length && line[i] == '/' && line[i + 1] == '*')
                 {
-                    blokYorum = true;
+                    inBlockComment = true;
                     i++;
                     continue;
                 }
-                sb.Append(satir[i]);
+                sb.Append(line[i]);
             }
             return sb.ToString();
         }
 
         [Fact]
-        public void Cekirdek_unity_veya_json_referansi_tasimaz()
+        public void The_core_carries_no_unity_or_json_reference()
         {
             string[] banned = { "UnityEngine", "Newtonsoft", "System.Text.Json" };
             List<string> bad = new List<string>();
@@ -217,7 +219,7 @@ namespace Lokanta.Core.Tests
                     if (an.Name.IndexOf(b, StringComparison.OrdinalIgnoreCase) >= 0)
                         bad.Add(an.Name);
 
-            Assert.True(bad.Count == 0, "Yasak referans(lar): " + string.Join(", ", bad));
+            Assert.True(bad.Count == 0, "Banned reference(s): " + string.Join(", ", bad));
         }
     }
 }

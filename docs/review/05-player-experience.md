@@ -1,85 +1,85 @@
-# Değerlendirme 5: Oyuncu Deneyimi
+# Review 5: Player Experience
 
-**Bakış açısı:** Mobil oyunlarda erişilebilirlik ve küçük ekran etkileşimi geçmişi olan UX lideri ve onboarding uzmanı
-**Sorumlu kalemler:** A9, A10, A12
-**Tarih:** 9 Eylül 2026
+**Perspective:** UX lead and onboarding specialist with a background in accessibility and small-screen interaction on mobile
+**Items owned:** A9, A10, A12
+**Date:** 9 September 2026
 
 ---
 
-## Genel değerlendirme
+## Overall assessment
 
-Plan mobil için doğru refleksleri taşıyor: sayaç ve enerji yok, her an duraklatma, 44pt hedef, okumaya zorlayan modal yasağı, "her sesin görsel ikizi" kuralı. Ama kâğıttaki dört aşama altı inç telefonda üç yerde kırılıyor: Hal aşaması tek başına dokunuş bütçesini yakıyor ve 02 §2 ilke 2'deki "malzeme siparişi otomatikleşir" ile 02 §3'teki "ikinci döngü" hâlâ çelişiyor; servisin en kritik uyarısı yalnızca kırmızı renkle ve yalnızca sahne içinde yaşıyor, üstelik ücretsiz mutfağın paleti kırmızı-sarı (10); öğreticinin ilk personel dersi kapasite modeliyle (14) ve ekonomi tablosuyla (12 §6) çelişiyor. Süre hesabı da tam tutmuyor: aşama alt sınırlarının toplamı 3 dk 45 sn, üst sınırların 6 dk 30 sn, ve işe alım ile yükseltme ekranları (16, ekran 11-17) bunun dışında. Üç kalem de yapı olarak sağlam, ayrıntı düzeltilmeden onaylanmamalı.
+The plan carries the right reflexes for mobile: no timers and no energy, pause at any moment, a 44pt target, a ban on modals that force reading, and the rule that "every sound has a visual twin". But the four stages on paper break in three places on a six-inch phone: the Market stage burns the touch budget on its own, and "ingredient ordering becomes automatic" in 02 §2 principle 2 still contradicts "the second loop" in 02 §3; service's most critical warning lives only in red and only inside the scene, and the free cuisine's palette is red and yellow (10); and the tutorial's first staff lesson contradicts the capacity model (14) and the economy table (12 §6). The time arithmetic does not quite hold either: the sum of the stages' lower bounds is 3 min 45 s and of the upper bounds 6 min 30 s, and the hiring and upgrade screens (16, screens 11-17) are outside that. All three items are structurally sound and none of them should be approved before the details are fixed.
 
-## Bir günün dokunuş sayımı
+## The touch count of one day
 
-Senaryo: üçüncü hafta, altı yemeklik menü, üç personel, üç müdahale, rapor, bir yükseltme. Dokümanlar bileşen düzeyini tanımlamadığı için varsayımlarım: miktar ve fiyat artı/eksi düğmesiyle ortalama iki dokunuş, kalite (02 §3 Aşama 1) kalem başına bir dokunuş, sürükleme bir dokunuş, altı yemek için yaklaşık on malzeme.
+The scenario: the third week, a six-dish menu, three staff, three interventions, the report, one upgrade. Because the documents do not define the component level, these are my assumptions: quantity and price take two touches on average with plus/minus buttons, quality (02 §3, Stage 1) one touch per line, a drag one touch, and roughly ten ingredients for six dishes.
 
-| Aşama | İşlem | Ham akış | Kalıcı varsayılanlarla* |
+| Stage | Operation | Raw flow | With sticky defaults* |
 |---|---|---|---|
-| Hal | 10 malzeme × (seç 1 + kalite 1 + miktar 2) | 40 | 6 |
-| Tezgâh | 6 yemek seç, 6 fiyat × 2, 3 personel sürükle, başla | 22 | 5 |
-| Servis | 3 müdahale × (masa 1 + seçenek 1), duraklat ve devam 2, kamera 2 | 10 | 10 |
-| Hesap | rapor ileri, yorum kaydır, yükseltme ekranı, kategori, ürün, satın al, geri, yarın | 8 | 8 |
-| **Toplam** | | **80** | **29** |
+| Market | 10 ingredients × (select 1 + quality 1 + quantity 2) | 40 | 6 |
+| Counter | pick 6 dishes, 6 prices × 2, drag 3 staff, start | 22 | 5 |
+| Service | 3 interventions × (table 1 + option 1), pause and resume 2, camera 2 | 10 | 10 |
+| Books | report forward, swipe the review, upgrade screen, category, item, buy, back, tomorrow | 8 | 8 |
+| **Total** | | **80** | **29** |
 
-*Kalıcı varsayılan: dünkü menü, fiyatlar ve istasyon ataması aynen gelir; Hal'de "dünkü siparişi tekrarla" sepeti tek dokunuşla doldurur, oyuncu iki kalemi düzeltir. Bunların hiçbiri 16'da yazılı değil.
+*Sticky defaults: yesterday's menu, prices and station assignment come back unchanged; in the Market a "repeat yesterday's order" fills the basket in one touch and the player corrects two lines. None of this is written in 16.
 
-Sonuç: ham akış bütçeyi yüzde otuz üç aşıyor ve patlama noktası Hal. İkinci patlama Tezgâh: 32 yemeklik havuz (09) ve sekiz fiyat kaydırıcısıyla üçüncü mevsimde tek başına otuzu geçer. Bütçe ancak "dün ne yaptıysan bugün de o" varsayılanıyla tutuyor; bu prototipte ölçülecek bir şey değil, şimdi verilecek bir tasarım kararı. Ek not: fiyat için kaydırıcı değil piyasa ±%5 adımlı düğme şart; 12 §5.3'te yüzde on ile yüzde yirmi üstü arasındaki fark memnuniyette on puan, altı inçte kaydırıcı o hassasiyeti tutmaz.
+The conclusion: the raw flow exceeds the budget by thirty-three per cent, and the blow-up point is the Market. The second blow-up is the Counter: with a pool of 32 dishes (09) and eight price sliders it passes thirty on its own by the third season. The budget only holds with the default "whatever you did yesterday, you do today"; that is not something to be measured in the prototype, it is a design decision to be made now. One more note: the price needs a market ±5% stepped button, not a slider; in 12 §5.3 the difference between ten and twenty per cent above is ten points of satisfaction, and at six inches a slider will not hold that precision.
 
-## En riskli beş sorun
+## The five riskiest problems
 
-### 1. Hal bütçeyi tek başına yakıyor, "otomatik sipariş" çelişkisi açık
+### 1. The Market burns the budget on its own, and the "automatic ordering" contradiction is open
 
-**Sorun.** 02 §2 ilke 2 "malzeme siparişi otomatikleşir" diyor; 02 §3 Aşama 1 aynı şeyi fiyat dalgalanması, kalite, bozulma ve tedarikçi ilişkisiyle günlük ana ekran yapıyor. 16 bütçeyi 40-60 diye sabitliyor ama Hal'in bileşenlerini hiç tanımlamıyor.
+**The problem.** 02 §2 principle 2 says "ingredient ordering becomes automatic"; 02 §3 Stage 1 makes the same thing the daily main screen, with price swings, quality, spoilage and supplier relationships. 16 fixes the budget at 40-60 but never defines the Market's components.
 
-**Oyuncu ne yaşar.** Her sabah on kalemde küçük artı/eksi düğmelerine otuz kırk dokunuş. Onuncu günde Hal, Good Pizza'nın çok malzemeli siparişi gibi korku kaynağı olur; ilke 6'nın önlemek için yazıldığı şey.
+**What the player lives.** Thirty or forty touches on small plus/minus buttons across ten lines, every morning. By day ten the Market becomes a source of dread, like Good Pizza's many-ingredient orders — the very thing principle 6 was written to prevent.
 
-**Düzeltme.** Sepet dünkü siparişle dolu gelsin, "eksiği tamamla" tek dokunuş olsun. Sipariş malzeme değil yemek porsiyonu üstünden verilsin, oyun malzemeye çevirsin. Kalite günlük tek seçim olsun. Sepet Hal'den çıkana kadar düzenlenebilsin. Hedef Hal için on dokunuş; 02 §2 ile §3 arasındaki çelişki metinde kapatılsın.
+**The fix.** The basket should arrive filled with yesterday's order, and "top up what is missing" should be one touch. Orders should be placed in dish portions, not ingredients, and the game should convert them. Quality should be a single choice for the day. The basket should stay editable until you leave the Market. Target ten touches for the Market; and the contradiction between 02 §2 and §3 should be closed in the text.
 
-### 2. Sabır uyarısı yalnızca renk, yalnızca sahne içinde
+### 2. The patience warning is colour only, and inside the scene only
 
-**Sorun.** 17 "Olay sesleri": sabır kritik → "masa kenarı kırmızıya dönüyor". 10 "Dört mutfağın kimliği": fast food paleti "yüksek doygunluk, kırmızı ve sarı". Karakter 60-120 piksel, ekranda 6-20 kişi (10). Kamera kaydırma ve yakınlaştırma var (19 B7), yani masa ekran dışına çıkabilir. 16 üst çubuğunda ne müdahale hakkı ne uyarı var.
+**The problem.** 17 "Event sounds": patience critical → "the table edge turns red". 10 "The identity of the four cuisines": the fast food palette is "high saturation, red and yellow". Characters are 60-120 pixels, with 6-20 people on screen (10). There is camera panning and zooming (19 B7), so a table can move off screen. 16's top bar has neither the intervention allowance nor any warning.
 
-**Oyuncu ne yaşar.** Sessiz oynayan (17'nin kendi varsayımı) ve kırmızı-yeşil ayrımı zayıf oyuncu kırmızı-sarı dükkânda kırmızı masa kenarını görmez; kurye sekiz saniyede (12 §5.2) çıkar, itibar sert düşer, oyuncu neden kaybettiğini anlamaz. Ayrıca 16 ve 02 §7'deki "memnuniyet yüz ifadesi", 10'un "yüz o ölçekte okunmuyor" tespitiyle çelişiyor.
+**What the player lives.** A player playing silently (17's own assumption) with weak red-green discrimination will not see a red table edge in a red-and-yellow shop; the courier leaves in eight seconds (12 §5.2), reputation drops sharply, and the player does not understand what he lost. Also, the "satisfaction facial expression" in 16 and 02 §7 contradicts 10's finding that "a face does not read at that scale".
 
-**Düzeltme.** Üç kanallı uyarı: masada renk artı şekil artı hareket (daralan halka), ekran kenarında ok, ve üst çubuğun altında en kötü üç masayı gösteren dokunulabilir "sabır kuyruğu" çipleri. Çipe dokunmak 19'daki Intervene eylemini tetiklesin; on dört masalık salonda 44pt hedef sorunu da böyle çözülür. Uyarı rengi mutfak paletine göre, paletteki en uzak ton olarak seçilsin. Memnuniyet göstergesi modelin yüzü değil, 24 piksel üstü bir arayüz glifi olsun ve yalnızca eşik altındaki masalarda görünsün. Titreşim ikizi eklensin (A12).
+**The fix.** A three-channel warning: on the table, colour plus shape plus motion (a closing ring); an arrow at the screen edge; and, under the top bar, touchable "patience queue" chips showing the three worst tables. Touching a chip should fire 19's Intervene action; that also solves the 44pt target problem in a fourteen-table dining room. The warning colour should be chosen per cuisine palette, as the most distant tone in that palette. The satisfaction indicator should be a UI glyph above 24 pixels, not the model's face, and should only appear on tables below the threshold. A haptic twin should be added (A12).
 
-### 3. İlk personel dersi ekonomiyle çelişiyor; ilk on dakika baştan sona ceza
+### 3. The first staff lesson contradicts the economy; the first ten minutes are punishment from beginning to end
 
-**Sorun.** 16 "Dakika dakika": 7-10. dakikada, yani dördüncü beşinci günde ilk personel. 14 "Gereken kadro": on üç müşteri için bir aşçı artı patron yeter. 12 §6: ilk iki hafta tek personel. 02 §6: personel bölümü 30-90 dakika. 09: istasyon dizilimi ikinci mevsim. Dört doküman dört zaman söylüyor. 8.000 sermayeyle (12 §1) yedinci gündeki 2.780'lik ilk fatura sınav değil; 12 §6'ya göre ilk gerçek sıkışma üçüncü hafta. "İlk üç gün batma yok" (16 kural 3) hiçbir şeyi korumuyor, çünkü merdivenin ilk kademesi haftalık ödemeye bağlı (02 §5) ve yedinci günden önce tetiklenemez.
+**The problem.** 16 "Minute by minute": the first staff member at minute 7-10, i.e. on the fourth or fifth day. 14 "The crew needed": for thirteen customers, one cook plus the owner is enough. 12 §6: a single staff member for the first two weeks. 02 §6: the staff section at 30-90 minutes. 09: station layout in the second season. Four documents give four times. With 8,000 capital (12 §1), the 2,780 first bill on day seven is not an exam; per 12 §6 the first real squeeze is in week three. "No collapse in the first three days" (16, rule 3) protects nothing, because the ladder's first rung hangs on the weekly payment (02 §5) and cannot fire before day seven.
 
-**Oyuncu ne yaşar.** Oyun "personel al" dediği için garson alır, yedinci günde eksi 770 görür, kapasite kazanımını göremez çünkü müşteri zaten sığıyordu. Öğrendiği beş şeyin beşi de bedel: fiyat kızdırır, stok biter, personel para götürür, kira gelir. İlk on dakikada tek olumlu doruk yok. D1 riski tam burada; 21'in "1. gün tutundurma: öğretici işliyor mu" metriği bunu ölçecek ama geç.
+**What the player lives.** Because the game says "hire staff" he hires a waiter, sees minus 770 on day seven, and cannot see the capacity gain because the customers already fitted. All five of the things he learns are costs: price angers people, stock runs out, staff take money, rent arrives. There is not one positive peak in the first ten minutes. The D1 risk is exactly here; 21's metric "day 1 retention: is the tutorial working" will measure it, but late.
 
-**Düzeltme.** Dört dokümanı tek takvime bağlayın. İlk işe alımı oyuncunun gözle gördüğü ilk bekleme kaybının ertesi sabahına koyun (üçüncü gün stok dersinin kalıbı: önce acı, sonra araç) ve adayı çırak yapın (14: ücret eksi yüzde 25). Yedinci günü "ödeyebildiğin ilk fatura", üçüncü haftayı "ilk sınav" olarak yeniden adlandırın. Beşinci dakikadan önce bir olumlu olay ekleyin: yeni yemek açılışı (17'de kutlama sesi hazır) veya isimli düzenli müşterinin ilk gelişi. Batma korumasını kaldırın ya da "ilk kira gününe kadar" yapın. "Duraklat, bak, müdahale et" ikinci günde açıkça öğretilsin; tabloda hiç yok.
+**The fix.** Bind the four documents to a single calendar. Put the first hire on the morning after the first waiting loss the player has seen with his own eyes (the pattern of the day-three stock lesson: pain first, then the tool) and make the candidate an apprentice (14: wage minus 25 per cent). Rename day seven "the first bill you can pay" and week three "the first exam". Add a positive event before minute five: a new dish unlocking (17 already has the celebration sound) or the first visit from a named regular. Remove the collapse protection or make it "until the first rent day". "Pause, look, intervene" should be taught explicitly on the second day; it is nowhere in the table.
 
-### 4. Servisin 120 saniyesi iki modlu; hız, sayaç ve süre göstergesi yok
+### 4. Service's 120 seconds are bimodal; there is no speed, no counter and no time indicator
 
-**Sorun.** 02 §3 Aşama 3 günde 3-5 müdahale veriyor; 14 istasyon değişimini yasaklıyor, doğru. 12 §5.6'da Türk mutfağında müşterilerin yüzde altmışı tek dilimde geliyor. 16 üst çubuğunda kalan müdahale, günün neresinde olunduğu ve zirvenin ne zaman geleceği yok; hız kontrolü hiçbir dokümanda yok.
+**The problem.** 02 §3 Stage 3 gives 3-5 interventions a day; 14 forbids changing stations, rightly. In 12 §5.6, sixty per cent of customers in Turkish cuisine arrive in one slot. 16's top bar has no interventions remaining, no position within the day and no sign of when the peak will come; speed control is in no document at all.
 
-**Oyuncu ne yaşar.** İlk hafta on üç müşteri iki dakikaya yayılır: doksan saniye tek aşçıyı izler. Zirvede otuz saniyede üç masa aynı anda kızarır, müdahaleler biter, sonra yine izler. Ne "yapacak bir şey yok" ne "yetişemiyorum" tek başına; ikisi ardı ardına.
+**What the player lives.** In the first week thirteen customers spread over two minutes: ninety seconds of watching a single cook. At the peak three tables go red within thirty seconds, the interventions run out, and then he watches again. Neither "there is nothing to do" nor "I cannot keep up" alone; the two back to back.
 
-**Düzeltme.** 1x/2x hız düğmesi, atlama değil. Dört dilimi işaretleyen gün ilerleme çubuğu, zirve önceden görünsün. Üst çubukta müdahale hakkı noktaları. Sakin dilimlerde ücretsiz bir fiil: 12 §5.4'teki "patron bizzat ilgilendi +20" zaten formülde, servis fiili olarak görünür olsun. Servis ortasında kapanan uygulama duraklatılmış halde ve bir "devam" katmanıyla açılsın; 15 on saniyede bir kaydediyor ama dönüşün nasıl açıldığını yazmıyor, sekiz saniyelik sabıra dönmek adil değil.
+**The fix.** A 1x/2x speed button, not a skip. A day progress bar marking the four slots, with the peak visible in advance. Intervention dots on the top bar. A free verb in the quiet slots: "the owner attended personally +20" from 12 §5.4 is already in the formula, so make it visible as a service verb. An app closed mid-service should reopen paused and with a "resume" layer; 15 saves every ten seconds but does not write down how the return is presented, and coming back to eight seconds of patience is not fair.
 
-### 5. Geri alma yok, geri tuşu ölü, dün yok
+### 5. No undo, a dead back button, no yesterday
 
-**Sorun.** 16 "Akış kuralları": aşamalar arasında geri yok, Hal kararı bağlayıcı, Android geri tuşu dört aşamada "hiçbir şey yapmaz". Modal yalnızca üç durumda; malzeme veya yükseltme harcaması bunlardan değil. 17 numaralı ekran yalnızca Hesap'tan açılıyor; müşterinin neden gittiği hiçbir yerde raporlanmıyor.
+**The problem.** 16 "Flow rules": no going back between stages, the Market decision is binding, and the Android back button "does nothing" in all four stages. Modals appear in only three situations, and spending on ingredients or an upgrade is not one of them. Screen 17 opens only from the Books; why a customer left is reported nowhere.
 
-**Oyuncu ne yaşar.** 44pt düğmeye yanlış dokunuş, bozulacak yirmi balık demek (12 §3: bozulan malzeme değerinin tamamını kaybeder). Yanlış "Tezgâha geç" günü kilitler. Geri tuşunda hiçbir şey olmaması "bozuk" hissi verir. Ertesi gün açınca dünkü rapor yok, kaybedilen müşterinin sebebi yok. İlke 1, "her kararın görünür sonucu", sebep gösterilmeden yarım kalıyor.
+**What the player lives.** A mistouch on a 44pt button means twenty fish that will spoil (12 §3: you lose the whole value of a spoiled ingredient). A wrong "Go to the Counter" locks the day. Nothing happening on the back button feels "broken". Opening the game the next day there is no report from yesterday, and no reason for the customer who was lost. Principle 1, "every decision has a visible consequence", is left half done when no cause is shown.
 
-**Düzeltme.** Aşama içinde onaylayana kadar düzenleme ve tek dokunuşla geri alma; bu aşama arası geri değil, kurala uyumlu. Aşama çıkış düğmesi toplamı göstersin, bir saniyelik modal olmayan "geri al" bildirimi versin. Geri tuşu her aşamada duraklatma ve ayarlar katmanını açsın, hiçbir zaman "hiçbir şey" yapmasın. Hal'de tek dokunuşla "Dün" kartı; 17 numaralı ekran 15 gibi "her yerden". Raporda kayıp müşteri satırı: bekleme, tükenme, fiyat.
+**The fix.** Editing until you confirm within a stage, plus one-touch undo; that is not going back between stages, so it obeys the rule. The stage exit button should show the total and give a one-second non-modal "undo" notice. The back button should open the pause and settings layer in every stage, and should never do "nothing". A one-touch "Yesterday" card in the Market; screen 17 reachable "from anywhere" like 15. A lost-customer line in the report: waiting, sold out, price.
 
-## Kalem kararları
+## Item decisions
 
-| Kalem | Karar | Gerekçe |
+| Item | Decision | Reasoning |
 |---|---|---|
-| A9 Ekran listesi ve akış | DÜZELT | On sekiz ekran ve modal yasağı doğru. Eksikler: aşama içi geri alma, geri tuşunun "hiçbir şey yapmaz" davranışı, "Dün" erişimi, aşamaya göre değişen üst çubuk (serviste müdahale hakkı ve gün ilerlemesi), kayıp sebebi. Listede olmayan yüzeyler: duraklatma menüsü, kredi (02 §5 kademe 2), ev sahibi mesajı ve ültimatom (02 §5 kademe 1 ve 4), tedarikçi ilişkisi (02 §3). |
-| A10 Öğretici ve ilk on dakika | DÜZELT | Tempo doğru: günde bir kavram, tek cümle, yaparak. İçerik yanlış: ilk personel zamanı dört dokümanla çelişiyor, yedinci gün sınav değil, ilk üç gün koruması ölü kural, olumlu doruk yok, duraklatma öğretilmiyor. "İkinci oyunda öğretici gelmez" (16 kural 6) cihazı paylaşan veya haftalar sonra dönen oyuncu için yanlış; varsayılan kapalı ama yuva açılışında tek dokunuşla açılabilir olmalı. |
-| A12 Ses tasarımı | DÜZELT | Beş katman, "her sesin işi var", katmanlı servis müziği ve sessizlik kullanımı doğru; dört parça ve 60-90 saniyelik döngü maliyeti makul. Düzeltme küçük ama zorunlu: görsel ikiz "renkten bağımsız ikiz" olmalı; kural sürekli katmanlara da uygulanmalı, kalabalık uğultusunun görsel ikizi yok; iki kritik olaya titreşim ikizi eklenmeli; "çoğu sessiz oynuyor" iddiası research/01'de geçmiyor, 21'in metrik listesine girmeli. |
+| A9 Screen list and flow | REVISE | Eighteen screens and the modal ban are right. What is missing: in-stage undo, the back button's "does nothing" behaviour, access to "Yesterday", a top bar that changes with the stage (interventions and day progress during service), and the reason for a loss. Surfaces not on the list: the pause menu, the loan (02 §5, rung 2), the landlord's message and the ultimatum (02 §5, rungs 1 and 4), the supplier relationship (02 §3). |
+| A10 Tutorial and the first ten minutes | REVISE | The pacing is right: one concept a day, one sentence, by doing. The content is wrong: the time of the first hire contradicts four documents, day seven is not an exam, the first-three-days protection is a dead rule, there is no positive peak, and pausing is not taught. "The tutorial does not appear in a second playthrough" (16, rule 6) is wrong for a player sharing a device or returning weeks later; it should default to off but be switchable on with one touch when a slot is opened. |
+| A12 Audio design | REVISE | Five layers, "every sound has a job", layered service music and the use of silence are right; four tracks and a 60-90 second loop are a reasonable cost. The fix is small but mandatory: the visual twin must be a "twin independent of colour"; the rule must apply to the continuous layers too, and the crowd murmur has no visual twin; a haptic twin must be added for two critical events; and the claim that "most people play silently" does not appear in research/01 and should go onto 21's metric list. |
 
-## Cevapsız sorular
+## Unanswered questions
 
-1. **Yatay mod kesin mi (16 soru 1)?** Lehine: mekân genişletme ve yerleşim düzenleme genişlik ister (02 §7), Steam ile aynı etkileşim (19 B7), tek kişilik ekip için tek yön. Aleyhine: üç dakikalık cep oturumu dikey ve tek el alışkanlığıdır, yatayda tek el neredeyse imkânsız, ve research/01'de yön konusunda hiç veri yok. Öneri: v1 yatay kalsın, ama Hal, Tezgâh ve Hesap'ta birincil eylemler sağ alt başparmak bölgesine sabitlensin, sol el ayarıyla aynalansın, ve ilk açılıştaki döndürme terk oranı 21'in metrik listesine eklensin. Çekirdek portların arkasında olduğu için (04) üç yönetim ekranı ileride dikeye taşınabilir; bu kapı kapatılmasın.
-2. **Erişilebilirlik ayarları neyi kapsıyor?** 16'da ekran 5 "erişilebilirlik" diyor, hiçbir doküman içeriğini yazmıyor. Asgari liste: yazı boyutu ölçeği (20 C5 yalnızca aile ve Türkçe glifleri tanımlıyor, en küçük gövde boyutu yok), renk körü paleti, hareket azaltma (stok çubuğunun yanıp sönmesi ve parlama efektleri için statik alternatif, yanıp sönme üç hertz altı), titreşim aç/kapa, sol el aynalama, ve "sabır kritik olunca otomatik duraklat" seçeneği. Ekran okuyucu desteği Unity arayüzünde tek kişiyle v1'de gerçekçi değil; vaat etmek yerine "renkle tek başına bilgi yok, zamana bağlı tek girdi yok" tabanı yazılı hedef olmalı.
-3. **Üst çubukta dört bilgi fazla mı (16 soru 4)?** Fazla değil, serviste yanlış. Kasa ve "Kiraya N gün" sabit; "Gün" ve "İtibar" yalnızca Hal, Tezgâh ve Hesap'ta; serviste yerlerini müdahale hakkı ve gün ilerlemesi alsın. Sikke "sıcak altın" (12 §7.5), Türk mutfağı paleti "pirinç" (10); üst çubuk sahnenin üstünde değil kendi opak plakasında durmalı.
-4. **İşe alım havuzu üç günde bir yenileniyor (14).** Oyuncuya bunu kim söylüyor? Tezgâh'ta rozet yoksa oyuncu havuzu unutur.
-5. **Hal "ikinci döngü" mü, otomasyon mu?** 02 §2 ilke 2 ile §3 Aşama 1 arasındaki bu cevap verilmeden dokunuş bütçesi hesaplanamaz.
+1. **Is landscape settled (16, question 1)?** For: venue expansion and floor-plan editing want width (02 §7), the same interaction as Steam (19 B7), one orientation for a one-person team. Against: a three-minute pocket session is a portrait, one-handed habit, one-handed play is nearly impossible in landscape, and research/01 has no data on orientation at all. Suggestion: keep v1 landscape, but pin the primary actions in the Market, the Counter and the Books to the bottom-right thumb zone, mirror them with a left-handed setting, and add the rotation abandonment rate at first launch to 21's metric list. Because the core is behind ports (04), the three management screens can be moved to portrait later; do not close that door.
+2. **What do the accessibility settings cover?** 16 has screen 5 saying "accessibility" and no document writes its contents. The minimum list: a text size scale (20 C5 defines only the family and the Turkish glyphs, with no smallest body size), a colour-blind palette, reduced motion (a static alternative to the flashing stock bar and the glow effects, flashing below three hertz), haptics on/off, left-handed mirroring, and an "auto-pause when patience goes critical" option. Screen-reader support in a Unity UI is not realistic for one person in v1; instead of promising it, the baseline "no information by colour alone, no input that depends on timing alone" should be the written goal.
+3. **Is four pieces of information too many in the top bar (16, question 4)?** Not too many — wrong during service. Till and "N days to rent" are constant; "Day" and "Reputation" only in the Market, the Counter and the Books; during service their places should go to the intervention allowance and day progress. The coin is "warm gold" (12 §7.5) and the Turkish cuisine palette is "brass" (10); the top bar should sit on its own opaque plate, not over the scene.
+4. **The hiring pool refreshes every three days (14).** Who tells the player that? Without a badge on the Counter, the player forgets the pool.
+5. **Is the Market a "second loop" or automation?** Until this is answered — the question between 02 §2 principle 2 and §3 Stage 1 — the touch budget cannot be computed.

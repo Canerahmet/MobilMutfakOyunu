@@ -4,8 +4,8 @@ using System.IO;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Depo kokunu bulur. Test derlemesi bin/ altinda calisiyor.
-    /// .NET 10 cozum dosyasini .slnx olarak uretiyor; ikisi de kabul edilir.
+    /// Finds the repository root. The test assembly runs under bin/.
+    /// .NET 10 produces the solution file as .slnx; both are accepted.
     /// </summary>
     public static class Paths
     {
@@ -28,8 +28,8 @@ namespace Lokanta.Core.Tests
                 d = d.Parent;
             }
             throw new InvalidOperationException(
-                "Depo koku bulunamadi (" + string.Join(" veya ", Markers)
-                + "), baslangic: " + AppContext.BaseDirectory);
+                "Repository root not found (" + string.Join(" or ", Markers)
+                + "), starting from: " + AppContext.BaseDirectory);
         }
     }
 }

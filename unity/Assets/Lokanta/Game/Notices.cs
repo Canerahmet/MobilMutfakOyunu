@@ -3,7 +3,7 @@ using Lokanta.Core.Sim;
 
 namespace Lokanta.Game
 {
-    /// <summary>Bildirimin tonu. Rengi ve sesi buradan geliyor.</summary>
+    /// <summary>The tone of a notice. Its colour and its sound come from here.</summary>
     public enum NoticeTone
     {
         Info,
@@ -13,23 +13,24 @@ namespace Lokanta.Game
     }
 
     /// <summary>
-    /// Simulasyon olaylarini OYUNCUNUN OKUYACAGI CUMLEYE cevirir.
+    /// Turns simulation events into A SENTENCE THE PLAYER CAN READ.
     ///
-    /// Bu sinif olmadan oyun sagirdi. Cekirdek otuz uc tur olay uretiyor
-    /// (docs/23 6.3) ve gorunum katmani bunlarin yalnizca yedisini
-    /// okuyup SES caliyordu: sabir uyarisi, stok bitmesi, istifa, gecikmis
-    /// maas, yanan veresiye, kusen musteri - hepsi hesaplaniyor ve
-    /// atiliyordu. Oyuncu kizgin musterisinin neden kizdigini
-    /// ogrenemiyordu.
+    /// Without this class the game was deaf. The core produces thirty-three
+    /// kinds of event (docs/23 6.3) and the view layer read only seven of
+    /// them, to play a SOUND: the patience warning, running out of stock, a
+    /// resignation, late wages, a tab gone bad, an offended guest - all of
+    /// them worked out, and all of them thrown away. The player could not
+    /// find out why their angry guest was angry.
     ///
-    /// Burada YALNIZCA metin uretiliyor. Olay -> cumle; karar yok, durum
-    /// yok. Sik tekrarlayan olaylar (oturma, siparis, odeme) bilerek
-    /// disarida: bir bildirim seridi, dakikada kirk satir akarsa okunmuyor.
+    /// ONLY the text is produced here. Event -> sentence; no decisions, no
+    /// state. Events that repeat often (being seated, ordering, paying) are
+    /// deliberately left out: a notice strip that has forty lines a minute
+    /// flowing through it does not get read.
     /// </summary>
     public static class Notices
     {
         /// <summary>
-        /// Olayin bildirim metni. Bildirimi olmayan olaylar icin false.
+        /// The notice text for the event. False for events that have no notice.
         /// </summary>
         public static bool Describe(in SimEvent e, ContentSet content, Simulation sim,
                                     out string text, out NoticeTone tone)
@@ -39,27 +40,28 @@ namespace Lokanta.Game
 
             switch (e.Kind)
             {
-                // --- salon ---------------------------------------------------
+                // --- hall ---------------------------------------------------
                 case SimEventKind.CustomerLeftAngry:
                     tone = NoticeTone.Bad;
                     text = Loc.T("notice.angry", StageReason(e.B));
                     return true;
 
                 case SimEventKind.PlatesOut:
-                    // SEBEBI VE CARESI ayni cumlede: "neden durdu" ve
-                    // "ne yapmaliyim". Bulasikci varsa care farkli
-                    // olmali - ona "bulasikci tut" demek, olmayan bir
-                    // dugmeyi aramasina yol acardi.
+                    // THE CAUSE AND THE CURE in the same sentence: "why it stopped"
+                    // and "what should I do". If there is a dishwasher the cure has
+                    // to be a different one - telling that player to "hire a
+                    // dishwasher" would send them looking for a button that is not
+                    // there.
                     tone = NoticeTone.Warn;
                     text = e.B > 0
                         ? Loc.T("notice.plates_out_busy", e.A)
                         : Loc.T("notice.plates_out", e.A);
                     return true;
 
-                // YEMEK ADI YAZILMIYOR: olay bir yemegin bitmesi degil,
-                // musterinin menuede yapilabilir HICBIR ana yemek
-                // bulamamasi. Eskiden e.A yemek sanilip isim basiliyordu;
-                // e.A parti indisi oldugu icin ilgisiz bir yemek cikiyordu.
+                // THE DISH NAME IS NOT PRINTED: the event is not a dish running
+                // out, it is the guest finding NO main dish at all on the menu
+                // that can be made. It used to take e.A for a dish and print its
+                // name; since e.A is the party index, an unrelated dish came out.
                 case SimEventKind.TurnedAway:
                     tone = NoticeTone.Warn;
                     text = Loc.T("notice.turned_away");
@@ -75,7 +77,7 @@ namespace Lokanta.Game
                     text = Loc.T("notice.unlocked", Dish(content, e.A));
                     return true;
 
-                // --- duzenli musteriler --------------------------------------
+                // --- regulars ------------------------------------------------
                 case SimEventKind.RegularVisited:
                     tone = NoticeTone.Good;
                     text = Loc.T("notice.regular", Regular(content, e.A));
@@ -86,7 +88,7 @@ namespace Lokanta.Game
                     text = Loc.T("notice.regular_upset", Regular(content, e.A), e.B);
                     return true;
 
-                // --- kadro ---------------------------------------------------
+                // --- crew ----------------------------------------------------
                 case SimEventKind.StaffResigned:
                     tone = NoticeTone.Bad;
                     text = Loc.T("notice.resigned", Who(sim, e.A, e.B));
@@ -98,19 +100,21 @@ namespace Lokanta.Game
                     return true;
 
                 case SimEventKind.StaffTenure:
-                    // SATIR MUTFAGA GORE.
+                    // THE LINE DEPENDS ON THE CUISINE.
                     //
-                    // Esnaf lokantasinda iliski USTAYA ve ise; zincirde
-                    // VARDIYAYA ve sisteme (docs/53). Tek satir ikisini
-                    // de genel yapardi.
+                    // In a tradesman's restaurant the relationship is with the CHEF
+                    // and with the work; in a chain it is with the SHIFT and with
+                    // the system (docs/53). A single line would have made both of
+                    // them generic.
                     //
-                    // Ayirt eden sey self servis bayragi - mutfak adini
-                    // burada okumak, ucuncu bir yere "hangi mutfak
-                    // hangisi" bilgisi yazmak olurdu.
+                    // What tells them apart is the self-service flag - reading the
+                    // cuisine's name here would mean writing "which cuisine is
+                    // which" into a third place.
                     //
-                    // e.A havuz, e.B SIRA. Gun sayisi olayda degil:
-                    // sabit (Simulation.TenureDays) ve iki yere yazmak
-                    // bu projede bes kez sessizce ayristi.
+                    // e.A is the pool, e.B the INDEX. The number of days is not in
+                    // the event: it is a constant (Simulation.TenureDays) and
+                    // writing it in two places has drifted apart silently five times
+                    // in this project.
                     tone = NoticeTone.Good;
                     text = Loc.T(
                         content != null && content.SelfService
@@ -118,7 +122,7 @@ namespace Lokanta.Game
                         Who(sim, e.A, e.B), Simulation.TenureDays);
                     return true;
 
-                // --- para ----------------------------------------------------
+                // --- money ---------------------------------------------------
                 case SimEventKind.WeeklyCostsPaid:
                     tone = NoticeTone.Info;
                     text = Loc.T("notice.weekly", Loc.Money(e.A), Loc.Money(e.B));
@@ -134,7 +138,7 @@ namespace Lokanta.Game
                     text = Loc.T("notice.debt", Loc.Money(e.B));
                     return true;
 
-                // --- veresiye ------------------------------------------------
+                // --- the book ------------------------------------------------
                 case SimEventKind.CreditExtended:
                     tone = NoticeTone.Info;
                     text = Loc.T("notice.credit_given", Loc.Money(e.B));
@@ -150,7 +154,7 @@ namespace Lokanta.Game
                     text = Loc.T("notice.credit_lost", Loc.Money(e.A));
                     return true;
 
-                // --- yatirim -------------------------------------------------
+                // --- investment ----------------------------------------------
                 case SimEventKind.EquipmentBought:
                     tone = NoticeTone.Good;
                     text = Loc.T("notice.equipment", Station(content, e.A), e.B);
@@ -161,11 +165,12 @@ namespace Lokanta.Game
                     text = Loc.T("notice.storage", e.A);
                     return true;
 
-                // --- batma merdiveni -----------------------------------------
+                // --- the ladder down -----------------------------------------
                 //
-                // Bunlar OYUNCUNUN ISTEMEDIGI seyler ve tam da bu yuzden
-                // gorunmeleri sart: ekipmani satilan, kuculen bir dukkan
-                // sessizce kucuk kalirsa oyuncu sebebini hic ogrenemez.
+                // These are the things THE PLAYER DOES NOT WANT, and that is
+                // exactly why they have to be visible: if a shop whose equipment
+                // is being sold off quietly stays small, the player never learns
+                // why.
                 case SimEventKind.EquipmentSold:
                     tone = NoticeTone.Bad;
                     text = Loc.T("notice.equipment_sold", Station(content, e.A), e.B);
@@ -181,20 +186,21 @@ namespace Lokanta.Game
                     text = Loc.T("notice.rushed", Station(content, e.A), e.B);
                     return true;
 
-                // --- reddedilen komut ----------------------------------------
+                // --- a rejected command --------------------------------------
                 //
-                // Bunu gostermek sart: bir dugmeye basip hicbir sey
-                // olmamasi, oyuncuya oyunun bozuk oldugunu dusunduruyor.
+                // Showing this is essential: pressing a button and nothing
+                // happening makes the player think the game is broken.
                 case SimEventKind.CommandRejected:
                     tone = NoticeTone.Warn;
-                    // SEBEP DE SOYLENIYOR. Tek bir jenerik cumle, birbirine
-                    // hic benzemeyen durumlari ayni gosteriyordu: parasi
-                    // yetmeyen oyuncu ile gunluk komut hakkini bitiren
-                    // oyuncu ayni yaziyi okuyor ve ikisi de ne
-                    // yapacagini bilmiyordu.
+                    // THE REASON IS GIVEN TOO. A single generic sentence made
+                    // situations that are nothing like each other look the same:
+                    // the player who cannot afford it and the player who has used
+                    // up the day's command allowance read the same line, and
+                    // neither of them knew what to do.
                     //
-                    // B alani red sebebi (Simulation.Emit'in ikinci
-                    // sayisi): 9 para yetmedi, 12 gunluk komut hakki.
+                    // The B field is the reason for the refusal (the second number
+                    // of Simulation.Emit): 9 not enough money, 12 the day's command
+                    // allowance.
                     if (e.B == 9) text = Loc.T("notice.rejected_cash");
                     else if (e.B == 12) text = Loc.T("notice.rejected_budget");
                     else if (e.B == 16) text = Loc.T("notice.rejected_book");
@@ -207,8 +213,9 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Musteri hangi asamada birakti. "Kizdi" tek basina bilgi degil;
-        /// oyuncunun BIR SONRAKI gun ne degistirecegini bu soyluyor.
+        /// At which stage the guest gave up. "They got angry" is not
+        /// information on its own; this is what tells the player what to
+        /// change the NEXT day.
         /// </summary>
         private static string StageReason(int stage)
         {
@@ -227,11 +234,12 @@ namespace Lokanta.Game
         }
 
         /// <summary>
-        /// Kisinin ADI, yoksa rolu.
+        /// The person's NAME, or their role if there is none.
         ///
-        /// Istifa olayinda kisi ARTIK KADRODA DEGIL, yani adini sormak
-        /// bos donuyor. O yuzden rol yedek olarak duruyor: "Asci birakti"
-        /// bilgisiz degil, sadece soguk.
+        /// In a resignation event the person IS NO LONGER ON THE CREW, so
+        /// asking for their name comes back empty. That is why the role
+        /// stands as the fallback: "the cook has left" is not uninformative,
+        /// only cold.
         /// </summary>
         private static string Who(Simulation sim, int pool, int index)
         {

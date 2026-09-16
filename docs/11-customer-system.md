@@ -1,157 +1,157 @@
-# Müşteri Sistemi: Arketipler
+# Customer System: Archetypes
 
-**Son güncelleme:** 9 Eylül 2026, v2
-**Kütük maddesi:** A7 müşteri sistemi detayı, birinci yarısı
-**Durum:** Arketipler yazıldı. Formüller ekonomi çalışmasıyla birlikte gelecek.
+**Last updated:** 9 September 2026, v2
+**Register item:** A7 customer system detail, first half
+**Status:** The archetypes are written. The formulas will come with the economy work.
 
-**v2 değişikliği:** Arketip sayısı mutfak başına 8'den **20'ye** çıkarıldı. Karışmalarını önlemek için sıklık kademesi eklendi ve bir kısmı paylaşılan hale getirildi.
-
----
-
-## Arketip nedir
-
-**Arketip bir kişi değil, bir davranış şablonudur.**
-
-Kapıdan bir müşteri girdiğinde oyun şunu yapar:
-
-1. Saate, mutfağa ve sıklık kademesine göre bir arketip seçer.
-2. O arketipin parametrelerini kopyalar.
-3. Arketipin işaret ettiği gardırop alt kümesinden ona bir görünüm üretir.
-4. Sahneye koyar.
-
-Arketip görünmez. Oyuncunun gördüğü şey, o şablondan üretilmiş benzersiz görünümlü bir insan.
-
-**İsimli düzenli müşteriden farkı:** isimli müşteri tek bir kişidir, elle yazılmıştır, hikayesi vardır ve hep aynı kişidir. Arketip ise binlerce müşteri üretir.
+**The v2 change:** the archetype count per cuisine was raised from 8 to **20**. A frequency tier was added to stop them blurring together, and some of them were made shared.
 
 ---
 
-## Sekiz parametre
+## What an archetype is
 
-| Parametre | Ne yapar |
+**An archetype is not a person, it is a behaviour template.**
+
+When a customer comes through the door the game does this:
+
+1. Picks an archetype according to the hour, the cuisine and the frequency tier.
+2. Copies that archetype's parameters.
+3. Generates an appearance for them from the wardrobe subset the archetype points at.
+4. Puts them on stage.
+
+The archetype is invisible. What the player sees is a uniquely dressed human generated from that template.
+
+**How it differs from a named regular:** a named customer is one single person, hand-written, with a story, and always the same person. An archetype produces thousands of customers.
+
+---
+
+## The eight parameters
+
+| Parameter | What it does |
 |---|---|
-| **Sabır** | Ne kadar bekleyince sinirlenip çıkıp gider |
-| **Harcama eğilimi** | Kaç kalem sipariş eder, ne kadar bırakır |
-| **Fiyat duyarlılığı** | Fiyat piyasa üstündeyse ne kadar rahatsız olur |
-| **Grup büyüklüğü** | Kaç kişilik masa gerekir |
-| **Geliş saati** | Gün içinde ne zaman gelme ihtimali yüksek |
-| **Sipariş tercihi** | Menünün hangi grubuna yönelir |
-| **İtibar ağırlığı** | Memnuniyeti veya şikayeti itibarı ne kadar oynatır |
-| **Düzenli olma eğilimi** | Tekrar gelme ve düzenli müşteriye dönüşme ihtimali |
+| **Patience** | How long they wait before they get angry and walk out |
+| **Spending tendency** | How many items they order, how much they leave |
+| **Price sensitivity** | How much it bothers them if the price is above the market |
+| **Group size** | How big a table is needed |
+| **Arrival hour** | When during the day they are likely to come |
+| **Order preference** | Which group on the menu they head for |
+| **Reputation weight** | How much their satisfaction or complaint moves reputation |
+| **Tendency to become a regular** | The chance of coming back and turning into a regular |
 
-**Kritik bağlantı:** arketip aynı zamanda giydirme sistemine hangi kıyafet ve aksesuarların seçileceğini söyler. İnşaat işçisi arketipi baret ve iş kıyafeti çeker. Böylece salona baktığında kimin oturduğunu siluetten anlarsın. Davranış ve görünüm birbirine bağlı, ve mutfak kimliğini yaratan şey bu bağ.
+**A critical connection:** the archetype also tells the dress-up system which clothes and accessories to pick. The construction worker archetype pulls a hard hat and work clothes. That way, when you look at the hall, you can tell who is sitting there from the silhouette. Behaviour and appearance are tied to each other, and that tie is what creates the cuisine's identity.
 
 ---
 
-## Sıklık kademesi: yirmi arketip neden karışmıyor
+## The frequency tier: why twenty archetypes do not blur together
 
-Çeşitlilik arttıkça arketiplerin birbirine benzeme riski doğar. Bunu **sıklık kademesi** çözüyor.
+As variety increases, the archetypes risk resembling each other. The **frequency tier** solves that.
 
-| Kademe | Adet | Trafik payı | İşlevi |
+| Tier | Count | Share of traffic | Its function |
 |---|---|---|---|
-| **Sık** | 8 | Yaklaşık %70 | Günün omurgası. Oyuncu bunları tanır ve ona göre plan yapar |
-| **Orta** | 8 | Yaklaşık %25 | Doku. Her gün birkaçı gelir, günü tekdüzelikten çıkarır |
-| **Nadir** | 4 | Yaklaşık %5 | Olay. Kampanya boyunca birkaç kez gelir, o günün şeklini değiştirir |
+| **Frequent** | 8 | Roughly 70% | The backbone of the day. The player learns these and plans around them |
+| **Medium** | 8 | Roughly 25% | Texture. A few come every day and keep the day from being uniform |
+| **Rare** | 4 | Roughly 5% | An event. They come a few times across the campaign and change the shape of that day |
 
-Nadir arketipler tasarım olarak **olay** niteliğinde. Yemek eleştirmeni geldiği gün oyun bambaşka oynanır. Toplu sipariş geldiği gün mutfak kilitlenir. Bunlar hatırlanan anlar üretir.
+Rare archetypes are, by design, **events**. The day the food critic comes, the game plays completely differently. The day the bulk order comes, the kitchen locks up. These produce remembered moments.
 
 ---
 
-## Paylaşılan sekiz arketip
+## The eight shared archetypes
 
-Bunlar her mutfakta çalışır, sadece kıyafetleri o mutfağa göre değişir. Bir kez yazılır.
+These work in every cuisine; only their clothes change with the cuisine. Written once.
 
-| Arketip | Kademe | Öne çıkan özellik |
+| Archetype | Tier | Standout feature |
 |---|---|---|
-| Yalnız müşteri | Sık | Tek kişi, orta sabır, hızlı devir |
-| Çift | Sık | İki kişi, orta sabır, orta harcama |
-| Aile | Sık | 3-5 kişi, sabır yüksek, harcama yüksek |
-| Kurye, paket alan | Sık | Sabır çok düşük, tek kalem, masa işgal etmez |
-| Çocuklu ebeveyn | Orta | Sabır düşük, tatlı siparişi kesin, masa süresi uzun |
-| Yolcu | Orta | Tek seferlik, düzenli olmaz, itibar ağırlığı düşük |
-| Paylaşımcı | Orta | İtibar ağırlığı üç katı, hem övgü hem şikayet büyür |
-| Yemek eleştirmeni | Nadir | Kalite beklentisi çok yüksek, itibar ağırlığı en yüksek |
+| Solo Diner | Frequent | One person, medium patience, fast turnover |
+| Couple | Frequent | Two people, medium patience, medium spend |
+| Family | Frequent | 3-5 people, high patience, high spend |
+| Courier, takeaway | Frequent | Very low patience, one item, does not occupy a table |
+| Parent with Child | Medium | Low patience, a dessert order is certain, long table time |
+| Traveller | Medium | One-off, never becomes a regular, low reputation weight |
+| Sharing Group | Medium | Triple reputation weight, both the praise and the complaint grow |
+| Food Critic | Rare | Very high quality expectation, the highest reputation weight |
 
 ---
 
-## Fast food'a özel on iki arketip
+## Twelve archetypes specific to fast food
 
-| Arketip | Kademe | Öne çıkan özellik |
+| Archetype | Tier | Standout feature |
 |---|---|---|
-| Aceleci öğrenci | Sık | Sabır düşük, bütçe dar, kombo alır |
-| Ofis grubu | Sık | 2-4 kişi, öğle zirvesi, hızlı servis bekler |
-| Antrenman sonrası | Sık | Yüksek harcama, porsiyon odaklı, akşam |
-| Alışveriş molası | Sık | Orta sabır, tatlı ve içecek ekler |
-| Pazarlıkçı | Orta | Fiyat duyarlılığı çok yüksek, piyasa üstünde hiç gelmez |
-| Geç saat müşterisi | Orta | Sabır yüksek, kapanışa yakın, orta harcama |
-| Maç grubu | Orta | Kalabalık, gürültülü, yüksek harcama, uzun oturur |
-| Diyet yapan | Orta | Salata ve vejetaryen arar, seçenek yoksa çıkar gider |
-| Gece vardiyası | Orta | Kapanış saatinde, tek kişi, sadık olabilir |
-| Doğum günü grubu | Nadir | Çok kalabalık, tatlı ağırlıklı, tek seferde büyük gelir |
-| Şikayetçi müşteri | Nadir | Memnun etmesi çok zor, itibar riski taşır |
-| Toplu sipariş | Nadir | Tek seferde devasa sipariş, mutfağı kilitler |
+| Student in a Hurry | Frequent | Low patience, tight budget, buys the combo |
+| Office Group | Frequent | 2-4 people, lunch peak, expects fast service |
+| Post-Workout | Frequent | High spend, portion-focused, evening |
+| Shopping Break | Frequent | Medium patience, adds a dessert and a drink |
+| Haggler | Medium | Very high price sensitivity, never comes if you are above market |
+| Late-Night Diner | Medium | High patience, near closing, medium spend |
+| Match-Day Crowd | Medium | Crowded, loud, high spend, sits for a long time |
+| Dieter | Medium | Looks for salad and vegetarian; if there is no option they walk out |
+| Night Shift | Medium | At closing time, one person, can become loyal |
+| Birthday Party | Rare | Very crowded, dessert-heavy, large revenue in one go |
+| Complainer | Rare | Very hard to please, carries a reputation risk |
+| Bulk Order | Rare | A huge order in one go, locks up the kitchen |
 
 ---
 
-## Türk mutfağına özel on iki arketip
+## Twelve archetypes specific to Turkish cuisine
 
-| Arketip | Kademe | Öne çıkan özellik |
+| Archetype | Tier | Standout feature |
 |---|---|---|
-| Esnaf komşu | Sık | Düzenli olma eğilimi en yüksek. Veresiye defterinin ana adayı |
-| Öğle molası çalışanı | Sık | Sabır çok düşük, hızlı servis şart, keskin öğle zirvesi |
-| İnşaat işçisi | Sık | Porsiyon beklentisi yüksek, orta harcama, öğle |
-| Memur | Sık | Günün yemeğini bekler, sabır yüksek, düzenli olur |
-| Emekli | Orta | Sabır çok yüksek, harcama düşük, çay ikramına çok duyarlı |
-| Öğrenci | Orta | Bütçe dar, porsiyon önemli, fiyat duyarlılığı yüksek |
-| Hafta sonu ailesi | Orta | Harcama yüksek, masa süresi uzun |
-| Uzun yol şoförü | Orta | Tek seferlik, hızlı, doyurucu arar |
-| Titiz müşteri | Orta | Memnuniyet eşiği yüksek, itibar ağırlığı yüksek |
-| Mahalle toplu yemeği | Nadir | Çok kalabalık grup, önceden haber verir, tek günde büyük hacim |
-| Denetim görevlisi | Nadir | Temizlik ve düzeni denetler, sonucu itibarı sert oynatır |
-| Eski müşteri | Nadir | Uzun süredir gelmemiş biri. İyi ağırlanırsa düzenliye döner |
+| Neighbouring Shopkeeper | Frequent | The highest tendency to become a regular. The prime candidate for the tab book |
+| Lunch-Break Worker | Frequent | Very low patience, fast service is essential, a sharp lunch peak |
+| Construction Worker | Frequent | High portion expectation, medium spend, lunch |
+| Civil Servant | Frequent | Waits for the dish of the day, high patience, becomes a regular |
+| Pensioner | Medium | Very high patience, low spend, very sensitive to being offered tea |
+| Student | Medium | Tight budget, portion matters, high price sensitivity |
+| Weekend Family | Medium | High spend, long table time |
+| Long-Haul Driver | Medium | One-off, fast, looking for something filling |
+| Fussy Diner | Medium | High satisfaction threshold, high reputation weight |
+| Neighbourhood Gathering | Rare | A very large group, announces itself in advance, big volume in a single day |
+| Health Inspector | Rare | Inspects cleanliness and order, the result moves reputation hard |
+| Old Regular | Rare | Someone who has not come for a long time. Treated well, they turn back into a regular |
 
 ---
 
-## Arketipler mutfak kimliğini nasıl taşıyor
+## How archetypes carry cuisine identity
 
-Aynı yirmi slot, mutfağa göre farklı doluyor ve sıklık dağılımı da değişiyor.
+The same twenty slots fill differently by cuisine, and the frequency distribution changes too.
 
-- **Fast food:** kalabalık genç ve aceleci. Sabır ortalaması düşük, masa süresi kısa, devir yüksek. İki keskin zirve.
-- **Türk lokantası:** düzenli müşteri ağırlıklı. Sabır ortalaması yüksek, öğle zirvesi çok sert, akşam neredeyse boş.
-- **İtalyan:** akşam gelir ve uzun oturur. Masa devri düşük, harcama yüksek.
-- **Japon ramen dükkânı:** tek kişilik ve çok hızlı. Sabır düşük ama masa süresi de çok kısa.
+- **Fast food:** the crowd is young and in a hurry. Average patience low, table time short, turnover high. Two sharp peaks.
+- **The Turkish lokanta:** weighted towards regulars. Average patience high, a very hard lunch peak, the evening almost empty.
+- **Italian:** they come in the evening and sit for a long time. Table turnover low, spend high.
+- **The Japanese ramen shop:** single diners and very fast. Patience low, but table time is very short too.
 
-Menü değişmesi tek başına bunu vermez. Günün oynanış hissini belirleyen şey arketip dağılımı.
+Changing the menu alone does not give you this. What determines how the day feels to play is the archetype distribution.
 
 ---
 
-## Üretim maliyeti
+## Production cost
 
-Arketip **veri, model değil.** Sekiz parametre ve bir gardırop işareti. Yani yeni arketip eklemek ucuz.
+An archetype is **data, not a model.** Eight parameters and a wardrobe marker. So adding a new archetype is cheap.
 
-Ama sıfır değil: yirmi arketibi görsel olarak ayırt edilebilir kılmak için gardırop genişledi.
+But it is not free: making twenty archetypes visually distinguishable is what widened the wardrobe.
 
-| Kalem | v1 | v2 |
+| Item | v1 | v2 |
 |---|---|---|
-| Arketip, mutfak başına | 8 | 20 |
-| Bunun paylaşılan kısmı | 0 | 8 |
-| Mutfak başına yeni yazılacak | 8 | 12 |
-| Kıyafet seti, mutfak başına | 12 | **16** |
+| Archetypes, per cuisine | 8 | 20 |
+| The shared part of that | 0 | 8 |
+| New ones to write per cuisine | 8 | 12 |
+| Clothing sets, per cuisine | 12 | **16** |
 
-Kıyafet setinin on altıya çıkması, arketiplerin siluetten tanınabilmesi için gerekli. Yeni kombinasyon sayısı: 3 × 8 × 6 × 16 × 10 ile yirmi üç binin üstünde.
+Raising the clothing sets to sixteen is what makes the archetypes recognisable from the silhouette. The new combination count: 3 × 8 × 6 × 16 × 10, over twenty-three thousand.
 
 ---
 
-## Henüz yazılmayan kısım
+## The part not yet written
 
-Parametrelerin sayısal karşılığı yok. "Sabır düşük" şu an sadece bir kelime.
+The parameters have no numerical value. "Low patience" is currently just a word.
 
-Ekonomi çalışmasıyla birlikte şunlar yazılacak:
+The following will be written together with the economy work:
 
-1. Sabır saniye cinsinden ne kadar, ve nasıl azalıyor
-2. Fiyat duyarlılığı formülü: piyasa üstü yüzde kaç, memnuniyet ne kadar düşüyor
-3. Memnuniyetin itibara çevrilmesi
-4. İtibarın ertesi gün kaç müşteri getirdiği
-5. Yirmi arketibin saate göre dağılım tablosu
-6. Sıklık kademelerinin gerçek olasılıkları
+1. How much patience is in seconds, and how it drains
+2. The price sensitivity formula: how many per cent above market, how far satisfaction falls
+3. Converting satisfaction into reputation
+4. How many customers reputation brings the next day
+5. The hour-by-hour distribution table for twenty archetypes
+6. The real probabilities of the frequency tiers
 
-Bunlar A7'nin ikinci yarısı ve A4 ekonomi sayılarıyla birlikte yazılacak.
+These are the second half of A7 and will be written together with the A4 economy numbers.

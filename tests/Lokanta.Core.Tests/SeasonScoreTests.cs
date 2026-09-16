@@ -8,12 +8,12 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Yil sonu degerlendirmesi. docs/08-endgame.md.
+    /// The year-end evaluation. docs/08-endgame.md.
     ///
-    /// Bu ozellik bir zamanlar TASARLANMIS ama HIC BAGLANMAMISTI: ekran
-    /// yaziliydi, CampaignDays icerikte duruyordu, ve altmisinci gun gelip
-    /// geciyordu. Testler o bosluğu gormedi cunku hicbiri kampanyanin
-    /// sonuna kadar oynamiyordu.
+    /// This feature had once been DESIGNED but NEVER WIRED UP: the screen was
+    /// written, CampaignDays sat in the content, and the sixtieth day came and
+    /// went. The tests did not see that gap because none of them played to the
+    /// end of the campaign.
     /// </summary>
     public sealed class SeasonScoreTests
     {
@@ -33,27 +33,27 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Kampanya_bitmeden_degerlendirme_acilmiyor()
+        public void The_evaluation_does_not_open_before_the_campaign_ends()
         {
             Simulation sim = NewSim();
             Assert.False(sim.SeasonJustEnded);
-            Assert.True(sim.CampaignDays >= 30, "kampanya uzunlugu icerikten gelmiyor");
+            Assert.True(sim.CampaignDays >= 30, "the campaign length is not coming from the content");
         }
 
         [Fact]
-        public void Degerlendirme_bir_kez_aciliyor()
+        public void The_evaluation_opens_a_single_time()
         {
             Simulation sim = NewSim();
             RunTo(sim, sim.CampaignDays + 1);
 
-            Assert.True(sim.SeasonJustEnded, "kampanya doldu ama degerlendirme acilmiyor");
+            Assert.True(sim.SeasonJustEnded, "the campaign is over but the evaluation does not open");
 
             sim.MarkSeasonScored();
-            Assert.False(sim.SeasonJustEnded, "degerlendirme ikinci kez aciliyor");
+            Assert.False(sim.SeasonJustEnded, "the evaluation opens a second time");
         }
 
         [Fact]
-        public void Yedi_eksen_de_sinirlar_icinde()
+        public void All_seven_axes_stay_within_their_bounds()
         {
             Simulation sim = NewSim();
             RunTo(sim, sim.CampaignDays + 1);
@@ -63,33 +63,33 @@ namespace Lokanta.Core.Tests
             {
                 int v = s.AxisAt(i);
                 Assert.True(v >= 0 && v <= 100,
-                            SeasonScore.AxisKey(i) + " ekseni sinir disi: " + v);
+                            "the " + SeasonScore.AxisKey(i) + " axis is out of range: " + v);
             }
             Assert.True(s.Total >= 0 && s.Total <= 100);
             Assert.True(s.Plaque >= 0 && s.Plaque <= 3);
 
-            _out.WriteLine($"toplam {s.Total}, plaket {s.Plaque}");
+            _out.WriteLine($"total {s.Total}, plaque {s.Plaque}");
             for (int i = 0; i < SeasonScore.AxisCount; i++)
                 _out.WriteLine($"  {SeasonScore.AxisKey(i)} = {s.AxisAt(i)}");
         }
 
         [Fact]
-        public void Hicbir_sey_yapmayan_oyuncu_tam_puan_almiyor()
+        public void A_player_who_does_nothing_does_not_get_full_marks()
         {
-            // Pasif kosu: stok alinmiyor, kimse ise alinmiyor, genisleme
-            // yok. Puan dusuk OLMALI - yoksa degerlendirme hicbir sey
-            // olcmuyor demektir.
+            // A passive run: no stock is bought, nobody is hired, there is no
+            // expansion. The score MUST be low - otherwise the evaluation is
+            // measuring nothing at all.
             Simulation sim = NewSim();
             RunTo(sim, sim.CampaignDays + 1);
 
             SeasonScore s = sim.Score();
             Assert.True(s.Total < 60,
-                        "hicbir sey yapmayan oyuncu " + s.Total + " puan aliyor");
-            Assert.True(s.Place < 50, "genislemeyen oyuncunun mekan puani yuksek");
+                        "a player who does nothing scores " + s.Total);
+            Assert.True(s.Place < 50, "a player who never expands has a high place score");
         }
 
         [Fact]
-        public void Merdivene_inmek_saglamligi_dusuruyor()
+        public void Going_down_the_ladder_lowers_resilience()
         {
             Simulation sim = NewSim();
             RunTo(sim, sim.CampaignDays + 1);
@@ -97,13 +97,13 @@ namespace Lokanta.Core.Tests
             SeasonScore s = sim.Score();
             if (sim.DebtRungs > 0)
                 Assert.True(s.Resilience < 100,
-                            "merdivene inildigi halde saglamlik tam puan");
+                            "the ladder was used and yet resilience is full marks");
             else
                 Assert.True(s.Resilience >= 85,
-                            "hic borca dusulmedigi halde saglamlik dusuk");
+                            "there was never any debt and yet resilience is low");
         }
 
-        /// <summary>Hicbir sey yapmadan gun gun ilerler.</summary>
+        /// <summary>Advances day by day without doing anything.</summary>
         private static void RunTo(Simulation sim, int day)
         {
             while (sim.Day < day)

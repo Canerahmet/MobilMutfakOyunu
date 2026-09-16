@@ -1,159 +1,161 @@
-# Oyunun Sonu
+# The End of the Game
 
-**Son güncelleme:** 9 Eylül 2026
-**Kütük maddesi:** A14
-**Durum:** ✅ Onaylandı, 9 Eylül 2026
-
----
-
-## Soru
-
-Oyunun tanımlı bir sonu mu olsun, yoksa sonsuza kadar mı devam etsin?
-
-Mutfak kilidi kararı bu soruyu zorunlu hale getirdi. "Oyun bitene kadar o tarz ile devam edelim" cümlesi, oyunun bittiği bir noktanın var olmasını gerektiriyor.
+**Last updated:** 9 September 2026
+**Register item:** A14
+**Status:** ✅ Approved, 9 September 2026
 
 ---
 
-## Diğer oyunlar ne yapıyor
+## The question
 
-| Oyun | Model | Sonuç |
+Should the game have a defined ending, or should it go on forever?
+
+The cuisine lock decision made this question mandatory. The sentence "let us continue with that style until the game ends" requires there to be a point at which the game ends.
+
+---
+
+## What other games do
+
+| Game | Model | Outcome |
 |---|---|---|
-| **Stardew Valley** | Üçüncü yılda puanlanan değerlendirme, sonra serbest oyun | En başarılı model. Oyun bitmiyor, sadece değerlendiriliyor |
-| **Dave the Diver** | Hikaye sonu, jenerikten sonra devam edilebiliyor | İyi ama post-game içeriği zayıf bulunmuş |
-| **PlateUp!** | On beş günlük koşular, her koşu bitiyor | Roguelite. Kayıp kalıcı bonusa dönüşüyor |
-| **Two Point Hospital** | Bölüm bazlı, her bölümde üç yıldız hedefi | Net hedefler, ama bizim yapımıza uymuyor |
-| **Supermarket Simulator** | Sonsuz. Tanımlı son yok | **Uyarı vakası.** Aşağıda ayrıntısı var |
-| **Tavern Master** | Sonsuz, boş son oyun | Araştırmada "harcayamayacağın kadar para" şikayeti |
-| **Cat Cafe Manager** | Kısa hikaye, sonrası yok | "Hikaye bitince tekrar oynanabilirlik yok" |
+| **Stardew Valley** | A scored evaluation in the third year, then free play | The most successful model. The game does not end, it is only evaluated |
+| **Dave the Diver** | A story ending, you can continue after the credits | Good, but the post-game content was found weak |
+| **PlateUp!** | Fifteen-day runs, every run ends | Roguelite. Loss turns into a permanent bonus |
+| **Two Point Hospital** | Level-based, a three-star target in every level | Clear goals, but it does not fit our structure |
+| **Supermarket Simulator** | Endless. No defined ending | **A cautionary case.** The detail is below |
+| **Tavern Master** | Endless, empty endgame | The "more money than you can spend" complaint in the research |
+| **Cat Cafe Manager** | A short story, nothing after it | "No replayability once the story is over" |
 
 ---
 
-## Kanıt: sonsuz modelin tuzağı
+## Evidence: the trap in the endless model
 
-Supermarket Simulator bize en yakın ekonomik döngüye sahip oyun ve sonsuz modeli seçti. Forumlarındaki geç oyun şikayetleri çok net:
+Supermarket Simulator is the game with the economic loop closest to ours, and it chose the endless model. The late-game complaints on its forums are very clear:
 
-- İki yüz saat oynayan bir oyuncu 90. seviyede ve hâlâ beş genişleme ile altı lisans kalmış. **Orta ve geç oyunda tek bir genişlemeyi almak otuz saat gerçek zaman alıyor.**
-- Oyun "depo simülatörüne" dönüşüyor. İki üç kasiyer ve raf görevlisi alındıktan sonra oyuncu mağazada neredeyse hiç vakit geçirmiyor, açılıştan önceki bir saati deponun dolu olduğundan emin olarak harcıyor.
-- Ödül tarafı boş: "birkaç ürün lisansı dışında hiçbir ödül almıyoruz."
-- Oyuncular günü kısaltmak için mod kullanıyor. Yirmi beş dakikalık gün beş dakikaya iniyor.
+- A player with two hundred hours is at level 90 and still has five expansions and six licences left. **In the mid and late game a single expansion takes thirty hours of real time to buy.**
+- The game turns into a "warehouse simulator". After hiring two or three cashiers and a shelf stocker, the player spends almost no time in the shop; they spend the hour before opening making sure the warehouse is full.
+- The reward side is empty: "apart from a few product licences we get no rewards at all."
+- Players use mods to shorten the day. A twenty-five-minute day drops to five minutes.
 
-Aynı forumda "450 saat sonunda oyunu bitirdim" başlığı da var. Yani sonsuz model bir kesim için çalışıyor. Ama şikayetler baskın ve hepsi aynı yere işaret ediyor: **hedef yoksa büyüme anlamını yitiriyor.**
+On the same forum there is also a thread titled "I finished the game after 450 hours". So the endless model works for one segment. But the complaints dominate and they all point to the same place: **without a goal, growth loses its meaning.**
 
-Öte yandan sert son da kötü. Stardew Valley'nin tasarımcısı eski Harvest Moon oyunlarının oyuncuyu daha iyi bir son için baştan başlamaya zorlamasını bilinçli olarak reddetmiş.
+On the other hand a hard ending is bad too. Stardew Valley's designer deliberately rejected the way the old Harvest Moon games forced the player to start over for a better ending.
 
-**İki uç da kötü. Ortası çalışıyor.**
-
----
-
-## Öneri: puanlanan final, sonrası serbest oyun
-
-Oyun tanımlı bir noktada **değerlendirilir**, ama **bitmez**.
-
-### Finalin yapısı
-
-**Birinci yılın sonu.** Dört mevsim, mevsim başına yaklaşık on beş gün, toplam altmış gün.
-
-Yıl dolduğunda semtin yemek eleştirmeni yıllık değerlendirmesini yazar. Bu bir gazete yazısı olarak sunulur ve başlığı senin puanına göre değişir. Ardından restorana bir plaket asılır.
-
-**Plaket duvarda kalır ve serbest oyunda görünür.** Ne yaptığının kalıcı ve görünür kanıtı olur.
-
-### Değerlendirmeden sonra
-
-- Kayıt silinmez, hiçbir şey elinden alınmaz.
-- Restoran çalışmaya devam eder. Serbest oyun modu açılır.
-- Yeni hikaye gelmez, ama oyun oynanabilir kalır.
-- İstersen daha iyi bir puan için ikinci yıla devam edip yeniden değerlendirilebilirsin. Stardew Valley'nin yeniden değerlendirme fikri.
-
-### Tekrar oynama kancası
-
-Puan, mutfak satın almanın değerini yaratan şey. Farklı bir mutfakla yeni bir kayıt açıp daha iyi bir sonuç hedeflersin.
-
-**Miras ekranı:** kayıtlar üstü kalıcı bir vitrin. Her mutfağın en iyi sonucunu gösterir. Dört plaketi de toplamak uzun vadeli hedef olur.
+**Both extremes are bad. The middle works.**
 
 ---
 
-## Puanlama eksenleri
+## Proposal: a scored finale, free play afterwards
 
-Değerlendirme tek sayı değil, çok eksenli olmalı. Böylece farklı oyun tarzları farklı yollardan iyi sonuç alabilir.
+The game is **evaluated** at a defined point, but it does not **end**.
 
-| Eksen | Ne ölçer |
+### The structure of the finale
+
+**The end of the first year.** Four seasons, roughly fifteen days per season, sixty days in total.
+
+When the year is up, the neighbourhood's food critic writes their annual review. It is presented as a newspaper piece and its headline changes according to your score. Then a plaque is hung in the restaurant.
+
+**The plaque stays on the wall and is visible in free play.** It becomes permanent, visible proof of what you did.
+
+### After the evaluation
+
+- The save is not deleted, nothing is taken away from you.
+- The restaurant keeps running. Free play mode opens.
+- No new story arrives, but the game stays playable.
+- If you want, you can continue into a second year for a better score and be evaluated again. Stardew Valley's re-evaluation idea.
+
+### The replay hook
+
+The score is what creates the value of buying a cuisine. You open a new save with a different cuisine and aim for a better result.
+
+**The legacy screen:** a permanent showcase across saves. It shows the best result for every cuisine. Collecting all four plaques becomes the long-term goal.
+
+---
+
+## The scoring axes
+
+The evaluation should not be a single number; it should be multi-axis. That way different playstyles can get a good result by different routes.
+
+| Axis | What it measures |
 |---|---|
-| Varlık | Yıl sonundaki net değer |
-| İtibar | Son itibar seviyesi |
-| Düzenli müşteriler | Kaç düzenli müşteri kazandın ve elinde tuttun |
-| Ekip | Kalan personel ve morali |
-| Mekân | Ne kadar büyüdün |
-| **Sağlamlık** | Batma merdivenine hiç düştün mü, ne kadar derine |
-| **Mutfağa özel eksen** | Her mutfakta farklı |
+| Wealth | Net worth at the end of the year |
+| Reputation | Final reputation level |
+| Regulars | How many regulars you won and kept |
+| Crew | Remaining staff and their morale |
+| Venue | How much you grew |
+| **Robustness** | Did you ever fall onto the bankruptcy ladder, and how deep |
+| **Cuisine-specific axis** | Different for every cuisine |
 
-### Mutfağa özel eksen
+### The cuisine-specific axis
 
-| Mutfak | Eksen |
+| Cuisine | Axis |
 |---|---|
-| Fast food | Ana yemeklerin kaçı komboya döndü |
-| Türk mutfağı | Veresiye tahsilat oranı |
-| İtalyan | Ortalama fiş tutarı |
-| Japon mutfağı | Çorba suyu isabet oranı |
+| Fast food | How many of the mains turned into a combo |
+| Turkish cuisine | Tab collection rate |
+| Italian | Average ticket |
+| Japanese cuisine | Broth accuracy rate |
 
-Bu eksen mutfakları birbirinden ayıran şeyi sonuçta da görünür kılıyor.
+This axis makes the thing that separates the cuisines visible in the result as well.
 
-> **Ölçüm notu (13 Eylül 2026).** Bu satır *"imza mekaniğini doğrudan
-> ödüllendirir"* diyor ve bir süre fast food için **doğru değildi**: ekseni
-> `peakCovers` (en yüksek günlük kuver) idi ve ölçüldü ki komboyu her sabah açan
-> bot ile hiç açmayan bot aynı puanı alıyor (38/38), en yüksek puanlar ise en
-> çok genişleyenlerde (plancı 73). Yani eksen "Mekân" ekseninin kopyasıydı.
+> **Measurement note (13 September 2026).** This line says *"it rewards the
+> signature mechanic directly"* and for a while that was **not true** for fast
+> food: its axis was `peakCovers` (the highest daily covers) and it was measured
+> that a bot which opens the combo every morning and a bot which never opens it
+> get the same score (38/38), while the highest scores went to whoever expanded
+> the most (`planci`, 73). So the axis was a copy of the "Venue" axis.
 >
-> **Eksen değiştirildi** (`comboShare`, hedef %15 — ölçümden). Artık komboyu
-> kullanan bot 100, kullanmayan 0 alıyor ve genişleme bu ekseni hiç
-> etkilemiyor. İmzacı bot her iki mutfakta da en yüksek puanlı strateji.
-> Ayrıntı [docs/42](42-crew-and-intervention.md) 5.
+> **The axis was changed** (`comboShare`, target 15% — from measurement). Now a
+> bot that uses the combo gets 100 and one that does not gets 0, and expansion
+> does not affect this axis at all. The signature bot is the highest-scoring
+> strategy in both cuisines. Detail in [docs/42](42-crew-and-intervention.md) 5.
 >
-> *Bir belgedeki "doğrudan ödüllendirir" cümlesi, ölçülene kadar bir tahmindi;
-> ölçülünce yanlış çıktı ve düzeltilen şey belge değil kod oldu.*
+> *The sentence "it rewards it directly" in a document was a guess until it was
+> measured; once measured it turned out wrong, and what got fixed was the code,
+> not the document.*
 
 ---
 
-## Batma merdiveni ile bağlantı
+## The connection to the bankruptcy ladder
 
-Bu tasarımın en değerli yan etkisi burada.
+The most valuable side effect of this design is here.
 
-Şu ana kadar batma merdiveninin sadece kısa vadeli sonucu vardı: itibar kaybı, ekipman satışı, küçülme. **Sağlamlık ekseni ona uzun vadeli bir sonuç ekliyor.**
+Until now the bankruptcy ladder only had a short-term consequence: reputation loss, selling equipment, shrinking. **The robustness axis adds a long-term consequence to it.**
 
-Merdivene hiç düşmeden yılı tamamlamak yüksek puan getirir. Küçülmeye kadar inmek kalıcı olarak puanı düşürür. Kayıt hâlâ silinmez, oyun hâlâ bitmez, ama yaptığın hatanın izi yıl sonunda karşına çıkar.
+Finishing the year without ever falling onto the ladder brings a high score. Going all the way down to shrinking permanently lowers the score. The save is still not deleted, the game still does not end, but the trace of the mistake you made shows up at the end of the year.
 
-Böylece "yumuşak ama dişli başarısızlık" tasarımı tamamlanmış oluyor. Ceza anlık değil, birikimli.
+That completes the "soft but toothed failure" design. The penalty is not instant, it is cumulative.
 
 ---
 
-## Kampanya uzunluğu
+## Campaign length
 
-| Değer | Tahmin |
+| Value | Estimate |
 |---|---|
-| Kampanya | 60 oyun günü, dört mevsim |
-| Gün başına süre | 3 ile 6 dakika |
-| Mutfak başına toplam | Yaklaşık 4 ile 6 saat |
-| Çıkıştaki iki mutfak | Yaklaşık 8 ile 12 saat |
+| Campaign | 60 in-game days, four seasons |
+| Time per day | 3 to 6 minutes |
+| Total per cuisine | Roughly 4 to 6 hours |
+| The two cuisines at launch | Roughly 8 to 12 hours |
 
-**Bunlar hipotez, ölçülmedi.** Faz 0'daki denge aracının doğrulaması gereken ilk şeylerden biri bu. Altmış gün çok uzunsa sistemlerin açılma temposu sıkışır, çok kısaysa ekonomi anlamsızlaşır.
+**These are hypotheses, not measured.** This is one of the first things the balance tool in Phase 0 has to verify. If sixty days is too long the pace at which systems open gets squeezed; if it is too short the economy becomes meaningless.
 
-Sistem açılma temposu da buna uymalı. Bütün sistemler ilk üç saatte açılmalı ki son iki saat ustalık ve optimizasyona kalsın.
-
----
-
-## Neden bu model bizim için doğru
-
-1. **Mutfak kilidini mümkün kılıyor.** "Oyun bitene kadar" artık tanımlı: yıl sonu değerlendirmesi.
-2. **Supermarket Simulator tuzağından kaçınıyor.** Hedefsiz sonsuz büyüme yok.
-3. **Sert sondan da kaçınıyor.** Hiçbir şey elinden alınmıyor, isteyen devam ediyor.
-4. **Mutfak satın almasını değerli kılıyor.** Puan ve plaket, dört mutfağı da oynamak için sebep veriyor.
-5. **Araştırmadaki beşinci şikayeti kapatıyor.** Boş son oyun sorunu, plaket ve miras ekranıyla çözülüyor.
-6. **Batma merdivenini tamamlıyor.** Başarısızlığın artık birikimli bir bedeli var.
+The pace at which systems open has to fit this too. Every system should open in the first three hours so that the last two hours are left for mastery and optimisation.
 
 ---
 
-## Karar bekleyen ayrıntılar
+## Why this model is right for us
 
-1. Kampanya altmış gün mü olmalı, yoksa daha kısa mı
-2. Serbest oyunda yeni hedefler olacak mı, yoksa sadece işletme mi devam edecek
-3. İkinci yıla devam edip yeniden değerlendirilme olacak mı
-4. Plaket kaç kademeli olacak
+1. **It makes the cuisine lock possible.** "Until the game ends" is now defined: the end-of-year evaluation.
+2. **It avoids the Supermarket Simulator trap.** No goalless endless growth.
+3. **It also avoids the hard ending.** Nothing is taken away from you; whoever wants to can carry on.
+4. **It makes buying a cuisine worthwhile.** The score and the plaque give a reason to play all four cuisines.
+5. **It closes the fifth complaint in the research.** The empty-endgame problem is solved by the plaque and the legacy screen.
+6. **It completes the bankruptcy ladder.** Failure now has a cumulative cost.
+
+---
+
+## Details awaiting a decision
+
+1. Should the campaign be sixty days, or shorter
+2. Will there be new goals in free play, or will it just be the business carrying on
+3. Will there be continuing into a second year and being re-evaluated
+4. How many tiers the plaque will have

@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Blender uretim betigi - dogrulama testi
+Blender generation script - the verification test
 ============================================================================
-Amac: "modeli kim degerlendirecek" sorusunu cozmek.
+Purpose: to settle the question "who is going to judge the model".
 
-Gelistirici Blender bilmiyor, ben (yapay zeka) mesh'i dogrudan goremiyorum.
-Ama Blender'i basssiz calistirip PNG uretirsem, o PNG'yi okuyabilirim.
-Bu betik o donguyu kuruyor: kod -> mesh -> render -> goz.
+The developer does not know Blender, and I (the AI) cannot see a mesh
+directly. But if I run Blender headless and produce a PNG, I can read that
+PNG. This script sets up that loop: code -> mesh -> render -> eye.
 
-Calistirma:
+Running it:
   "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe" ^
       --background --factory-startup --python tools/art/gen_table.py
 
-Cikti: tools/art/out/table_XX.png  (uc acidan)
+Output: tools/art/out/table_XX.png  (from three angles)
 """
 import bpy
 import os
@@ -24,7 +24,7 @@ os.makedirs(OUT, exist_ok=True)
 
 
 # ---------------------------------------------------------------------------
-# sahne temizligi
+# clearing the scene
 # ---------------------------------------------------------------------------
 def clear():
     bpy.ops.object.select_all(action="SELECT")
@@ -36,7 +36,7 @@ def clear():
 
 
 # ---------------------------------------------------------------------------
-# malzeme: low-poly duz renk, hafif roughness
+# material: low-poly flat colour, slight roughness
 # ---------------------------------------------------------------------------
 def mat(name, rgb, rough=0.7):
     m = bpy.data.materials.new(name)
@@ -74,43 +74,43 @@ def cyl(name, r, h, loc, material, verts=12):
 
 
 # ---------------------------------------------------------------------------
-# varlik: lokanta masasi + iki sandalye + tabak
+# the asset: a restaurant table + two chairs + a plate
 # ---------------------------------------------------------------------------
 def build():
-    wood = mat("Ahsap", (0.42, 0.26, 0.15))
-    wood_d = mat("AhsapKoyu", (0.30, 0.18, 0.10))
-    cloth = mat("Ortu", (0.85, 0.87, 0.82), rough=0.9)
-    plate = mat("Tabak", (0.94, 0.94, 0.92), rough=0.35)
+    wood = mat("Wood", (0.42, 0.26, 0.15))
+    wood_d = mat("WoodDark", (0.30, 0.18, 0.10))
+    cloth = mat("Cloth", (0.85, 0.87, 0.82), rough=0.9)
+    plate = mat("Plate", (0.94, 0.94, 0.92), rough=0.35)
 
     parts = []
-    # tabla
-    parts.append(cube("Tabla", (0.90, 0.90, 0.055), (0, 0, 0.74), wood))
-    # ortu (tablanin uzerinde ince kare)
-    parts.append(cube("Ortu", (0.82, 0.82, 0.012), (0, 0, 0.775), cloth, bevel=0.004))
-    # dort ayak
+    # the top
+    parts.append(cube("TableTop", (0.90, 0.90, 0.055), (0, 0, 0.74), wood))
+    # the cloth (a thin square on top of the table top)
+    parts.append(cube("Cloth", (0.82, 0.82, 0.012), (0, 0, 0.775), cloth, bevel=0.004))
+    # four legs
     for i, (x, y) in enumerate([(0.36, 0.36), (-0.36, 0.36), (0.36, -0.36), (-0.36, -0.36)]):
-        parts.append(cube("Ayak%d" % i, (0.055, 0.055, 0.71), (x, y, 0.355), wood_d))
-    # iki sandalye
+        parts.append(cube("Leg%d" % i, (0.055, 0.055, 0.71), (x, y, 0.355), wood_d))
+    # two chairs
     for i, sy in enumerate([0.78, -0.78]):
         s = 1 if sy > 0 else -1
-        parts.append(cube("SandalyeOturak%d" % i, (0.42, 0.42, 0.05), (0, sy, 0.45), wood))
-        parts.append(cube("SandalyeSirt%d" % i, (0.42, 0.05, 0.42), (0, sy + 0.19 * s, 0.70), wood))
+        parts.append(cube("ChairSeat%d" % i, (0.42, 0.42, 0.05), (0, sy, 0.45), wood))
+        parts.append(cube("ChairBack%d" % i, (0.42, 0.05, 0.42), (0, sy + 0.19 * s, 0.70), wood))
         for j, (cx, cy) in enumerate([(0.17, 0.17), (-0.17, 0.17), (0.17, -0.17), (-0.17, -0.17)]):
-            parts.append(cube("SandalyeAyak%d_%d" % (i, j), (0.04, 0.04, 0.43),
+            parts.append(cube("ChairLeg%d_%d" % (i, j), (0.04, 0.04, 0.43),
                               (cx, sy + cy, 0.215), wood_d))
-    # tabak
-    parts.append(cyl("Tabak", 0.13, 0.022, (0, 0, 0.792), plate, verts=16))
+    # the plate
+    parts.append(cyl("Plate", 0.13, 0.022, (0, 0, 0.792), plate, verts=16))
     return parts
 
 
 # ---------------------------------------------------------------------------
-# isik ve kamera: oyunun 2.5D acisina yakin
+# light and camera: close to the game's 2.5D angle
 # ---------------------------------------------------------------------------
 def lighting():
     bpy.ops.object.light_add(type="SUN", location=(4, -5, 7))
     sun = bpy.context.active_object
     sun.data.energy = 3.2
-    sun.data.angle = math.radians(12)          # yumusak golge
+    sun.data.angle = math.radians(12)          # a soft shadow
     sun.rotation_euler = (math.radians(50), 0, math.radians(35))
 
     bpy.ops.object.light_add(type="AREA", location=(-4, 3, 4))
@@ -135,12 +135,12 @@ def camera(angle_deg, elev_deg=32, dist=4.6):
     cam.location = (dist * math.cos(a) * math.cos(e),
                     dist * math.sin(a) * math.cos(e),
                     dist * math.sin(e) + 0.35)
-    # hedefe baktir
+    # point it at the target
     import mathutils
     target = mathutils.Vector((0, 0, 0.55))
     d = target - cam.location
     cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
-    cam.data.lens = 62                      # hafif teleskopik, 2.5D icin
+    cam.data.lens = 62                      # slightly telephoto, for the 2.5D look
     bpy.context.scene.camera = cam
     return cam
 
@@ -190,11 +190,11 @@ def main():
 
     print("")
     print("=" * 60)
-    print("URETILDI")
-    print("  nesne sayisi : %d" % len(parts))
-    print("  ucgen sayisi : %d" % tris)
-    print("  motor        : %s" % engine)
-    print("  cikti        : %s" % OUT)
+    print("GENERATED")
+    print("  object count   : %d" % len(parts))
+    print("  triangle count : %d" % tris)
+    print("  engine         : %s" % engine)
+    print("  output         : %s" % OUT)
     print("=" * 60)
 
 

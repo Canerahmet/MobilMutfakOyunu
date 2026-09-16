@@ -1,39 +1,40 @@
 # -*- coding: utf-8 -*-
 """
-Low-poly ilkel yardimcilari.
+Low-poly primitive helpers.
 ============================================================================
-docs/24-art-pipeline.md kademe 1: mobilya, ekipman ve ortam prosedurel.
-Doku yok; her sey duz renk malzeme ve pah kirma.
+docs/24-art-pipeline.md tier 1: furniture, equipment and environment are
+procedural. No textures; everything is flat-colour material and bevelling.
 
-Butun olculer METRE. Oyun 2.5D ama sahne gercek olcekte kuruluyor,
-boylece kamera acisi degisince oranlar bozulmuyor.
+All measurements are in METRES. The game is 2.5D but the scene is built at
+real scale, so that the proportions do not break when the camera angle
+changes.
 """
 import bpy
 import math
 
 # ---------------------------------------------------------------------------
-# Palet. docs/10-cuisine-identity.md fast food: sicak, doygun, plastik.
+# The palette. docs/10-cuisine-identity.md fast food: warm, saturated, plastic.
 # ---------------------------------------------------------------------------
 PALETTE = {
-    "ahsap":        (0.42, 0.26, 0.15),
-    "ahsap_koyu":   (0.30, 0.18, 0.10),
-    "ortu":         (0.86, 0.82, 0.70),   # kirli bej: beyaz tabak uzerinde okunsun
-    "tabak":        (0.95, 0.95, 0.93),
+    "wood":         (0.42, 0.26, 0.15),
+    "wood_dark":    (0.30, 0.18, 0.10),
+    "cloth":        (0.86, 0.82, 0.70),   # dirty beige: so a white plate reads on it
+    "plate":        (0.95, 0.95, 0.93),
     "metal":        (0.62, 0.64, 0.66),
-    "metal_koyu":   (0.34, 0.36, 0.38),
-    "plastik_kirmizi": (0.72, 0.18, 0.14),
-    "plastik_sari":    (0.90, 0.68, 0.12),
-    "duvar":        (0.88, 0.86, 0.80),
-    "zemin":        (0.55, 0.50, 0.45),
-    "siyah":        (0.10, 0.10, 0.11),
-    "cam":          (0.70, 0.82, 0.85),
+    "metal_dark":   (0.34, 0.36, 0.38),
+    "plastic_red":    (0.72, 0.18, 0.14),
+    "plastic_yellow": (0.90, 0.68, 0.12),
+    "wall":         (0.88, 0.86, 0.80),
+    "floor":        (0.55, 0.50, 0.45),
+    "black":        (0.10, 0.10, 0.11),
+    "glass":        (0.70, 0.82, 0.85),
 }
 
 _materials = {}
 
 
 def clear_scene():
-    """Sahneyi bosalt. Betikler arasinda kirlilik kalmasin."""
+    """Empty the scene. No dirt should carry over between scripts."""
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
     for block in (bpy.data.meshes, bpy.data.materials, bpy.data.cameras,
@@ -45,7 +46,8 @@ def clear_scene():
 
 
 def mat(name, rough=0.7, metallic=0.0):
-    """Paletten duz renk malzeme. Ayni ad ikinci kez istenirse tekrar kullanilir."""
+    """A flat-colour material from the palette. Asking for the same name a
+    second time reuses it."""
     if name in _materials:
         return _materials[name]
 
@@ -65,7 +67,8 @@ def _finish(obj, material, bevel, smooth_angle=30.0):
     if bevel > 0:
         m = obj.modifiers.new("bevel", "BEVEL")
         m.width = bevel
-        m.segments = 1          # low-poly: tek segment yeter, ucgen butcesi onemli
+        m.segments = 1          # low-poly: one segment is enough, the triangle
+                                # budget matters
         m.limit_method = "ANGLE"
         m.angle_limit = math.radians(40)
     obj.data.materials.append(material)
@@ -74,7 +77,7 @@ def _finish(obj, material, bevel, smooth_angle=30.0):
 
 
 def box(name, size, loc, material_name, bevel=0.010, rot=None):
-    """Merkezi loc olan kutu. size = (x, y, z) tam boyut."""
+    """A box centred on loc. size = (x, y, z), the full dimensions."""
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
     o = bpy.context.active_object
     o.name = name
@@ -104,7 +107,7 @@ def plane(name, size, loc, material_name):
 
 
 def tri_count(objects):
-    """Degerlendirilmis (modifier uygulanmis) ucgen sayisi."""
+    """The evaluated triangle count (with the modifiers applied)."""
     dg = bpy.context.evaluated_depsgraph_get()
     total = 0
     for o in objects:

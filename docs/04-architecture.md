@@ -1,139 +1,139 @@
-# Katmanlı Mimari
+# Layered Architecture
 
-**Son güncelleme:** 9 Eylül 2026
-**Amaç:** Oyunu, ileride değişiklik yapmanın ucuz olduğu katmanlara ayırmak. Özellikle mobilden Steam'e geçişin küçük ve öngörülebilir bir iş olması.
+**Last updated:** 9 September 2026
+**Purpose:** to split the game into layers where making a change later is cheap. In particular, to make the move from mobile to Steam a small and predictable job.
 
-Çalışma adı olarak `Lokanta` kullanıldı. Gerçek isim sonra belirlenecek.
-
----
-
-## Temel kural
-
-**Simülasyon Unity'yi bilmez.**
-
-Oyunun bütün kuralları, ekonomisi, müşterileri, personeli ve batma mantığı saf C# ile yazılır. İçinde tek bir `UnityEngine` referansı olmaz.
-
-Bu tek kural aşağıdakilerin hepsini bedava getirir:
-
-- Ekonomiyi Unity açmadan, konsolda binlerce gün simüle ederek dengeleyebilirsin.
-- Kuralları birim testleriyle doğrulayabilirsin.
-- Steam sürümü, arayüz ve platform katmanını değiştirir; kuralların tek satırına dokunmaz.
-- İleride motoru değiştirmek istersen oyunun beyni elinde kalır.
-
-Bu kuralı kağıt üstünde tutmak işe yaramaz. Aşağıda derleyicinin bunu zorlaması anlatılıyor.
+`Lokanta` is used as the working name. The real name will be decided later.
 
 ---
 
-## Katmanlar
+## The basic rule
 
-Bağımlılık her zaman aşağı doğrudur. Üst katman alt katmanı bilir, alt katman üstü asla bilmez.
+**The simulation does not know about Unity.**
 
-| Katman | Ne yapar | Unity referansı |
+All of the game's rules, its economy, its customers, its staff and its going-under logic are written in pure C#. There is not a single `UnityEngine` reference inside it.
+
+This one rule brings all of the following for free:
+
+- You can balance the economy by simulating thousands of days in a console, without opening Unity.
+- You can verify the rules with unit tests.
+- The Steam release changes the interface and the platform layer; it does not touch a single line of the rules.
+- If you later want to change engine, the brain of the game stays in your hands.
+
+Keeping this rule on paper does not work. Below is how the compiler is made to enforce it.
+
+---
+
+## The layers
+
+The dependency always points downward. An upper layer knows the layer below it; a lower layer never knows the one above.
+
+| Layer | What it does | Unity reference |
 |---|---|---|
-| **Sunum** | 3B sahne, karakter animasyonu, kamera, ses, efekt | Var |
-| **Arayüz** | Hal, tezgâh, servis göstergesi, hesap ekranları | Var |
-| **Uygulama** | Gün akışını yürütür, kayıt yükler, komutları çekirdeğe iletir | Var |
-| **Çekirdek** | Bütün oyun kuralları ve simülasyon | **Yok** |
-| **İçerik** | Tarifler, malzemeler, ekipman, personel, müşteri tipleri | Yok |
-| **Portlar** | Platform yeteneklerinin arayüz tanımları | Yok |
-| **Platform** | Portların mobil ve Steam gerçeklemeleri | Var |
+| **Presentation** | 3D scene, character animation, camera, sound, effects | Yes |
+| **Interface** | Market, counter, service display, books screens | Yes |
+| **Application** | Runs the flow of the day, loads the save, passes commands to the core | Yes |
+| **Core** | All of the game rules and the simulation | **No** |
+| **Content** | Recipes, ingredients, equipment, staff, customer types | No |
+| **Ports** | The interface definitions of the platform capabilities | No |
+| **Platform** | The mobile and Steam implementations of the ports | Yes |
 
 ---
 
-## Derleyicinin katmanları zorlaması
+## The compiler enforcing the layers
 
-Unity'de bunu sağlayan mekanizma **Assembly Definition** dosyalarıdır. Her katman kendi derleme birimidir ve sadece izin verilen katmanlara referans verebilir.
+The mechanism that provides this in Unity is **Assembly Definition** files. Every layer is its own compilation unit and can only reference the layers it is allowed to.
 
 ```
-Lokanta.Core            → hiçbir şeye referans vermez, Unity API'si kapalı
+Lokanta.Core            → references nothing, the Unity API is switched off
 Lokanta.Content         → Core
 Lokanta.Ports           → Core
 Lokanta.App             → Core, Content, Ports
 Lokanta.View            → App, Core
 Lokanta.UI              → App, Core
-Lokanta.Platform.Mobile → Ports        (sadece mobil derlemeye dahil)
-Lokanta.Platform.Steam  → Ports        (sadece Steam derlemeye dahil)
+Lokanta.Platform.Mobile → Ports        (included only in the mobile build)
+Lokanta.Platform.Steam  → Ports        (included only in the Steam build)
 Lokanta.Core.Tests      → Core
 ```
 
-`Lokanta.Core` derleme birimini oluştururken **Unity referanslarını kapatmak** kritik adımdır. Bunu yaptığında, çekirdeğe yanlışlıkla bir `GameObject` sızdırmaya çalıştığın an proje derlenmez. Disiplin senden değil derleyiciden gelir.
+When creating the `Lokanta.Core` compilation unit, **switching the Unity references off** is the critical step. Once you have done that, the moment you try to leak a `GameObject` into the core by accident the project stops compiling. The discipline comes from the compiler, not from you.
 
-Bu tek ayar, katmanlı mimarinin kağıt üstünde kalmasını engelleyen şeydir.
+That one setting is the thing that stops a layered architecture from staying on paper.
 
 ---
 
-## Portlar: mobil ile Steam arasındaki tek fark
+## Ports: the only difference between mobile and Steam
 
-Platforma göre değişen her şey bir arayüzün arkasına konur. Oyun kodu sadece arayüzü çağırır, gerçeklemeyi bilmez.
+Everything that changes with the platform goes behind an interface. The game code only calls the interface; it does not know the implementation.
 
-| Port | Mobil gerçeklemesi | Steam gerçeklemesi |
+| Port | Mobile implementation | Steam implementation |
 |---|---|---|
-| `IInputSource` | Dokunmatik, sürükle bırak | Fare, klavye, oyun kolu |
-| `ISaveStore` | Cihaz belleği | Yerel dosya |
+| `IInputSource` | Touch, drag and drop | Mouse, keyboard, gamepad |
+| `ISaveStore` | Device storage | Local file |
 | `ICloudSave` | iCloud, Google Play | Steam Cloud |
-| `IStoreFront` | Uygulama içi satın alma | Yok, oyun peşin satılır |
-| `IAdProvider` | Ödüllü reklam | Boş gerçekleme, hiçbir şey yapmaz |
+| `IStoreFront` | In-app purchase | None, the game is sold up front |
+| `IAdProvider` | Rewarded ads | Empty implementation, does nothing |
 | `IAchievements` | Game Center, Play Games | Steam Achievements |
-| `IAnalytics` | Mobil analitik | İsteğe bağlı |
+| `IAnalytics` | Mobile analytics | Optional |
 
-**Neden bu kadar önemli:** Reklam ve satın alma çağrıları oyun kodunun içine dağılırsa Steam sürümü kâbusa döner. Portun arkasındaysa, Steam derlemesi sadece boş bir reklam gerçeklemesi verir ve konu kapanır.
+**Why this matters so much:** if ad and purchase calls get scattered through the game code, the Steam release turns into a nightmare. Behind a port, the Steam build simply hands over an empty ad implementation and the matter is closed.
 
-Gelir modeli kararı da bu yüzden mimariyi etkilemiyor. Mobilde ücretsiz artı kilit, Steam'de peşin satış olabilir. İkisi de aynı çekirdeğin üstünde çalışır.
-
----
-
-## Girdi katmanı: baştan iki şemalı
-
-Steam hedefi olduğu için girdi baştan soyutlanmalı. Unity'nin Input System paketi bunu **control scheme** kavramıyla zaten destekliyor. Baştan iki şema tanımla:
-
-- **Touch:** sürükle bırak, tek dokunuş
-- **Desktop:** fare, klavye kısayolları, oyun kolu
-
-Oyun kodu `IInputSource` üzerinden niyeti okur. Örneğin "şu masaya şu müşteriyi yerleştir" komutu, parmakla mı fareyle mi geldiğini bilmez.
-
-Sonradan eklemek pahalıdır çünkü tüm etkileşim kodunu yeniden yazmak gerekir.
+That is also why the revenue model decision does not affect the architecture. It can be free plus an unlock on mobile and sold up front on Steam. Both run on top of the same core.
 
 ---
 
-## Ekran oranı
+## The input layer: two schemes from the start
 
-Mobil yatay yaklaşık 19.5:9, Steam 16:9 ve daha geniş. Arayüz en dar güvenli alana göre tasarlanır, geniş ekranda nefes alır.
+Because Steam is a target, input has to be abstracted from the start. Unity's Input System package already supports this with the **control scheme** concept. Define two schemes from the beginning:
 
-Pratik kural: bilgi yoğun paneller kenarlara sabitlenir, oyun alanı ortada esner. Sabit piksel konumu kullanma.
+- **Touch:** drag and drop, single tap
+- **Desktop:** mouse, keyboard shortcuts, gamepad
 
----
+The game code reads intent through `IInputSource`. For example, the command "seat this customer at that table" does not know whether it came from a finger or a mouse.
 
-## İçerik veri olarak tutulur, kod olarak değil
-
-Tarifler, malzemeler, ekipman fiyatları, personel arketipleri ve yükseltme maliyetleri **veri dosyalarında** yaşar.
-
-Öneri: kaynak gerçeklik JSON dosyaları olsun, Unity tarafında bunları okuyan bir yükleyici bulunsun.
-
-**Neden ScriptableObject değil:** ScriptableObject Unity editöründe çok rahattır ama seni Unity'ye bağlar. Konsolda çalışan denge aracın onu okuyamaz. JSON ise hem oyun hem denge aracı tarafından okunur. İstersen editör kolaylığı için üstüne ince bir sarmalayıcı yazarsın.
-
-Denge değişikliği yapmak için kod derlemek zorunda kalmamak, tek kişilik bir projede çok zaman kazandırır.
+Adding it later is expensive, because all of the interaction code has to be rewritten.
 
 ---
 
-## Olay akışı tek yönlü
+## Screen ratio
 
-Çekirdek olay yayar, sunum dinler. Sunum çekirdeğin durumunu **asla doğrudan değiştirmez**, sadece komut gönderir.
+Mobile landscape is roughly 19.5:9, Steam is 16:9 and wider. The interface is designed to the narrowest safe area and breathes on a wide screen.
+
+The practical rule: information-dense panels are pinned to the edges, the play area stretches in the middle. Do not use fixed pixel positions.
+
+---
+
+## Content is held as data, not as code
+
+Recipes, ingredients, equipment prices, staff archetypes and upgrade costs live in **data files**.
+
+Recommendation: let the source of truth be JSON files, with a loader on the Unity side that reads them.
+
+**Why not ScriptableObject:** ScriptableObject is very comfortable in the Unity editor but it ties you to Unity. Your balance tool, which runs in a console, cannot read it. JSON is read by both the game and the balance tool. If you want editor comfort you write a thin wrapper on top of it.
+
+Not having to compile code to make a balance change saves a lot of time in a one-person project.
+
+---
+
+## The event flow is one-way
+
+The core raises events, the presentation listens. The presentation **never changes the core's state directly**, it only sends commands.
 
 ```
-Oyuncu dokunur
-  → Arayüz komut üretir
-    → Uygulama komutu çekirdeğe iletir
-      → Çekirdek durumu değiştirir ve olay yayar
-        → Sunum ve arayüz olayı dinleyip kendini günceller
+The player taps
+  → the interface produces a command
+    → the application passes the command to the core
+      → the core changes state and raises an event
+        → the presentation and the interface listen to the event and update themselves
 ```
 
-Bu kural olmazsa arayüz ile simülasyon zamanla birbirine karışır ve hata ayıklamak imkânsızlaşır. Yönetim oyunlarında en sık görülen çürüme budur.
+Without this rule the interface and the simulation get tangled together over time and debugging becomes impossible. This is the most common rot in management games.
 
 ---
 
-## Çekirdeğin dış yüzü
+## The outer face of the core
 
-Kabaca şuna benzeyen bir yüzey hedefleniyor. Detay değişir, şekil değişmez.
+Roughly this kind of surface is the target. The details will change, the shape will not.
 
 ```csharp
 var day = sim.BeginDay();
@@ -143,65 +143,65 @@ sim.Menu.Set(dishId, price);
 sim.Staff.Assign(staffId, Station.Kitchen);
 
 sim.OpenService();
-sim.Tick(deltaTime);          // deterministik
+sim.Tick(deltaTime);          // deterministic
 sim.Intervene(tableId, InterventionKind.Apology);
 
 DayReport report = sim.CloseDay();
 ```
 
-`Tick` deterministik olmalı. Aynı başlangıç durumu ve aynı rastgelelik tohumu, aynı sonucu vermeli.
+`Tick` must be deterministic. The same starting state and the same random seed must give the same result.
 
-**Bunun getirileri:** kayıt dosyası durum artı tohumdan ibaret olur ve platformlar arasında taşınabilir. Hata ayıklarken bir günü tekrar oynatabilirsin. Denge aracı güvenilir sonuç üretir.
-
----
-
-## Headless denge aracı
-
-`Lokanta.Core` referans veren küçük bir konsol uygulaması. Farklı oyuncu stratejileriyle yüzlerce oyun simüle eder ve sonucu CSV olarak yazar.
-
-Ölçülecekler:
-
-- Kaç oyuncu kaçıncı günde batıyor
-- Ne zaman ekonomi önemsizleşiyor, yani para birikip anlamını yitiriyor
-- Fiyatı sürekli yüksek tutan bir oyuncu kazanıyor mu
-- Hiç müdahale etmeyen bir oyuncu ne kadar dayanıyor
-
-Bu araç, araştırmadaki iki büyük ölüm sebebini erkenden yakalar: batmanın hüsran vermesi ve ekonominin kolaylaşıp anlamsızlaşması.
-
-**Faz 0 budur.** Unity'ye dokunmadan önce bu yazılır.
+**What that buys:** the save file becomes nothing but state plus seed, and it is portable between platforms. When debugging you can replay a day. The balance tool produces trustworthy results.
 
 ---
 
-## Sanat da katmanlı olmalı
+## The headless balance tool
 
-Görsel varlıklar da değiştirilebilir kalmalı.
+A small console application that references `Lokanta.Core`. It simulates hundreds of games with different player strategies and writes the result out as CSV.
 
-- Her nesne kendi prefab'ında, ortak eksen ve ölçek kuralına uyar.
-- Dikey dilim **ilkel kutularla** yapılır. Masa bir küptür, müşteri bir kapsüldür.
-- Gerçek model geldiğinde prefab içeriği değişir, oyun kodu değişmez.
+What gets measured:
 
-Bu, tek kişilik bir projede sanatın oyun tasarımını rehin almasını engeller. Araştırmadaki en net ders buydu: sanat kurtarıcı değil çarpandır. Önce çarpılacak sayının doğru olması gerekir.
+- How many players go under, and on which day
+- When the economy becomes irrelevant, that is, when money piles up and loses its meaning
+- Whether a player who keeps prices permanently high wins
+- How long a player who never intervenes lasts
 
----
+This tool catches the two big causes of death in the research early: failure being frustrating, and the economy getting easy and meaningless.
 
-## Aşırı mühendislik uyarısı
-
-Katmanlama, gerçekten önemli olan dikişlerde yapılır. Her sınıfa arayüz yazmak tek kişilik bir projeyi boğar.
-
-**Soyutlanacak dikişler:**
-
-1. Çekirdek ile Unity arasındaki sınır
-2. Platform portları
-3. İçerik verisi ile kod arasındaki sınır
-
-**Soyutlanmayacaklar:** geri kalan her şey. Bir masa sınıfının arayüzüne ihtiyacın yok. İhtiyaç doğduğunda çıkarırsın.
+**This is Phase 0.** It gets written before Unity is touched.
 
 ---
 
-## İlk üç adım
+## The art has to be layered too
 
-1. **Çekirdek ve denge aracı.** Unity yok. Bir günün matematiği konsolda çalışsın, otuz günlük simülasyon dengeli çıksın.
-2. **Unity iskeleti.** Derleme birimleri kurulur, portlar tanımlanır, mobil gerçeklemeleri yazılır. Sahne ilkel kutulardan oluşur.
-3. **Dikey dilim.** Tek restoran, altı yemek, üç personel, on gün. Oynanabilir ve test edilebilir.
+Visual assets have to stay replaceable as well.
 
-Steam gerçeklemeleri bu üç adımda yazılmaz. Sadece portlar tanımlı olduğu için, sırası geldiğinde eklenmesi küçük bir iş olur.
+- Every object in its own prefab, obeying a shared axis and scale rule.
+- The vertical slice is made with **primitive boxes**. A table is a cube, a customer is a capsule.
+- When the real model arrives the contents of the prefab change; the game code does not.
+
+In a one-person project this stops the art from holding the game design hostage. That was the clearest lesson in the research: art is not a saviour, it is a multiplier. First the number being multiplied has to be right.
+
+---
+
+## A warning about over-engineering
+
+Layering is done at the seams that actually matter. Writing an interface for every class drowns a one-person project.
+
+**The seams to abstract:**
+
+1. The boundary between the core and Unity
+2. The platform ports
+3. The boundary between content data and code
+
+**What not to abstract:** everything else. You do not need an interface for a table class. You extract one when the need arises.
+
+---
+
+## The first three steps
+
+1. **The core and the balance tool.** No Unity. The maths of one day runs in a console, and a thirty-day simulation comes out balanced.
+2. **The Unity skeleton.** The compilation units are set up, the ports are defined, the mobile implementations are written. The scene is made of primitive boxes.
+3. **The vertical slice.** One restaurant, six dishes, three staff, ten days. Playable and testable.
+
+The Steam implementations are not written in these three steps. Because the ports are defined, adding them when their turn comes is a small job.

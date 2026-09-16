@@ -1,12 +1,13 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// Icerik yuklenemedi. Oyun ACILMIYOR (docs/23 9.1) ve sebebi
-    /// EKRANDA yaziyor - kullanici Unity gunlugu okumak zorunda degil.
+    /// The content could not be loaded. The game DOES NOT OPEN (docs/23
+    /// §9.1) and the reason is written ON THE SCREEN - the user should not
+    /// have to read the Unity log.
     /// </summary>
     public sealed class ErrorScreen : UiScreen
     {
@@ -37,16 +38,17 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Menu sayfalarinin ortak zemini. KAYDIRILABILIR.
+        /// The common backdrop for the menu pages. SCROLLABLE.
         ///
-        /// Once duz bir kutuydu ve icerik dikey ORTALANIYORDU. Sigmadiginda
-        /// iki ucundan birden kesiliyor ve kaydirma da olmadigi icin
-        /// erisilemez hale geliyordu: yuva ekraninda dorduncu kayit yuvasi
-        /// ve "Geri" dugmesi ekran disinda kaliyordu - yani oyuncu oyuna
-        /// hic giremiyordu. Ustelik bu, oyunun IKINCI ekrani.
+        /// It used to be a plain box with the content CENTRED vertically.
+        /// When it did not fit it was cut off at both ends at once, and
+        /// with no scrolling it became unreachable: on the save-slot screen
+        /// the fourth slot and the "Back" button were off the screen - so
+        /// the player could not get into the game at all. And this is the
+        /// game's SECOND screen.
         ///
-        /// Ortalama yalnizca icerik sigdiginda guvenli, ve sigip
-        /// sigmadigini yerlesim onceden bilmiyor.
+        /// Centring is only safe when the content fits, and the layout does
+        /// not know in advance whether it will.
         /// </summary>
         internal static VisualElement Backdrop()
         {
@@ -59,9 +61,9 @@ namespace Lokanta.Game.Ui
             v.style.paddingTop = Theme.Pad * 2;
             v.style.paddingBottom = Theme.Pad * 2;
 
-            // Icerik dikeyde ortada DURABILIR ama sigmadiginda yukaridan
-            // baslamali; ScrollView'in kabi buyudukce ortalama kendiliginden
-            // kalkiyor.
+            // The content MAY sit centred vertically, but when it does not
+            // fit it has to start from the top; as the ScrollView's
+            // container grows the centring lifts of its own accord.
             v.contentContainer.style.flexGrow = 1;
             v.contentContainer.style.justifyContent = Justify.Center;
             return v;
@@ -69,11 +71,12 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Ana menu.
+    /// The main menu.
     ///
-    /// "Devam et" ustte ve KAYIT VARSA gorunuyor. Bir yonetim oyununa
-    /// donen oyuncunun ilk istedigi sey kaldigi yer; yeni oyunu one
-    /// koymak, her acilista yanlis dugmeye basma riski demek.
+    /// "Continue" is at the top and only appears IF THERE IS A SAVE. The
+    /// first thing a player returning to a management game wants is where
+    /// they left off; putting the new game first means risking the wrong
+    /// button on every launch.
     /// </summary>
     public sealed class MainMenuScreen : UiScreen
     {
@@ -133,14 +136,16 @@ namespace Lokanta.Game.Ui
 #endif
         }
 
-        // Ana menude geri tusu cikis DEGIL: kazayla oyundan atmak,
-        // mobilde en can sikici sey.
+        // On the main menu the back key is NOT quit: throwing someone out
+        // of the game by accident is the most annoying thing there is on
+        // mobile.
         public override bool OnBack() { return false; }
     }
 
     /// <summary>
-    /// Mutfak secimi. docs/07: secim kayda BAGLI ve degistirilemiyor,
-    /// o yuzden secim aninda ne aldigini gormeli - imza mekanigi dahil.
+    /// Choosing the cuisine. docs/07: the choice is TIED to the save and
+    /// cannot be changed, so at the moment of choosing the player has to
+    /// see what they are taking on - the signature mechanic included.
     /// </summary>
     public sealed class CuisineScreen : UiScreen
     {
@@ -186,10 +191,10 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Kayit yuvalari. docs/21 dort yuva.
+    /// The save slots. docs/21, four slots.
     ///
-    /// Dolu bir yuvanin ustune yazmak ONAY istiyor. Bir kampanya altmis
-    /// gun; onaysiz silinmesi kabul edilemez.
+    /// Writing over a full slot asks for CONFIRMATION. A campaign is sixty
+    /// days; deleting it without asking is not acceptable.
     /// </summary>
     public sealed class SlotScreen : UiScreen
     {
@@ -259,7 +264,7 @@ namespace Lokanta.Game.Ui
                 card.Add(Theme.Text(Loc.T("ui.slot.empty"), Theme.FontTitle, Theme.InkFaint));
             }
 
-            // --- eylemler -----------------------------------------------------
+            // --- the actions --------------------------------------------------
             if (_confirmDelete == slot)
             {
                 card.Add(Theme.Text(Loc.T("ui.slot.delete_confirm"),
@@ -299,10 +304,12 @@ namespace Lokanta.Game.Ui
                         actions.Add(Theme.Btn(Loc.T("ui.menu.continue"),
                             () => Begin(slot), primary: true, wide: true));
                     else
-                        // Bozuk yuva "Bos" DEGIL. Ustteki rozet "bozuk
-                        // kayit" derken alttaki pasif dugme "Bos" diyordu;
-                        // ayni kartin iki yarisi celisiyordu ve oyuncu
-                        // kampanyasini bulamadigi anda okudugu ekran buydu.
+                        // A broken slot is NOT "Empty". The badge at the top
+                        // said "broken save" while the disabled button below
+                        // it said "Empty"; the two halves of the same card
+                        // contradicted each other, and this was the screen
+                        // the player was reading at the very moment they
+                        // could not find their campaign.
                         actions.Add(Disabled(Loc.T(info.Broken
                             ? "ui.slot.unloadable" : "ui.slot.empty")));
                 }
@@ -316,11 +323,11 @@ namespace Lokanta.Game.Ui
                         }, primary: true, wide: true));
                 }
 
-                // Silme de ONAY istiyor.
+                // Deleting asks for CONFIRMATION too.
                 //
-                // Uzerine yazma onay istiyordu, silme istemiyordu - ayni
-                // yikiciliktaki iki eylemden biri korumali, digeri tek
-                // dokunusla altmis gunluk bir kampanyayi siliyordu.
+                // Overwriting asked, deleting did not - of two equally
+                // destructive actions one was guarded and the other wiped a
+                // sixty-day campaign with a single tap.
                 if (info.Exists)
                     actions.Add(Theme.Btn(Loc.T("ui.slot.delete"), () =>
                     {
@@ -361,9 +368,11 @@ namespace Lokanta.Game.Ui
         }
     }
 
-    /// <summary>Ayarlar. Ses seviyeleri kalici; oyuncu her acilista ayarlamasin.</summary>
+    /// <summary>Settings. The volumes persist; the player should not have to set them on every launch.</summary>
     public sealed class SettingsScreen : UiScreen
     {
+        // THESE ARE PlayerPrefs KEYS, so they keep their original spelling:
+        // renaming one would lose every player's saved setting.
         private const string KeySfx = "lokanta.ses";
         private const string KeyMusic = "lokanta.muzik";
 
@@ -389,7 +398,7 @@ namespace Lokanta.Game.Ui
                 {
                     PlayerPrefs.SetFloat(KeySfx, v);
                     Sfx.Volume = v;
-                    Sfx.Click();            // yeni seviye HEMEN duyulsun
+                    Sfx.Click();            // let the new level be heard AT ONCE
                 }));
 
             col.Add(Level(Loc.T("ui.settings.music"),
@@ -399,80 +408,88 @@ namespace Lokanta.Game.Ui
                     if (App.Music != null) App.Music.Volume = v;
                 }));
 
-            // Ipuclari bir kez gorununce bir daha gelmiyor ve bu
-            // CIHAZDA saklaniyor, kayitta degil. Oyunu birine gosteren
-            // ya da uzun bir aradan sonra donen oyuncu icin geri getirme
-            // yolu lazim - yoksa o ilk cumleler bir daha okunamaz.
+            // Once a hint has been seen it never comes back, and that is
+            // stored ON THE DEVICE, not in the save. A player showing the
+            // game to someone, or coming back after a long break, needs a
+            // way to bring them back - otherwise those first sentences can
+            // never be read again.
             col.Add(Theme.Btn(Loc.T("ui.settings.hints_reset"),
                               () => Hints.Reset()));
 
-            // DIL ARTIK BIR SECIM.
+            // THE LANGUAGE IS NOW A CHOICE.
             //
-            // Once yalnizca "Dil: Türkçe" yazan bir SATIRDI - oyun tek
-            // dilliydi ve satir bir bilgi bile degil, bir sozdu.
+            // It used to be a ROW that only said what the language was - the
+            // game had one language and the row was not even information, it
+            // was a promise.
             //
-            // Her dil KENDI adiyla yaziyor: "Turkish" yazan bir satiri
-            // arayan kisi zaten Ingilizce biliyor demektir.
+            // Each language is written in ITS OWN name: anyone looking for a
+            // row that says "Turkish" already reads English.
             col.Add(Theme.Head(Loc.T("ui.settings.language")));
-            VisualElement diller = Theme.Row(Theme.Gap);
-            // SERIT SARIYOR: bes dil tek satira sigmiyor.
+            VisualElement languages = Theme.Row(Theme.Gap);
+            // THE STRIP WRAPS: five languages do not fit on one line.
             //
-            // Iki dilken sigiyordu ve satir sabitti. Bes dilde telefon
-            // eninde (~400 dp) tasardi - ve tasan ogeyi turdaki "ekran
-            // disina tasan oge" kontrolu yakalardi.
-            diller.style.flexWrap = Wrap.Wrap;
+            // With two they fitted and the row was fixed. With five it would
+            // overflow at phone width (~400 dp) - and the tour's
+            // "element off the edge of the screen" check would catch the
+            // overflowing element.
+            languages.style.flexWrap = Wrap.Wrap;
 
             for (int i = 0; i < Loc.Languages.Length; i++)
             {
                 int idx = i;
-                bool secili = Loc.Language == i;
-                Button dugme = Theme.Btn(Loc.LanguageNames[i], () =>
+                bool selected = Loc.Language == i;
+                Button button = Theme.Btn(Loc.LanguageNames[i], () =>
                 {
                     Loc.SetLanguage(idx);
-                    // Yazi tipi de dile bagli: Cince'ye gecerken kok
-                    // ogenin fontu degismezse metin bos kutu cikar.
+                    // The font depends on the language too: switching to
+                    // Chinese without changing the root element's font gives
+                    // empty boxes instead of text.
                     Ui.ApplyLanguage();
-                    // Butun ekranlar metni kurulusta okuyor: yigini
-                    // tazelemek yeni dili her yere tasiyor.
+                    // Every screen reads its text when it is built:
+                    // refreshing the stack carries the new language
+                    // everywhere.
                     Ui.Refresh();
-                }, primary: secili, wide: true);
+                }, primary: selected, wide: true);
 
-                // HER DIL KENDI ADINI OKUNABILDIGI YAZI TIPIYLE YAZIYOR.
+                // EACH LANGUAGE WRITES ITS OWN NAME IN A FONT THAT CAN SHOW IT.
                 //
-                // "中文" Rubik'te YOK. Oyun Turkce'yken o dugme bos kutu
-                // gosterirdi - yani Cince'yi secmek isteyen kisi hangi
-                // dugmeye basacagini goremezdi. Yazi tipi denetimi tam
-                // bunu yakaladi (U+4E2D, U+6587 - Loc.cs).
+                // Rubik DOES NOT HAVE the glyphs for the Chinese name. With
+                // the game in Turkish, that button showed empty boxes - so
+                // someone wanting to pick Chinese could not see which button
+                // to press. The font check caught exactly this (U+4E2D,
+                // U+6587 - Loc.cs).
                 //
-                // Cozum YEREL: yalnizca o dugme. Butun ekrani CJK
-                // fontuna cevirmek, Turkce ekranin yazi tipini bir dil
-                // dugmesi yuzunden degistirmek olurdu.
+                // The fix is LOCAL: that one button only. Turning the whole
+                // screen over to the CJK font would mean changing the font
+                // of the Turkish screen because of one language button.
                 if (Loc.Languages[idx] == "zh" && Ui.FontCJK != null)
-                    dugme.style.unityFontDefinition =
+                    button.style.unityFontDefinition =
                         FontDefinition.FromFont(Ui.FontCJK);
 
-                // AYNI GEREKCE, BASKA ENGEL: Arapca dil adinin harfleri
-                // Rubik'te VAR ama olcunlu uretici onlari birlestirmiyor ve ters
-                // diziyor. Arapca okuyan biri, dilini aradigi dugmede
-                // dagilmis harfler gorurdu. Yon ve uretici yalnizca o
-                // dugmede ceviriliyor - ekranin kalani oldugu gibi.
+                // THE SAME REASONING, A DIFFERENT OBSTACLE: Rubik DOES have
+                // the letters of the Arabic language name, but the standard
+                // generator does not join them and lays them out backwards.
+                // Someone who reads Arabic would see scattered letters on
+                // the very button they were looking for. The direction and
+                // the generator are turned round for that button alone - the
+                // rest of the screen is left as it is.
                 if (Loc.Languages[idx] == "ar")
                 {
-                    dugme.style.unityTextGenerator = TextGeneratorType.Advanced;
-                    dugme.languageDirection = LanguageDirection.RTL;
-                    // VE YAZI TIPI DE: oyun Cince'yken kok oge Noto Sans
-                    // SC ile ciziliyor ve o yazi tipinde Arapca YOK.
-                    // Arapca okuyan bir oyuncu, Cince bir arayuzde
-                    // dilini yedi bos kutu olarak gorurdu. Rubik Arapca
-                    // tasiyor - yerel olarak veriliyor.
+                    button.style.unityTextGenerator = TextGeneratorType.Advanced;
+                    button.languageDirection = LanguageDirection.RTL;
+                    // AND THE FONT TOO: with the game in Chinese the root
+                    // element is drawn with Noto Sans SC, and that font has
+                    // NO Arabic. A player who reads Arabic would see their
+                    // language as seven empty boxes in a Chinese interface.
+                    // Rubik carries Arabic - it is given locally.
                     if (Ui.Font != null)
-                        dugme.style.unityFontDefinition =
+                        button.style.unityFontDefinition =
                             FontDefinition.FromFont(Ui.Font);
                 }
 
-                diller.Add(dugme);
+                languages.Add(button);
             }
-            col.Add(diller);
+            col.Add(languages);
 
             col.Add(Theme.Btn(Loc.T("ui.settings.back"), () => Ui.Pop()));
             root.Add(col);
@@ -480,21 +497,21 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Sifir-bir arasi bir seviyeyi on kademeli denetime baglar.
-        /// Kademe sayisi ON: daha ince ayar mobilde ne okunuyor ne de
-        /// parmakla tutturuluyor.
+        /// Binds a zero-to-one level to a stepped control. The number of
+        /// steps is TEN: finer adjustment on mobile can be neither read nor
+        /// caught with a finger.
         /// </summary>
         /// <summary>
-        /// Ses kademesi sayisi.
+        /// The number of volume steps.
         ///
-        /// 10 -> 5: OLCULDU. On kutucuk x 52 dp taban genislik, 480
-        /// dp'lik panele SIGMIYOR ve satir sariyordu - sekiz kutucuk
-        /// ustte, iki kutucuk altta ve alttakiler flexGrow yuzunden
-        /// yarim ekran genisliginde iki bos kutuya donusuyordu. Ekran
-        /// goruntusunde bu bir HATA gibi okunuyor, ses ayari gibi degil.
+        /// 10 -> 5: MEASURED. Ten cells at 52 dp base width DO NOT FIT a
+        /// 480 dp panel and the row wrapped - eight cells on top, two
+        /// underneath, and because of flexGrow those two turned into two
+        /// empty boxes each half the screen wide. In a screenshot that
+        /// reads as a BUG, not as a volume control.
         ///
-        /// Bes kademe hem sigiyor hem de yeterli: ses seviyesi %10
-        /// hassasiyetle ayarlanan bir sey degil.
+        /// Five steps both fit and are enough: volume is not something set
+        /// to a precision of 10%.
         /// </summary>
         private const int Steps = 5;
 
@@ -514,28 +531,28 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Acik kaynak lisanslari.
+    /// The open source licences.
     ///
-    /// Ayri bir ekran, cunku metinlerin KENDISI gerekiyor: OFL telif
-    /// bildirimi istiyor, MIT lisans metninin kopyalanmasini istiyor,
-    /// Apache-2.0 bildirimi istiyor. "Rubik - SIL OFL 1.1" yazmak lisans
-    /// ADINI veriyor, sartini degil.
+    /// A screen of its own, because the texts THEMSELVES are required: the
+    /// OFL asks for the copyright notice, MIT asks for the licence text to
+    /// be copied, Apache-2.0 asks for the notice. Writing "Rubik - SIL OFL
+    /// 1.1" gives the licence's NAME, not its terms.
     ///
-    /// Metinler Resources altinda, yani YAPIYA GIRIYOR. Denetimde
-    /// bulundu: yazi tipinin ikili verisi APK'nin icindeydi ama tek bir
-    /// lisans metni yoktu.
+    /// The texts live under Resources, which means they GO INTO THE BUILD.
+    /// Found in review: the font's binary data was inside the APK but not
+    /// one licence text was.
     /// </summary>
     public sealed class LicenseScreen : UiScreen
     {
         private static readonly string[] Files =
         {
             "licenses/rubik-ofl",
-            // IKINCI YAZI TIPI = IKINCI LISANS METNI.
+            // A SECOND FONT = A SECOND LICENCE TEXT.
             //
-            // Noto Sans SC ayri bir telif sahibinin eseri ve OFL,
-            // metnin URUNLE BIRLIKTE dagitilmasini istiyor. "Rubik OFL
-            // var, o da OFL" demek lisansi karsilamiyor - iki ayri
-            // bildirimdir.
+            // Noto Sans SC is the work of a different copyright holder, and
+            // the OFL asks for the text to be distributed WITH THE PRODUCT.
+            // Saying "there is a Rubik OFL and this is OFL too" does not
+            // satisfy the licence - they are two separate notices.
             "licenses/noto-sans-sc-ofl",
             "licenses/kenney-cc0",
             "licenses/engine-components",
@@ -572,8 +589,9 @@ namespace Lokanta.Game.Ui
     }
 
     /// <summary>
-    /// Yapimci. Atif ZORUNLU olmasa da yaziliyor - CC0 varliklar icin
-    /// tesekkur etmemek ucuzluk olur (vendor/ATTRIBUTION.md).
+    /// The credits. Attribution is not REQUIRED, but it is written anyway -
+    /// not thanking people for CC0 assets would be cheap
+    /// (vendor/ATTRIBUTION.md).
     /// </summary>
     public sealed class CreditsScreen : UiScreen
     {

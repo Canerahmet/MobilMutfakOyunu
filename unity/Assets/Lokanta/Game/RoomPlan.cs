@@ -1,46 +1,50 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Restoranin kat plani. ARSA SABIT, odalar farkli olcude.
+    /// The restaurant's floor plan. THE PLOT IS FIXED, the rooms differ
+    /// in size.
     ///
-    /// Bu tablo bir zamanlar yalnizca editor betiginde (Editor/RoomLayout.cs)
-    /// duruyordu, yani calisma zamani plani BILMIYORDU. Ayni sayilari iki
-    /// yere yazmak bu projede dort kez sessizce ayristi; o yuzden plan
-    /// buraya, calisma zamanina tasindi ve editor araci da buradan okuyor.
+    /// This table once lived only in the editor script
+    /// (Editor/RoomLayout.cs), which means the runtime DID NOT KNOW the
+    /// plan. Writing the same numbers in two places has drifted apart
+    /// silently four times in this project; so the plan moved here, into
+    /// the runtime, and the editor tool reads it from here too.
     ///
-    /// Kararin gerekcesi docs/31-rooms-and-camera.md ve olcum:
-    ///   - Arsa 18,0 x 9,6 m ve HIC BUYUMUYOR; bina onun icinde
-    ///     buyuyor. Kamera yalnizca ACIK odalari cerceveliyor
-    ///     (CameraFit.OpenBounds) ve acilmamis oda cizilmiyor - bos
-    ///     levhalar ekranin %41'ini yiyordu.
-    ///   - Dokunma hedefi yine de kademeden bagimsiz: olcum en kucuk
-    ///     acik odayi her kademede 71 dp veriyor, cunku cerceveyi
-    ///     bagliyan sey EN degil DERINLIK ve mutfak blogu arsanin
-    ///     butun derinligini zaten kapliyor.
-    ///   - Odalarin olculeri farkli ve ayrim cizgileri hizali degil.
-    ///     Esit 2x2 izgara sayilari tutturuyordu ama render yapay duruyordu.
-    ///   - Kademe 0 odalari basta acik; 1-4 arasi genislemeyle aciliyor.
+    /// The reasoning is in docs/31-rooms-and-camera.md, and in the
+    /// measurement:
+    ///   - The plot is 18.0 x 9.6 m and NEVER GROWS; the building grows
+    ///     inside it. The camera frames only the OPEN rooms
+    ///     (CameraFit.OpenBounds) and a room that has not been opened is
+    ///     not drawn - empty slabs were eating 41% of the screen.
+    ///   - The touch target is independent of the tier all the same: the
+    ///     measurement gives the smallest open room 71 dp at every tier,
+    ///     because what binds the framing is not the WIDTH but the DEPTH,
+    ///     and the kitchen block already covers the plot's whole depth.
+    ///   - The rooms differ in size and the dividing lines are not
+    ///     aligned. An even 2x2 grid hit the same numbers, but the render
+    ///     looked artificial.
+    ///   - Tier 0 rooms are open from the start; 1-4 open with expansion.
     /// </summary>
     public static class RoomPlan
     {
         public const float PlotW = 18.00f;
         public const float PlotD = 9.60f;
 
-        /// <summary>Masa takimi araligi, en ve derinlik.</summary>
+        /// <summary>Table-set spacing, width and depth.</summary>
         public const float CellX = 1.85f;
         public const float CellZ = 1.70f;
-        /// <summary>Odanin masasiz kenar payi.</summary>
+        /// <summary>The room's table-free edge margin.</summary>
         public const float Margin = 0.90f;
 
         public struct Room
         {
             public string Name;
             public float X0, Z0, W, D;
-            /// <summary>0 basta acik; 1-4 genisleme kademesi.</summary>
+            /// <summary>0 open from the start; 1-4 the expansion tier.</summary>
             public int Tier;
-            /// <summary>Bu odaya kac masa takimi giriyor. 0 ise servis odasi.</summary>
+            /// <summary>How many table sets fit in this room. 0 means a service room.</summary>
             public int Tables;
 
             public float CenterX { get { return X0 + W * 0.5f; } }
@@ -50,19 +54,20 @@ namespace Lokanta.Game
 
         public static readonly Room[] Rooms =
         {
-            new Room { Name = "Mutfak",  X0 =  0.0f, Z0 = 4.0f, W = 5.2f, D = 5.6f, Tier = 0 },
-            new Room { Name = "Giris",   X0 =  0.0f, Z0 = 0.0f, W = 5.2f, D = 4.0f, Tier = 0 },
-            new Room { Name = "Bulasik", X0 =  5.2f, Z0 = 0.0f, W = 3.2f, D = 5.4f, Tier = 0 },
-            new Room { Name = "Depo",    X0 =  5.2f, Z0 = 5.4f, W = 3.2f, D = 4.2f, Tier = 0 },
-            new Room { Name = "Salon1",  X0 =  8.4f, Z0 = 0.0f, W = 5.0f, D = 4.4f, Tier = 1, Tables = 4 },
-            new Room { Name = "Salon2",  X0 =  8.4f, Z0 = 4.4f, W = 5.0f, D = 5.2f, Tier = 2, Tables = 3 },
-            new Room { Name = "Salon3",  X0 = 13.4f, Z0 = 0.0f, W = 4.6f, D = 5.0f, Tier = 3, Tables = 3 },
-            new Room { Name = "Salon4",  X0 = 13.4f, Z0 = 5.0f, W = 4.6f, D = 4.6f, Tier = 4, Tables = 4 },
+            new Room { Name = "Kitchen",  X0 =  0.0f, Z0 = 4.0f, W = 5.2f, D = 5.6f, Tier = 0 },
+            new Room { Name = "Entry",   X0 =  0.0f, Z0 = 0.0f, W = 5.2f, D = 4.0f, Tier = 0 },
+            new Room { Name = "Sink", X0 =  5.2f, Z0 = 0.0f, W = 3.2f, D = 5.4f, Tier = 0 },
+            new Room { Name = "Store",    X0 =  5.2f, Z0 = 5.4f, W = 3.2f, D = 4.2f, Tier = 0 },
+            new Room { Name = "Hall1",  X0 =  8.4f, Z0 = 0.0f, W = 5.0f, D = 4.4f, Tier = 1, Tables = 4 },
+            new Room { Name = "Hall2",  X0 =  8.4f, Z0 = 4.4f, W = 5.0f, D = 5.2f, Tier = 2, Tables = 3 },
+            new Room { Name = "Hall3",  X0 = 13.4f, Z0 = 0.0f, W = 4.6f, D = 5.0f, Tier = 3, Tables = 3 },
+            new Room { Name = "Hall4",  X0 = 13.4f, Z0 = 5.0f, W = 4.6f, D = 4.6f, Tier = 4, Tables = 4 },
         };
 
         /// <summary>
-        /// Bir odaya sigan masa izgarasi. Epsilon SART: 4,6 - 0,9 kayan
-        /// noktada 3,6999998 cikiyor ve epsilonsuz bir sutun kayboluyor.
+        /// A room's table grid. The epsilon is ESSENTIAL: 4.6 - 0.9 comes
+        /// out as 3.6999998 in floating point and without the epsilon a
+        /// column disappears.
         /// </summary>
         public static void Fit(in Room r, out int cols, out int rows)
         {
@@ -72,7 +77,7 @@ namespace Lokanta.Game
             if (rows < 1) rows = 1;
         }
 
-        /// <summary>Belirli bir masa sayisina kadar acik odalarin masa noktalari.</summary>
+        /// <summary>The table spots of the rooms open up to a given table count.</summary>
         public static List<TableSpot> TableSpots(int tableCount)
         {
             List<TableSpot> spots = new List<TableSpot>();
@@ -117,7 +122,7 @@ namespace Lokanta.Game
             public float X, Z;
         }
 
-        /// <summary>Ilk salon odasinin sirasi. Birinci gunden acik.</summary>
+        /// <summary>The index of the first hall room. Open from day one.</summary>
         public static int FirstDiningRoom()
         {
             for (int i = 0; i < Rooms.Length; i++)
@@ -125,7 +130,7 @@ namespace Lokanta.Game
             return 0;
         }
 
-        /// <summary>Bu masa sayisinda hangi odalar acik.</summary>
+        /// <summary>Which rooms are open at this table count.</summary>
         public static bool RoomOpen(in Room r, int tableCount)
         {
             if (!r.IsDining) return true;

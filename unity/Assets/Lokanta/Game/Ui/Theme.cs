@@ -1,30 +1,33 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Lokanta.Game.Ui
 {
     /// <summary>
-    /// Arayuzun gorsel dili. Renkler ve olculer TEK YERDE.
+    /// The interface's visual language. Colours and measures IN ONE PLACE.
     ///
-    /// USS dosyasi yerine C# olmasinin sebebi bu projeye ozel: arayuz
-    /// kodla kuruluyor ve sahne uretilen bir sey (docs/34 22). Bir USS
-    /// dosyasi, kodun disinda ikinci bir kaynak olurdu.
+    /// The reason this is C# rather than a USS file is specific to this
+    /// project: the interface is built in code and the scene is a
+    /// generated thing (docs/34 §22). A USS file would be a second source
+    /// of truth living outside the code.
     ///
-    /// Renk secimi mutfak kimliginden bagimsiz ve bilerek: mutfak kimligi
-    /// SALONDA (docs/10), arayuzde degil. Arayuzun isi okunur olmak.
+    /// The colour choice is independent of the cuisine identity, and
+    /// deliberately so: cuisine identity lives IN THE HALL (docs/10), not
+    /// in the interface. The interface's job is to be readable.
     ///
-    /// Olculer dokunma icin: docs/16 asgari dokunma hedefi 48 dp, ve
-    /// buradaki her dugme en az o kadar yuksek.
+    /// The measures are for touch: docs/16 puts the minimum touch target
+    /// at 48 dp, and every button here is at least that tall.
     /// </summary>
     public static class Theme
     {
-        // --- renk ------------------------------------------------------------
+        // --- colour ----------------------------------------------------------
         public static readonly Color Ink = new Color(0.94f, 0.93f, 0.90f);
         public static readonly Color InkDim = new Color(0.68f, 0.66f, 0.62f);
-        // Olculdu: eski deger (0,46) panel uzerinde 3,24:1 veriyordu ve
-        // WCAG AA asgarisi 4,5:1. Ustelik en cok bu renk kullaniliyor -
-        // alt basliklar, servis durum satiri, kilit sebepleri. Yani
-        // okunamayan kisim tam olarak aciklayici metnin kendisiydi.
+        // Measured: the old value (0.46) gave 3.24:1 on the panel, and the
+        // WCAG AA minimum is 4.5:1. And this is the most used colour of all
+        // - sub-headings, the service status line, the reasons things are
+        // locked. So the unreadable part was precisely the explanatory text
+        // itself.
         public static readonly Color InkFaint = new Color(0.60f, 0.59f, 0.57f);
 
         public static readonly Color Bg = new Color(0.086f, 0.094f, 0.110f);
@@ -32,28 +35,30 @@ namespace Lokanta.Game.Ui
         public static readonly Color PanelHi = new Color(0.180f, 0.190f, 0.215f);
         public static readonly Color Line = new Color(0.255f, 0.263f, 0.290f);
 
-        /// <summary>Vurgu: bakir. Bir lokantanin tezgah rengi.</summary>
+        /// <summary>Accent: copper. The colour of a restaurant's counter.</summary>
         public static readonly Color Accent = new Color(0.847f, 0.545f, 0.259f);
         public static readonly Color AccentDim = new Color(0.549f, 0.353f, 0.169f);
 
         /// <summary>
-        /// SAYILARIN UZERINDE DURDUGU ACIK KAPSUL.
+        /// THE LIGHT PLATE THE NUMBERS SIT ON.
         ///
-        /// Benzer oyunlarin taranmasinda cikan en yaygin kural bu:
-        /// chrome koyu olsa bile SAYI acik bir plakanin uzerinde
-        /// duruyor - Good Pizza Great Pizza, My Cafe, Cooking Diary,
-        /// Cooking Fever, Idle Restaurant Tycoon, hepsi. Sebebi
-        /// olculebilir: oyuncunun her uc saniyede bir yeniden okudugu
-        /// sey kasa rakamidir ve bu, onu bir vurgu rengi HARCAMADAN
-        /// ekrandaki en yuksek kontrastli nesne yapiyor.
+        /// This was the most common rule to come out of the survey of
+        /// comparable games: even where the chrome is dark, the NUMBER sits
+        /// on a light plate - Good Pizza Great Pizza, My Cafe, Cooking
+        /// Diary, Cooking Fever, Idle Restaurant Tycoon, every one of them.
+        /// The reason is measurable: the thing the player re-reads every
+        /// three seconds is the till figure, and this makes it the
+        /// highest-contrast object on the screen WITHOUT SPENDING an accent
+        /// colour on it.
         ///
-        /// Beyaz degil sicak kirik beyaz: ekranin %12'si saf beyaz,
-        /// gece telefonda parlama kaynagi; sicak ton ayrica chrome'u
-        /// yemege bagliyor.
+        /// Warm off-white rather than white: 12% of the screen in pure
+        /// white is a source of glare on a phone at night; the warm tone
+        /// also ties the chrome to the food.
         ///
-        /// Olculdu: Plate uzerinde PlateInk 12,9:1, PlateDim 5,1:1.
-        /// Kapsulun kendisi serit zemininde 12,5:1 - yani "burada bir
-        /// nesne var" ayrimi da renkten degil PARLAKLIKTAN geliyor.
+        /// Measured: on Plate, PlateInk is 12.9:1 and PlateDim 5.1:1. The
+        /// capsule itself is 12.5:1 against the strip background - so even
+        /// "there is an object here" comes from BRIGHTNESS rather than from
+        /// colour.
         /// </summary>
         public static readonly Color Plate = new Color(0.914f, 0.898f, 0.863f);
         public static readonly Color PlateInk = new Color(0.110f, 0.125f, 0.157f);
@@ -61,11 +66,12 @@ namespace Lokanta.Game.Ui
 
         public static readonly Color Good = new Color(0.427f, 0.702f, 0.451f);
         public static readonly Color Warn = new Color(0.898f, 0.706f, 0.310f);
-        // Olculdu: eski deger panel uzerinde 4,2:1 - esigin hemen altinda.
+        // Measured: the old value was 4.2:1 on the panel - just under the
+        // threshold.
         public static readonly Color Bad = new Color(0.93f, 0.47f, 0.44f);
 
-        // --- olcu ------------------------------------------------------------
-        /// <summary>Asgari dokunma hedefi. Google 48 dp.</summary>
+        // --- measure ---------------------------------------------------------
+        /// <summary>Minimum touch target. Google says 48 dp.</summary>
         public const int Touch = 52;
         public const int Gap = 10;
         public const int Pad = 16;
@@ -76,7 +82,7 @@ namespace Lokanta.Game.Ui
         public const int FontBody = 17;
         public const int FontSmall = 14;
 
-        // --- yardimcilar -----------------------------------------------------
+        // --- helpers ---------------------------------------------------------
         public static VisualElement Column(float gap = Gap)
         {
             VisualElement v = new VisualElement();
@@ -86,16 +92,18 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Bir satirin AKIS YONU. Arapca'da ters.
+        /// A row's FLOW DIRECTION. Reversed in Arabic.
         ///
-        /// Sagdan sola bir dilde yazi sagdan basliyor ama YERLESIM de
-        /// oyle: onay kutusu metnin sagina, geri oku sagdan sola gecer.
-        /// Metni cevirip yerlesimi birakmak, yarim cevrilmis bir arayuz
-        /// demek - ve yarim cevrilmis, hic cevrilmemisten kotu gorunur.
+        /// In a right-to-left language the writing starts from the right,
+        /// but so does the LAYOUT: the checkbox moves to the right of the
+        /// text, the back arrow moves from the right to the left. Turning
+        /// the text round and leaving the layout alone means a half
+        /// translated interface - and half translated looks worse than not
+        /// translated at all.
         ///
-        /// TEK YERDE olmasi sart: otuz iki satir kurulum yeri var ve
-        /// birinin unutulmasi, o satirin ters akmasi demek. Yon SORULUYOR,
-        /// yazilmiyor.
+        /// It has to be IN ONE PLACE: there are thirty-two places that set
+        /// up a row, and forgetting one of them means that row flows the
+        /// wrong way. The direction is ASKED FOR, not written out.
         /// </summary>
         public static FlexDirection RowFlow
         {
@@ -117,21 +125,22 @@ namespace Lokanta.Game.Ui
 
         private static void SetGap(VisualElement v, float gap, bool column)
         {
-            // UI Toolkit'te gap yok; aralik cocuklara margin olarak
-            // veriliyor. Tek yerde yapiliyor ki iki farkli aralik olusmasin.
+            // UI Toolkit has no gap; the spacing is given to the children as
+            // a margin. It is done in one place so two different spacings
+            // cannot come about.
             v.RegisterCallback<GeometryChangedEvent>(_ =>
             {
-                // ARALIK FIZIKSEL BIR KENARA VERILIYOR.
+                // THE SPACING GOES ON A PHYSICAL EDGE.
                 //
-                // row-reverse'te ilk cocuk EN SAGDA duruyor. Aralik yine
-                // marginLeft'e verilseydi, bosluk bir kaydirilir ve
-                // satirin sol ucunda fazladan bir bosluk, ilk iki oge
-                // arasinda ise hic bosluk kalmazdi.
-                bool ters = !column && Loc.IsRightToLeft;
+                // In row-reverse the first child sits at the FAR RIGHT. Had
+                // the spacing still gone to marginLeft, the whole run would
+                // be shifted by one: an extra gap at the left end of the row
+                // and no gap at all between the first two elements.
+                bool reversed = !column && Loc.IsRightToLeft;
                 for (int i = 1; i < v.childCount; i++)
                 {
                     if (column) v[i].style.marginTop = gap;
-                    else if (ters) v[i].style.marginRight = gap;
+                    else if (reversed) v[i].style.marginRight = gap;
                     else v[i].style.marginLeft = gap;
                 }
             });
@@ -141,11 +150,12 @@ namespace Lokanta.Game.Ui
         {
             VisualElement v = Column();
 
-            // EZILMESIN. Esnek bir sutunun cocuklari varsayilan olarak
-            // flex-shrink 1 ile geliyor; kaydirilabilir bir listede bu,
-            // butun kartlarin pencereye sigacak kadar ezilmesi demek.
-            // Icerik kutudan tasiyor ve satirlar UST USTE biniyordu -
-            // Hal ekraninda ilk masaustu yapisinda tam olarak boyle cikti.
+            // DO NOT LET IT BE SQUASHED. The children of a flex column come
+            // with flex-shrink 1 by default; in a scrollable list that means
+            // every card is squashed down until they all fit in the window.
+            // The content was spilling out of the box and the rows were
+            // OVERLAPPING each other - which is exactly how it came out on
+            // the market screen in the first desktop build.
             v.style.flexShrink = 0;
 
             v.style.backgroundColor = Panel;
@@ -182,8 +192,9 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Dugme. Yuksekligi ASGARI DOKUNMA HEDEFI kadar; bu deger tek
-        /// yerde yaziyor ki bir ekranda kucuk bir dugme kalmasin.
+        /// A button. Its height is the MINIMUM TOUCH TARGET; that value is
+        /// written in one place so that no screen is left with a small
+        /// button on it.
         /// </summary>
         public static Button Btn(string text, System.Action onClick,
                                  bool primary = false, bool wide = false,
@@ -192,13 +203,13 @@ namespace Lokanta.Game.Ui
             Button b = new Button(() => { Sfx.Click(); onClick?.Invoke(); }) { text = text };
             b.style.minHeight = Touch;
             b.style.fontSize = FontBody;
-            // Yazi dikeyde ORTADA. Varsayilan ust-sola yaslamak, 52 dp
-            // yuksekliginde bir dokunma hedefinde yaziyi tepeye yapistiriyor
-            // ve dugme bozuk gorunuyordu (ilk masaustu yapisi).
+            // The text is CENTRED vertically. The default top-left alignment
+            // pinned the text to the top of a 52 dp touch target and the
+            // button looked broken (the first desktop build).
             b.style.unityTextAlign = TextAnchor.MiddleCenter;
-            // Kisa metinli dugmeler de dokunma hedefi kadar GENIS.
-            // "-" ve "+" dugmeleri 44 dp genislikteydi ve servis boyunca
-            // en sik basilan ikisiydi.
+            // Buttons with short labels are as WIDE as the touch target too.
+            // The "-" and "+" buttons were 44 dp wide and were the two most
+            // pressed buttons of the whole service.
             b.style.minWidth = Touch;
             b.style.paddingLeft = Pad;
             b.style.paddingRight = Pad;
@@ -206,8 +217,8 @@ namespace Lokanta.Game.Ui
             b.style.marginRight = 0;
             b.style.marginTop = 0;
             b.style.marginBottom = 0;
-            Color yuz = danger ? Bad : (primary ? Accent : PanelHi);
-            b.style.backgroundColor = yuz;
+            Color face = danger ? Bad : (primary ? Accent : PanelHi);
+            b.style.backgroundColor = face;
             b.style.color = (primary || danger) ? Bg : Ink;
             b.style.unityFontStyleAndWeight =
                 (primary || danger) ? FontStyle.Bold : FontStyle.Normal;
@@ -219,87 +230,89 @@ namespace Lokanta.Game.Ui
             {
                 b.style.flexGrow = 1;
 
-                // VE DARALABILIR.
+                // AND ABLE TO SHRINK.
                 //
-                // UI Toolkit'te `flex-shrink` varsayilani CSS'in aksine
-                // SIFIR: satir sigmayinca hicbir sey daralmiyor, son
-                // ogeler tasip bir oncekinin USTUNE biniyor. Olculdu -
-                // Ingilizce'de "Attention > worst" ile "Close the day"
-                // BIRINCI GUNDE 13 dp cakisiyordu, Turk mutfaginda
-                // "Ilgi > sabirsiz" ile "Veresiye ac" 87 dp.
+                // Unlike CSS, UI Toolkit's default for `flex-shrink` is
+                // ZERO: when the row does not fit, nothing shrinks and the
+                // last elements overflow and land ON TOP of the one before.
+                // Measured - in English "Attention > worst" and "Close the
+                // day" overlapped by 13 dp ON THE FIRST DAY, and in the
+                // Turkish build "Attention > impatient" and "Open a tab"
+                // by 87 dp.
                 //
-                // Serit yuksekligi ve kirpilan yazi olcumlerinin
-                // IKISI DE yesildi: yukseklik dogru, hicbir YAZI
-                // kirpilmamis - cunku kirpilmak yerine ust uste
-                // biniyordu.
+                // BOTH the strip-height and the clipped-text measurements
+                // were green: the height was right and no TEXT was clipped -
+                // because instead of being clipped it was overlapping.
                 b.style.flexShrink = 1;
             }
             Round(b, Radius);
-            Press(b, yuz);
+            Press(b, face);
             return b;
         }
 
         /// <summary>
-        /// Basilma geri bildirimi: koyulasma + %3 kucukme, 90 ms.
+        /// Press feedback: darkening plus a 3% shrink, over 90 ms.
         ///
-        /// NEDEN ELLE: UI Toolkit'in :active kuralini stil sayfasi
-        /// veriyor, bu proje ise butun arayuzu C# ile kuruyor ve
-        /// SATIR ICI stil yaziyor - satir ici stil kural sayfasini
-        /// her zaman yeniyor, yani hazir basili hali hicbir zaman
-        /// gorunmuyordu.
+        /// WHY BY HAND: UI Toolkit's :active rule is supplied by a
+        /// stylesheet, and this project builds the whole interface in C#
+        /// and writes INLINE styles - and an inline style always beats a
+        /// rule sheet, so the ready-made pressed state never showed at all.
         ///
-        /// Sonuc: oyundaki hicbir dugmenin basili hali YOKTU. Ses vardi
-        /// ama telefonda ses genelde kapali (GameApp'in kendi notu), yani
-        /// bir dokunusun karsiligi cogu oyuncu icin HICBIR SEYDI - durum
-        /// degisene kadar. Tek yerde duzeltiliyor, 59 cagri yeri birden.
+        /// The upshot: not one button in the game HAD a pressed state.
+        /// There was a sound, but on a phone the sound is usually off
+        /// (GameApp's own note), so for most players a tap gave back
+        /// NOTHING - until the state changed. Fixed in one place, for 59
+        /// call sites at once.
         ///
-        /// Olcu: 0,97 - dokunmanin hissedilmesi icin yeterli, dugmenin
-        /// yerinden oynadigi izlenimini vermeyecek kadar kucuk.
+        /// The measure: 0.97 - enough for the touch to be felt, small
+        /// enough not to give the impression that the button has moved.
         /// </summary>
-        internal static void PressFx(VisualElement b, Color yuz) { Press(b, yuz); }
+        internal static void PressFx(VisualElement b, Color face) { Press(b, face); }
 
-        private static void Press(VisualElement b, Color yuz)
+        private static void Press(VisualElement b, Color face)
         {
-            Color basili = new Color(yuz.r * 0.78f, yuz.g * 0.78f, yuz.b * 0.78f, yuz.a);
+            Color pressed = new Color(face.r * 0.78f, face.g * 0.78f, face.b * 0.78f, face.a);
 
             b.RegisterCallback<PointerDownEvent>(_ =>
             {
-                b.style.backgroundColor = basili;
+                b.style.backgroundColor = pressed;
                 b.style.scale = new Scale(new Vector3(0.97f, 0.97f, 1f));
             });
 
-            // Up VE Leave: parmagini dugmeden kaydirarak birakan oyuncu
-            // Up almiyor ve dugme basili kaliyordu.
-            EventCallback<EventBase> birak = _ =>
+            // Up AND Leave: a player who slides their finger off the button
+            // before lifting it never gets an Up, and the button stayed
+            // pressed.
+            EventCallback<EventBase> release = _ =>
             {
-                b.style.backgroundColor = yuz;
+                b.style.backgroundColor = face;
                 b.style.scale = new Scale(Vector3.one);
             };
-            b.RegisterCallback<PointerUpEvent>(e => birak(e));
-            b.RegisterCallback<PointerLeaveEvent>(e => birak(e));
-            b.RegisterCallback<PointerCancelEvent>(e => birak(e));
+            b.RegisterCallback<PointerUpEvent>(e => release(e));
+            b.RegisterCallback<PointerLeaveEvent>(e => release(e));
+            b.RegisterCallback<PointerCancelEvent>(e => release(e));
         }
 
         /// <summary>
-        /// Kucuk dolu daire. Bir seyi ISARETLEMEK icin (favori yemek gibi).
+        /// A small filled circle. For MARKING something (a favourite dish,
+        /// for instance).
         ///
-        /// Cizilen bir oge, yazi tipi simgesi DEGIL. Once yildiz karakteri
-        /// kullaniliyordu ve yazi tipinde yoktu: oyuncuya bos kutu olarak
-        /// gorunurdu (tools/art/check_font.py yakaladi). Cizilen simge
-        /// yazi tipinden bagimsiz ve her boyutta net.
+        /// A drawn element, NOT a font glyph. It used to use the star
+        /// character and the font did not have it: the player saw an empty
+        /// box (tools/art/check_font.py caught it). A drawn icon does not
+        /// depend on the font and stays crisp at every size.
         /// </summary>
         /// <summary>
-        /// Bolum basligi. RENK DEGIL AGIRLIK.
+        /// A section heading. NOT COLOUR, WEIGHT.
         ///
-        /// Once Accent ile yaziliyorlardi ve vurgu rengi zaten sekiz
-        /// baska is yapiyordu: "bunu yap", "bu acik", "paran yetiyor",
-        /// "bu ekrani kapat"... Bir turuncu cubugun ne anlama geldigi
-        /// tahmin edilemez hale gelmisti.
+        /// They used to be set in Accent, and the accent colour was already
+        /// doing eight other jobs: "do this", "this one is open", "you can
+        /// afford it", "close this screen"... What an orange bar meant had
+        /// become impossible to guess.
         ///
-        /// Basliklarin ayrica bir tutarsizligi vardi: ekipman
-        /// ekraninda "Soguk Hava Deposu" Accent, hemen altindaki
-        /// kardesi "Ocak" duz Ink idi - oyuncunun goremeyecegi bir
-        /// sebeple iki farkli baslik. Tek yol birakildi.
+        /// The headings also had an inconsistency: on the equipment screen
+        /// "Cold store" was Accent and its sibling "Stove" directly beneath
+        /// it was plain Ink - two different headings for a reason the
+        /// player could not see. One way was kept.
         /// </summary>
         public static Label Head(string text)
         {
@@ -323,29 +336,30 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Metnin okunur kaldigi en fazla genislik (dp).
+        /// The widest text can be and still be readable (dp).
         ///
-        /// Olcum degil kabul: bir etiket-deger satirinda goz sol bastan
-        /// sag basa gidemiyor. Yatay tutulan bir telefonda ekran 1280 dp
-        /// genisliginde olabiliyor ve bir liste satiri o kadar uzun
-        /// olmamali.
+        /// Not a measurement but an assumption: on a label-and-value row the
+        /// eye cannot travel from the far left to the far right. A phone
+        /// held in landscape can be 1280 dp wide and a list row should not
+        /// be that long.
         /// </summary>
         public const float ReadWidth = 880f;
 
         /// <summary>
-        /// Kademeli seviye denetimi: bir sira kutucuk, dolu olanlar
-        /// vurgulu.
+        /// A stepped level control: a row of cells, with the filled ones
+        /// picked out.
         ///
-        /// UI Toolkit'in kendi Slider'i KULLANILMIYOR. Iki sebep:
+        /// UI Toolkit's own Slider is NOT USED. Two reasons:
         ///
-        /// 1) Gorunumu Unity'nin varsayilan calisma zamani temasindan
-        ///    geliyor ve o tema YAPIYA GIRMIYOR - ilk masaustu yapisinda
-        ///    ayarlar ekranindaki iki kaydirici bombos iki kutu olarak
-        ///    cikti. Ayni sebep metinlerin de gorunmemesine yol acmisti.
+        /// 1) Its appearance comes from Unity's default runtime theme, and
+        ///    that theme DOES NOT REACH THE BUILD - in the first desktop
+        ///    build the two sliders on the settings screen came out as two
+        ///    completely empty boxes. The same cause was behind the text
+        ///    not showing either.
         ///
-        /// 2) Ince bir kaydirici cubugunu parmakla tutturmak zor. On
-        ///    kademeli bir sirada her kutucuk 52 dp'lik dokunma hedefinin
-        ///    icinde ve seviye ekrandan OKUNABILIYOR.
+        /// 2) A thin slider bar is hard to catch with a finger. In a row of
+        ///    ten steps each cell is within the 52 dp touch target and the
+        ///    level can be READ OFF the screen.
         /// </summary>
         public static VisualElement Level(string label, int steps, int value,
                                           System.Action<int> onPick)
@@ -362,16 +376,16 @@ namespace Lokanta.Game.Ui
             VisualElement bar = Row(4);
             bar.style.height = Touch;
 
-            // KUTUCUK GENISLIGI DE DOKUNMA HEDEFI.
+            // THE CELL WIDTH IS A TOUCH TARGET TOO.
             //
-            // Yukseklik Touch'ti ama genislik yoktu: 480 dp'lik bir
-            // panelde on adim, 32 dp dolgu ve dokuz aralik dusunce
-            // kutucuk basina ~41 dp kaliyordu - temanin kendi 52 dp
-            // olcusunun altinda. Ses seviyesini degistirmeye calisan
-            // parmak komsu kademeye dusuyordu.
+            // The height was Touch but the width was not: in a 480 dp panel,
+            // once you take off ten steps, 32 dp of padding and nine gaps,
+            // about 41 dp was left per cell - under the theme's own 52 dp
+            // measure. A finger reaching for the volume landed on the
+            // neighbouring step.
             //
-            // Taban genislik, adim sayisini cagiranin degil OLCUNUN
-            // belirlemesini sagliyor: sigmiyorsa satir sarilir.
+            // The flex basis lets the MEASURE rather than the caller's step
+            // count decide: if it does not fit, the row wraps.
             bar.style.flexWrap = Wrap.Wrap;
             bar.style.height = StyleKeyword.Auto;
             bar.style.minHeight = Touch;
@@ -402,17 +416,18 @@ namespace Lokanta.Game.Ui
         }
 
         /// <summary>
-        /// Kaydirma alanini MOBILLESTIRIR: masaustu kaydirma cubugu
-        /// gizleniyor, parmakla surukleme aciliyor.
+        /// Makes a scroll area MOBILE: the desktop scrollbar is hidden and
+        /// finger dragging is turned on.
         ///
-        /// Unity'nin varsayilan ScrollView'i ok dugmeleri olan, acik gri,
-        /// kalin bir cubuk ciziyor. Yil sonu degerlendirme ekraninin
-        /// goruntusunde tam da o cubuk duruyordu: koyu temali bir mobil
-        /// oyunun yaninda yabanci ve bitmemis duruyor, ustelik dokunmatikte
-        /// kimse onu kullanmiyor.
+        /// Unity's default ScrollView draws a thick, light grey bar with
+        /// arrow buttons on it. That very bar was sitting in the screenshot
+        /// of the year-end evaluation screen: next to a dark-themed mobile
+        /// game it looks foreign and unfinished, and on a touchscreen nobody
+        /// uses it anyway.
         ///
-        /// Surukleme acikca aciliyor: cubuk gidince kaydirmanin TEK yolu
-        /// parmak oluyor ve varsayilan esik fare icin ayarli.
+        /// Dragging is turned on explicitly: once the bar is gone, the
+        /// finger is the ONLY way to scroll, and the default threshold is
+        /// tuned for a mouse.
         /// </summary>
         public static ScrollView Mobile(ScrollView v)
         {
@@ -426,7 +441,7 @@ namespace Lokanta.Game.Ui
             return v;
         }
 
-        /// <summary>Ince ayrim cizgisi.</summary>
+        /// <summary>A thin separating line.</summary>
         public static VisualElement Divider()
         {
             VisualElement v = new VisualElement();
@@ -435,7 +450,7 @@ namespace Lokanta.Game.Ui
             return v;
         }
 
-        /// <summary>Etiket ve deger, iki yana yaslanmis.</summary>
+        /// <summary>A label and a value, pushed to opposite ends.</summary>
         public static VisualElement Field(string label, string value, Color? valueColor = null)
         {
             VisualElement row = Row(0);
@@ -447,49 +462,51 @@ namespace Lokanta.Game.Ui
             return row;
         }
 
-        /// <summary>Itibar rengi: 80 ustu iyi, 40 alti kotu.</summary>
+        /// <summary>Reputation colour: above 80 good, below 40 bad.</summary>
         /// <summary>
-        /// Itibarin rengi. BASLANGIC DEGERI ALARM DEGIL.
+        /// The colour of reputation. THE STARTING VALUE IS NOT AN ALARM.
         ///
-        /// Once esikler 80/40 idi ve yeni bir kampanya 30,0 ile
-        /// basliyor - yani birinci gun, hicbir sey olmadan, ust
-        /// seritteki en yuksek doygunluklu oge "Itibar 30,0" kirmizisi
-        /// oluyordu. Oyuncunun ilk ogrendigi sey, yanlis bir alarmdi.
+        /// The thresholds used to be 80/40, and a new campaign starts at
+        /// 30.0 - so on day one, with nothing having happened yet, the most
+        /// saturated element on the top strip was a red "Reputation 30.0".
+        /// The first thing the player learned was a false alarm.
         ///
-        /// Yeni esikler baslangici NOTR birakiyor: 30 gri, dusunce
-        /// kirmizi, yukselince yesil. Renk artik bir DURUM degil bir
-        /// YON bildiriyor.
+        /// The new thresholds leave the start NEUTRAL: 30 is grey, it turns
+        /// red if it falls and green as it climbs. The colour now reports a
+        /// DIRECTION rather than a STATE.
         /// </summary>
         public static Color ReputationColor(int centi)
         {
             if (centi >= 7000) return Good;
             if (centi >= 4500) return Warn;
-            if (centi >= 2500) return InkDim;     // baslangic bandi: sessiz
+            if (centi >= 2500) return InkDim;     // the starting band: quiet
             return Bad;
         }
 
-        /// <summary>Kasa rengi: eksi kirmizi.</summary>
+        /// <summary>Till colour: negative is red.</summary>
         public static Color CashColor(long centi)
         {
             return centi < 0 ? Bad : Ink;
         }
 
         /// <summary>
-        /// Tek eksen: ad, dolu cubuk, sayi - ve istege bagli olarak
-        /// gecen haftaya gore fark.
+        /// A single axis: name, filled bar, number - and optionally the
+        /// difference against last week.
         ///
-        /// Cubuk RENK DEGIL UZUNLUK tasiyor. Renk koru bir oyuncu icin
-        /// yesil-kirmizi ayrimi yok; uzunluk herkeste ayni.
+        /// The bar carries LENGTH, NOT COLOUR. For a colour-blind player
+        /// there is no green-red distinction; length is the same for
+        /// everyone.
         ///
-        /// BURADA DURUYOR CUNKU IKI EKRAN KULLANIYOR: yil sonu karnesi
-        /// ve haftalik karne. Ikinci bir kopya yazmak, bu projede defalarca
-        /// olan seye davetiye olurdu - iki hesap bir gun birbirinden
-        /// ayrilir ve hangisinin dogru oldugu anlasilmaz.
+        /// IT LIVES HERE BECAUSE TWO SCREENS USE IT: the year-end report
+        /// card and the weekly one. Writing a second copy would be an
+        /// invitation to the thing that has happened repeatedly in this
+        /// project - two calculations drift apart one day and there is no
+        /// telling which of them is right.
         /// </summary>
         /// <param name="delta">
-        /// int.MinValue ise fark GOSTERILMIYOR (yil sonu ekrani boyle
-        /// cagiriyor). Sifir ise "degismedi" yaziliyor - bos birakmak,
-        /// olcumun yapilmadigi izlenimini verirdi.
+        /// int.MinValue means the difference is NOT SHOWN (this is how the
+        /// year-end screen calls it). Zero writes "unchanged" - leaving it
+        /// blank would give the impression the measurement was never taken.
         /// </param>
         public static VisualElement AxisRow(string name, int value,
                                             int delta = int.MinValue)
@@ -497,13 +514,13 @@ namespace Lokanta.Game.Ui
             VisualElement row = Row(Gap);
             row.style.alignItems = Align.Center;
 
-            // AD KOLONU DAR, CUBUK GENIS.
+            // THE NAME COLUMN IS NARROW, THE BAR WIDE.
             //
-            // Iki sutuna gecince satir genisligi yariya iniyor ve cubuga
-            // ~40 dp kaliyordu - yani yuz puanlik bir olcek 40 piksele
-            // sikisiyor, puan basina yarim piksel. Cubugun butun gerekcesi
-            // UZUNLUK; okunamayinca yalnizca renk tasiyor ve gerekcesi
-            // ortadan kalkiyor.
+            // Going to two columns halves the row width and left the bar
+            // about 40 dp - a hundred-point scale squeezed into 40 pixels,
+            // half a pixel per point. The bar's entire justification is
+            // LENGTH; once that cannot be read it carries nothing but
+            // colour and its justification is gone.
             Label label = Text(name, FontSmall, InkDim);
             label.style.minWidth = 112;
             label.style.flexShrink = 0;
@@ -533,10 +550,10 @@ namespace Lokanta.Game.Ui
 
             if (delta != int.MinValue)
             {
-                // ISARET ACIKCA YAZILIYOR: "+8" ile "8" farkli seyler ve
-                // eksi isareti tek basina yeterli degil - artiyi da
-                // gostermeyen bir sutunda okuyucu her sayiyi mutlak
-                // deger sanabilir.
+                // THE SIGN IS WRITTEN OUT: "+8" and "8" are different
+                // things, and the minus sign alone is not enough - in a
+                // column that never shows a plus, the reader may take every
+                // number for an absolute value.
                 string s = delta > 0 ? "+" + delta
                          : delta < 0 ? delta.ToString() : "—";
                 Label d = Text(s, FontSmall,

@@ -1,31 +1,34 @@
 # -*- coding: utf-8 -*-
 """
-Arapca metin tablosu. gen_loc.py content/loc/ar.json uretir.
+Arabic string table. gen_loc.py produces content/loc/ar.json.
 
-MODERN STANDART ARAPCA (fusha). Kullanicinin istegi "ortak anlasilir
-olsun" idi; lehce (Misir, Sam, Halic) secmek kitlenin bir kismini
-disarida birakirdi. Fusha, yazili metinde her yerde okunuyor.
+MODERN STANDARD ARABIC (fusha). What the user asked for was that it "be
+commonly understood"; picking a dialect (Egyptian, Levantine, Gulf)
+would have left part of the audience outside. Fusha is read everywhere
+in written text.
 
-CEVIRI KARARLARI - loc_en.py cizgisiyle AYNI:
+TRANSLATION DECISIONS - THE SAME line as loc_en.py:
 
-  Malzemeler TAMAMEN cevriliyor.
+  Ingredients are translated IN FULL.
 
-  Yemekler DEGISKEN. Arap mutfagiyla ORTAK olan adlar zaten Arapca:
+  Dishes VARY. The names that Arab cooking SHARES are Arabic already:
   lahmacun -> لحم بعجين, doner -> شاورما, kofte -> كفتة, sutlac ->
-  أرز بالحليب. Bunlar ceviri degil, AYNI YEMEGIN Arapcasi - ve bu,
-  oyunun Arapca okuyan icin en dogal hali. Karsiligi olmayanlar
-  betimleyici cevriliyor, tanindik Turkce ad parantezde kaliyor.
+  أرز بالحليب. These are not translations, they are the Arabic for THE
+  SAME DISH - and that is the most natural form of the game for somebody
+  reading Arabic. The ones with no counterpart are translated
+  descriptively, with the familiar Turkish name left in brackets.
 
-  Duzenli musterilerin sahneleri OYUNUN SESI: kisa, gundelik, tek bir
-  sey anlatan cumleler.
+  The regulars' scenes are THE GAME'S VOICE: short, everyday sentences
+  that each tell one thing.
 
-  Ozel adlar LATIN HARFLERIYLE korunuyor (Hasan Usta). Arapca metinde
-  Latin harfli ad birakmak, RTL akista yon karisikligi yaratabilir ama
-  yirmi adi ses cevirisiyle yazmak onlari taninmaz hale getirirdi;
-  unvan meslek satirinda aciklaniyor.
+  Proper names are kept IN LATIN LETTERS (Hasan Usta). Leaving a
+  Latin-script name inside Arabic text can create a muddle of direction
+  in the RTL flow, but writing twenty names by transliteration would
+  have made them unrecognisable; the title is explained on the
+  occupation line.
 
-YON UYARISI: Arapca SAGDAN SOLA. Loc.IsRightToLeft bunu tasiyor;
-Unity'nin bunu nasil cizdigi OLCULMEK zorunda (bkz. docs/54).
+DIRECTION WARNING: Arabic runs FROM RIGHT TO LEFT. Loc.IsRightToLeft
+carries this; how Unity draws it HAS to be measured (see docs/54).
 """
 
 INGREDIENTS = {
@@ -151,8 +154,8 @@ TRAIT_DESC = {
     "tecrubeli": "غالٍ، سريع، ولن يتحسّن أكثر.",
 }
 
-# Ses kurallari docs/53: davranisi adlandir kisiyi degil, aciklamayi
-# esirge, duz ve kisa.
+# The rules of the voice are docs/53: name the behaviour, not the person;
+# spare the explanation; plain and short.
 TRAIT_VOICE = {
     "hizli_ama_daginik": "يخرج الطلب بسرعة. وتنتهي عجلته عند الترتيب.",
     "yavas_ama_titiz": "ينظر إلى الطبق مرة أخرى قبل أن يتركه.",
