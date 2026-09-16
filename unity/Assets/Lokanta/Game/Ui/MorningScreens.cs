@@ -1,4 +1,4 @@
-using Lokanta.Core;
+﻿using Lokanta.Core;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 using Lokanta.Core.Sim;
@@ -482,7 +482,16 @@ namespace Lokanta.Game.Ui
                     // A word, NOT an arrow glyph: the font coverage check
                     // caught U+25BE - the shipped font does not have that
                     // glyph and it would be drawn as a box.
-                    + (_showLocked ? "  hide" : "  show"),
+                    // AND IT GOES THROUGH Loc LIKE EVERY OTHER WORD.
+                    //
+                    // This was a bare literal appended to a translated
+                    // label: Turkish players read an English word, and
+                    // after the five-language work so did Spanish,
+                    // Chinese and Arabic ones. A string on screen that
+                    // never touches Loc cannot be found by any of the
+                    // text checks either.
+                    + "  " + Loc.T(_showLocked ? "ui.common.hide"
+                                               : "ui.common.show"),
                     () => { _showLocked = !_showLocked; Ui.Refresh(); });
                 more.style.marginTop = Theme.Gap;
                 list.Add(more);

@@ -37,8 +37,22 @@ DAY_TICKS = SERVICE_TICKS + PREP_TICKS
 CAMPAIGN_DAYS = 60               # content/economy.json
 TOUCH_BUDGET = 60                # docs/16, the daily touch ceiling
 
-# --- Capacities: the same as tools/balance/model.py, which is the single
-#     source of truth
+# --- Capacities. THESE ARE THIS TOOL'S OWN, AND THEY NO LONGER MATCH
+#     THE SHIPPED ECONOMY. The comment here used to claim they were "the
+#     same as model.py, which is the single source of truth". They are
+#     not, and nothing was checking.
+#
+# They cannot simply be replaced by model.py's: this file's millisecond
+# budgets were derived FROM these capacities (B1: waiter_ms x 25 is
+# exactly the service day), so importing model.py's 26 breaks five of
+# this tool's own invariants. Re-deriving the budgets is a balance
+# decision, not a tidy-up, so the drift is REPORTED instead - see
+# check_against_model() at the bottom of the checks.
+import os as _os
+import sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import model as _model  # noqa: E402
+
 CAP_COOK = 28
 CAP_WAITER = 25
 CAP_DISHWASHER = 46
@@ -558,6 +572,32 @@ def checks():
     wd = slot_queue(SLOT_SHARE_PROPOSED, customers=77)
     p.append(("F7 on a weekday (77 customers) there is no queue in any slot",
               all(r["wait_max"] == 0 for r in wd)))
+    # --- G. DOES THIS TOOL STILL DESCRIBE THE SHIPPED GAME? ------------
+    #
+    # docs/27 section 9 tells the reader these constants must be
+    # identical to model.py's. Nothing ever ran that instruction, and by
+    # the time anyone looked they had drifted: 28/25/46/66 here against
+    # 30/26/48/70 there, OWNER_WORK 1.4 against 1.3, so HALL_LOAD is
+    # 0.0769 here and 0.0736 in the economy the game actually ships.
+    #
+    # Every timing conclusion below is therefore computed on capacities
+    # the content does not use. The tool's OWN arithmetic is consistent -
+    # its millisecond budgets were derived from these numbers - which is
+    # exactly why the fix is not a one-line import: it is a balance
+    # decision about which set is right.
+    #
+    # So the disagreement is measured and reported rather than hidden.
+    # A red line here means "re-derive the budgets or move the economy",
+    # not "the tool is broken".
+    for name, mine, theirs in (
+            ("CAP_COOK", CAP_COOK, _model.CAP_COOK),
+            ("CAP_WAITER", CAP_WAITER, _model.CAP_WAITER),
+            ("CAP_DISHWASHER", CAP_DISHWASHER, _model.CAP_DISHWASHER),
+            ("CAP_CASHIER", CAP_CASHIER, _model.CAP_CASHIER),
+            ("OWNER_WORK", OWNER_WORK, _model.OWNER_WORK)):
+        p.append(("G1 %s agrees with model.py (%s vs %s)"
+                  % (name, mine, theirs), mine == theirs))
+
     p.append(("F8 the loss is weekend-only; the effect on weekly revenue is under 4%",
               daily_loss_share(SLOT_SHARE_PROPOSED) * 2 * 97 / (5 * 77 + 2 * 97)
               < 0.04))

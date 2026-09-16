@@ -86,6 +86,12 @@ This is an important result: **the economy is not over-fitted to a single cuisin
 | | fast food | Turkish |
 |---|---|---|
 | Slot ticks | 960 / 1440 / 960 / 1440 | 576 / **2304** / 1200 / 720 |
+
+*These two rows are what was decided on the day. The content has moved since:
+`python tools/balance/export.py` prints `[1200, 864, 1680, 1056]` for fast food and
+`[576, 1344, 2160, 720]` for Turkish (measured 17 September 2026). The table is left
+as it was written - it is the record of a decision, not a reading of today's content -
+but do not quote it as a current number.*
 | Tables the `makul` player reaches | 7.0 | **8.8** |
 | The `makul` player's final till | 33,251 | 30,745 |
 | Growth multiplier | 2.41× | 2.25× |

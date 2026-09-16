@@ -92,6 +92,8 @@ UI = {
     "ui.common.tier": "Nivel",
     "ui.common.top_tier": "Nivel máximo",
     "ui.common.upgrade": "Mejorar — {0}",
+    "ui.common.hide": "ocultar",
+    "ui.common.show": "mostrar",
     "ui.common.yes": "Sí",
 
     # --- credits ----------------------------------------------------------
@@ -177,7 +179,6 @@ UI = {
     "ui.hint.staff": "El equipo te da capacidad pero cuesta sueldos cada semana. Mira la caja antes de contratar.",
 
     # --- top of the service screen ----------------------------------------
-    "ui.hud.angry": "Se fueron",
     "ui.hud.back": "Atrás",
     "ui.hud.cash": "Caja",
     "ui.hud.free_play": "juego libre",

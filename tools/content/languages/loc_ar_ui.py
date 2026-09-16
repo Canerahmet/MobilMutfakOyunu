@@ -92,6 +92,8 @@ UI = {
     "ui.common.tier": "المستوى",
     "ui.common.top_tier": "أعلى مستوى",
     "ui.common.upgrade": "ترقية — {0}",
+    "ui.common.hide": "إخفاء",
+    "ui.common.show": "إظهار",
     "ui.common.yes": "نعم",
 
     # --- credits ----------------------------------------------------------
@@ -177,7 +179,6 @@ UI = {
     "ui.hint.staff": "الطاقم يمنحك طاقة لكنه يكلّف أجورًا كل أسبوع. انظر إلى الصندوق قبل التوظيف.",
 
     # --- top of the service screen ----------------------------------------
-    "ui.hud.angry": "المنصرفون",
     "ui.hud.back": "رجوع",
     "ui.hud.cash": "الصندوق",
     "ui.hud.free_play": "لعب حر",

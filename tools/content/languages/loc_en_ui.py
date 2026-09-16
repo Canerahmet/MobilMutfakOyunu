@@ -60,7 +60,6 @@ UI = {
     # The evening strip was wrapping and overflowing: 230 dp in English
     # against a budget of 220 (Turkish 199). In a summary that tight the
     # label has to be SHORT - "Walked out" is two words, and so two lines.
-    "ui.hud.angry": "Walkouts",
     "ui.service.none_station": "No station is backed up",
     "ui.service.none_table": "No table is waiting",
     "ui.service.none_credit": "Nobody is asking for credit",
@@ -286,6 +285,8 @@ UI = {
     "ui.pause.resume": "Resume",
     "ui.pause.season": "Year-End Review",
     "ui.pause.save_quit": "Save and quit",
+    "ui.common.hide": "hide",
+    "ui.common.show": "show",
     "ui.common.yes": "Yes",
     "ui.common.cancel": "Cancel",
     "ui.common.ok": "OK",

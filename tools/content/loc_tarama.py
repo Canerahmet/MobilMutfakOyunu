@@ -136,11 +136,21 @@ def used_keys():
 
     So the test is simple: does the key's FULL FORM appear anywhere in
     the source tree as a string literal?
+
+    COMMENTS ARE STRIPPED FIRST, and the reason is worth keeping. The
+    scan used to read the whole file, so a key NAMED IN A COMMENT counted
+    as used. `ui.hud.angry` survived for weeks on the strength of a
+    comment that says it is no longer used - the check was kept green by
+    the very sentence explaining that it should be red.
     """
     literal = re.compile(r'"([A-Za-z][A-Za-z0-9_.]*\.[A-Za-z0-9_.]+)"')
+    line_comment = re.compile("//[^" + chr(10) + "]*")
+    block_comment = re.compile(r"/\*.*?\*/", re.S)
     found = set()
     for path in _sources():
         text = io.open(path, encoding="utf-8").read()
+        text = block_comment.sub(" ", text)
+        text = line_comment.sub(" ", text)
         found.update(literal.findall(text))
     return found
 

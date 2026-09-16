@@ -76,7 +76,6 @@ UI = {
     # TR "Kızgın" bir duygu durumu, EN "Walkouts" cikip giden sayisi:
     # AYNI sayi, iki farkli sey soyluyordu. Sayinin tanimi
     # "kizgin ayrilan grup" - iki dil de artik onu soyluyor.
-    "ui.hud.angry": "Çıkıp giden",
     "ui.hud.back": "Geri",
     "ui.hud.pause": "Duraklat",
     "ui.hud.resume": "Devam",
@@ -430,6 +429,8 @@ UI = {
     "ui.pause.resume": "Devam",
     "ui.pause.season": "Yıl Sonu Değerlendirmesi",
     "ui.pause.save_quit": "Kaydet ve çık",
+    "ui.common.hide": "gizle",
+    "ui.common.show": "göster",
     "ui.common.yes": "Evet",
     "ui.common.cancel": "Vazgeç",
     "ui.common.ok": "Tamam",

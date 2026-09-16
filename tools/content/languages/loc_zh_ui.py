@@ -86,6 +86,8 @@ UI = {
     "ui.common.tier": "等级",
     "ui.common.top_tier": "已是最高级",
     "ui.common.upgrade": "升级——{0}",
+    "ui.common.hide": "收起",
+    "ui.common.show": "展开",
     "ui.common.yes": "确定",
 
     # --- credits ----------------------------------------------------------
@@ -171,7 +173,6 @@ UI = {
     "ui.hint.staff": "人手能带来产能，但每周都要发工资。招人前先看看现金。",
 
     # --- top of the service screen ----------------------------------------
-    "ui.hud.angry": "气走的",
     "ui.hud.back": "返回",
     "ui.hud.cash": "现金",
     "ui.hud.free_play": "自由经营",
