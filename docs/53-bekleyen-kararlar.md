@@ -331,3 +331,58 @@ karşılıyor, ve tepkiyi simülasyonun koyduğu yere — müşteriye — koyuyo
 
 *Kendi kuralını yazdığın belgede o kuralı çiğnemek, kuralın işe yaradığını
 gösterir: onu bulan şey kuralın kendisiydi.*
+
+---
+
+## 8. Kayıt göç yolu: kural yazılmıştı, iki yerde uygulanmıştı
+
+Personelin uzun kıdem anını yazmak `SaveVersion` artırmayı gerektiriyordu ve
+[README](README.md) bunu yasaklıyordu: *"Bunu yazmadan içerik yaması
+çıkarılmamalı."*
+
+Bakınca kural **iki dosyada yazılıydı** — `StateIO.cs` ve `Simulation.Save.cs`
+ikisi de *"yeni alanlar `Has()` ile okunur ve yoksa varsayılanda bırakılır"*
+diyordu. Sayınca: **126 okumanın 2'sinde** uygulanmış. Yine akıl yürütmeyle
+yazılmış, hiç koşturulmamış bir koruma.
+
+### `Has()` zaten yanlış araçtı
+
+Bütün okumaları `Has()` ile sarmak mekanizmayı kurardı ama bir şeyi de yok
+ederdi: **`Has()` bir alanın yokluğunu her zaman meşru sayar.** Yani gerçekten
+bozuk bir kayıtla eski bir kaydı ayırt edemez. 21. sürüm kaydında `badges`
+yoksa o kayıt bozuktur ve patlaması *doğrudur*.
+
+Doğru araç **sürüm kapısı**:
+
+```csharp
+if (version >= 21) { ...21'de eklenen alanlar... }
+```
+
+Eski kayıtta atlanıyor, 21. sürüm kaydında eksikse hâlâ patlıyor. İkisi
+ayrışıyor.
+
+### Ve mekanizmanın koştuğu kanıtlandı
+
+`Eski_surum_kaydi_aciliyor` gerçek bir 21. sürüm kaydı üretiyor, 21'de eklenen
+altı alanı siliyor, sürümü 20 yapıyor ve yüklüyor — yani yayından sonraki
+gerçek durumun aynısı. Ölçüt iki yönlü: kayıt **açılacak** *ve* eksik alanlar
+**varsayılanda kalacak**; yalnızca birincisini sormak, her şeyi sıfırlayan bir
+göç yolunu da yeşil geçirirdi.
+
+`Cok_eski_surum_reddediliyor` da kapının hâlâ bir kapı olduğunu söylüyor —
+yoksa "her sürümü kabul et, alanları boş bırak" gibi bir uygulama da geçerdi.
+
+**Testin kendi içine koyduğum doğrulama satırı beni bir kez durdurdu:** ilk
+yazımda alanları `header` düğümünde aradım, oysa sürüm orada ama alanlar
+`restaurant`'ta. O satır olmasaydı test hiçbir şey silmeden, mekanizmayı hiç
+sınamadan yeşil geçecekti — *kurduğu "eski kayıt" gerçek olmayan bir göç
+testi, göç testi değildir.*
+
+Mutasyonla da doğrulandı: kapı `if (true)` yapılınca test
+`Kayitta alan yok: badges` ile kırmızı yanıyor.
+
+`MinReadableVersion = 20` — bir adım geri. Daha eskisi **uydurma olurdu**:
+9–14 arası sürümlerin neyi değiştirdiği belgesiz, yani onlar için doğru kapıyı
+kimse yazamaz. Yayınlanmış kayıt da yok.
+
+Böylece personelin uzun kıdem anının önündeki engel kalktı.

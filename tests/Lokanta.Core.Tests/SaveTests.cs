@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Lokanta.Content;
 using Lokanta.Core.Content;
@@ -115,6 +115,94 @@ namespace Lokanta.Core.Tests
             Assert.Equal(a.StateHash(), b.StateHash());
             Assert.Equal(a.ServedParties, b.ServedParties);
             Assert.Equal(a.Cash, b.Cash);
+        }
+
+        /// <summary>
+        /// ESKI SURUM KAYDI ACILIYOR - ve mekanizma GERCEKTEN kosuyor.
+        ///
+        /// `SaveVersion` artarsa her oyuncunun altmis gunluk kampanyasi
+        /// gider; docs/README bunu ilk guncellemeden onceki sart diye
+        /// yaziyordu ve goc yolu yazilmamisti. Dosyanin kendi kurali
+        /// ("yeni alanlar Has() ile okunur") 126 okumanin IKISINDE
+        /// uygulanmisti - yani yine akil yurutmeyle yazilmis, hic
+        /// kosturulmamis bir koruma.
+        ///
+        /// Bu test 21. surum kaydini alip 21'de EKLENEN alanlari
+        /// siliyor ve surumu 20 yapiyor - yani yayindan sonraki gercek
+        /// durumun aynisini kuruyor: elinde eski bir kayit var, kod
+        /// yeni. Sonra yukluyor.
+        ///
+        /// Olcut iki yonlu: kayit ACILACAK (istisna yok, oyun devam
+        /// ediyor) ve eksik alanlar VARSAYILANDA kalacak. Yalnizca
+        /// birincisini sormak, her seyi sifirlayan bir goc yolunu da
+        /// yesil gecirirdi.
+        /// </summary>
+        [Fact]
+        public void Eski_surum_kaydi_aciliyor()
+        {
+            Simulation a = NewSim();
+            for (int i = 0; i < 400; i++) a.Tick();
+
+            JsonStateWriter w = new JsonStateWriter();
+            a.Write(w);
+            Newtonsoft.Json.Linq.JObject root =
+                Newtonsoft.Json.Linq.JObject.Parse(w.ToJson());
+
+            // 21. surumde eklenen alanlari sil, surumu geriye al.
+            //
+            // SURUM "header"DA, ALANLAR "restaurant"TA. Ilk yazimda
+            // ikisini de header'da aradim ve testin kendi dogrulama
+            // satiri beni durdurdu - kurdugum "eski kayit" gercekci
+            // degildi ve mekanizmayi hic sinamadan yesil gececekti.
+            Newtonsoft.Json.Linq.JObject restaurant =
+                (Newtonsoft.Json.Linq.JObject)root["restaurant"];
+            foreach (string alan in new[] { "badges", "badgesToday",
+                                            "creditEverOpened", "weekReportDay",
+                                            "weekAxis", "weekAxisPrev" })
+            {
+                Assert.True(restaurant[alan] != null,
+                    "21. surum kaydinda olmasi gereken alan yok: " + alan
+                    + " - testin kurdugu 'eski kayit' gercekci degil");
+                restaurant.Remove(alan);
+            }
+            ((Newtonsoft.Json.Linq.JObject)root["header"])["version"] =
+                Simulation.SaveVersion - 1;
+
+            Simulation b = NewSim();
+            b.Restore(new JsonStateReader(root));
+
+            // Kayit acildi: oyun kaldigi yerden devam ediyor.
+            Assert.Equal(a.Day, b.Day);
+            Assert.Equal(a.Cash, b.Cash);
+            Assert.Equal(a.ServedParties, b.ServedParties);
+
+            // Eksik alanlar varsayilanda: nisan kazanilmamis sayiliyor.
+            Assert.Equal(0, b.BadgesEarned);
+
+            // Ve devam edebiliyor - yuklenen durum kosabilir durumda.
+            for (int i = 0; i < 200; i++) b.Tick();
+        }
+
+        /// <summary>
+        /// Okunabilen araligin DISI reddediliyor.
+        ///
+        /// Tek yonlu bir goc testi, "her surumu kabul et ve alanlari
+        /// bos birak" gibi bir uygulamayi da gecirirdi. Bu kol, kapinin
+        /// hala bir kapi oldugunu soyluyor.
+        /// </summary>
+        [Fact]
+        public void Cok_eski_surum_reddediliyor()
+        {
+            Simulation a = NewSim();
+            JsonStateWriter w = new JsonStateWriter();
+            a.Write(w);
+            Newtonsoft.Json.Linq.JObject root =
+                Newtonsoft.Json.Linq.JObject.Parse(w.ToJson());
+            ((Newtonsoft.Json.Linq.JObject)root["header"])["version"] =
+                Simulation.MinReadableVersion - 1;
+
+            Simulation b = NewSim();
+            Assert.ThrowsAny<Exception>(() => b.Restore(new JsonStateReader(root)));
         }
 
         [Fact]

@@ -155,12 +155,24 @@ derlemede). Kalanların çoğu **kullanıcının kararı** — parola, hesap, ya
 8. Öne çıkan görsel (1024×500). Ekran görüntüleri otomatik:
    `tools\unity\tur.ps1 -Magaza`
 
-### İlk güncellemeden önce bilinmesi gereken
+### İlk güncellemeden önce bilinmesi gereken — **kapandı**
 
-`Simulation.SaveVersion` değişirse **her oyuncunun kaydı "bozuk" görünür** ve
-altmış günlük kampanyası gider. Bugün zararsız (yayınlanmış kayıt yok), ama
-yayından sonra sürüm artırmak bir **göç yolu** gerektirir: okuyucunun eksik
-alanları varsayılanla karşılaması. Bunu yazmadan içerik yaması çıkarılmamalı.
+`Simulation.SaveVersion` artarsa her oyuncunun altmış günlük kampanyasının
+gideceği yazıyordu. **Göç yolu yazıldı ve koştuğu kanıtlandı**
+([53](53-bekleyen-kararlar.md) §8):
+
+- `Restore` artık `MinReadableVersion`–`SaveVersion` aralığını kabul ediyor.
+- Bir sürümde eklenen alanlar `if (version >= N)` kapısıyla okunuyor; daha
+  eski kayıtta atlanıp varsayılanda bırakılıyorlar.
+- `SaveTests.Eski_surum_kaydi_aciliyor` gerçek bir 21. sürüm kaydını alıp
+  21'de eklenen alanları siliyor, sürümü 20 yapıyor ve yüklüyor.
+  `Cok_eski_surum_reddediliyor` kapının hâlâ bir kapı olduğunu söylüyor.
+
+**Sonraki sürüm için:** alanları `if (version >= N)` ile oku, `SaveVersion`
+listesine bir satır yaz, teste bir kol ekle. Dosyanın eski kuralı (*"yeni
+alanlar `Has()` ile okunur"*) **geçersiz** — 126 okumanın ikisinde
+uygulanmıştı ve yanlış araçtı: `Has()` bir alanın yokluğunu her zaman meşru
+sayar, yani bozuk kayıtla eski kaydı ayırt edemez.
 
 ### Açık denge soruları
 

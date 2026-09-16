@@ -40,6 +40,33 @@ namespace Lokanta.Core.Sim
         // haftalik karne (weekAxis/weekAxisPrev/weekReportDay).
         public const int SaveVersion = 21;
 
+        /// <summary>
+        /// Okunabilen EN ESKI kayit surumu.
+        ///
+        /// `Restore` bundan eskisini reddediyor; arasindaki her surum
+        /// SURUM KAPISIYLA okunuyor - yani o surumde henuz var olmayan
+        /// alanlar atlaniyor ve varsayilanda birakiliyor.
+        ///
+        /// NEDEN "Has()" DEGIL: dosyanin basindaki kural on alti aydir
+        /// "yeni alanlar Has() ile okunur" diyordu ve 126 okumanin
+        /// IKISINDE uygulanmisti. Ustelik yanlis arac: Has() bir alanin
+        /// YOKLUGUNU her zaman mesru sayar, yani gercekten BOZUK bir
+        /// kayitla eski bir kaydi ayirt edemez. Surum kapisi ikisini
+        /// ayirir - 21. surum kaydinda "badges" yoksa o kayit bozuktur
+        /// ve patlamasi DOGRUDUR.
+        ///
+        /// 20 SECILDI cunku mekanizmanin kostugu ancak bir adim geriye
+        /// giderek kanitlanabiliyor (SaveTests.Eski_surum_kaydi_aciliyor
+        /// 21. surum kaydini 20'ye dusurup yukluyor). Daha eskisi
+        /// uydurma olurdu: 9-14 arasi surumlerin neyi degistirdigi
+        /// BELGESIZ, yani onlar icin dogru kapiyi kimse yazamaz.
+        /// Yayinlanmis kayit da yok, yani kaybedilen bir sey yok.
+        ///
+        /// SONRAKI SURUM ICIN: alanlari `if (version >= N)` ile oku,
+        /// listeye bir satir yaz, ve teste bir kol ekle.
+        /// </summary>
+        public const int MinReadableVersion = 20;
+
         // ---- komut gunlugu okuyuculari --------------------------------------
         public int CommandCount { get { return _commandCount; } }
         public Command CommandAt(int i) { return _commandLog[i]; }
@@ -306,10 +333,10 @@ namespace Lokanta.Core.Sim
 
             r.Begin("header");
             int version = r.Int("version");
-            if (version != SaveVersion)
+            if (version > SaveVersion || version < MinReadableVersion)
                 throw new InvalidOperationException(
-                    "Kayit surumu " + version + ", beklenen " + SaveVersion
-                    + ". Gocurme gerekiyor.");
+                    "Kayit surumu " + version + ", okunabilen aralik "
+                    + MinReadableVersion + "-" + SaveVersion + ".");
             r.Long("seed");                     // tohum kurucuda verildi
             _tickIndex = r.Long("tick");
             _day = r.Int("day");
@@ -325,12 +352,22 @@ namespace Lokanta.Core.Sim
             _tableCount = r.Int("tables");
             _reputationCenti = r.Int("reputationCenti");
             _reputationOverflowCenti = r.Int("reputationOverflow");
-            _badges = r.Int("badges");
-            _badgesToday = r.Int("badgesToday");
-            _creditEverOpened = r.Bool("creditEverOpened");
-            _weekReportDay = r.Int("weekReportDay");
-            r.IntArray("weekAxis", _weekAxis, SeasonScore.AxisCount);
-            r.IntArray("weekAxisPrev", _weekAxisPrev, SeasonScore.AxisCount);
+            // 21. SURUMDE EKLENDI: nisanlar ve haftalik karne.
+            //
+            // Daha eski bir kayitta bu alanlar YOK ve olmamasi dogru.
+            // Varsayilanda birakiliyorlar: nisan kazanilmamis, karne
+            // gunu 0. Oyuncu kaldigi yerden devam ediyor; yalnizca
+            // yamadan onceki nisanlari geriye donuk kazanmiyor - zaten
+            // kazanamazdi, o gunler o mekanik yokken oynandi.
+            if (version >= 21)
+            {
+                _badges = r.Int("badges");
+                _badgesToday = r.Int("badgesToday");
+                _creditEverOpened = r.Bool("creditEverOpened");
+                _weekReportDay = r.Int("weekReportDay");
+                r.IntArray("weekAxis", _weekAxis, SeasonScore.AxisCount);
+                r.IntArray("weekAxisPrev", _weekAxisPrev, SeasonScore.AxisCount);
+            }
             _cash = r.Long("cash");
             _cooks = r.Int("cooks");
             _salon = r.Int("salon");
