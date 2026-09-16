@@ -298,6 +298,28 @@ python tools/check.py              16/16 clean, 249 core tests
 tour.ps1 -Cuisine fastfood         179 passed, 0 failed, 5 unmeasured
 ```
 
+**The balance was re-run**, because the peak fix changes how two traits behave
+and the targets were calibrated while those two were inverted. Fast food, 16
+seeds, 60 days:
+
+| strategy | end cash | reputation | served |
+|---|---:|---:|---:|
+| `makul` (plays reasonably) | 20,743 | 87.0 | 2,602 |
+| `planci` (meets the model's schedule) | 25,987 | 99.7 | 3,731 |
+| `pasif` (never intervenes) | **in debt, day 56** | — | — |
+| `yuksek_fiyat` (permanently above market) | **in debt, day 56** | — | — |
+| `ucuz_malzeme` (skimps on ingredients) | 14,059 | 32.1 | 1,168 |
+
+Every design intent still holds: playing well pays, the passive player goes
+under, the two traps are still traps. The numbers are **not** compared with an
+earlier run - they come from a different build.
+
+The intervention counters matter here too: `mudahaleci` tried 3,876 and applied
+3,876. A bot whose commands are being refused is not a bot, and the counters are
+there because that has happened once already - when the price ceiling arrived,
+the `yuksek_fiyat` bot's prices started being rejected and it silently became a
+copy of the reasonable player.
+
 That is 184 checks in total, five of which had nothing to measure. The number
 is NOT compared with an earlier run: the check count differs by cuisine, and
 comparing a fast food run with a Turkish one is the mistake this project keeps
