@@ -63,7 +63,7 @@ change.
 | `../tools/art/` | Blender generation scripts; `gen_table.py` is the validation example | Working |
 | `../src/Lokanta.Core/` | The pure C# core: `Fx` integer arithmetic, `Rng`, the demand and crew models. No Unity reference | Phase 0, slice 1 |
 | `../src/Lokanta.Content/` | JSON loading and validation. Newtonsoft only here | Phase 0, slice 1 |
-| `../tests/Lokanta.Core.Tests/` | 225 tests: arithmetic, RNG cross-validation, culture, the floating-point ban, the golden table, the simulation | All passing |
+| `../tests/Lokanta.Core.Tests/` | 249 tests: arithmetic, RNG cross-validation, culture, the floating-point ban, the golden table, the simulation | All passing |
 | **[29-phase0-simulation.md](29-phase0-simulation.md)** | **Phase 0, second slice: the simulation, the balance tool and the six design bugs the simulation found** | **Current** |
 | [27-time-model.md](27-time-model.md) | The service day, task durations, deriving prep time, concurrency, peak occupancy | Current |
 | [28-peak-decision.md](28-peak-decision.md) | The decision on the contradiction between the kitchen's hour distribution and capacity | Current |
@@ -166,9 +166,9 @@ package.
 
 | measure | state |
 |---|---|
-| Core tests | 245, all passing |
+| Core tests | 249, all passing |
 | `tools/check.py` | 16 checks, all clean |
-| Smoke tour (a real Windows build, 873×393 dp) | 176 checks, 0 failures |
+| Smoke tour (a real Windows build, 873×393 dp) | 184 checks, 0 failures (fast food; 5 have nothing to measure in that cuisine) |
 | Balance tool | 25 strategies × 60 days, zero reconciliation gap |
 | Android APK | 90.4 MB, 0 warnings |
 

@@ -298,8 +298,11 @@ python tools/check.py              16/16 clean, 249 core tests
 tour.ps1 -Cuisine fastfood         179 passed, 0 failed, 5 unmeasured
 ```
 
-The tour was 175 checks before; the four new ones are the torn-save arms, and
-they pass against the built game, not against a unit test's idea of a disk.
+That is 184 checks in total, five of which had nothing to measure. The number
+is NOT compared with an earlier run: the check count differs by cuisine, and
+comparing a fast food run with a Turkish one is the mistake this project keeps
+writing down. What is compared is the five new lines, and all five pass against
+the built game rather than against a unit test's idea of a disk.
 
 The five unmeasured lines are all fast food's, and all of them honest: the tab
 is the TURKISH signature mechanic, so "the tab was opened during service" and
