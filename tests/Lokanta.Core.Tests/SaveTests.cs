@@ -154,16 +154,15 @@ namespace Lokanta.Core.Tests
             // ikisini de header'da aradim ve testin kendi dogrulama
             // satiri beni durdurdu - kurdugum "eski kayit" gercekci
             // degildi ve mekanizmayi hic sinamadan yesil gececekti.
-            Newtonsoft.Json.Linq.JObject restaurant =
+            // 22. surumde eklenen alanlari sil, surumu 21 yap.
+            Newtonsoft.Json.Linq.JObject staff =
                 (Newtonsoft.Json.Linq.JObject)root["restaurant"];
-            foreach (string alan in new[] { "badges", "badgesToday",
-                                            "creditEverOpened", "weekReportDay",
-                                            "weekAxis", "weekAxisPrev" })
+            foreach (string alan in new[] { "cookTenure", "salonTenure" })
             {
-                Assert.True(restaurant[alan] != null,
-                    "21. surum kaydinda olmasi gereken alan yok: " + alan
+                Assert.True(staff[alan] != null,
+                    "22. surum kaydinda olmasi gereken alan yok: " + alan
                     + " - testin kurdugu 'eski kayit' gercekci degil");
-                restaurant.Remove(alan);
+                staff.Remove(alan);
             }
             ((Newtonsoft.Json.Linq.JObject)root["header"])["version"] =
                 Simulation.SaveVersion - 1;
@@ -176,8 +175,8 @@ namespace Lokanta.Core.Tests
             Assert.Equal(a.Cash, b.Cash);
             Assert.Equal(a.ServedParties, b.ServedParties);
 
-            // Eksik alanlar varsayilanda: nisan kazanilmamis sayiliyor.
-            Assert.Equal(0, b.BadgesEarned);
+            // Eksik alanlar varsayilanda: kidem sifirdan sayiliyor.
+            Assert.Equal(0, b.StaffDaysWorked(0, 0));
 
             // Ve devam edebiliyor - yuklenen durum kosabilir durumda.
             for (int i = 0; i < 200; i++) b.Tick();
@@ -190,6 +189,102 @@ namespace Lokanta.Core.Tests
         /// bos birak" gibi bir uygulamayi da gecirirdi. Bu kol, kapinin
         /// hala bir kapi oldugunu soyluyor.
         /// </summary>
+        /// <summary>
+        /// KIDEM DENEYIMDEN AYRI - ve ekran kidemi gosteriyor.
+        ///
+        /// `StaffDaysWorked` eskiden `_cookXpDays` donduruyordu ve o
+        /// DENEYIM: huya bagli (`tecrubeli` XpBp 0, `cirak` 2x). Yani
+        /// personel karti altmis gundur calisan bir `tecrubeli` icin
+        /// "0 gun" yaziyordu - simulasyonun yalanladigi bir sayi.
+        ///
+        /// Bu test iki sayinin AYRISTIGINI tutuyor: `tecrubeli`nin
+        /// deneyimi sabit kalirken kidemi artmali.
+        /// </summary>
+        [Fact]
+        public void Kidem_deneyimden_ayri()
+        {
+            // GUN KENDILIGINDEN ILERLEMIYOR. Ilk yazimda `while (gun < 12)
+            // { sim.Tick(); }` yazdim ve test SONSUZ DONGUYE girdi - gun
+            // ancak OpenService + CloseDay + AdvanceToNextDay ile
+            // doniyor. RunCampaign'in kalibi kullaniliyor.
+            const int gunSayisi = 12;
+            Simulation sim = NewSim();
+            TimingConfig timing = Timing();
+            int limit = timing.ServiceTicks + 6000;
+
+            for (int day = 1; day <= gunSayisi; day++)
+            {
+                sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+                for (int t = 0; t < limit; t++)
+                {
+                    sim.Tick();
+                    if (sim.ServiceComplete) break;
+                }
+                sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
+                sim.AdvanceToNextDay();
+            }
+
+            // Devralinan asci gun bir'den beri burada.
+            int kidem = sim.StaffDaysWorked(0, 0);
+            int deneyim = sim.StaffXpDays(0, 0);
+            _out.WriteLine($"kidem {kidem}, deneyim {deneyim}");
+
+            // Kidem calisilan gun sayisi - huydan bagimsiz.
+            Assert.Equal(gunSayisi, kidem);
+
+            // DEVRALINAN ASCI YETMEZ.
+            //
+            // Onun huyu yok, yani deneyimi de kidemi kadar artiyor -
+            // `StaffDaysWorked`'i yine `_cookXpDays`'e baglayan bir
+            // gerileme burada ESIT cikar ve test sessizce gecerdi.
+            // Iki sayinin AYRISTIGI ancak deneyim kazanmayan biriyle
+            // gosterilebilir: `tecrubeli` (XpBp 0).
+            Assert.Equal(kidem, deneyim);      // huysuz kisi: esit, dogru
+
+            // Aday havuzlarinda bir `tecrubeli` ara ve ise al.
+            int tecrubeliHuy = -1;
+            for (int t = 0; t < Economy().TraitCount; t++)
+                if (Economy().TraitAt(t).Id == "tecrubeli") tecrubeliHuy = t;
+            Assert.True(tecrubeliHuy >= 0,
+                "icerikte 'tecrubeli' huyu yok - test neyi olctugunu bilemez");
+
+            int isealinan = -1;
+            for (int day = gunSayisi + 1; day <= 50 && isealinan < 0; day++)
+            {
+                for (int slot = 0; slot < 3 && isealinan < 0; slot++)
+                {
+                    bool var = sim.CandidateTrait(0, slot, 0) == tecrubeliHuy
+                               || sim.CandidateTrait(0, slot, 1) == tecrubeliHuy;
+                    if (!var) continue;
+                    int oncekiAsci = sim.Cooks;
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, slot));
+                    if (sim.Cooks > oncekiAsci) isealinan = sim.Cooks - 1;
+                }
+
+                sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+                for (int t = 0; t < limit; t++)
+                {
+                    sim.Tick();
+                    if (sim.ServiceComplete) break;
+                }
+                sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
+                sim.AdvanceToNextDay();
+            }
+
+            Assert.True(isealinan >= 0,
+                "elli gunde bir 'tecrubeli' aday cikmadi - test olcum "
+                + "yapamadi, gecmesi bir sey kanitlamaz");
+
+            int yeniKidem = sim.StaffDaysWorked(0, isealinan);
+            int yeniDeneyim = sim.StaffXpDays(0, isealinan);
+            _out.WriteLine($"tecrubeli: kidem {yeniKidem}, deneyim {yeniDeneyim}");
+
+            Assert.True(yeniKidem > 0,
+                "tecrubelinin kidemi artmadi (" + yeniKidem + ")");
+            Assert.Equal(0, yeniDeneyim);      // XpBp 0: deneyim kazanmaz
+            Assert.NotEqual(yeniKidem, yeniDeneyim);
+        }
+
         [Fact]
         public void Cok_eski_surum_reddediliyor()
         {

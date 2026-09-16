@@ -38,7 +38,16 @@ namespace Lokanta.Core.Sim
         // Ayrica "teaSpend": veresiye cayinin bedeli artik sayiliyor.
         // 20 -> 21: nisanlar (badges/badgesToday/creditEverOpened) ve
         // haftalik karne (weekAxis/weekAxisPrev/weekReportDay).
-        public const int SaveVersion = 21;
+        // 21 -> 22: personel KIDEMI (cookTenure/salonTenure) ayri
+        // tutuluyor. Ekran "gun" diye deneyimi gosteriyordu ve deneyim
+        // huya bagli oldugu icin altmis gundur calisan bir `tecrubeli`
+        // "0 gun" goruunuyordu.
+        //
+        // GOC: eski kayitta kidem yok. Varsayilan 0 - yani yamadan sonra
+        // herkesin kidemi sifirdan sayilmaya baslar. Dogru olani bu:
+        // uydurmak (ornegin XP'den turetmek) tam da duzeltilen yalani
+        // baska bir kilikta geri getirirdi.
+        public const int SaveVersion = 22;
 
         /// <summary>
         /// Okunabilen EN ESKI kayit surumu.
@@ -120,6 +129,8 @@ namespace Lokanta.Core.Sim
             w.Int("cooks", _cooks);
             w.Int("salon", _salon);
             w.IntArray("cookXp", _cookXpDays, MaxServers);
+            w.IntArray("cookTenure", _cookTenure, MaxServers);
+            w.IntArray("salonTenure", _salonTenure, MaxServers);
             w.IntArray("salonXp", _salonXpDays, MaxServers);
             w.IntArray("cookName", _cookName, MaxServers);
             w.IntArray("salonName", _salonName, MaxServers);
@@ -372,6 +383,14 @@ namespace Lokanta.Core.Sim
             _cooks = r.Int("cooks");
             _salon = r.Int("salon");
             r.IntArray("cookXp", _cookXpDays, MaxServers);
+
+            // 22. SURUMDE EKLENDI: personel kidemi. Eski kayitta yok ve
+            // sifirdan sayilmaya basliyor (bkz. SaveVersion notu).
+            if (version >= 22)
+            {
+                r.IntArray("cookTenure", _cookTenure, MaxServers);
+                r.IntArray("salonTenure", _salonTenure, MaxServers);
+            }
             r.IntArray("salonXp", _salonXpDays, MaxServers);
             r.IntArray("cookName", _cookName, MaxServers);
             r.IntArray("salonName", _salonName, MaxServers);

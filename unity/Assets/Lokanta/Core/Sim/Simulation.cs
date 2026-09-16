@@ -179,6 +179,22 @@ namespace Lokanta.Core.Sim
         // Ise alim sona ekler, cikarma sondan alir: en yeni giden. Aksi halde
         // "en deneyimliyi kov" diye bir karar ortaya cikardi ki anlamsiz.
         private readonly int[] _cookXpDays = new int[MaxServers];
+
+        /// <summary>
+        /// KIDEM: kac gundur burada. Deneyimden AYRI.
+        ///
+        /// Ekran "Seviye 0 (0 gun)" yaziyordu ve o "gun" aslinda
+        /// _cookXpDays idi - yani DENEYIM. Deneyim huya bagli
+        /// (`tecrubeli` XpBp 0, `cirak` 2x), dolayisiyla:
+        ///   - altmis gun calismis bir `tecrubeli` ekranda "0 gun",
+        ///   - otuz gun calismis bir `cirak` "60 gun" goruunuyordu.
+        /// Simulasyonun yalanladigi bir sayiyi ekranda yazmak, bu
+        /// oturumun repliklerde duzelttigi hatanin aynisi.
+        ///
+        /// Kidem huydan bagimsiz: her calisilan gun +1.
+        /// </summary>
+        private readonly int[] _cookTenure = new int[MaxServers];
+        private readonly int[] _salonTenure = new int[MaxServers];
         private readonly int[] _salonXpDays = new int[MaxServers];
 
         // --- Huy ve moral, docs/14 -------------------------------------------
@@ -1786,6 +1802,7 @@ namespace Lokanta.Core.Sim
             {
                 before = _economy.XpLevelOf(_cookXpDays[i]);
                 _cookXpDays[i] += XpGainOf(0, i);
+                _cookTenure[i]++;
                 after = _economy.XpLevelOf(_cookXpDays[i]);
                 if (after > before) Emit(SimEventKind.StaffLeveledUp, 0, after);
             }
@@ -1793,6 +1810,7 @@ namespace Lokanta.Core.Sim
             {
                 before = _economy.XpLevelOf(_salonXpDays[i]);
                 _salonXpDays[i] += XpGainOf(1, i);
+                _salonTenure[i]++;
                 after = _economy.XpLevelOf(_salonXpDays[i]);
                 if (after > before) Emit(SimEventKind.StaffLeveledUp, 1, after);
             }
@@ -2857,12 +2875,12 @@ namespace Lokanta.Core.Sim
             }
             if (pool == 0)
             {
-                if (_cooks < MaxServers) { _cookXpDays[_cooks] = 0; RollTraits(0, _cooks, candidate); }
+                if (_cooks < MaxServers) { _cookXpDays[_cooks] = 0; _cookTenure[_cooks] = 0; RollTraits(0, _cooks, candidate); }
                 _cooks++;
             }
             else
             {
-                if (_salon < MaxServers) { _salonXpDays[_salon] = 0; RollTraits(1, _salon, candidate); }
+                if (_salon < MaxServers) { _salonXpDays[_salon] = 0; _salonTenure[_salon] = 0; RollTraits(1, _salon, candidate); }
                 _salon++;
             }
         }
@@ -3086,6 +3104,7 @@ namespace Lokanta.Core.Sim
         private void Fire(int pool, int index)
         {
             int[] xp = pool == 0 ? _cookXpDays : _salonXpDays;
+            int[] kidem = pool == 0 ? _cookTenure : _salonTenure;
             int[] a = pool == 0 ? _cookTraitA : _salonTraitA;
             int[] b = pool == 0 ? _cookTraitB : _salonTraitB;
             int[] morale = pool == 0 ? _cookMorale : _salonMorale;
@@ -3101,6 +3120,7 @@ namespace Lokanta.Core.Sim
             if (index != last && last < MaxServers)
             {
                 xp[index] = xp[last];
+                kidem[index] = kidem[last];
                 a[index] = a[last];
                 b[index] = b[last];
                 morale[index] = morale[last];
@@ -3109,6 +3129,7 @@ namespace Lokanta.Core.Sim
             if (last < MaxServers)
             {
                 xp[last] = 0;
+                kidem[last] = 0;
                 a[last] = -1;
                 b[last] = -1;
                 morale[last] = 0;
@@ -3666,8 +3687,23 @@ namespace Lokanta.Core.Sim
             return _economy.XpLevelOf(xp[index]);
         }
 
-        /// <summary>Bir kisinin calistigi gun sayisi. Arayuz ve test icin.</summary>
+        /// <summary>
+        /// Bir kisinin GERCEKTEN calistigi gun sayisi.
+        ///
+        /// Eskiden `_cookXpDays` donduruyordu ve o DENEYIM - huya bagli.
+        /// Ekran "Seviye 0 (0 gun)" diye yaziyordu ve altmis gundur
+        /// calisan bir `tecrubeli` icin bu duz bir yalandi.
+        /// </summary>
         public int StaffDaysWorked(int pool, int index)
+        {
+            int[] kidem = pool == 0 ? _cookTenure : _salonTenure;
+            int count = pool == 0 ? _cooks : _salon;
+            if (index < 0 || index >= count || index >= MaxServers) return 0;
+            return kidem[index];
+        }
+
+        /// <summary>Bir kisinin DENEYIM gunu. Seviye bundan cikiyor.</summary>
+        public int StaffXpDays(int pool, int index)
         {
             int[] xp = pool == 0 ? _cookXpDays : _salonXpDays;
             int count = pool == 0 ? _cooks : _salon;

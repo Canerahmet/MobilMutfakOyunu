@@ -386,3 +386,46 @@ Mutasyonla da doğrulandı: kapı `if (true)` yapılınca test
 kimse yazamaz. Yayınlanmış kayıt da yok.
 
 Böylece personelin uzun kıdem anının önündeki engel kalktı.
+
+---
+
+## 9. Göç yolunu kurarken bulunan yalan: "0 gün çalıştı"
+
+Uzun kıdem anını yazmak için kıdeme bakınca `StaffDaysWorked` çıktı — ve
+**kıdem döndürmüyordu, deneyim döndürüyordu** (`_cookXpDays`). Deneyim ise
+huya bağlı:
+
+| huy | `XpBp` | ekranda görünen |
+|---|---:|---|
+| `tecrubeli` | 0 | altmış gün çalışan kişi **"0 gün"** |
+| `cirak` | 20000 (2×) | otuz gün çalışan kişi **"60 gün"** |
+
+Personel kartı `"Seviye {seviye} ({gün} gün)"` yazıyor. Yani oyuncuya, altmış
+gündür dükkânda olan birinin hiç çalışmadığı söyleniyordu. **Aynı oturumda
+repliklerde düzelttiğim hatanın kod tarafındaki kardeşi:** simülasyonun
+yalanladığı bir sayıyı ekrana yazmak.
+
+Kıdem artık ayrı izleniyor (`_cookTenure` / `_salonTenure`), huydan bağımsız,
+her çalışılan gün +1. İşten çıkarmadaki kaydırmaya da eklendi — XP'nin gittiği
+her yere kıdem de gidiyor, yoksa çıkarılan kişinin kıdemi yerine geçene
+yapışırdı.
+
+`SaveVersion` 21 → 22, ve bu **az önce yazılan göç yolunun ilk gerçek
+kullanımı**. Eski kayıtta kıdem yok; sıfırdan sayılmaya başlıyor. Uydurmak
+(örneğin XP'den türetmek) tam da düzeltilen yalanı başka bir kılıkta geri
+getirirdi.
+
+### Test iki kez zayıf yazıldı
+
+Birincisi **sonsuz döngüye** girdi: `while (gun < 12) { sim.Tick(); }` yazdım,
+oysa gün ancak `OpenService` + `CloseDay` + `AdvanceToNextDay` ile dönüyor.
+
+İkincisi **hiçbir şey ölçmüyordu**: yalnızca devralınan aşçıya bakıyordu ve
+onun huyu yok, yani deneyimi de kıdemi kadar artıyor — `StaffDaysWorked`'i
+yine XP'ye bağlayan bir gerileme orada **eşit** çıkar ve test sessizce
+geçerdi. Şimdi test aday havuzlarında bir `tecrubeli` arıyor, işe alıyor, ve
+*"elli günde bir `tecrubeli` aday çıkmadı — test ölçüm yapamadı"* diye ayrı
+bir kol taşıyor.
+
+Mutasyonla doğrulandı: `StaffDaysWorked` yine XP döndürünce test kırmızı
+yanıyor.
