@@ -3,8 +3,8 @@
     "id": "asci",
     "nameKey": "role.asci",
     "pool": "kitchen",
-    "capacityPerDay": 30,
-    "workPerCustomerMicro": 33333,
+    "capacityPerDay": 28,
+    "workPerCustomerMicro": 35714,
     "dailyWage": 14000,
     "stations": [
       "ocak",

@@ -37,33 +37,40 @@ DAY_TICKS = SERVICE_TICKS + PREP_TICKS
 CAMPAIGN_DAYS = 60               # content/economy.json
 TOUCH_BUDGET = 60                # docs/16, the daily touch ceiling
 
-# --- Capacities. THESE ARE THIS TOOL'S OWN, AND THEY NO LONGER MATCH
-#     THE SHIPPED ECONOMY. The comment here used to claim they were "the
-#     same as model.py, which is the single source of truth". They are
-#     not, and nothing was checking.
+# --- Capacities: TAKEN from model.py, not copied from it.
 #
-# They cannot simply be replaced by model.py's: this file's millisecond
-# budgets were derived FROM these capacities (B1: waiter_ms x 25 is
-# exactly the service day), so importing model.py's 26 breaks five of
-# this tool's own invariants. Re-deriving the budgets is a balance
-# decision, not a tidy-up, so the drift is REPORTED instead - see
-# check_against_model() at the bottom of the checks.
+# This block used to declare its own 28/25/46/66 under a comment saying
+# they were "the same as model.py, which is the single source of truth".
+# They never were - both files have said different numbers since the
+# first commit - and the cross-check that was supposed to catch it was a
+# sentence in docs/27, not code. So every timing conclusion in this file
+# was computed on capacities the shipped content does not use.
+#
+# model.py won, and not by seniority: it is what export.py writes into
+# content/, what the harness is calibrated against at penalty zero, and
+# what 245 core tests run on. Changing THAT to match this file would
+# have re-opened a balance that is currently proven good.
+#
+# Adopting its numbers breaks nothing here, but it does move the
+# millisecond budgets, because they are derived from the capacities. The
+# hand-split parts below were rescaled to keep their proportions - see
+# the note at T_SEAT.
 import os as _os
 import sys as _sys
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import model as _model  # noqa: E402
 
-CAP_COOK = 28
-CAP_WAITER = 25
-CAP_DISHWASHER = 46
-CAP_CASHIER = 66
-HALL_LOAD = 1.0 / CAP_WAITER + 1.0 / CAP_DISHWASHER + 1.0 / CAP_CASHIER
+CAP_COOK = _model.CAP_COOK
+CAP_WAITER = _model.CAP_WAITER
+CAP_DISHWASHER = _model.CAP_DISHWASHER
+CAP_CASHIER = _model.CAP_CASHIER
+HALL_LOAD = _model.HALL_LOAD
 
 # --- The peak day: the week 8 weekend row of model.py
 PEAK_CUSTOMERS = 97
 PEAK_COOKS = 4
 PEAK_HALL = 7
-OWNER_WORK = 1.4                 # the owner's hall work-day contribution
+OWNER_WORK = _model.OWNER_WORK   # the owner's hall work-day contribution
 PEAK_TABLES = 14
 
 # --- Values measured over content/archetypes/*.json (the fast food pool)
@@ -156,13 +163,19 @@ CASHIER_MS = role_ms(CAP_CASHIER)       # 7,273
 HALL_MS = WAITER_MS + DISHWASHER_MS + CASHIER_MS   # 36,908
 
 # --- The waiter's time split into three parts (per head, summing to WAITER_MS)
-T_SEAT = 3200      # greeting and seating
-T_ORDER = 7000     # taking the order; the longest waiter job, the menu
+# RESCALED, NOT REDESIGNED. These were 3200/7000/9000, summing to the
+# 19,200 that a capacity of 25 produced. A capacity of 26 gives 18,462,
+# so each part keeps its share of the total (16.7% / 36.5% / 46.9%) and
+# the three still sum exactly to WAITER_MS. The design claim - that
+# taking the order is the longest waiter job, because the menu decision
+# happens there - is unchanged.
+T_SEAT = 3077      # greeting and seating
+T_ORDER = 6731     # taking the order; the longest waiter job, the menu
                    # decision happens here
-T_SERVE = 9000     # carrying the tray to the table and handing it out
+T_SERVE = 8654     # carrying the tray to the table and handing it out
 # --- The dishwasher's time in two parts (summing to DISHWASHER_MS)
-T_BUS = 4435       # clearing the table - THIS BLOCKS THE TABLE
-T_WASH = 6000      # washing up at the sink - the table is free
+T_BUS = 4250       # clearing the table - THIS BLOCKS THE TABLE
+T_WASH = 5750      # washing up at the sink - the table is free
 # --- The cashier
 T_PAY = CASHIER_MS  # 7,273, closing the bill and taking payment
 
@@ -473,12 +486,16 @@ def checks():
               6000 <= D / TOUCH_BUDGET <= 12000))
 
     # --- B: task durations reproduce the capacity exactly
-    p.append(("B1 waiter ms x 25 = the service day (EXACTLY)", WAITER_MS * 25 == D))
-    p.append(("B2 kitchen ms x 28 = the service day (+-28)",
+    # B1 used to assert EXACT division, which was only ever true because
+    # 480,000 happens to divide by 25. It is a property of the number,
+    # not of the model, and it made the check look stronger than it was.
+    p.append(("B1 waiter ms x %d = the service day (+-%d)" % (CAP_WAITER, CAP_WAITER),
+              abs(WAITER_MS * CAP_WAITER - D) <= CAP_WAITER))
+    p.append(("B2 kitchen ms x %d = the service day (+-%d)" % (CAP_COOK, CAP_COOK),
               abs(KITCHEN_MS * CAP_COOK - D) <= CAP_COOK))
-    p.append(("B3 dishwasher ms x 46 = the service day (+-46)",
+    p.append(("B3 dishwasher ms x %d = the service day (+-%d)" % (CAP_DISHWASHER, CAP_DISHWASHER),
               abs(DISHWASHER_MS * CAP_DISHWASHER - D) <= CAP_DISHWASHER))
-    p.append(("B4 cashier ms x 66 = the service day (+-66)",
+    p.append(("B4 cashier ms x %d = the service day (+-%d)" % (CAP_CASHIER, CAP_CASHIER),
               abs(CASHIER_MS * CAP_CASHIER - D) <= CAP_CASHIER))
     p.append(("B5 seating+order+service = waiter ms",
               T_SEAT + T_ORDER + T_SERVE == WAITER_MS))

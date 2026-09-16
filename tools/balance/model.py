@@ -71,7 +71,7 @@ START_CASH = 8000
 # was run again and pulled the capacity scale from 1.00 down to 0.95 and the
 # owner's contribution from 1.3 up to 1.4. Rents and expansion costs come from
 # that run too.
-CAP_COOK = 30
+CAP_COOK = 28
 CAP_WAITER = 26
 CAP_DISHWASHER = 48
 CAP_CASHIER = 70

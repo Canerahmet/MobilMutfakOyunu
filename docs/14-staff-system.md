@@ -147,7 +147,7 @@ Every role has a daily capacity. The base values, for a level-one, bad-tempered 
 <!-- GENERATED: capacity -->
 | Role | Daily capacity | Daily wage | Work per guest | Share of hall load |
 |---|---|---|---|---|
-| Cook | 30 guests | 140 | 0.0333 person-days | separate pool |
+| Cook | 28 guests | 140 | 0.0357 person-days | separate pool |
 | Waiter | 26 guests | 110 | 0.0385 person-days | %52 |
 | Dishwasher | 48 guests | 90 | 0.0208 person-days | %28 |
 | Cashier | 70 guests | 100 | 0.0143 person-days | %19 |
@@ -195,7 +195,7 @@ This contribution is enough to get through the first week with a single cook: th
 | 2 | 19 | 1 | 1 | **2** | 3 | 1.40 | 0.10 |
 | 3 | 36 | 2 | 2 | **4** | 5 | 2.65 | 1.35 |
 | 4 | 39 | 2 | 2 | **4** | 5 | 2.87 | 1.57 |
-| 5 | 59 | 2 | 4 | **6** | 8 | 4.34 | 3.04 |
+| 5 | 59 | 3 | 4 | **7** | 8 | 4.34 | 3.04 |
 | 6 | 63 | 3 | 4 | **7** | 8 | 4.64 | 3.34 |
 | 7 | 92 | 4 | 6 | **10** | 12 | 6.77 | 5.47 |
 | 8 | 97 | 4 | 6 | **10** | 12 | 7.14 | 5.84 |
@@ -256,7 +256,7 @@ The result is that the profit margin improves **slowly**.
 | 2 | %32 | %42 | %21 | %0 | **%5.2** |
 | 3 | %32 | %42 | %23 | %29 | **−%26.0** |
 | 4 | %32 | %38 | %21 | %0 | **%9.1** |
-| 5 | %32 | %34 | %19 | %29 | **−%13.4** |
+| 5 | %32 | %41 | %19 | %29 | **−%20.2** |
 | 6 | %32 | %37 | %17 | %0 | **%14.0** |
 | 7 | %32 | %35 | %18 | %29 | **−%14.4** |
 | 8 | %32 | %31 | %16 | %0 | **%20.1** |

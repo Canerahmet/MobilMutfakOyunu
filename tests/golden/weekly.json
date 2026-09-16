@@ -91,17 +91,17 @@
       "weekdayCustomers": 47,
       "weekendCustomers": 59,
       "weekCustomers": 353,
-      "cooks": 2,
+      "cooks": 3,
       "hall": 4,
-      "crewTotal": 6,
+      "crewTotal": 7,
       "staffCap": 8,
       "revenue": 1556700,
       "ingredients": 498144,
-      "wages": 526609,
+      "wages": 633522,
       "rent": 290000,
       "expansion": 450000,
-      "net": -208053,
-      "cash": 542731
+      "net": -314966,
+      "cash": 435819
     },
     {
       "week": 6,
@@ -121,7 +121,7 @@
       "rent": 290000,
       "expansion": 0,
       "net": 243769,
-      "cash": 786500
+      "cash": 679587
     },
     {
       "week": 7,
@@ -141,7 +141,7 @@
       "rent": 500000,
       "expansion": 800000,
       "net": -390793,
-      "cash": 395708
+      "cash": 288795
     },
     {
       "week": 8,
@@ -161,7 +161,7 @@
       "rent": 500000,
       "expansion": 0,
       "net": 609736,
-      "cash": 1005443
+      "cash": 898530
     }
   ]
 }

@@ -584,12 +584,14 @@ This file touched no content file. The following will be done in a separate job.
 
 `python tools/balance/timing.py` also writes all the derived constants and intermediate calculations out as plain text; `--md` produces the markdown tables.
 
-**Cross-validation — and the sentence that was wrong for weeks.** This line used
-to say that `CAP_COOK`, `CAP_WAITER`, `CAP_DISHWASHER`, `CAP_CASHIER`,
-`HALL_LOAD` and `OWNER_WORK` in `timing.py` were identical to `model.py`'s, and
-that "the moment the two diverge, the group B tests fail".
+**Cross-validation — the sentence that was wrong from the day it was written, and
+how it was closed.** This line used to say that `CAP_COOK`, `CAP_WAITER`,
+`CAP_DISHWASHER`, `CAP_CASHIER`, `HALL_LOAD` and `OWNER_WORK` in `timing.py` were
+identical to `model.py`'s, and that "the moment the two diverge, the group B
+tests fail".
 
-Neither half was true. Measured on 17 September 2026:
+Neither half was true, and `git log -S` settles when it stopped being true:
+**never**. Both files were born in the first commit with different numbers.
 
 | constant | `timing.py` | `model.py` |
 |---|---:|---:|
@@ -602,27 +604,42 @@ Neither half was true. Measured on 17 September 2026:
 
 The group B tests did **not** fail, because they test this file against *itself*:
 `waiter_ms × CAP_WAITER` equals the service day whichever capacity you pick, so
-long as the millisecond budget was derived from it. A cross-check written as a
-sentence and never executed is not a cross-check — it is the same mistake this
-project keeps finding, in prose form.
+long as the budget was derived from it. A cross-check written as a sentence and
+never executed is not a cross-check — it is this project's oldest mistake, in
+prose form.
 
-`model.py` is what `export.py` writes into `content/`, so **the shipped game uses
-30/26/48/70 and the timings below were computed on 28/25/46/66.** Every
-conclusion in this document about whether the crew covers the peak is therefore
-computed on capacities the content does not use.
+### Which side was right — and the answer was neither, then both
 
-It is not fixed by an import: this file's per-task budgets were *derived from*
-these capacities, so adopting `model.py`'s numbers breaks five of the tool's own
-invariants (B1, B5, B6, C2, F3). Choosing which set is right is a balance
-decision, not a tidy-up. So the drift is now **measured and reported** — the
-group G checks in `timing.py --check` name each constant and both values:
+`model.py` is what `export.py` writes into `content/`, what the harness is
+calibrated against, and what the core tests run on. So it won the hall roles:
+`timing.py` now **imports** them, and its hand-split parts (3200/7000/9000 for
+the waiter, 4435/6000 for the dishwasher) were rescaled to keep their
+proportions against the new totals. `B1` also stopped claiming the waiter's time
+divides the service day *exactly* — that was only ever true because 480,000
+happens to divide by 25. A property of the number, not of the model.
 
-```
-FAIL G1 CAP_WAITER agrees with model.py (25 vs 26)
-```
+**The cook was the other way round.** `C2` derives the cook's time per guest from
+the content's own `prepMs` and `attendBp`: **17,127 ms**, which is a capacity of
+480,000 ÷ 17,127 = **28**. `model.py` had been declaring 30 since the first
+commit, so the staffing model said a cook serves more guests than the dishes
+allow. Three independent places said 28 — this tool, [14](14-staff-system.md)'s
+prose, and the dish data itself; only `model.py` said 30.
 
-A red G line means "re-derive the budgets, or move the economy". It does not
-mean the tool is broken.
+Measured before changing it, fast food, 8 seeds:
+
+| strategy | end cash at 30 | end cash at 28 |
+|---|---:|---:|
+| `makul` | 22,257 | 22,215 |
+| `genislemeyen` | 12,750 | 12,750 |
+| `atilgan` | 2,269 | 2,288 |
+| `planci` | 25,094 | 25,568 |
+
+It costs nothing. `model.py` moved to 28, the content regenerated, and the one
+test that pinned 30 was updated with the reason.
+
+**`timing.py --check` is now 52 checks, 0 failed** — including five new group G
+checks that name each constant and both values. A red G line would mean the two
+have drifted again; this time something runs it.
 
 ---
 

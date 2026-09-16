@@ -47,11 +47,21 @@ namespace Lokanta.Core.Tests
             Assert.Equal(800000, cfg.StartingCash);
             Assert.Equal(4, cfg.CustomerBasePerTable);
             Assert.Equal(3200, cfg.IngredientRateBp);
-            Assert.Equal(30, cfg.CookCapacityPerDay);
+            // 28, NOT 30, AND THE DISHES ARE WHY.
+            //
+            // tools/balance/timing.py derives the cook's time per guest
+            // from the content's own prepMs and attendBp: 17,127 ms,
+            // which is a capacity of 480,000 / 17,127 = 28. The model
+            // had declared 30 since the first commit, so the staffing
+            // said a cook serves more guests than the dishes allow.
+            // Measured at 8 seeds, closing the gap moved the reasonable
+            // player by 0.2% and the planner by 1.9% - it costs nothing
+            // and it stops two parts of the content disagreeing.
+            Assert.Equal(28, cfg.CookCapacityPerDay);
             Assert.Equal(14000, cfg.CookDailyWage);
             Assert.Equal(4, cfg.TierCount);
 
-            // The hall pool is made of three roles: capacities 25 + 46 + 66
+            // The hall pool is made of three roles: capacities 26 + 48 + 70
             Assert.Equal(73581, cfg.HallWorkPerCustomerMicro);
             Assert.Equal(1300000, cfg.OwnerWorkMicro);
         }
