@@ -2,7 +2,7 @@
 """
 Low-poly ilkel yardimcilari.
 ============================================================================
-docs/24-sanat-hatti.md kademe 1: mobilya, ekipman ve ortam prosedurel.
+docs/24-art-pipeline.md kademe 1: mobilya, ekipman ve ortam prosedurel.
 Doku yok; her sey duz renk malzeme ve pah kirma.
 
 Butun olculer METRE. Oyun 2.5D ama sahne gercek olcekte kuruluyor,
@@ -12,7 +12,7 @@ import bpy
 import math
 
 # ---------------------------------------------------------------------------
-# Palet. docs/10-mutfak-kimligi.md fast food: sicak, doygun, plastik.
+# Palet. docs/10-cuisine-identity.md fast food: sicak, doygun, plastik.
 # ---------------------------------------------------------------------------
 PALETTE = {
     "ahsap":        (0.42, 0.26, 0.15),

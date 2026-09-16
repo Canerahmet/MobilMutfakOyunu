@@ -2,7 +2,7 @@
 """
 Arketip uretici - Faz 0
 ============================================================================
-docs/11-musteri-sistemi.md icindeki yirmi arketibi uc dosyaya yazar:
+docs/11-customer-system.md icindeki yirmi arketibi uc dosyaya yazar:
 
   content/archetypes/shared.json     8 paylasilan arketip (her mutfakta)
   content/archetypes/fastfood.json  12 fast food'a ozel
@@ -11,14 +11,14 @@ docs/11-musteri-sistemi.md icindeki yirmi arketibi uc dosyaya yazar:
 Her mutfak kendi 12 arketibini paylasilan 8 ile birlestirip 20 slotu doldurur.
 Sikilik kademesi dagilimi (docs/11): sik 8, orta 8, nadir 4.
 
-BIRIMLER - docs/23-cekirdek-sozlesmesi.md 2.2 ve 8.4 baglayici:
+BIRIMLER - docs/23-core-contract.md 2.2 ve 8.4 baglayici:
   sure            milisaniye      8 sn sabir = 8000
   oran, carpan    baz puan (bp)   10000 = 1,0
   memnuniyet      santi-puan      100 puan = 10000
   itibar agirligi baz puan        1,4 kat = 14000; elestirmen 8 kat = 80000
 Ondalik nokta YOK. Dogrulayici JSON icinde nokta gorurse dosyayi reddeder.
 
-SAYILARIN KAYNAGI - docs/12-ekonomi.md:
+SAYILARIN KAYNAGI - docs/12-economy.md:
   5.2 sabir      kurye 8, aceleci ogrenci 10, ogle molasi calisani 12,
                  ofis grubu 18, aile 30, emekli 40 saniye. Bunlar sabit,
                  digerleri ayni ruhta secildi.
@@ -415,8 +415,8 @@ def main():
         by_file[name] = [build(r, cuisines) for r in rows]
 
     print("== ARKETIP URETICI ==")
-    print("kaynak: docs/11-musteri-sistemi.md, docs/12-ekonomi.md 5.2-5.6")
-    print("birim : docs/23-cekirdek-sozlesmesi.md 2.2 ve 8.4, tamsayi")
+    print("kaynak: docs/11-customer-system.md, docs/12-economy.md 5.2-5.6")
+    print("birim : docs/23-core-contract.md 2.2 ve 8.4, tamsayi")
     print("")
     for name in ("shared", "fastfood", "turk"):
         write(os.path.join(OUTDIR, name + ".json"), by_file[name])

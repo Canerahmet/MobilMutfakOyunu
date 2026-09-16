@@ -18,8 +18,8 @@ namespace Lokanta.EditorTools
     ///             -executeMethod Lokanta.EditorTools.ProjectSetup.ApplyAll
     ///             -logFile -
     ///
-    /// Kaynak: docs/19-teknik-kurulum.md B4 ve B5.
-    /// Ilk surum SADECE Android (Mac yok), bkz. docs/22-cevaplar-ve-yon.md.
+    /// Kaynak: docs/19-technical-setup.md B4 ve B5.
+    /// Ilk surum SADECE Android (Mac yok), bkz. docs/22-answers-and-direction.md.
     /// </summary>
     public static class ProjectSetup
     {

@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Yil sonu degerlendirmesi. docs/08-oyun-sonu.md.
+    /// Yil sonu degerlendirmesi. docs/08-endgame.md.
     ///
     /// Bu ozellik bir zamanlar TASARLANMIS ama HIC BAGLANMAMISTI: ekran
     /// yaziliydi, CampaignDays icerikte duruyordu, ve altmisinci gun gelip

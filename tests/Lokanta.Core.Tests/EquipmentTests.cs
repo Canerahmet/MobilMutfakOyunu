@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Istasyon yuvasi ve ekipman. docs/27-zaman-modeli.md Karar D:
+    /// Istasyon yuvasi ve ekipman. docs/27-time-model.md Karar D:
     ///   - prepMs yemegin DUVAR SAATI suresi
     ///   - asci mesguliyeti = prepMs x attendBp / 10000
     ///   - yukseltme ya yuva ekler ya attendBp dusurur, prepMs'e dokunmaz

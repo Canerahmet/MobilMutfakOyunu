@@ -428,7 +428,7 @@ def main():
     print()
     print("4. docs/13 semasinda VAR, uretilen icerikte YOK")
     print("-" * 74)
-    schema = os.path.join(ROOT, "docs", "13-veri-semalari.md")
+    schema = os.path.join(ROOT, "docs", "13-data-schemas.md")
     doc_keys = set()
     if os.path.exists(schema):
         for m in re.finditer(r'"(\w+)"\s*:', read(schema)):

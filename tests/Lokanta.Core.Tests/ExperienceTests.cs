@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// docs/14-personel-sistemi.md "Deneyim ve seviye":
+    /// docs/14-staff-system.md "Deneyim ve seviye":
     ///   - calisilan her gun 1 puan
     ///   - 30 puanda seviye atlar, azami 3 seviye
     ///   - her seviye hiz +%10

@@ -136,7 +136,7 @@ boş, `INTERNET` yok, kodda ağ çağrısı yok.
 **Beş dil.** Türkçe, İngilizce, İspanyolca, Çince ve Arapça — oyun varsayılan
 olarak İngilizce açılıyor, dil Ayarlar'dan değişiyor. Çince için ikinci bir
 yazı tipi, Arapça için harf birleştirme ve aynalanmış yerleşim var
-([docs/54](docs/54-bes-dil.md)).
+([docs/54](docs/54-five-languages.md)).
 
 ---
 
@@ -153,7 +153,7 @@ tohumla her makinede aynı kampanyayı üretiyor. Platform işleri port arkasın
 kıran, kadrosu eksik çalışan, imza mekaniğini oynayan… Bir tasarım sorusunun
 cevabı ölçülmeden "biliniyor" sayılmıyor.
 
-**Otomatik tur.** `tools/unity/tur.ps1` oyunu **gerçek Windows yapısında**
+**Otomatik tur.** `tools/unity/tour.ps1` oyunu **gerçek Windows yapısında**
 kendi kendine gezdiriyor: menüden kampanya sonuna, 130'dan fazla kontrolle.
 Arayüzü görmenin tek yolu bu — ve bu depodaki görsellerin hepsini o üretiyor.
 
@@ -177,7 +177,7 @@ tests/            Çekirdeğin testleri (245 test)
 unity/            Yalnızca GÖRÜNÜM ve platform.
   Assets/Lokanta/Game/     Arayüz, sahne, otomatik tur
   Assets/Lokanta/Editor/   Yapı, sahne üretimi, denetçiler
-  Assets/Lokanta/Art/      Modeller, dokular, yazı tipleri, ATIF.md
+  Assets/Lokanta/Art/      Modeller, dokular, yazı tipleri, ATTRIBUTION.md
   Assets/Resources/        content/ kopyası - ÜRETİLEN, elle dokunulmaz
 
 content/          ÜRETİLEN içerik. Elle düzenlenmiyor.
@@ -186,7 +186,7 @@ content/          ÜRETİLEN içerik. Elle düzenlenmiyor.
 tools/            Her şeyi üreten ve denetleyen betikler.
   check.py          TEK KOMUT: aşağıdakilerin hepsini sırayla koşar
   audit_content.py  İçerik-kod sözleşmesi: içerikteki her alanı kod okuyor mu
-  check_lisans.py   Lisans ve atıf defteri
+  check_licenses.py   Lisans ve atıf defteri
   check_urp.py      URP ayarlarının iki kopyası ayrışmasın
   dotnet_retry.py   Smart App Control'e takılan dotnet çağrıları için
   content/          İçerik üreteçleri (gen_*.py) ve mağaza metni denetçisi

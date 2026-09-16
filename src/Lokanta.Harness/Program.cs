@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -13,8 +13,8 @@ namespace Lokanta.Harness
     /// <summary>
     /// Bassiz denge araci.
     ///
-    /// docs/04-mimari.md: Faz 0'in urunu. Farkli oyuncu stratejileriyle
-    /// kampanyalari simule eder ve docs/12-ekonomi.md 8'deki sorulari
+    /// docs/04-architecture.md: Faz 0'in urunu. Farkli oyuncu stratejileriyle
+    /// kampanyalari simule eder ve docs/12-economy.md 8'deki sorulari
     /// sayilarla cevaplar.
     ///
     /// Calistirma:

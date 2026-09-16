@@ -6,7 +6,7 @@ namespace Lokanta.Game
     /// <summary>
     /// Sesler once DOSYADAN, yoksa koddan.
     ///
-    /// `Resources/ses/<ad>` altinda bir klip varsa o calinyor; yoksa ayni
+    /// `Resources/audio/<ad>` altinda bir klip varsa o calinyor; yoksa ayni
     /// isimli sentezlenmis ton devreye giriyor. Yani ses dosyasi eklemek
     /// KOD DEGISIKLIGI ISTEMIYOR - dosyayi klasore koymak yetiyor.
     ///
@@ -20,7 +20,7 @@ namespace Lokanta.Game
     /// Iki katmanli cozum ikisini de cozuyor: sentez YEDEK olarak
     /// duruyor (yani oyun ses dosyasi olmadan da tam calisiyor ve
     /// APK'ya sifir bayt ekliyor), dosya konulursa o kazaniyor.
-    /// Konulacak dosyalarin listesi ve kaynaklari: Art/ATIF.md.
+    /// Konulacak dosyalarin listesi ve kaynaklari: Art/ATTRIBUTION.md.
     ///
     /// Sentez basit ama kasitli: her ses bir ZARF (yukselis-sonus) ile
     /// carpiliyor, cunku zarfsiz bir ton "bip" gibi duyuluyor. Tiklamalar
@@ -83,7 +83,7 @@ namespace Lokanta.Game
 
             // HER KLIP ICIN ONCE DOSYA, YOKSA SENTEZ.
             //
-            // Isimler Art/ATIF.md'deki listeyle ayni; oradaki tablo
+            // Isimler Art/ATTRIBUTION.md'deki listeyle ayni; oradaki tablo
             // hangi dosyanin nereye dusecegini soyluyor.
             _click = Prefer("tik", () => Tone("tik", 0.045f, (t, n) =>
                 Env(t, n, 0.004f, 0.040f) * Sine(t, 880f) * 0.35f));

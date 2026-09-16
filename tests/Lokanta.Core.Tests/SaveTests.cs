@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Lokanta.Content;
 using Lokanta.Core.Content;
@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// docs/23-cekirdek-sozlesmesi.md 7.6 dogrulama listesi.
+    /// docs/23-core-contract.md 7.6 dogrulama listesi.
     /// Kesinti testi bu dosyanin varlik sebebi: altmis gunluk kosu
     /// rastgele noktalarda kaydedilip yuklenince kesintisiz kosuyla
     /// BAYT BAYT ayni bitmeli.

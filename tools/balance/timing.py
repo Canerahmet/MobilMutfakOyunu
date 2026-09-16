@@ -2,7 +2,7 @@
 """
 Lokanta zaman modeli - Parti B
 ============================================================================
-Amac: docs/27-zaman-modeli.md icindeki her sureyi formulden turetmek ve
+Amac: docs/27-time-model.md icindeki her sureyi formulden turetmek ve
 ic tutarliligi tek komutla dogrulamak. Elle yazilan ms yok.
 
 Neden var: uc dosya birbiriyle celisiyordu.
@@ -666,7 +666,7 @@ def report():
 
 
 # ============================================================================
-# 9. ZIRVE KARARI - docs/28-zirve-karari.md
+# 9. ZIRVE KARARI - docs/28-peak-decision.md
 # ============================================================================
 # Bu bolum EKLEMEDIR. Yukaridaki hicbir sabit veya karar degismedi.
 #
@@ -808,7 +808,7 @@ def max_density():
 
 
 def peak_report():
-    """docs/28-zirve-karari.md icindeki butun sayilar."""
+    """docs/28-peak-decision.md icindeki butun sayilar."""
     print("YOGUNLUK TAVANI")
     u = utilisation()
     print("  zirve gun doluluklari mutfak/salon/masa     : %{:.1f} / %{:.1f} / %{:.1f}".format(

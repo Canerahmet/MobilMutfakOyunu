@@ -1,7 +1,7 @@
 namespace Lokanta.Core.Sim
 {
     /// <summary>
-    /// docs/23-cekirdek-sozlesmesi.md 7.2 komut listesi.
+    /// docs/23-core-contract.md 7.2 komut listesi.
     /// Sadece simulasyonu DEGISTIREN oyuncu girdileri komuttur.
     /// Hiz, duraklatma, kamera ve ekran gecisi komut DEGILDIR: onlar
     /// gorunum durumudur, kaydedilmez.

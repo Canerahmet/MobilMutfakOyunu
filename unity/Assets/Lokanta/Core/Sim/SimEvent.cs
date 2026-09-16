@@ -1,9 +1,9 @@
-﻿namespace Lokanta.Core.Sim
+namespace Lokanta.Core.Sim
 {
     /// <summary>
     /// Cekirdekten gorunume tek yonlu akan olaylar.
     /// Yuk tamsayi; metin yok. Gorunum kimligi anahtara, anahtari metne cevirir.
-    /// docs/23-cekirdek-sozlesmesi.md 6.3.
+    /// docs/23-core-contract.md 6.3.
     /// </summary>
     public enum SimEventKind
     {

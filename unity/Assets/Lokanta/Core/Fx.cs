@@ -4,7 +4,7 @@ namespace Lokanta.Core
 {
     /// <summary>
     /// Cekirdegin TEK aritmetik yardimcisi.
-    /// docs/23-cekirdek-sozlesmesi.md 2.3: Math.Round, Math.Floor ve (int) ile
+    /// docs/23-core-contract.md 2.3: Math.Round, Math.Floor ve (int) ile
     /// kesme yasak. Butun bolme ve yuvarlama buradan gecer.
     ///
     /// Yuvarlama kurali: yarisi SIFIRDAN UZAGA. Banker's rounding kullanilmaz,

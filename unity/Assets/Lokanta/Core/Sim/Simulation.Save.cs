@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using Lokanta.Core.Save;
 
 namespace Lokanta.Core.Sim
 {
     /// <summary>
     /// Simulasyonun durum yuruyusu ve komut gunlugu.
-    /// docs/23-cekirdek-sozlesmesi.md 6.2 ve 7.
+    /// docs/23-core-contract.md 6.2 ve 7.
     ///
     /// Write ve Restore AYNI SIRAYI yurumek zorunda. Ikisi yan yana
     /// duruyor ki kayma gorunur olsun. Sira sozlesmedir: degisirse eski

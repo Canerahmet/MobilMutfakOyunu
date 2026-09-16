@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Lokanta.Core.Sim
 {
@@ -13,7 +13,7 @@ namespace Lokanta.Core.Sim
     /// prepMs degerleri (hamburger 75.000 ms) bu kontrolden gecmiyordu:
     /// 8 dakikalik gunde bir asci gunde alti hamburger yapabilirdi.
     ///
-    /// Ayrinti ve turetme: docs/27-zaman-modeli.md
+    /// Ayrinti ve turetme: docs/27-time-model.md
     /// </summary>
     public sealed class TimingConfig
     {
@@ -25,7 +25,7 @@ namespace Lokanta.Core.Sim
 
         // --- Dilim sureleri, MUTFAGA gore ------------------------------------
         //
-        // docs/28-zirve-karari.md Karar G. Dilimler ESIT DEGIL.
+        // docs/28-peak-decision.md Karar G. Dilimler ESIT DEGIL.
         //
         // Cakisma soyleydi: Turk lokantasinin musterilerinin %60'i ogle
         // diliminde geliyor (kimlik diregi), ama esit dilimde bu fiziksel
@@ -271,7 +271,7 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
-        /// Gecici varsayilan. docs/27-zaman-modeli.md tamamlaninca oradaki
+        /// Gecici varsayilan. docs/27-time-model.md tamamlaninca oradaki
         /// sayilarla degistirilecek; o zamana kadar kapasite modelinden
         /// dogrudan turetilmis degerler kullaniliyor.
         ///   servis gunu 480.000 ms, garson kapasitesi 25 -> kisi basi 19.200 ms

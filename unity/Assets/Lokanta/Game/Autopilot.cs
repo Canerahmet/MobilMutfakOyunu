@@ -1,4 +1,4 @@
-﻿// DIKKAT: BU DOSYANIN YORUMLARI KAYIP.
+// DIKKAT: BU DOSYANIN YORUMLARI KAYIP.
 //
 // 13 Eylul 2026: dosyaya yazan bir betik kesildi ve dosya sistemi
 // 130.716 baytin tamamini NUL ile doldurdu - kaynak tamamen yok oldu.
@@ -9,8 +9,8 @@
 // (ilspycmd). Kurtarilan sey DAVRANIS; yorumlarin tamami gitti.
 //
 // Kaybolan gerekcelerin buyuk kismi BASKA yerde duruyor ve oradan
-// okunabilir: docs/43-inceleme-ve-olcum.md (turun butun olcum
-// hikayesi) ve docs/45-tasarim-incelemesi.md. Yeniden yazilan
+// okunabilir: docs/43-review-and-measurement.md (turun butun olcum
+// hikayesi) ve docs/45-design-review.md. Yeniden yazilan
 // yorumlar asagida, kaynagi belli olanlardan baslayarak ekleniyor.
 
 using System;
@@ -1555,7 +1555,7 @@ namespace Lokanta.Game
                 yield return null;
                 Note(sfx.isPlaying, "Ses efekti caliyor");
             }
-            Log($"ses dosyasi: {Sfx.FileBackedCount()}/10 " + "(gerisi sentez; Art/ATIF.md)");
+            Log($"ses dosyasi: {Sfx.FileBackedCount()}/10 " + "(gerisi sentez; Art/ATTRIBUTION.md)");
             Note(_app.Music != null, "Muzik bileseni var");
             if (_app.Music != null)
             {
@@ -2043,7 +2043,7 @@ namespace Lokanta.Game
 
         private static bool LicenseTextsLoaded()
         {
-            string[] array = new string[4] { "lisans/rubik-ofl", "lisans/noto-sans-sc-ofl", "lisans/kenney-cc0", "lisans/motor-bilesenleri" };
+            string[] array = new string[4] { "licenses/rubik-ofl", "licenses/noto-sans-sc-ofl", "licenses/kenney-cc0", "licenses/engine-components" };
             foreach (string text in array)
             {
                 TextAsset val = Resources.Load<TextAsset>(text);

@@ -392,7 +392,7 @@ namespace Lokanta.Content
                 {
                     throw new ContentException(
                         fileName + ": ondalik sayi bulundu (konum " + i.ToString(CultureInfo.InvariantCulture)
-                        + "). Butun sayilar tamsayi olmali. Bkz. docs/23-cekirdek-sozlesmesi.md 2.2");
+                        + "). Butun sayilar tamsayi olmali. Bkz. docs/23-core-contract.md 2.2");
                 }
             }
         }

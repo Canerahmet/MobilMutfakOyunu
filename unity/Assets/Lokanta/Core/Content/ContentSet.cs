@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 
 namespace Lokanta.Core.Content
 {
     /// <summary>
     /// Cekirdegin gordugu icerik tipleri. Hepsi degismez ve TAMSAYI.
     /// JSON'u Lokanta.Content ayristirir; cekirdek hazir yapiyi alir.
-    /// docs/23-cekirdek-sozlesmesi.md 6.1.
+    /// docs/23-core-contract.md 6.1.
     /// </summary>
     public readonly struct DishIngredient
     {
@@ -531,7 +531,7 @@ namespace Lokanta.Core.Content
 
         /// <summary>
         /// Gunun dort diliminin SURESI, baz puan, toplami 10000.
-        /// docs/28-zirve-karari.md Karar G: dilimler esit degil ve mutfaga
+        /// docs/28-peak-decision.md Karar G: dilimler esit degil ve mutfaga
         /// gore degisiyor. Turk lokantasinin ogle dilimi gunun %48'i.
         /// </summary>
         public int[] SlotDurationsBp { get; }

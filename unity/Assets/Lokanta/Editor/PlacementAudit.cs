@@ -42,7 +42,7 @@ namespace Lokanta.EditorTools
             try
             {
                 UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
-                    "Assets/Lokanta/Oyun.unity");
+                    "Assets/Lokanta/Game.unity");
 
                 Debug.Log("=== Lokanta yerlesim denetimi ===");
 

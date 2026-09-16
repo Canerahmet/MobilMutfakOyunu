@@ -529,16 +529,16 @@ namespace Lokanta.Game.Ui
     {
         private static readonly string[] Files =
         {
-            "lisans/rubik-ofl",
+            "licenses/rubik-ofl",
             // IKINCI YAZI TIPI = IKINCI LISANS METNI.
             //
             // Noto Sans SC ayri bir telif sahibinin eseri ve OFL,
             // metnin URUNLE BIRLIKTE dagitilmasini istiyor. "Rubik OFL
             // var, o da OFL" demek lisansi karsilamiyor - iki ayri
             // bildirimdir.
-            "lisans/noto-sans-sc-ofl",
-            "lisans/kenney-cc0",
-            "lisans/motor-bilesenleri",
+            "licenses/noto-sans-sc-ofl",
+            "licenses/kenney-cc0",
+            "licenses/engine-components",
         };
 
         public override VisualElement Build()
@@ -573,7 +573,7 @@ namespace Lokanta.Game.Ui
 
     /// <summary>
     /// Yapimci. Atif ZORUNLU olmasa da yaziliyor - CC0 varliklar icin
-    /// tesekkur etmemek ucuzluk olur (vendor/ATIF.md).
+    /// tesekkur etmemek ucuzluk olur (vendor/ATTRIBUTION.md).
     /// </summary>
     public sealed class CreditsScreen : UiScreen
     {

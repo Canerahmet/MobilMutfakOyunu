@@ -1,7 +1,7 @@
 namespace Lokanta.Core.Sim
 {
     /// <summary>
-    /// Yil sonu degerlendirmesi. docs/08-oyun-sonu.md.
+    /// Yil sonu degerlendirmesi. docs/08-endgame.md.
     ///
     /// Tek sayi DEGIL yedi eksen: farkli oyun tarzlari farkli yollardan
     /// iyi sonuc alabilsin. Bir oyuncu buyuyerek, bir baskasi kucuk ama

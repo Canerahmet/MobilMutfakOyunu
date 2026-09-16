@@ -397,7 +397,7 @@ namespace Lokanta.Game
             new Color(0.62f, 0.45f, 0.30f, 0.55f);
 
         // DUVARIN RENGI VE SAYDAMLIGI ARTIK BIR VARLIKTA:
-        // Art/Malzeme/ozel_duvar.mat, alfa 0,10.
+        // Art/Materials/custom_wall.mat, alfa 0,10.
         //
         // Burada `WallColor` diye bir alan vardi; saydam malzemeler
         // VARLIK olmak zorunda (saydam golgelendirici varyanti yapida

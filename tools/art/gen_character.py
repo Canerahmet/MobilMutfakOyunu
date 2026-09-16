@@ -2,7 +2,7 @@
 """
 Karakter hatti kaniti
 ============================================================================
-docs/24-sanat-hatti.md kademe 2, iki haftalik zaman kutusu.
+docs/24-art-pipeline.md kademe 2, iki haftalik zaman kutusu.
 
 Kanitlanmasi gereken sey: 16 kiyafet x 3 vucut tipi = 96 mesh sorunu
 gercekten yok oluyor mu.

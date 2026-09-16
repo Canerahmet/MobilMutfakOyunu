@@ -7,7 +7,7 @@ sisiriyor ve Unity'nin iceri alma suresini dakikalara cikariyor. Oyunun
 gercekten gosterdigi sey belli - masa, sandalye, tabak, birkac yemek ve
 on iki figur - o yuzden liste ELLE yaziliyor.
 
-Lisans dosyasi da kopyalaniyor. vendor/ATIF.md'deki kural bu: License.txt
+Lisans dosyasi da kopyalaniyor. vendor/ATTRIBUTION.md'deki kural bu: License.txt
 modellerle birlikte gider, yoksa alti ay sonra bu modellerin nereden
 geldigini kimse bilmez.
 
@@ -29,7 +29,7 @@ ART = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Art")
 
 # (zip, hedef klasor, model listesi)
 PICKS = [
-    ("kenney_furniture-kit.zip", "Mobilya", [
+    ("kenney_furniture-kit.zip", "Furniture", [
         # salon
         "table", "tableRound", "tableCloth", "tableCrossCloth",
         "chair", "chairCushion", "chairRounded", "benchCushion",
@@ -42,13 +42,13 @@ PICKS = [
         "bookcaseClosedDoors", "pottedPlant", "rugRectangle", "rugRounded",
         "lampSquareCeiling", "doorwayOpen", "wallDoorway",
     ]),
-    ("kenney_mini-characters.zip", "Karakter", [
+    ("kenney_mini-characters.zip", "Characters", [
         "character-female-a", "character-female-b", "character-female-c",
         "character-female-d", "character-female-e", "character-female-f",
         "character-male-a", "character-male-b", "character-male-c",
         "character-male-d", "character-male-e", "character-male-f",
     ]),
-    ("kenney_food-kit.zip", "Yemek", [
+    ("kenney_food-kit.zip", "Food", [
         # servis kaplari
         "plate", "plate-deep", "plate-dinner", "bowl", "bowl-soup",
         "cup", "cup-tea", "cup-saucer", "glass", "soda-glass",
@@ -96,7 +96,7 @@ def extract(zip_name, folder, names):
                     shutil.copyfileobj(f, out)
                 textures += 1
 
-            # Lisans - vendor/ATIF.md kurali
+            # Lisans - vendor/ATTRIBUTION.md kurali
             elif base.lower() == "license.txt":
                 with z.open(item) as f, \
                      io.open(os.path.join(dest, "License.txt"), "wb") as out:
@@ -114,13 +114,13 @@ def main():
         print("vendor/ klasoru yok")
         return 1
 
-    print("Varlik iceri alma (kaynak: vendor/, lisans: vendor/ATIF.md)")
+    print("Varlik iceri alma (kaynak: vendor/, lisans: vendor/ATTRIBUTION.md)")
     total = 0
     for zip_name, folder, names in PICKS:
         total += extract(zip_name, folder, names)
 
     # Atif dosyasi da projeye girsin: oyunu acan biri lisansi gormeli.
-    shutil.copy(os.path.join(VENDOR, "ATIF.md"), os.path.join(ART, "ATIF.md"))
+    shutil.copy(os.path.join(VENDOR, "ATTRIBUTION.md"), os.path.join(ART, "ATTRIBUTION.md"))
 
     print("")
     print("toplam %d model -> unity/Assets/Lokanta/Art/" % total)

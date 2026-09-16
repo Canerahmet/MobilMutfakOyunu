@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Lokanta.Game
 {
     /// <summary>
-    /// Iki kademeli kamera. docs/31-oda-ve-kamera.md ve kullanicinin
+    /// Iki kademeli kamera. docs/31-rooms-and-camera.md ve kullanicinin
     /// kendi cumlesi: "tum her sey ayni anda goruldugu durumda oyuncu
     /// dokunarak kamerayi o moduler kisma yaklastirmis olur."
     ///

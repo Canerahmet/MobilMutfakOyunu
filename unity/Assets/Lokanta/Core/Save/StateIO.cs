@@ -3,7 +3,7 @@ using System;
 namespace Lokanta.Core.Save
 {
     /// <summary>
-    /// Durum yuruyusu. docs/23-cekirdek-sozlesmesi.md 6.2.
+    /// Durum yuruyusu. docs/23-core-contract.md 6.2.
     ///
     /// Serilestirme YANSIMAYLA degil, elle yazilmis yuruyusle yapiliyor.
     /// Ayni yuruyus iki sey uretiyor: kayit dosyasi ve durum ozeti.

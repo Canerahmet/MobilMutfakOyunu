@@ -158,16 +158,16 @@ def main():
         ("yazi tipi kapsamasi",
          [PY, os.path.join("tools", "art", "check_font.py")]),
         ("magaza metinleri",
-         [PY, os.path.join("tools", "content", "check_magaza.py")]),
+         [PY, os.path.join("tools", "content", "check_store_texts.py")]),
         ("belge baglantilari",
-         [PY, os.path.join("tools", "check_belgeler.py")]),
+         [PY, os.path.join("tools", "check_docs.py")]),
         ("urp ayarlari",
          [PY, os.path.join("tools", "check_urp.py")]),
         # LISANS: ticari yayin kapisi. Bir varlik klasoru lisanssiz ya da
         # atif defterinde satirsiz kalirsa yayin riski dogar ve bunu
         # Google Play degil telif sahibi yakalar.
         ("lisans ve atif",
-         [PY, os.path.join("tools", "check_lisans.py")]),
+         [PY, os.path.join("tools", "check_licenses.py")]),
     ]
 
     if not quick:
@@ -211,7 +211,7 @@ def main():
           os.path.join("tools", "unity", "shot.ps1")]),
         ("duman turu",
          ["powershell", "-NoProfile", "-File",
-          os.path.join("tools", "unity", "tur.ps1")]),
+          os.path.join("tools", "unity", "tour.ps1")]),
     ]
 
     if unity:

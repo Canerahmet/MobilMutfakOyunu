@@ -10,7 +10,7 @@ namespace Lokanta.Game
     /// yere yazmak bu projede dort kez sessizce ayristi; o yuzden plan
     /// buraya, calisma zamanina tasindi ve editor araci da buradan okuyor.
     ///
-    /// Kararin gerekcesi docs/31-oda-ve-kamera.md ve olcum:
+    /// Kararin gerekcesi docs/31-rooms-and-camera.md ve olcum:
     ///   - Arsa 18,0 x 9,6 m ve HIC BUYUMUYOR; bina onun icinde
     ///     buyuyor. Kamera yalnizca ACIK odalari cerceveliyor
     ///     (CameraFit.OpenBounds) ve acilmamis oda cizilmiyor - bos

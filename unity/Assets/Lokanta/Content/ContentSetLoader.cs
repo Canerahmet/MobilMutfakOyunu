@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Lokanta.Core.Content;
@@ -7,7 +7,7 @@ namespace Lokanta.Content
 {
     /// <summary>
     /// Bir mutfagin butun icerigini yukler ve dogrular.
-    /// docs/23-cekirdek-sozlesmesi.md 9.1: icerik gecersizse oyun ACILMAZ.
+    /// docs/23-core-contract.md 9.1: icerik gecersizse oyun ACILMAZ.
     /// Sessiz varsayilan yok, eksik referans yok.
     /// </summary>
     public static class ContentSetLoader
@@ -718,7 +718,7 @@ namespace Lokanta.Content
         }
 
         /// <summary>
-        /// docs/28-zirve-karari.md Karar G. Dort deger, toplami 10000.
+        /// docs/28-peak-decision.md Karar G. Dort deger, toplami 10000.
         /// arrivalWeightsBp ile ayni dogrulama kalibi.
         /// </summary>
         private static int[] BuildSlotDurations(CuisineDto dto, string cuisine)

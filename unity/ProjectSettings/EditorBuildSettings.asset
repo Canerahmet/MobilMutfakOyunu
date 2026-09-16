@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Lokanta/Oyun.unity
+    path: Assets/Lokanta/Game.unity
     guid: 275bb8e392a7f8b4f9098e9f80a993e5
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

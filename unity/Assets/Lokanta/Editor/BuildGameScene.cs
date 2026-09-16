@@ -18,9 +18,9 @@ namespace Lokanta.EditorTools
     /// </summary>
     public static class BuildGameScene
     {
-        private const string ScenePath = "Assets/Lokanta/Oyun.unity";
+        private const string ScenePath = "Assets/Lokanta/Game.unity";
         private const string Prefabs = "Assets/Lokanta/Art/Prefab";
-        private const string PanelPath = "Assets/Lokanta/Arayuz.asset";
+        private const string PanelPath = "Assets/Lokanta/Ui.asset";
         private const string ThemePath =
             "Assets/UI Toolkit/UnityThemes/UnityDefaultRuntimeTheme.tss";
 
@@ -104,16 +104,16 @@ namespace Lokanta.EditorTools
             doc.panelSettings = PanelSettings();
             UiRoot ui = uiGo.AddComponent<UiRoot>();
             ui.Font = AssetDatabase.LoadAssetAtPath<Font>(
-                "Assets/Lokanta/Art/Yazi/Rubik.ttf");
+                "Assets/Lokanta/Art/Fonts/Rubik.ttf");
             if (ui.Font == null)
-                Debug.LogWarning("Yazi tipi yok: Assets/Lokanta/Art/Yazi/Rubik.ttf");
+                Debug.LogWarning("Yazi tipi yok: Assets/Lokanta/Art/Fonts/Rubik.ttf");
 
             // CJK YAZI TIPI: Cince icin. Rubik CJK tasimiyor.
             ui.FontCJK = AssetDatabase.LoadAssetAtPath<Font>(
-                "Assets/Lokanta/Art/Yazi/NotoSansSC-Lokanta.ttf");
+                "Assets/Lokanta/Art/Fonts/NotoSansSC-Lokanta.ttf");
             if (ui.FontCJK == null)
                 Debug.LogWarning(
-                    "CJK yazi tipi yok: Assets/Lokanta/Art/Yazi/NotoSansSC-Lokanta.ttf"
+                    "CJK yazi tipi yok: Assets/Lokanta/Art/Fonts/NotoSansSC-Lokanta.ttf"
                     + " - Cince secilirse butun metin bos kutu cikar.");
 
             app.Ui = ui;
@@ -175,12 +175,12 @@ namespace Lokanta.EditorTools
             // Calisma aninda kurulan saydam malzemenin golgelendirici
             // varyanti yapiya girmiyor ve cihazda opak ciziliyor -
             // editorde gorunmeyen bir hata sinifi.
-            view.WallMaterial = Mat("ozel_duvar");
-            view.DoorMaterial = Mat("ozel_kapi");
-            view.GlassMaterial = Mat("ozel_cam");
-            view.GlowMaterial = Mat("ozel_isikhavuzu");
-            view.CeilingGlowMaterial = Mat("ozel_tavanisigi");
-            view.WaterMaterial = Mat("ozel_su");
+            view.WallMaterial = Mat("custom_wall");
+            view.DoorMaterial = Mat("custom_door");
+            view.GlassMaterial = Mat("custom_glass");
+            view.GlowMaterial = Mat("custom_lightpool");
+            view.CeilingGlowMaterial = Mat("custom_ceilinglight");
+            view.WaterMaterial = Mat("custom_water");
 
             // ASCININ ELINDEKI MALZEMELER. Dort ayri sebze/et: ayni
             // asci ayni istasyonda hep ayni seyi tasiyor, yani goruntu
@@ -224,7 +224,7 @@ namespace Lokanta.EditorTools
         private static Material Mat(string ad)
         {
             Material m = AssetDatabase.LoadAssetAtPath<Material>(
-                "Assets/Lokanta/Art/Malzeme/" + ad + ".mat");
+                "Assets/Lokanta/Art/Materials/" + ad + ".mat");
             if (m == null)
                 Debug.LogError("SORUNLAR: malzeme yok: " + ad
                                + " ('Lokanta/Model prefablarini uret' calistir)");

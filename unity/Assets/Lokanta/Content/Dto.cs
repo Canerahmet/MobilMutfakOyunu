@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace Lokanta.Content
 {
-    // docs/23-cekirdek-sozlesmesi.md 6.1: her alan acikca isaretlenir,
+    // docs/23-core-contract.md 6.1: her alan acikca isaretlenir,
     // yansima ad turetmez. IL2CPP budamasi icin link.xml bu tipleri korur.
 
     public sealed class TierDto

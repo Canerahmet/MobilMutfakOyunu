@@ -33,7 +33,7 @@ namespace Lokanta.EditorTools
         private const string MatDir = Art + "/Malzeme";
         private const string PrefabDir = Art + "/Prefab";
         private const string AnimDir = Art + "/Animator";
-        private const string ControllerPath = AnimDir + "/Karakter.controller";
+        private const string ControllerPath = AnimDir + "/Character.controller";
 
         /// <summary>Klipleri ve olcegi bu modelden alinan referans figur.</summary>
         private const string RefCharacter = "character-male-a";
@@ -438,7 +438,7 @@ namespace Lokanta.EditorTools
         /// </summary>
         private static Texture2D GlowTexture()
         {
-            string path = MatDir + "/ozel_isikhavuzu_doku.asset";
+            string path = MatDir + "/custom_lightpool_texture.asset";
             Texture2D t = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (t != null) return t;
 
@@ -1186,9 +1186,9 @@ namespace Lokanta.EditorTools
 
         // =====================================================================
         /// <summary>
-        /// "wood (Instance)" ve "Mobilya_wood" gibi adlari sade "wood"a
+        /// "wood (Instance)" ve "Furniture_wood" gibi adlari sade "wood"a
         /// indirir. Klasor onekini de atiyor ki arac kendi urettigi
-        /// malzemeyi ikinci kosuda "Mobilya_Mobilya_wood" diye
+        /// malzemeyi ikinci kosuda "Mobilya_Furniture_wood" diye
         /// cogaltmasin.
         /// </summary>
         private static string Clean(string name, string folder)

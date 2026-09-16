@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Lokanta.Core.Content;
 using Lokanta.Core.Economy;
 
@@ -47,7 +47,7 @@ namespace Lokanta.Core.Sim
     /// <summary>
     /// Sabit adimli restoran simulasyonu.
     ///
-    /// docs/23-cekirdek-sozlesmesi.md sozlesmesi geceridir:
+    /// docs/23-core-contract.md sozlesmesi geceridir:
     ///   - Tick() parametresizdir, 100 ms ilerletir, gercek zamani gormez
     ///   - butun durum tamsayidir
     ///   - rastgelelik alt sistem basina ayri akislardan gelir
@@ -1349,7 +1349,7 @@ namespace Lokanta.Core.Sim
         public bool SeasonOver { get { return _day > _economy.CampaignDays; } }
 
         /// <summary>
-        /// Yil sonu degerlendirmesi. docs/08-oyun-sonu.md yedi eksen.
+        /// Yil sonu degerlendirmesi. docs/08-endgame.md yedi eksen.
         ///
         /// Her eksen 0-100 ve hicbiri digerinin yerine gecmiyor: buyuyerek
         /// de, kucuk ama sevilen bir dukkan isleterek de iyi puan
@@ -6687,7 +6687,7 @@ namespace Lokanta.Core.Sim
                 if (size < 1) size = 1;
 
                 // Dilimler ESIT DEGIL; her mutfagin kendi gun bicimi var.
-                // docs/28-zirve-karari.md Karar G.
+                // docs/28-peak-decision.md Karar G.
                 int slot = PickSlot(a);
                 int tick = _timing.SlotStartTick(slot)
                            + _rngArrival.NextInt(_timing.SlotTicks(slot));

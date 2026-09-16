@@ -1,7 +1,7 @@
 namespace Lokanta.Core.Economy
 {
     /// <summary>
-    /// docs/12-ekonomi.md 5.1
+    /// docs/12-economy.md 5.1
     ///   musteri = masa x taban x (0,5 + itibar/100) x gun_katsayisi
     ///
     /// Tamsayi cevirisi: itibar santi-puan (30 = 3000) tutuluyor ve

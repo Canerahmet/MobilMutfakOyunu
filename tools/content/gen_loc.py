@@ -46,7 +46,7 @@ sys.path.insert(0, HERE)
 # alti uretec ve iki denetcinin arasinda kayboluyorlardi. Klasor adi
 # ne olduklarini soyluyor; ad kalibi (loc_<dil>[_ui].py) ayni kaldi,
 # yani belgelerdeki atiflar yalnizca klasor kadar degisti.
-sys.path.insert(0, os.path.join(HERE, "diller"))
+sys.path.insert(0, os.path.join(HERE, "languages"))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 CONTENT = os.path.join(ROOT, "content")
 OUT = os.path.join(CONTENT, "loc", "tr.json")

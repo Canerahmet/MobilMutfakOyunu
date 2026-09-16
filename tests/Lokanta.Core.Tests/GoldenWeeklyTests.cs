@@ -40,7 +40,7 @@ namespace Lokanta.Core.Tests
     }
 
     /// <summary>
-    /// docs/23-cekirdek-sozlesmesi.md 10, son kabul olcutu:
+    /// docs/23-core-contract.md 10, son kabul olcutu:
     /// C# cekirdek ile tools/balance/model.py sekiz haftalik tabloda eslesmeli.
     ///
     /// Bu, tek bir testte uc seyi birden dogruluyor:

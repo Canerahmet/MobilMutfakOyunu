@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace Lokanta.Content
 {
-    // docs/23-cekirdek-sozlesmesi.md 8.3: her yemek dort zorunlu parametre
+    // docs/23-core-contract.md 8.3: her yemek dort zorunlu parametre
     // tasir. Alan adlari acikca isaretli; yansima ad turetmiyor.
 
     public sealed class DishIngredientDto

@@ -53,7 +53,7 @@ namespace Lokanta.EditorTools
             return int.TryParse(Arg(flag, string.Empty), out v) ? v : fallback;
         }
 
-        private const string Scene = "Assets/Lokanta/Oyun.unity";
+        private const string Scene = "Assets/Lokanta/Game.unity";
         /// <summary>
         /// Paket adi. ILK YUKLEMEDE SONSUZA KADAR KILITLENIYOR.
         ///
@@ -93,7 +93,7 @@ namespace Lokanta.EditorTools
         /// budanmasi platforma gore degisiyor. Ayni olan ve onemli olan
         /// yer: kendi derlemelerimizin YONETILEN budamasi.
         ///
-        ///   .\tools\unity\tur.ps1 -Yapi windows-il2cpp
+        ///   .\tools\unity\tour.ps1 -Yapi windows-il2cpp
         /// </summary>
         [MenuItem("Lokanta/Yapi - Windows (IL2CPP + budama)")]
         public static void WindowsIl2cpp() { WindowsBuild("windows-il2cpp", il2cpp: true); }

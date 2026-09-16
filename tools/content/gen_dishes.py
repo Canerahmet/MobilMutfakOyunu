@@ -9,10 +9,10 @@ Uc dosya uretir:
   content/dishes/turk.json      32 Turk mutfagi yemegi
 
 Kaynak dokumanlar:
-  docs/09-icerik-envanteri.md      menuler, acilis menusu, mevsim egrisi
-  docs/12-ekonomi.md 3             malzeme maliyeti ~ satis fiyatinin %32'si
-  docs/23-cekirdek-sozlesmesi.md   8.3 yemek semasi, 8.4 tamsayi birim kurali
-  docs/24-sanat-hatti.md           moduler tabaklama, 6 taban + 8 ust parca
+  docs/09-content-inventory.md      menuler, acilis menusu, mevsim egrisi
+  docs/12-economy.md 3             malzeme maliyeti ~ satis fiyatinin %32'si
+  docs/23-core-contract.md   8.3 yemek semasi, 8.4 tamsayi birim kurali
+  docs/24-art-pipeline.md           moduler tabaklama, 6 taban + 8 ust parca
 
 Birimler docs/23 2.2 ve 8.4'e gore, ONDALIK NOKTA YOK:
   para        santi-sikke   (1 sikke = 100)
@@ -43,7 +43,7 @@ BP = 10_000
 ID_RE = re.compile(r"^[a-z0-9_]+$")
 DECIMAL_RE = re.compile(r"[0-9]\.[0-9]")
 
-# docs/24-sanat-hatti.md: tabak = taban + 0-3 ust parca
+# docs/24-art-pipeline.md: tabak = taban + 0-3 ust parca
 BASES = ("bun", "plate_round", "plate_oval", "bowl", "tray", "paper", "cup")
 TOPPINGS = ("patty", "slice", "sphere", "leaf", "strip", "sauce", "stick", "steam")
 STATIONS = ("ocak", "izgara", "firin", "soguk", "icecek", "tatli")
@@ -118,7 +118,7 @@ SEASON = {
     "sut":      ( 9400, 10200, 10000, 11200),
 }
 # Kalite kademesi fiyat carpani ve memnuniyet etkisi (santi-puan).
-# docs/13-veri-semalari.md kiyma ornegi "kahraman" profiline denk gelir.
+# docs/13-data-schemas.md kiyma ornegi "kahraman" profiline denk gelir.
 QUALITY = {
     "kahraman": ((7500, 10000, 13500), (-2000, 0, 1500)),
     "orta":     ((8000, 10000, 12500), (-1200, 0,  800)),

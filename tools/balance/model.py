@@ -2,7 +2,7 @@
 """
 Lokanta denge modeli - Parti A
 ============================================================================
-Amac: docs/12-ekonomi.md ve docs/14-personel-sistemi.md icindeki her sayiyi
+Amac: docs/12-economy.md ve docs/14-staff-system.md icindeki her sayiyi
 formulden turetmek. Elle yazilan tablo yok. Bu betik ne uretirse o dogrudur.
 
 Neden var: bes ajanli degerlendirme (docs/review/) buyume tablosunun
@@ -310,7 +310,7 @@ def mul_div(a, b, c):
     a*b/c, yarisi SIFIRDAN UZAGA yuvarlanmis. C#'taki Fx.MulDiv ile ayni.
 
     Python'un yerlesik round()'u bankaci yuvarlamasi yapar (yarisi cifte).
-    docs/23-cekirdek-sozlesmesi.md 2.3 bunu yasakliyor: iki gelistirici
+    docs/23-core-contract.md 2.3 bunu yasakliyor: iki gelistirici
     ikisini karistirir. Ayrik kararlar bu yardimciyla verilir.
     """
     if c == 0:

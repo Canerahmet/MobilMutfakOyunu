@@ -11,7 +11,7 @@ model.py'deki parametreleri iki yere yazar:
 Ucuncusu C# testinin karsilastirdigi altin veri. Boylece Python modeli ile
 C# cekirdegi ayni kaynagi paylasir ve ayrisirlarsa test kirilir.
 
-Birimler docs/23-cekirdek-sozlesmesi.md 2.2'ye gore:
+Birimler docs/23-core-contract.md 2.2'ye gore:
   para        santi-sikke  (1 sikke = 100)
   oran        baz puan     (10000 = 1,0)
   itibar      santi-puan   (0..10000)
@@ -307,7 +307,7 @@ def economy():
 # ---------------------------------------------------------------------------
 # content/cuisines/*.json
 # ---------------------------------------------------------------------------
-# docs/28-zirve-karari.md Karar G: dilim PAYLARI degil dilim SURELERI
+# docs/28-peak-decision.md Karar G: dilim PAYLARI degil dilim SURELERI
 # mutfaga gore degisiyor. Turk lokantasinin musterilerinin %60'i ogle
 # diliminde geliyor ve bu kimlik diregi; esit dilimde servis edilemiyordu.
 # Ogle dilimi gunun %48'ini kaplayinca ayni pay fizibil oluyor.

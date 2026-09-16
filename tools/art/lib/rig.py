@@ -2,7 +2,7 @@
 """
 Insansi iskelet ve poz yardimcilari.
 ============================================================================
-docs/24-sanat-hatti.md kademe 2.
+docs/24-art-pipeline.md kademe 2.
 
 Degerlendirmenin matematigi 16 kiyafet x 3 vucut tipi = 96 mesh diyordu.
 Bu sayi yok oluyor:

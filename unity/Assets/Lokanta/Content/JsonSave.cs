@@ -7,7 +7,7 @@ namespace Lokanta.Content
 {
     /// <summary>
     /// Durum yuruyusunu JSON agacina yazar.
-    /// docs/15-kayit-sistemi.md bicimi: JSON, gzip, saglama toplami.
+    /// docs/15-save-system.md bicimi: JSON, gzip, saglama toplami.
     /// Bu sinif yalnizca agaci uretiyor; sikistirma ve dosyaya yazma
     /// platform katmaninin isi (ISaveStore portu).
     ///

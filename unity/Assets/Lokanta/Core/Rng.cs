@@ -4,7 +4,7 @@ namespace Lokanta.Core
 {
     /// <summary>
     /// Alt sistem basina bagimsiz rastgelelik akisi.
-    /// docs/23-cekirdek-sozlesmesi.md 3.2: bir sisteme cagri eklemek
+    /// docs/23-core-contract.md 3.2: bir sisteme cagri eklemek
     /// digerinin dizisini kaydirmamali.
     /// </summary>
     public enum RngStream

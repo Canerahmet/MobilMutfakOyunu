@@ -2,7 +2,7 @@
 """
 Dokuman yazicisi - Parti A
 ============================================================================
-model.py'nin urettigi tablolari docs/12-ekonomi.md ve docs/14-personel-sistemi.md
+model.py'nin urettigi tablolari docs/12-economy.md ve docs/14-staff-system.md
 icine, isaretcilerin arasina yazar.
 
 Isaretci bicimi:
@@ -214,9 +214,9 @@ def splice(path, key, content):
 
 def main():
     targets = {
-        "12-ekonomi.md": ["kira", "buyume", "talep"],
-        "14-personel-sistemi.md": ["kapasite", "kadro", "marj"],
-        "32-ekipman-ve-yeniden-denge.md": ["ekipman", "depo"],
+        "12-economy.md": ["kira", "buyume", "talep"],
+        "14-staff-system.md": ["kapasite", "kadro", "marj"],
+        "32-equipment-and-rebalance.md": ["ekipman", "depo"],
     }
     n = 0
     for fname, keys in targets.items():

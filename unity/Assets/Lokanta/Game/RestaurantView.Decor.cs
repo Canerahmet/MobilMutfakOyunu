@@ -184,7 +184,7 @@ namespace Lokanta.Game
         /// MOBILYA DA KIMLIK TASIYOR.
         ///
         /// Paketin malzemelerinin DOKUSU YOK - hepsi duz bir
-        /// _BaseColor (Mobilya_wood, Mobilya_metal, ...). Yani mutfaga
+        /// _BaseColor (Furniture_wood, Furniture_metal, ...). Yani mutfaga
         /// gore renklendirmek icin dokuyla ugrasmak gerekmiyor:
         /// malzemenin bir KOPYASI cikariliyor ve rengi paletten
         /// yaziliyor.

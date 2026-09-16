@@ -2,7 +2,7 @@
 """
 Isik, kamera ve temas sayfasi.
 ============================================================================
-docs/24-sanat-hatti.md: her uretim betigi uc acidan render alir ve ucgen
+docs/24-art-pipeline.md: her uretim betigi uc acidan render alir ve ucgen
 sayisini basar. Render'a BEN bakiyorum; gelistirici Blender bilmiyor ve
 ben mesh'i dogrudan goremiyorum, ama PNG'yi okuyabiliyorum.
 """

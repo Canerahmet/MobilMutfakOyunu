@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// Kat plani. docs/31-oda-ve-kamera.md ve dokunma hedefi olcumu.
+    /// Kat plani. docs/31-rooms-and-camera.md ve dokunma hedefi olcumu.
     ///
     /// Bu dosyanin varlik sebebi: plan bugune kadar YALNIZCA editor
     /// betiginde dogrulaniyordu, yani ancak Unity acilinca sinaniyordu.

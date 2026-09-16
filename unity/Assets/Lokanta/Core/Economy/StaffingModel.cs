@@ -19,7 +19,7 @@ namespace Lokanta.Core.Economy
     }
 
     /// <summary>
-    /// docs/14-personel-sistemi.md kapasite modeli.
+    /// docs/14-staff-system.md kapasite modeli.
     ///
     /// Iki havuz:
     ///   Mutfak  gereken = tavan(zirve / asci_kapasitesi). Patron pisiremez.

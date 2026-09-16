@@ -32,7 +32,7 @@ namespace Lokanta.EditorTools
         [MenuItem("Lokanta/Salon goruntusu al")]
         public static void Capture()
         {
-            EditorSceneManager.OpenScene("Assets/Lokanta/Oyun.unity");
+            EditorSceneManager.OpenScene("Assets/Lokanta/Game.unity");
 
             foreach (string cuisine in new[] { "turk", "fastfood" })
             foreach (var kademe in new[]

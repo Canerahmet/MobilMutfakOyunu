@@ -11,7 +11,7 @@ using Xunit;
 namespace Lokanta.Core.Tests
 {
     /// <summary>
-    /// docs/23-cekirdek-sozlesmesi.md 2.5 yansima testi.
+    /// docs/23-core-contract.md 2.5 yansima testi.
     ///
     /// Neden: IL2CPP (Android), Mono (editor) ve RyuJIT (denge araci) kayan
     /// nokta islemlerini farkli sirayla yapabilir. Tamsayi toplama her yerde ayni.

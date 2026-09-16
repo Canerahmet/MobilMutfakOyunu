@@ -24,10 +24,10 @@ namespace Lokanta.EditorTools
     /// </summary>
     public static class IconShot
     {
-        private const string Dir = "Assets/Lokanta/Art/Simge";
+        private const string Dir = "Assets/Lokanta/Art/Icons";
 
         /// <summary>Oyunun icindeki simge. Buyuk olcu, uyarlanabilir maske icin.</summary>
-        private const string PathBig = Dir + "/uygulama-simgesi.png";
+        private const string PathBig = Dir + "/app-icon.png";
 
         /// <summary>
         /// MAGAZA SIMGESI: 512 x 512, 32 bit, ALFA KANALLI.
@@ -38,7 +38,7 @@ namespace Lokanta.EditorTools
         /// magazaya vermek, iki gereksinimi tek dosyaya sikistirmak
         /// olurdu.
         /// </summary>
-        private const string PathStore = Dir + "/magaza-simgesi-512.png";
+        private const string PathStore = Dir + "/store-icon-512.png";
 
         private const int Size = 1024;
         private const int StoreSize = 512;

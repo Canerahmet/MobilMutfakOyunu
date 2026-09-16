@@ -65,7 +65,7 @@ namespace Lokanta.Game
         /// yok edilirken bu geri cagri hala icerideyse erisim ihlali
         /// (0xC0000005) oluyor - Windows yapisi kapanista tam bunu
         /// yapiyordu ve kimse gormuyordu, cunku turun cikis koduna
-        /// BAKAN BIR SEY YOKTU (bkz. tools/unity/tur.ps1).
+        /// BAKAN BIR SEY YOKTU (bkz. tools/unity/tour.ps1).
         ///
         /// Oyuncu icin de onemli: kapanista coken bir oyun, Windows'un
         /// "program calismayi durdurdu" penceresini gosterir.

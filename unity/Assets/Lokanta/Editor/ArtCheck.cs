@@ -32,13 +32,13 @@ namespace Lokanta.EditorTools
             Debug.Log("  URP/Lit    : "
                       + (lit == null ? "NULL" : "desteklenir=" + lit.isSupported));
 
-            Report("Assets/Lokanta/Art/Malzeme/Mobilya_wood.mat");
-            Report("Assets/Lokanta/Art/Malzeme/Mobilya_metal.mat");
-            Report("Assets/Lokanta/Art/Malzeme/Karakter_colormap.mat");
+            Report("Assets/Lokanta/Art/Materials/Furniture_wood.mat");
+            Report("Assets/Lokanta/Art/Materials/Furniture_metal.mat");
+            Report("Assets/Lokanta/Art/Materials/Character_colormap.mat");
 
             Sizes();
             SitPose();
-            Rig("Assets/Lokanta/Art/Karakter/character-male-a.fbx");
+            Rig("Assets/Lokanta/Art/Characters/character-male-a.fbx");
             Bench(lit);
 
             Debug.Log("=== tanisi tamam ===");
@@ -55,7 +55,7 @@ namespace Lokanta.EditorTools
         private static void SitPose()
         {
             GameObject p = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Lokanta/Art/Prefab/Karakter/character-male-a.prefab");
+                "Assets/Lokanta/Art/Prefab/Characters/character-male-a.prefab");
             if (p == null) { Debug.LogWarning("  oturma: prefab yok"); return; }
 
             foreach (Figure.Pose pose in new[] { Figure.Pose.Idle, Figure.Pose.Sit })
@@ -169,9 +169,9 @@ namespace Lokanta.EditorTools
 
             string[] paths =
             {
-                "Assets/Lokanta/Art/Malzeme/Mobilya_wood.mat",
-                "Assets/Lokanta/Art/Malzeme/Mobilya_metal.mat",
-                "Assets/Lokanta/Art/Malzeme/Karakter_colormap.mat",
+                "Assets/Lokanta/Art/Materials/Furniture_wood.mat",
+                "Assets/Lokanta/Art/Materials/Furniture_metal.mat",
+                "Assets/Lokanta/Art/Materials/Character_colormap.mat",
             };
 
             for (int i = 0; i < 4; i++)

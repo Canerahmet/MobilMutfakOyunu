@@ -39,7 +39,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # unutmak, "hepsi kapsaniyor" diyen bir denetim ile eksik karakterli bir
 # oyun demek - ve denetim yesil oldugu icin kimse bakmaz.
 DEFAULT_FONT = os.path.join(
-    ROOT, "unity", "Assets", "Lokanta", "Art", "Yazi", "Rubik.ttf")
+    ROOT, "unity", "Assets", "Lokanta", "Art", "Fonts", "Rubik.ttf")
 VENDOR_FONT = os.path.join(ROOT, "vendor", "rubik", "Rubik-wght.ttf")
 
 # CINCE AYRI YAZI TIPI.
@@ -49,7 +49,7 @@ VENDOR_FONT = os.path.join(ROOT, "vendor", "rubik", "Rubik-wght.ttf")
 # Noto Sans SC (SIL OFL 1.1) oyunun KULLANDIGI karakterlere alt kume
 # cikarilarak eklendi: 10,5 MB -> 223 KB.
 CJK_FONT = os.path.join(
-    ROOT, "unity", "Assets", "Lokanta", "Art", "Yazi", "NotoSansSC-Lokanta.ttf")
+    ROOT, "unity", "Assets", "Lokanta", "Art", "Fonts", "NotoSansSC-Lokanta.ttf")
 
 # HANGI DOSYAYI HANGI YAZI TIPI CIZIYOR.
 #

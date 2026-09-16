@@ -1,4 +1,4 @@
-﻿using Lokanta.Core.Content;
+using Lokanta.Core.Content;
 using Lokanta.Core.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -460,7 +460,7 @@ namespace Lokanta.Game.Ui
     /// sonra SERBEST OYUN - oyun bitmiyor, kampanya bitiyor.
     /// </summary>
     /// <summary>
-    /// Yil sonu degerlendirmesi. docs/08-oyun-sonu.md.
+    /// Yil sonu degerlendirmesi. docs/08-endgame.md.
     ///
     /// Oyun BITMIYOR, DEGERLENDIRILIYOR. Kayit silinmiyor, hicbir sey
     /// elinden alinmiyor; oyuncu devam edebiliyor ve ikinci bir yila

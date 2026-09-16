@@ -1,11 +1,11 @@
-﻿using Lokanta.Core.Economy;
+using Lokanta.Core.Economy;
 using Lokanta.Core.Sim;
 
 namespace Lokanta.Harness
 {
     /// <summary>
     /// Denge aracinin oynattigi oyuncu stratejileri.
-    /// docs/12-ekonomi.md 8: aracin cevaplamasi gereken sorular bunlarla olculuyor.
+    /// docs/12-economy.md 8: aracin cevaplamasi gereken sorular bunlarla olculuyor.
     /// </summary>
     public interface IStrategy
     {

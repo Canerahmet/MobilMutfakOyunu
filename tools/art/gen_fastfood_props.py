@@ -2,7 +2,7 @@
 """
 Fast food dukkani prop seti
 ============================================================================
-docs/24-sanat-hatti.md kademe 1: mobilya ve ekipman prosedurel uretiliyor.
+docs/24-art-pipeline.md kademe 1: mobilya ve ekipman prosedurel uretiliyor.
 
 Ilk masa denemesine bakip verdigim uc duzeltme burada uygulandi:
   1. Sandalye sirti oturagin ustunde bosluktaydi  -> sirt oturaga oturdu

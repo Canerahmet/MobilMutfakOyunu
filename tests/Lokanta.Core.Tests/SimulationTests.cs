@@ -543,7 +543,7 @@ namespace Lokanta.Core.Tests
         [Fact]
         public void Zaman_ayari_kapasite_modeliyle_tutarli()
         {
-            // docs/27-zaman-modeli.md kurali: salon isi kapasiteden turer.
+            // docs/27-time-model.md kurali: salon isi kapasiteden turer.
             TimingConfig t = TimingConfig.Default();
             bool ok = t.MatchesCapacity(25, tolerancePercent: 2, out int expected);
             _out.WriteLine($"salon ms/kisi: beklenen {expected}, gercek {t.SalonMsPerPerson}");
