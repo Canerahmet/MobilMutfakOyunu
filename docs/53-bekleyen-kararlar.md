@@ -451,3 +451,56 @@ tamam : Personel kartinda kidem gercek sayiyi gosteriyor
 
 *Bir sayının doğru olduğunu görmek için doğru ana bakmak gerekiyor; yanlış an,
 yanlış cevabı da doğru gösterir.*
+
+---
+
+## 10. Uzun kıdem anı: sahipsiz an yazıldı
+
+Araştırma bunu *"sahipsiz en güçlü an"* diye işaretlemişti — taradığı on iki
+oyunun **hiçbirinde** uzun kıdem için yazılmış bir satır yok. Ve Türkçe
+kaynaklardaki asıl dertle örtüşüyor: bulaşıkçı kendine *"restoranın kalbi"*
+diyor ama *"hiçbir şey yapmıyormuşuz gibi görünüyoruz"*. **"Beni gör" diyen
+bir satır "bana zam ver"den daha sert iniyor.**
+
+Otuzuncu günde, nişanlarla aynı aileden bir **tanıma**: oyuncu bir şey
+yapmıyor, bir şey *olduğu* için söyleniyor.
+
+| mutfak | satır |
+|---|---|
+| esnaf lokantası | *"{ad} 30 gündür burada. Artık sormadan biliyor."* |
+| zincir | *"{ad} 30 gündür vardiyada. Yeni gelenler ona soruyor."* |
+
+**İki ayrı satır**, çünkü araştırma iki mekânın farklı şeyden gurur duyup
+farklı şeyden şikâyet ettiğini söylüyordu: lokantada ilişki **ustaya ve işe**,
+zincirde **vardiyaya ve sisteme**. Tek satır ikisini de genel yapardı.
+
+Eşik otuz gün — uydurulmadı, iki sınırdan çıktı. Çok küçük olsaydı (yedi gibi)
+her hafta biri için çıkar ve tanıma olmaktan çıkıp gürültüye dönerdi; nişanlar
+bir kez tam bunu yaptı ([47](47-tanima-ve-karne.md)). Çok büyük olsaydı (elli
+gibi) yalnızca ilk gün alınıp hiç değiştirilmeyen kadro için çıkar, yani
+oyuncunun kararıyla ilgisi kalmazdı.
+
+### Üç ölçüm, üçü de ayrı soru soruyor
+
+1. **Çekirdekte ateşliyor mu** — birim testi, ve **kişi başına tam bir kez**.
+   "En az bir kez" demek, eşiği `>=` gibi davranan bir sürümü de yeşil
+   geçirirdi ve o, bildirim şeridini tek cümleyle doldururdu.
+2. **Oyuncuya ulaşıyor mu** — tur, bildirim şeridini tarıyor. Bu projede
+   "mekanik çekirdekte eksiksiz, oyuncuya hiç ulaşmıyor" **üç kez** çıktı.
+3. **Doğru kaydı konuşuyor mu** — iki mutfak ayrı koşuldu.
+
+### İki testi de yanlış yazdım, ikisi de kendini söyledi
+
+**Birim testi** "tam bir kez" diye **toplamı** tutuyordu ve kırmızı yandı:
+30. günde **iki kişi** birden eşiği geçiyor (devralınan aşçı ve salondaki).
+İki bildirim doğru — iki ayrı insan. Yanlış olan beklentiydi; sayaç kişi
+başına çevrildi.
+
+**Tur kontrolü** beklenen metni `StaffName(0, 0)`'dan kuruyordu ve kırmızı
+yandı. Tanı gösterdi ki bildirim **oradaydı**, ama salondakinin adıyla
+(*"Aslı 30 gündür burada"*) — üç yuvalı şerit aynı gün gelen iki satırdan
+birini dışarıda bırakıyor. Hangi **adın** kaldığı turun işi değil; soru
+*"böyle bir satır oyuncuya ulaştı mı"*. Kontrol kişiye değil **ana** bağlandı.
+
+*İki hata da aynı aileden: ölçütü kişiye bağlamak, ölçmek istediğin şey an
+olduğunda yanlış cevabı da doğru gösterir.*

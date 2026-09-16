@@ -223,6 +223,9 @@ UI = {
     "notice.regular_upset": "{0} is put out — away for {1} days.",
     "notice.resigned": "{0} has left.",
     "notice.level_up": "{0} levelled up: {1}",
+    # Long service, split by cuisine - see gen_loc.py for the reason.
+    "notice.tenure_lokanta": "{0} has been here {1} days. Doesn't need to ask any more.",
+    "notice.tenure_zincir": "{0} has worked {1} days of shifts. The new ones ask for {0}.",
     "notice.weekly": "Paid {0} rent and {1} wages.",
     "notice.wages_late": "Wages are late — {0} short.",
     "notice.debt": "The till has gone negative: {0}",

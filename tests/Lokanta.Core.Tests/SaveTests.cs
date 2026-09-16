@@ -285,6 +285,82 @@ namespace Lokanta.Core.Tests
             Assert.NotEqual(yeniKidem, yeniDeneyim);
         }
 
+        /// <summary>
+        /// UZUN KIDEM ANI ATESLENIYOR - ve TAM BIR KEZ.
+        ///
+        /// Yirmi mudavimin ucer sahnesi vardi, personelin sifir satiri
+        /// (docs/53). Bu olay o boslugu kapatiyor ve nisanlarla ayni
+        /// aileden: gorev degil TANIMA.
+        ///
+        /// Iki yonlu olcum sart. "En az bir kez atesledi" demek, her
+        /// gun atesleyen bir esigi de yesil gecirirdi - ve o, bildirim
+        /// seridini tek cumleyle doldururdu. Bu projede ayni hata tabak
+        /// bildiriminde bir kez yapildi, o yuzden esik `==` ile yazildi
+        /// ve test onu TAM BIR KEZ diye tutuyor.
+        /// </summary>
+        [Fact]
+        public void Uzun_kidem_ani_tam_bir_kez_atesliyor()
+        {
+            const int gunSayisi = Simulation.TenureDays + 8;
+            Simulation sim = NewSim();
+            TimingConfig timing = Timing();
+            int limit = timing.ServiceTicks + 6000;
+
+            // KISI BASINA sayiliyor, toplam degil.
+            //
+            // Ilk yazimda "tam bir kez" diye toplami tuttum ve test
+            // kirmizi yandi: 30. gunde IKI kisi birden esigi geciyor
+            // (devralinan asci ve salondaki). Iki bildirim DOGRU - iki
+            // ayri insan. Yanlis olan testin beklentisiydi.
+            //
+            // Asil tutulmak istenen sey zaten kisi basina: esik ">=" gibi
+            // davranirsa AYNI kisi icin her gun atesler.
+            var kacKez = new Dictionary<int, int>();
+            var gorulenGun = new Dictionary<int, int>();
+            SimEvent[] tampon = new SimEvent[256];
+
+            for (int day = 1; day <= gunSayisi; day++)
+            {
+                sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+                for (int t = 0; t < limit; t++)
+                {
+                    sim.Tick();
+                    if (sim.ServiceComplete) break;
+                }
+                sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
+
+                int n = sim.Events.Drain(tampon);
+                for (int i = 0; i < n; i++)
+                {
+                    if (tampon[i].Kind != SimEventKind.StaffTenure) continue;
+                    int kisi = tampon[i].A * 100 + tampon[i].B;
+                    kacKez[kisi] = kacKez.TryGetValue(kisi, out int o) ? o + 1 : 1;
+                    gorulenGun[kisi] = sim.Day;
+                    _out.WriteLine($"kidem ani: gun {sim.Day}, havuz {tampon[i].A}, sira {tampon[i].B}");
+                }
+
+                sim.AdvanceToNextDay();
+            }
+
+            Assert.True(kacKez.Count > 0,
+                "kidem ani hic ateslenmedi (" + gunSayisi + " gun kosuldu, "
+                + "esik " + Simulation.TenureDays + ")");
+
+            foreach (var kv in kacKez)
+            {
+                // Esik ">=" gibi davranirsa ayni kisi icin her gun
+                // atesler ve bildirim seridi tek cumleyle dolar.
+                Assert.True(kv.Value == 1,
+                    "ayni kisi icin " + kv.Value + " kez atesledi "
+                    + "(havuz " + (kv.Key / 100) + ", sira " + (kv.Key % 100)
+                    + ") - esik '==' degil '>=' gibi davraniyor");
+
+                // Ve TAM esik gununde: erken ya da gec atesleyen bir
+                // sayac, sayiyi yazan bildirimi de yalanci yapardi.
+                Assert.Equal(Simulation.TenureDays, gorulenGun[kv.Key]);
+            }
+        }
+
         [Fact]
         public void Cok_eski_surum_reddediliyor()
         {

@@ -1,4 +1,4 @@
-using Lokanta.Core.Content;
+﻿using Lokanta.Core.Content;
 using Lokanta.Core.Sim;
 
 namespace Lokanta.Game
@@ -95,6 +95,27 @@ namespace Lokanta.Game
                 case SimEventKind.StaffLeveledUp:
                     tone = NoticeTone.Good;
                     text = Loc.T("notice.level_up", Who(sim, e.A, 0), e.B);
+                    return true;
+
+                case SimEventKind.StaffTenure:
+                    // SATIR MUTFAGA GORE.
+                    //
+                    // Esnaf lokantasinda iliski USTAYA ve ise; zincirde
+                    // VARDIYAYA ve sisteme (docs/53). Tek satir ikisini
+                    // de genel yapardi.
+                    //
+                    // Ayirt eden sey self servis bayragi - mutfak adini
+                    // burada okumak, ucuncu bir yere "hangi mutfak
+                    // hangisi" bilgisi yazmak olurdu.
+                    //
+                    // e.A havuz, e.B SIRA. Gun sayisi olayda degil:
+                    // sabit (Simulation.TenureDays) ve iki yere yazmak
+                    // bu projede bes kez sessizce ayristi.
+                    tone = NoticeTone.Good;
+                    text = Loc.T(
+                        content != null && content.SelfService
+                            ? "notice.tenure_zincir" : "notice.tenure_lokanta",
+                        Who(sim, e.A, e.B), Simulation.TenureDays);
                     return true;
 
                 // --- para ----------------------------------------------------

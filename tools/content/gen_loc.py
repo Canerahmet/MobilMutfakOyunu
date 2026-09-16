@@ -686,6 +686,18 @@ UI = {
     "notice.resigned": "{0} bıraktı.",
     "notice.level_up": "{0} seviye atladı: {1}",
 
+    # UZUN KIDEM: mutfaga gore AYRI iki satir.
+    #
+    # Arastirma (docs/53): iki mekanin sikayeti de gururu da ayni degil.
+    # Esnaf lokantasinda iliski USTAYA ve ise; zincirde VARDIYAYA ve
+    # sisteme. Tek satir yazmak ikisini de genel yapardi.
+    #
+    # Ses mudavimlerle ayni kanal: ucuncu sahis, genis zaman, gozlem,
+    # aciklamasiz. Ikisi de "beni gor" diyor ama sikayet etmeden -
+    # Turkce kaynaklardaki asil dert gorunmezlik, ucret degil.
+    "notice.tenure_lokanta": "{0} {1} gündür burada. Artık sormadan biliyor.",
+    "notice.tenure_zincir": "{0} {1} gündür vardiyada. Yeni gelenler ona soruyor.",
+
     "notice.weekly": "Kira {0}, maaş {1} ödendi.",
     "notice.wages_late": "Maaş gecikti — {0} eksik.",
     "notice.debt": "Kasa eksiye düştü: {0}",

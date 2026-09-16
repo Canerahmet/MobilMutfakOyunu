@@ -73,7 +73,24 @@
         /// ZATEN yaptiktan sonra cikiyor.
         /// </summary>
         BadgeEarned = 36,
-        Count = 37
+
+        /// <summary>
+        /// PERSONEL KIDEMI. A havuz (0 mutfak, 1 salon), B gun sayisi.
+        ///
+        /// Nisanla ayni aile: gorev degil TANIMA. Oyuncu bir sey
+        /// yapmiyor, bir sey OLDUGU icin soyleniyor - biri uzun suredir
+        /// burada.
+        ///
+        /// Neden bu an secildi (docs/53): yirmi mudavimin ucer sahnesi
+        /// vardi, personelin sifir satiri. Arastirma taradigi on iki
+        /// oyunda uzun kidem icin YAZILMIS tek satir bulamadi - yani
+        /// sahipsiz. Ve Turkce kaynaklardaki asil sikayetle ortusuyor:
+        /// bulasikci kendine "restoranin kalbi" diyor ama "hicbir sey
+        /// yapmiyormusuz gibi gorunuyoruz". "Beni gor" diyen bir satir,
+        /// "bana zam ver"den daha sert iniyor.
+        /// </summary>
+        StaffTenure = 37,
+        Count = 38
     }
 
     public readonly struct SimEvent

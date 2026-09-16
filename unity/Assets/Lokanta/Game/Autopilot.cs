@@ -911,6 +911,7 @@ namespace Lokanta.Game
             bool veresiyeYazildi = false;
             bool komboCevrildi = false;
             bool kidemOlculdu = false;
+            bool kidemAniGoruldu = false;
             bool defterOlculdu = false;
             int kizginToplam = 0;
             bool kaliteOlculdu = false;
@@ -1304,6 +1305,55 @@ namespace Lokanta.Game
                     }
                 }
 
+                // KIDEM ANI SERITTE MI.
+                //
+                // Cekirdekte atesledigini birim testi tutuyor; burasi
+                // oyuncuya ULASTIGINI soruyor. Serit kisa bir liste (en
+                // fazla uc) ve zamanla soluyor, o yuzden gun kapanisinin
+                // hemen ardinda bakiliyor.
+                //
+                // OLCUT KISI DEGIL AN. Ilk yazimda beklenen metni
+                // `StaffName(0, 0)`'dan kurdum ve kontrol kirmizi yandi;
+                // tani gosterdi ki bildirim ORADAYDI, ama SALONDAKININ
+                // adiyla ("Asli 30 gundur burada"), cunku ayni gun iki
+                // kisi esigi geciyor ve uc yuvali serit birini disarida
+                // birakiyor. Hangi ADIN kaldigi turun isi degil; soru
+                // "boyle bir satir oyuncuya ulasti mi".
+                if (!kidemAniGoruldu)
+                {
+                    string anahtar = _app.Content != null && _app.Content.SelfService
+                        ? "notice.tenure_zincir" : "notice.tenure_lokanta";
+                    for (int havuz = 0; havuz < 2 && !kidemAniGoruldu; havuz++)
+                    {
+                        int kisi = havuz == 0 ? _app.Sim.Cooks : _app.Sim.SalonStaff;
+                        for (int k = 0; k < kisi && !kidemAniGoruldu; k++)
+                        {
+                            string bekle = Loc.T(anahtar,
+                                                 _app.Sim.StaffName(havuz, k),
+                                                 Simulation.TenureDays);
+                            for (int n = 0; n < _app.NoticeCount; n++)
+                            {
+                                if (_app.NoticeTextAt(n) != bekle) continue;
+                                kidemAniGoruldu = true;
+                                Debug.Log("  TANI kidem ani: " + bekle);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Esik gunu gelip de bulunamadiysa serit yaziliyor:
+                    // "hic gelmiyor" ile "geliyor ama metin tutmuyor"
+                    // disaridan ayni gorunuyor ve bunu bir kez ayirmak
+                    // zorunda kaldim.
+                    if (!kidemAniGoruldu && _app.Sim.Day == Simulation.TenureDays)
+                    {
+                        string dokum = "";
+                        for (int n = 0; n < _app.NoticeCount; n++)
+                            dokum += " | " + _app.NoticeTextAt(n);
+                        Debug.Log("  TANI kidem ani yok, serit:" + dokum);
+                    }
+                }
+
                 if (!Click(Loc.T("ui.evening.next")))
                 {
                     trouble = "ertesi gune gecilmedi, gun " + _app.Sim.Day;
@@ -1335,6 +1385,15 @@ namespace Lokanta.Game
                    "Servis sirasinda kombo dugmesine basildi");
             NoteIf(kidemOlculdu, kidemOlculdu,
                    "Personel ekraninda kidem olculdu");
+
+            // UZUN KIDEM ANI OYUNCUYA ULASTI MI.
+            //
+            // Cekirdekte atesledigini birim testi tutuyor. Burasi ayri
+            // soruyu soruyor: BILDIRIM SERIDINDE goruldu mu. Bu projede
+            // "mekanik cekirdekte eksiksiz, oyuncuya hic ulasmiyor"
+            // uc kez cikti (SetQuality, CollectCredit, kombo dugmesi).
+            NoteIf(_app.Sim.Day > Simulation.TenureDays, kidemAniGoruldu,
+                   "Uzun kidem ani bildirim seridinde goruldu");
             NoteIf(karneOlculdu, karneOlculdu,
                    "Haftalik karne goruldu (60 gunde en az bir hafta)");
             NoteIf(nisanOlculdu, nisanOlculdu,

@@ -195,6 +195,25 @@ namespace Lokanta.Core.Sim
         /// </summary>
         private readonly int[] _cookTenure = new int[MaxServers];
         private readonly int[] _salonTenure = new int[MaxServers];
+
+        /// <summary>
+        /// Kac gunluk kidem TANINIYOR.
+        ///
+        /// 30 = kampanyanin yarisi. Uydurulmadi, iki sinirdan cikti:
+        ///   - Cok kucuk olursa (ornegin 7) her hafta biri icin cikar ve
+        ///     tanima olmaktan cikip gurultuye doner - nisanlarin
+        ///     on bes gunde ug kez atesleyip sonra elli iki gun susmasi
+        ///     bu projede bir kez yasandi (docs/47).
+        ///   - Cok buyuk olursa (ornegin 50) yalnizca ilk gun alinan ve
+        ///     hic degistirilmeyen kadro icin cikar, yani oyuncunun
+        ///     KARARIYLA ilgisi kalmaz.
+        /// Otuz gun, ikinci ayinda hala yaninda olan kisi demek.
+        ///
+        /// ESIK TEK: "== TenureDays" ile, ">=" degil. Aksi halde olay
+        /// her gun yeniden atesler ve bildirim seridi tek cumleyle
+        /// dolardi - ayni hata tabak bildiriminde bir kez yapildi.
+        /// </summary>
+        public const int TenureDays = 30;
         private readonly int[] _salonXpDays = new int[MaxServers];
 
         // --- Huy ve moral, docs/14 -------------------------------------------
@@ -1803,6 +1822,13 @@ namespace Lokanta.Core.Sim
                 before = _economy.XpLevelOf(_cookXpDays[i]);
                 _cookXpDays[i] += XpGainOf(0, i);
                 _cookTenure[i]++;
+                // B = SIRA, gun sayisi degil: gun zaten TenureDays
+                // sabiti. Sirayi tasimazsa bildirim onu ARAMAK zorunda
+                // kalir ve ayni gun iki kisi esigi gecerse ikisine de
+                // birinci adi yazar - yanlis ad, tanimayi tanima
+                // olmaktan cikarir.
+                if (_cookTenure[i] == TenureDays)
+                    Emit(SimEventKind.StaffTenure, 0, i);
                 after = _economy.XpLevelOf(_cookXpDays[i]);
                 if (after > before) Emit(SimEventKind.StaffLeveledUp, 0, after);
             }
@@ -1811,6 +1837,8 @@ namespace Lokanta.Core.Sim
                 before = _economy.XpLevelOf(_salonXpDays[i]);
                 _salonXpDays[i] += XpGainOf(1, i);
                 _salonTenure[i]++;
+                if (_salonTenure[i] == TenureDays)
+                    Emit(SimEventKind.StaffTenure, 1, i);
                 after = _economy.XpLevelOf(_salonXpDays[i]);
                 if (after > before) Emit(SimEventKind.StaffLeveledUp, 1, after);
             }

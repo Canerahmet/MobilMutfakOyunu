@@ -210,6 +210,8 @@
   "notice.save_failed": "Kayıt yazılamadı — cihazın depolamasını kontrol et.",
   "notice.service_done": "Servis bitti — günü kapatabilirsin.",
   "notice.storage": "Soğuk hava deposu yükseltildi — kademe {0}",
+  "notice.tenure_lokanta": "{0} {1} gündür burada. Artık sormadan biliyor.",
+  "notice.tenure_zincir": "{0} {1} gündür vardiyada. Yeni gelenler ona soruyor.",
   "notice.turned_away": "Bir grup kapıdan döndü — menüde yapabileceği bir şey yoktu",
   "notice.unknown": "bilinmeyen",
   "notice.unlocked": "Yeni yemek açıldı: {0}",

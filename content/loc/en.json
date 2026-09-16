@@ -210,6 +210,8 @@
   "notice.save_failed": "Could not write the save — check your device storage.",
   "notice.service_done": "Service is over — you can close the day.",
   "notice.storage": "Cold store upgraded — tier {0}",
+  "notice.tenure_lokanta": "{0} has been here {1} days. Doesn't need to ask any more.",
+  "notice.tenure_zincir": "{0} has worked {1} days of shifts. The new ones ask for {0}.",
   "notice.turned_away": "A group walked away — nothing on the menu could be made",
   "notice.unknown": "unknown",
   "notice.unlocked": "New dish unlocked: {0}",
