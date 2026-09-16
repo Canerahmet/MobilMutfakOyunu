@@ -170,7 +170,7 @@ package.
 | `tools/check.py` | 16 checks, all clean |
 | Smoke tour (a real Windows build, 873×393 dp) | 184 checks, 0 failures (fast food; 5 have nothing to measure in that cuisine) |
 | Balance tool | 25 strategies × 60 days, zero reconciliation gap |
-| Android APK | 90.4 MB, 0 warnings |
+| Android APK | 90.6 MB, 0 warnings; arm64 only, libraries uncompressed and 16 KB aligned |
 
 *The numbers above were read off `tools/check.py`, `tools/unity/tour.ps1` and
 `tools/balance` on the date in the heading, and they are copied here by hand —
