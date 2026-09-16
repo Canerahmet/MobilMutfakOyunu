@@ -129,6 +129,7 @@ UI = {
     # --- error ------------------------------------------------------------
     "ui.error.content": "تعذّر قراءة ملفات المحتوى. هذا خطأ في المحتوى؛ واللعبة لا تفتح بتوازن ناقص.",
     "ui.error.save": "تعذّر فتح الحفظ.",
+    "ui.error.quit": "إغلاق اللعبة",
     "ui.error.title": "تعذّر تشغيل اللعبة",
 
     # --- evening report ---------------------------------------------------
@@ -312,7 +313,6 @@ UI = {
     "ui.service.none_credit": "لا أحد يطلب الدفتر",
     "ui.service.none_station": "لا قسم متعثّر",
     "ui.service.none_table": "لا طاولة تنتظر",
-    "ui.service.none_waiting": "لا طاولة تنتظر",
     "ui.service.running_sub": "الدوام جارٍ",
     "ui.service.rush": "تسريع",
     "ui.service.table_n": "الطاولة {0}",

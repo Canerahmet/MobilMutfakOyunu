@@ -83,15 +83,51 @@ FASTFOOD = [
 
 CUISINES = [("turk", TURK), ("fastfood", FASTFOOD)]
 
-# Story beats. docs/09 says "three or four beats"; the thresholds are
-# THE SAME FOR EVERYONE because they are not a difficulty setting, they
-# are a NARRATIVE tempo. The third beat asks for 15 visits: in sixty days
-# only someone served well and regularly gets there.
-STORY = [
-    (1,  3, 7000),
-    (2,  8, 7500),
-    (3, 15, 8000),
+# How often a regular turns up, from content/economy.json
+# (regulars.visitChanceBp). Kept here as a float because this file only
+# needs it to size the story, never to simulate anything.
+VISIT_CHANCE = 0.45
+
+# Story beats. docs/09 says "three or four beats"; the SHAPE is the same
+# for everyone because it is not a difficulty setting, it is a NARRATIVE
+# tempo - roughly a tenth, a third and half of the visits a character
+# could possibly make.
+#
+# THE THRESHOLDS USED TO BE FLAT 3/8/15 AND THAT MADE ONE STORY
+# IMPOSSIBLE TO FINISH. Cem Abi arrives on day 47, so in a sixty-day
+# campaign he can be visited at most fourteen times - the third beat
+# asked for fifteen. No dice roll could open it, and nothing checked:
+# the loader validates the arrival day, the favourite dish and the beat
+# ORDER, and never the arithmetic between them. Five more regulars were
+# out of reach in expectation for the same reason.
+#
+# It also leaked into the score. The Regulars axis is
+# beats x 100 / (regulars x 3), so a beat nobody can reach is a
+# denominator nobody can fill.
+#
+# The thresholds are now a fraction of the character's OWN opportunity,
+# with a floor so a late arrival still has to earn it. A day-one regular
+# comes out at 3/8/15 exactly as before.
+STORY_SHAPE = [
+    (1, 0.11, 2, 7000),
+    (2, 0.30, 4, 7500),
+    (3, 0.55, 6, 8000),
 ]
+
+
+def story_for(arrives_from_day):
+    """The three beats, sized to the days this character actually has."""
+    days = CAMPAIGN_DAYS - arrives_from_day + 1
+    expected = days * VISIT_CHANCE
+    out = []
+    for beat, fraction, floor, satisfaction in STORY_SHAPE:
+        visits = max(floor, int(round(expected * fraction)))
+        out.append((beat, visits, satisfaction))
+    # The shape must still rise even where the floors collide.
+    for i in range(1, len(out)):
+        if out[i][1] <= out[i - 1][1]:
+            out[i] = (out[i][0], out[i - 1][1] + 1, out[i][2])
+    return out
 
 
 def build(cuisine, rows):
@@ -109,7 +145,7 @@ def build(cuisine, rows):
             "story": [
                 {"beat": b, "requiresVisits": v, "requiresSatisfaction": s,
                  "textKey": "regular." + rid + ".beat" + str(b)}
-                for b, v, s in STORY
+                for b, v, s in story_for(day)
             ],
         })
     return out
@@ -165,6 +201,27 @@ def check(cuisine, rows, errors):
         if visits != sorted(visits):
             errors.append(cuisine + "/" + rid +
                           " the visit thresholds of the beats do not increase")
+
+        # CAN THE LAST BEAT BE REACHED AT ALL?
+        #
+        # This is the check that was missing. A regular arriving on day
+        # d can be visited at most CAMPAIGN_DAYS - d + 1 times, and in
+        # expectation only VISIT_CHANCE of that. A threshold above the
+        # hard maximum is a story beat no dice roll can open - and the
+        # game says nothing about it, because everything else about the
+        # record is valid.
+        possible = CAMPAIGN_DAYS - d + 1
+        if visits and visits[-1] > possible:
+            errors.append(
+                "%s/%s the last beat asks for %d visits but the character "
+                "arrives on day %d and can be visited at most %d times"
+                % (cuisine, rid, visits[-1], d, possible))
+        expected = possible * VISIT_CHANCE
+        if visits and visits[-1] > expected:
+            errors.append(
+                "%s/%s the last beat asks for %d visits, more than the %.1f "
+                "expected from day %d - reachable only with luck"
+                % (cuisine, rid, visits[-1], expected, d))
 
     if len(rows) != 10:
         errors.append(cuisine + " must have ten regulars, there are " +

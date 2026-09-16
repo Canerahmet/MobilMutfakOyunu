@@ -483,6 +483,11 @@ namespace Lokanta.Core.Sim
         private readonly int[] _arrTick;
         private readonly int[] _arrArchetype;
         private readonly int[] _arrSize;
+
+        // Which slot is busiest today, and the day it was worked out for.
+        // Derived from the arrival plan, so it is never saved.
+        private int _peakSlot = -1;
+        private int _peakSlotDay = -1;
         private int _arrCount;
         private int _arrNext;
 
@@ -1499,8 +1504,18 @@ namespace Lokanta.Core.Sim
             for (int t = 1; t < _economy.TierCount; t++)
                 total += _economy.TierAt(t).Upgrade;
 
+            // A STATION NO DISH USES IS NOT SOMETHING YOU CAN BUY.
+            //
+            // This counted every station in the content. In the Turkish
+            // restaurant no dish uses the oven, so its ladder went into the
+            // denominator of the WEALTH axis - and since `owned` is the
+            // yardstick minus what is left, buying the useless oven RAISED
+            // the score. Six thousand coins for a better mark and nothing
+            // else. RequiredStationTier already skipped unused stations; the
+            // two answers to "what is there to buy" simply disagreed.
             for (int i = 0; i < _content.Stations.Length; i++)
             {
+                if (!IsStationUsed(i)) continue;
                 StationDef def = _content.Stations[i];
                 for (int t = 1; t < def.Tiers.Length; t++) total += def.Tiers[t].Price;
             }
@@ -2629,6 +2644,18 @@ namespace Lokanta.Core.Sim
                 return;
             }
 
+            // NOTHING COOKS HERE, SO THERE IS NOTHING TO UPGRADE.
+            //
+            // A cuisine does not use every station in the content - no
+            // Turkish dish uses the oven - and this let the player pay for
+            // its ladder anyway. Six thousand coins, the priciest single
+            // step in the game, for a machine no order will ever reach.
+            if (!IsStationUsed(station))
+            {
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.BuyEquipment, 4);
+                return;
+            }
+
             StationDef def = _content.Stations[station];
             int next = _stationTier[station] + 1;
             if (next > def.MaxTier)
@@ -2951,8 +2978,11 @@ namespace Lokanta.Core.Sim
                 if (_economy.TierAt(t).Tables > _tableCount)
                     total += _economy.TierAt(t).Upgrade;
 
+            // The same filter as RemainingPurchaseCostTotal: the two have to
+            // answer the same question or `owned` comes out wrong.
             for (int st = 0; st < _stationTier.Length; st++)
             {
+                if (!IsStationUsed(st)) continue;
                 StationDef def = _content.Stations[st];
                 for (int t = _stationTier[st] + 1; t < def.Tiers.Length; t++)
                     total += def.Tiers[t].Price;
@@ -3935,17 +3965,92 @@ namespace Lokanta.Core.Sim
         /// <summary>Are we in the busy slot of the service day.</summary>
         private bool InPeakSlot()
         {
-            // The busy slot is THE LONGEST slot: docs/28 Decision G changed
-            // the DURATION rather than the share, so a cuisine's peak is now
-            // written in the slot's length. Hard-coding "the second slot"
-            // would force the Turkish restaurant's lunch peak onto fast food
-            // as well.
-            int peak = 0, best = 0;
-            for (int i = 0; i < _timing.SlotCount; i++)
-                if (_timing.SlotTicks(i) > best) { best = _timing.SlotTicks(i); peak = i; }
-
+            int peak = PeakSlotToday();
+            if (peak < 0) return false;
             int start = _timing.SlotStartTick(peak);
             return _serviceTick >= start && _serviceTick < start + _timing.SlotTicks(peak);
+        }
+
+        /// <summary>
+        /// The busiest slot of TODAY, by density - guests per tick.
+        /// </summary>
+        /// <remarks>
+        /// THIS USED TO RETURN THE LONGEST SLOT, AND THAT WAS EXACTLY
+        /// BACKWARDS.
+        ///
+        /// The reasoning was sound when it was written: docs/28 Decision G
+        /// shaped the day by changing slot DURATION rather than arrival
+        /// share, so the peak really was the longest slot. Then docs/48
+        /// sharpened the day by making the busy slot SHORT - the same
+        /// arrivals pressed into less time. The comment kept the old
+        /// conclusion and nothing re-measured it.
+        ///
+        /// Measured on the shipped content, arrivals over duration:
+        ///   fast food  0.54 / 1.93 / 0.47 / 1.61   longest = slot 2
+        ///   Turkish    0.98 / 1.90 / 0.45 / 0.97   longest = slot 2
+        /// So "the busy slot" was firing during the EMPTIEST part of the
+        /// day, in both cuisines. Two of the twelve traits hang off it and
+        /// both were inverted: `kalabalikta_panikleyen` (-25% speed in a
+        /// rush) cost nothing during the rush and slowed the quiet
+        /// afternoon, and `sakin` - the trait you hire FOR the rush -
+        /// bought nothing at all. The staff screen told the player the
+        /// opposite of what the game did.
+        ///
+        /// Density is read off TODAY'S arrival plan rather than the
+        /// content, so it follows the day that is actually being played
+        /// and needs no second copy of the shape of the day. The answer is
+        /// cached per day; the plan does not change within one.
+        /// </remarks>
+        /// <summary>
+        /// Today's busiest slot, or -1 before service is planned. Public so
+        /// a test can hold it to the density rule instead of the duration
+        /// rule it silently had for weeks.
+        /// </summary>
+        public int PeakSlotIndex { get { return PeakSlotToday(); } }
+
+        private int PeakSlotToday()
+        {
+            // AN EMPTY PLAN IS NOT AN ANSWER, AND IT MUST NOT BE CACHED.
+            //
+            // The plan is built by OpenService and cleared by the day
+            // advance, so before service `_arrCount` is 0 - every slot then
+            // holds zero guests, the loop below picks the FIRST one, and the
+            // per-day cache would hold that for the whole day. The traits
+            // would then treat slot 0 as the rush whatever the day looked
+            // like.
+            //
+            // Nothing reads it that early today; `PeakSlotIndex` is public
+            // now, which is exactly how a caller like that turns up.
+            if (_arrCount <= 0) return -1;
+
+            if (_peakSlotDay == _day) return _peakSlot;
+
+            int slots = _timing.SlotCount;
+            if (slots <= 0) { _peakSlotDay = _day; _peakSlot = -1; return -1; }
+
+            // Guests per slot, from the plan.
+            int best = -1;
+            long bestNum = -1, bestDen = 1;
+            for (int i = 0; i < slots; i++)
+            {
+                int ticks = _timing.SlotTicks(i);
+                if (ticks <= 0) continue;
+                int start = _timing.SlotStartTick(i);
+                long people = 0;
+                for (int a = 0; a < _arrCount; a++)
+                    if (_arrTick[a] >= start && _arrTick[a] < start + ticks)
+                        people += _arrSize[a];
+
+                // people/ticks compared as a fraction - no float in the core.
+                if (best < 0 || people * bestDen > bestNum * ticks)
+                {
+                    best = i; bestNum = people; bestDen = ticks;
+                }
+            }
+
+            _peakSlotDay = _day;
+            _peakSlot = best;
+            return best;
         }
 
         /// <summary>The last quarter of the day. docs/14, "tires quickly".</summary>

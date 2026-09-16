@@ -231,5 +231,5 @@ were renumbered and had been like that for months.
   *(`ui.hud.angry` was deleted on 17 September — see [56](56-english-repository.md).
   The dead-key scan could not see it: the key was kept "used" by the very
   comment explaining that it is no longer used.)*
-  `loc_tarama.py` looks for dead `ui.*` keys but does not look at the `role.*`
+  `loc_scan.py` looks for dead `ui.*` keys but does not look at the `role.*`
   family.

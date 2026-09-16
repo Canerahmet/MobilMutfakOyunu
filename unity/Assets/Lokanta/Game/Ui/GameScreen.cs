@@ -1,4 +1,4 @@
-using Lokanta.Core.Sim;
+﻿using Lokanta.Core.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -1283,7 +1283,26 @@ namespace Lokanta.Game.Ui
                 int before = App.Sim.InterventionsLeft;
                 App.Send(CommandKind.Intervene, Target(), (int)InterventionKind.FreeTea);
                 if (DidIntervene(before)) Toast(Loc.T("ui.service.done_tea_room"));
-                else { Toast(Loc.T("ui.service.none_waiting"), rejected: true); Sfx.Cancel(); }
+                else
+                {
+                    // DO NOT OVERWRITE THE REASON WITH A GUESS.
+                    //
+                    // This always said "no table is waiting" - on a button
+                    // that is only ENABLED when tables ARE waiting. The sim
+                    // rejects tea for two reasons and the other one is the
+                    // common one: the tea costs as much as the head count of
+                    // everyone waiting, so it is dearest exactly when the
+                    // hall is fullest, and a player who cannot afford it was
+                    // told something false about their own dining room.
+                    //
+                    // The notice layer already renders the real reason from
+                    // the rejection event; toasting over it threw that away.
+                    // Now the toast is only the one thing the sim cannot say
+                    // better, and otherwise the bubble stands.
+                    Sfx.Cancel();
+                    BuildBottom();
+                    return;
+                }
                 BuildBottom();
             }, wide: true);
             // No one waiting, no tea: burning an allowance with nobody to

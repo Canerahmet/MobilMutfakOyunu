@@ -68,15 +68,21 @@ namespace Lokanta.Core.Sim
         /// separates the two - if a version 21 save has no "badges" then
         /// that save is corrupt, and blowing up is the RIGHT thing to do.
         ///
-        /// 20 WAS CHOSEN because the mechanism can only be proved to run by
-        /// going one step back (SaveTests.Eski_surum_kaydi_aciliyor takes a
-        /// version 21 save down to 20 and loads it). Anything older would be
-        /// invented: what versions 9-14 changed is UNDOCUMENTED, so nobody
-        /// can write the right gate for them. And there is no released save
-        /// either, so nothing is lost.
+        /// 20 WAS CHOSEN because anything older would be invented: what
+        /// versions 9-14 changed is UNDOCUMENTED, so nobody can write the
+        /// right gate for them. And there is no released save either, so
+        /// nothing is lost.
+        ///
+        /// EVERY version in this range is loaded by a test.
+        /// SaveTests.An_old_version_save_opens is a theory over
+        /// MinReadableVersion..SaveVersion-1; it used to wind the version
+        /// back by `SaveVersion - 1`, which slid forward with every release
+        /// and left THIS number untested.
         ///
         /// FOR THE NEXT VERSION: read the fields under `if (version >= N)`,
-        /// write a line into the list, and add an arm to the test.
+        /// write a line into the list above, AND add a row to
+        /// SaveTests.FieldsAddedIn - SaveTests.Every_readable_version_is_covered
+        /// goes red until you do.
         /// </summary>
         public const int MinReadableVersion = 20;
 

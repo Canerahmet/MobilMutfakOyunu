@@ -395,9 +395,9 @@ It is skipped in an old save, and it still blows up if it is missing from a vers
 
 ### And it was proved the mechanism runs
 
-`An_old_version_save_opens` produces a real version 21 save, deletes the six fields
-added in 21, sets the version to 20 and loads it — that is, exactly the real
-situation after release. The yardstick is two-sided: the save **must open** *and*
+`An_old_version_save_opens` is a theory over **every** version the gate claims to
+read: for each one it produces a real current save, deletes every field added after
+that version and loads it — that is, exactly the real situation after release. The yardstick is two-sided: the save **must open** *and*
 the missing fields **must stay at their defaults**; asking only the first would have
 passed a migration path that reset everything.
 
@@ -412,9 +412,18 @@ without deleting anything and without exercising the mechanism at all — *a mig
 test whose "old save" is not real is not a migration test.*
 
 Verified by mutation too: with the gate made `if (true)`, the test goes red with
-`a field that should be in a version 21 save is missing: badges`. *(The test now
-says version 22 — `SaveTests.cs:162`. The line above is the message as it read
-when this entry was written.)*
+`a field that should be in a version 21 save is missing: badges`. *(The message now
+names `SaveVersion` and the version the table says added the field; the line above
+is how it read when this entry was written.)*
+
+**Correction, 17 September.** The test as written here wound the version back with
+`Simulation.SaveVersion - 1`, so it **slid forward with every release**: by version
+22 it was testing 22 → 21 and had never once loaded a version 20 save —
+`MinReadableVersion = 20`, the only number the gate actually enforces, was a claim
+no test backed. It now walks a table (`SaveTests.FieldsAddedIn`) across the whole
+readable range, and a second test, `Every_readable_version_is_covered`, goes red the
+moment `SaveVersion` moves without a row being added. Same shape as every other
+finding in this file: *the check ran, it just no longer looked where it claimed to.*
 
 `MinReadableVersion = 20` — one step back. Anything older **would be invented**:
 what versions 9–14 changed is undocumented, so nobody can write the right gate for

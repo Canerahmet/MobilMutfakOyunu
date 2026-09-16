@@ -39,7 +39,7 @@ import os
 import re
 import sys
 
-import loc_tarama
+import loc_scan
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -471,7 +471,7 @@ def main():
     # number climbed to 40; and because SCREEN_KEY exempts the whole ui.*
     # family from the extra-key check, 15 dead keys were maintained in
     # two languages and never shown at all.
-    embedded = loc_tarama.embedded_texts()
+    embedded = loc_scan.embedded_texts()
     if embedded:
         print("")
         print("--- INTERFACE TEXT EMBEDDED IN CODE (%d) ---" % len(embedded))
@@ -479,7 +479,7 @@ def main():
             print("  %s:%d  %s" % (path, line, text))
         return 1
 
-    turkish = loc_tarama.turkish_strings()
+    turkish = loc_scan.turkish_strings()
     if turkish:
         print("")
         print("--- TURKISH LITERAL IN THE INTERFACE (%d) ---" % len(turkish))
@@ -487,7 +487,7 @@ def main():
             print("  %s:%d  %s" % (path, line, text))
         return 1
 
-    dead = loc_tarama.dead_keys(table)
+    dead = loc_scan.dead_keys(table)
     if dead:
         print("")
         print("--- KEY NO SCREEN ASKS FOR (%d) ---" % len(dead))

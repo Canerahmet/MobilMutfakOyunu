@@ -24,7 +24,7 @@ change.
 
 **Text and language** — [18](18-story-and-text.md) story arcs and the word budget · [40](40-two-languages.md) two languages from one generator · [54](54-five-languages.md) five languages, Arabic joining, mirroring · [55](55-translation-review.md) a four-agent translation review · [56](56-english-repository.md) the repository written in English
 
-**Review and measurement** — [22](22-answers-and-direction.md) questions and direction · [37](37-four-agent-review.md) the four-agent review · [43](43-review-and-measurement.md) where the measurement misled us · [45](45-design-review.md) the five-agent design pass · [49](49-unreachable-mechanics.md) mechanics that never reach the player · [46](46-shipped-binary.md) the shipped binary, link.xml
+**Review and measurement** — [22](22-answers-and-direction.md) questions and direction · [37](37-four-agent-review.md) the four-agent review · [43](43-review-and-measurement.md) where the measurement misled us · [45](45-design-review.md) the five-agent design pass · [49](49-unreachable-mechanics.md) mechanics that never reach the player · [57](57-end-to-end-audit.md) the end-to-end audit: the busy slot was the empty one · [46](46-shipped-binary.md) the shipped binary, link.xml
 
 **Release** — [05](05-production-plan.md) tools, licences, cost · [20](20-production-decisions.md) production decisions · [21](21-business-and-release.md) the release audit and the work that is left · [44](44-store-texts.md) store texts, the privacy policy · [25](25-game-name.md) the name decision — OPEN
 
@@ -94,6 +94,7 @@ change.
 | **[54-five-languages.md](54-five-languages.md)** | **Five languages (tr/en/es/zh/ar), English by default; Arabic letter joining solved with the Advanced Text Generator and measured by the width difference (60 → 40 dp); the layout mirrored; the strip budget is measured in five languages — the longest is Spanish** | **Current** |
 | **[55-translation-review.md](55-translation-review.md)** | **A four-agent translation review: the regulars' cast was a different cast in es/zh/ar; the Chinese build was broken in three places while the font check was green (the name pool + symbols embedded in code); seven strings contradicted the simulation** | **Current** |
 | **[56-english-repository.md](56-english-repository.md)** | **The whole repository moved to English (253 names, 860 identifiers, 16,515 prose lines to zero) and `check_english.py` now measures it; the checker itself was wrong five times, and the renames exposed a pool token, a sound folder and an editor path that nothing was testing** | **Current** |
+| **[57-end-to-end-audit.md](57-end-to-end-audit.md)** | **A five-agent audit against the fifty-six documents: the busy slot was the EMPTY slot (two staff traits had been running inverted since docs/48), an unused station raised the score, the migration test slid forward with every release, the save had no backup, `ComboOrdered` reached nobody, and the change log had stopped six days earlier** | **Current** |
 | `../unity/` | The Unity 6.3 LTS project, targeting Android. The settings are applied in code by `ProjectSetup.cs` | Set up |
 | `../src/Lokanta.Harness/` | The balance tool: five strategies, a multi-seed sixty-day campaign | Working |
 
@@ -207,12 +208,14 @@ campaign would be gone. **The migration path has been written and proven to run*
 - `Restore` now accepts the range `MinReadableVersion`–`SaveVersion`.
 - Fields added in a given version are read behind an `if (version >= N)` gate; in
   an older save they are skipped and left at their default.
-- `SaveTests.An_old_version_save_opens` takes a real version-21 save, deletes the
-  fields that were added in 21, makes the version 20 and loads it.
+- `SaveTests.An_old_version_save_opens` is a theory over **every** version in
+  `MinReadableVersion`–`SaveVersion-1`: for each one it takes a real current save,
+  deletes every field added after that version and loads it.
   `A_version_that_is_too_old_is_rejected` says that the gate is still a gate.
 
 **For the next version:** read the fields with `if (version >= N)`, write a line
-in the `SaveVersion` list, add an arm to the test. The file's old rule (*"new
+in the `SaveVersion` list, and add a row to `SaveTests.FieldsAddedIn` —
+`Every_readable_version_is_covered` goes red until you do. The file's old rule (*"new
 fields are read with `Has()`"*) is **void** — it had been applied in two of 126
 reads and it was the wrong tool: `Has()` always treats a missing field as
 legitimate, so it cannot tell a corrupt save from an old one.

@@ -316,7 +316,7 @@ main loop: somebody playing in English pressed a button and read
 *"3. masaya çay ikram edildi"* ("tea was served to table 3"). Worse, `". masaya "`
 is a Turkish ordinal suffix; even translated, the pattern would not have worked.
 
-Three new checks were wired into `gen_loc.py` (`loc_tarama.py`):
+Three new checks were wired into `gen_loc.py` (`loc_scan.py`):
 
 | check | what it catches |
 |---|---|

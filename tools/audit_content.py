@@ -50,7 +50,15 @@ IGNORED_KEYS = {
     "id": "the identity, carried in the Def constructor",
     "nameKey": "display text; the core knows no text",
     "source": "a note on the golden data source",
-    "wardrobe": "the art pipeline, outside the core (docs/24)",
+    # STILL OPEN, AND THE REASON HAS CHANGED. "The art pipeline" is no
+    # longer a future thing: Game/Wardrobe.cs dresses the STAFF by role -
+    # chef's whites, the dishwasher's apron and gloves, the waiter's suit -
+    # and the tour counts how many dressings completed. What it does not
+    # dress is the GUESTS, and this field is the guests' side of it: 32
+    # archetypes each carry a tag ("gunluk", "sik", ...) and nothing reads
+    # one. Leaving the old reason in place would have let a closed pipeline
+    # keep excusing an open field.
+    "wardrobe": "guest clothing; Wardrobe.cs dresses staff only (docs/10, docs/24)",
     "cuisines": "a load filter",
     "cuisine": "a load filter",
     "tier": "bound as TierIndex",

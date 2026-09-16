@@ -129,6 +129,7 @@ UI = {
     # --- error ------------------------------------------------------------
     "ui.error.content": "No se pudieron leer los archivos de contenido. Es un error de contenido; el juego no abre con un balance roto.",
     "ui.error.save": "No se pudo abrir la partida guardada.",
+    "ui.error.quit": "Cerrar el juego",
     "ui.error.title": "El juego no pudo iniciarse",
 
     # --- evening report ---------------------------------------------------
@@ -312,7 +313,6 @@ UI = {
     "ui.service.none_credit": "Nadie está pidiendo fiado",
     "ui.service.none_station": "Ninguna estación está atascada",
     "ui.service.none_table": "Ninguna mesa está esperando",
-    "ui.service.none_waiting": "Ninguna mesa está esperando",
     "ui.service.running_sub": "Servicio en marcha",
     "ui.service.rush": "Acelerar",
     "ui.service.table_n": "Mesa {0}",

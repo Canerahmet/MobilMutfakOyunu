@@ -92,7 +92,31 @@ diyor bakiyor aliyor koyuyor cikiyor giriyor kaliyor gecen gecti olur olmaz
 varsa yoksa ise diye demek sadece yalnizca ayni farkli butun hepsi bazi
 kendi kendisi onun bunun sunun hangi nerede nereye buraya oraya simdi
 uretilen dosya elle degistirmeyin calistirin kosturun uretec uretecler
+cihaz cihazlar tarama taramasi karakter karakterler dar genis yuva
 """.split())
+
+# THE LIST IS THE CHECK'S CEILING, AND IT WAS SHORT.
+#
+# Four Turkish names survived the repository's English rename for exactly one
+# reason: the words were not on this list, and `check_names` splits a file name
+# into words and asks this set. It reported nothing, so the rename looked
+# complete.
+#
+#     tools/android/cihaz.ps1          -> device.ps1
+#     tools/content/loc_tarama.py      -> loc_scan.py
+#     tools/art/out/zh_karakterler.txt -> zh_characters.txt
+#     tools/art/out/unity/floor_04_dar_*.png (44 files) -> _narrow_
+#
+# The last one had also produced a DUPLICATE: the rename moved the character
+# list, `subset_font.py` still wrote the old name, and the repository carried
+# two lists that disagreed while nothing read the renamed one.
+#
+# The lesson is not "add four words". It is that a word list can only find
+# what somebody thought to put in it, so this pass is a net with a known mesh
+# size - it catches the Turkish this project actually writes and it cannot
+# promise more. What closes the gap for good is not the list but the SWEEP:
+# splitting every tracked path on the slash and reading the distinct name
+# tokens. That is how these four were found, and it takes a minute.
 
 # THE LIST IS THE BLIND SPOT.
 #
@@ -392,6 +416,24 @@ def check_prose():
                     continue
                 target = " ".join(c if isinstance(c, str) else c[0]
                                   for c in comments)
+                # A QUOTED NAME IN A COMMENT IS A RECORD, exactly as it is
+                # in a document.
+                #
+                # The markdown branch already takes quoted strings out
+                # before testing, because CLAUDE.md keeps Turkish quoted as
+                # evidence and glossed in English. A code comment has no
+                # blockquote to mark that with, so the quotation marks are
+                # all there is - and ArtPrefabs.cs needs them: it records
+                # that the asset folders "used to be Mobilya, Karakter and
+                # Yemek", which is the one sentence that explains why a
+                # stale key would silently scale every model to 1. Asking
+                # the writer to translate those three words would delete
+                # the evidence the comment exists for.
+                #
+                # Only DOUBLE quotes count. Turkish uses the apostrophe as
+                # a suffix mark, so treating it as a quote would swallow
+                # whole clauses.
+                target, _ = strip_quotes(target, False)
             evidence = turkish_text(target)
             if evidence:
                 bad.append("%s:%d: %s" % (rel, n, evidence))

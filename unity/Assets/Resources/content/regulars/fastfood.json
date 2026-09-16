@@ -23,7 +23,7 @@
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 14,
         "requiresSatisfaction": 8000,
         "textKey": "regular.deniz.beat3"
       }
@@ -47,13 +47,13 @@
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 7,
         "requiresSatisfaction": 7500,
         "textKey": "regular.burak.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 14,
         "requiresSatisfaction": 8000,
         "textKey": "regular.burak.beat3"
       }
@@ -77,13 +77,13 @@
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 7,
         "requiresSatisfaction": 7500,
         "textKey": "regular.elif.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 13,
         "requiresSatisfaction": 8000,
         "textKey": "regular.elif.beat3"
       }
@@ -101,19 +101,19 @@
     "story": [
       {
         "beat": 1,
-        "requiresVisits": 3,
+        "requiresVisits": 2,
         "requiresSatisfaction": 7000,
         "textKey": "regular.kaan_hoca.beat1"
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 7,
         "requiresSatisfaction": 7500,
         "textKey": "regular.kaan_hoca.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 12,
         "requiresSatisfaction": 8000,
         "textKey": "regular.kaan_hoca.beat3"
       }
@@ -131,19 +131,19 @@
     "story": [
       {
         "beat": 1,
-        "requiresVisits": 3,
+        "requiresVisits": 2,
         "requiresSatisfaction": 7000,
         "textKey": "regular.sevda.beat1"
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 6,
         "requiresSatisfaction": 7500,
         "textKey": "regular.sevda.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 11,
         "requiresSatisfaction": 8000,
         "textKey": "regular.sevda.beat3"
       }
@@ -161,19 +161,19 @@
     "story": [
       {
         "beat": 1,
-        "requiresVisits": 3,
+        "requiresVisits": 2,
         "requiresSatisfaction": 7000,
         "textKey": "regular.tolga.beat1"
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 5,
         "requiresSatisfaction": 7500,
         "textKey": "regular.tolga.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 10,
         "requiresSatisfaction": 8000,
         "textKey": "regular.tolga.beat3"
       }
@@ -191,19 +191,19 @@
     "story": [
       {
         "beat": 1,
-        "requiresVisits": 3,
+        "requiresVisits": 2,
         "requiresSatisfaction": 7000,
         "textKey": "regular.melis.beat1"
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 5,
         "requiresSatisfaction": 7500,
         "textKey": "regular.melis.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 9,
         "requiresSatisfaction": 8000,
         "textKey": "regular.melis.beat3"
       }
@@ -221,19 +221,19 @@
     "story": [
       {
         "beat": 1,
-        "requiresVisits": 3,
+        "requiresVisits": 2,
         "requiresSatisfaction": 7000,
         "textKey": "regular.ozan.beat1"
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 4,
         "requiresSatisfaction": 7500,
         "textKey": "regular.ozan.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 7,
         "requiresSatisfaction": 8000,
         "textKey": "regular.ozan.beat3"
       }
@@ -251,19 +251,19 @@
     "story": [
       {
         "beat": 1,
-        "requiresVisits": 3,
+        "requiresVisits": 2,
         "requiresSatisfaction": 7000,
         "textKey": "regular.yagmur.beat1"
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 4,
         "requiresSatisfaction": 7500,
         "textKey": "regular.yagmur.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 6,
         "requiresSatisfaction": 8000,
         "textKey": "regular.yagmur.beat3"
       }
@@ -281,19 +281,19 @@
     "story": [
       {
         "beat": 1,
-        "requiresVisits": 3,
+        "requiresVisits": 2,
         "requiresSatisfaction": 7000,
         "textKey": "regular.cem_abi.beat1"
       },
       {
         "beat": 2,
-        "requiresVisits": 8,
+        "requiresVisits": 4,
         "requiresSatisfaction": 7500,
         "textKey": "regular.cem_abi.beat2"
       },
       {
         "beat": 3,
-        "requiresVisits": 15,
+        "requiresVisits": 6,
         "requiresSatisfaction": 8000,
         "textKey": "regular.cem_abi.beat3"
       }

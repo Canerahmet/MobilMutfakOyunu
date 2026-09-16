@@ -67,7 +67,6 @@ UI = {
     "ui.service.done_tea": "Tea served at table {0}",
     "ui.service.done_tea_any": "Tea served",
     "ui.service.done_tea_room": "Tea sent to the room",
-    "ui.service.none_waiting": "No table is waiting",
     "ui.service.done_care": "Table {0} got your attention",
     "ui.service.done_care_any": "Attention given",
     "ui.service.done_credit": "{0} written in the book",
@@ -315,6 +314,7 @@ UI = {
     "ui.evening.served_n": "{0} guests / {1} tables",
     "ui.evening.visits": "{0} visits",
 
+    "ui.error.quit": "Close the game",
     "ui.error.title": "The game could not start",
     "ui.error.content": "The content files could not be read. This is a "
                         "content error; the game refuses to open with a "

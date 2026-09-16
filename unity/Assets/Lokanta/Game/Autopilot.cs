@@ -909,6 +909,52 @@ namespace Lokanta.Game
                 long cash = _app.Sim.Cash;
                 Note(_app.LoadSlot(0), "Loaded from a slot");
                 Note(_app.InGame && _app.Sim.Day == day && _app.Sim.Cash == cash, "The save gives the same state back");
+
+                // A TORN SAVE OPENS FROM THE PREVIOUS ONE.
+                //
+                // The atomic write proves the file is WHOLE, and nothing proved
+                // it was READABLE. Storage that lies about a flush, a truncating
+                // file system, a bug in Write - each of those installs a
+                // complete, unopenable save over a good one, and before
+                // SaveStore.BackupPath there was nothing behind it.
+                //
+                // THIS IS THE ONLY PLACE THE FALLBACK CAN BE MEASURED. It lives
+                // in Lokanta.Game, which the core test project cannot reach, and
+                // it only runs against real files on a real disk.
+                //
+                // THE SIM IS TICKED BY HAND. The two saves have to DIFFER, or
+                // "it opened the previous one" is indistinguishable from "it
+                // opened the torn one" - and whether the clock is running here
+                // depends on the pause state, the speed key and whether the
+                // service has finished. Sixty ticks under our own control is the
+                // difference; nothing else in the tour depends on the clock.
+                long backupTick = _app.Sim.TickIndex;
+                for (int t = 0; t < 60; t++) _app.Sim.Tick();
+                long tornTick = _app.Sim.TickIndex;
+                Note(tornTick != backupTick,
+                    "The two saves differ - without this the backup check is empty");
+
+                Note(_app.SaveToSlot(0), "Saved a second time, so a backup exists");
+                try
+                {
+                    File.WriteAllText(SaveStore.StatePath(0), "{ this is not a save");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("could not tear the save file: " + e);
+                }
+
+                bool opened = _app.LoadSlot(0);
+                Note(opened, "A torn save still opens - the backup is read");
+                Note(opened && _app.Sim.TickIndex == backupTick,
+                    "And it is the PREVIOUS save, not the torn one");
+
+                // Leave the slot coherent for the rest of the tour: until
+                // something rewrites it, the state file on disk is still the
+                // torn one. This save pushes the torn file into the backup for
+                // ONE generation, which is the honest cost of the mechanism and
+                // not a problem the tour has to clean up after.
+                Note(_app.SaveToSlot(0), "The slot is whole again");
             }
             else
             {
@@ -1472,6 +1518,20 @@ namespace Lokanta.Game
                    "The combo button was pressed during service");
             NoteIf(tenureMeasured, tenureMeasured,
                    "Tenure was measured on the staff screen");
+
+            // THE TAB BOOK VANISHED FROM THE SUMMARY ENTIRELY.
+            //
+            // `creditOpened` and `ledgerMeasured` were set and never read.
+            // Their four checks only run in the Turkish restaurant, so on a
+            // fast-food run they simply did not happen - and the summary
+            // still said "0 unmeasured". Every sibling flag above has a line
+            // here; these two were the ones that did not, which is the exact
+            // shape of "a check that does not run looks, from outside,
+            // exactly like one that passes".
+            NoteIf(creditOpened, creditOpened,
+                   "The tab was opened during service");
+            NoteIf(ledgerMeasured, ledgerMeasured,
+                   "The tab book was measured");
 
             // DID THE LONG-TENURE MOMENT REACH THE PLAYER?
             //

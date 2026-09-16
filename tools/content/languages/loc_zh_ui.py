@@ -123,6 +123,7 @@ UI = {
     # --- error ------------------------------------------------------------
     "ui.error.content": "读不了内容文件。这是内容错误；数值不完整时游戏不会启动。",
     "ui.error.save": "打不开这个存档。",
+    "ui.error.quit": "关闭游戏",
     "ui.error.title": "游戏无法启动",
 
     # --- evening report ---------------------------------------------------
@@ -306,7 +307,6 @@ UI = {
     "ui.service.none_credit": "没人要赊账",
     "ui.service.none_station": "没有哪个档口堵着",
     "ui.service.none_table": "没有桌子在等",
-    "ui.service.none_waiting": "没有桌子在等",
     "ui.service.running_sub": "营业中",
     "ui.service.rush": "催后厨",
     "ui.service.table_n": "{0} 号桌",

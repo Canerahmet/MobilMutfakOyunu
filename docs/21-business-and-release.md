@@ -192,7 +192,7 @@ both:
 
 ```
 .\tools\unity\tour.ps1 -Build windows-il2cpp   # the stripping exam, no device needed
-.\tools\android\cihaz.ps1                    # a real phone, ARM64
+.\tools\android\device.ps1                    # a real phone, ARM64
 ```
 
 **Why the first is mandatory:** Android is built with

@@ -554,5 +554,55 @@ namespace Lokanta.Core.Tests
                 $"the hall work time does not match the capacity model: " +
                 $"{t.HallMsPerPerson} vs {expected}");
         }
+
+        /// <summary>
+        /// The busy slot is the DENSEST one, and on the shipped content that
+        /// is deliberately NOT the longest one.
+        /// </summary>
+        /// <remarks>
+        /// This is the regression guard the bug got past. `InPeakSlot` chose
+        /// the longest slot, which was right under docs/28 Decision G and
+        /// became exactly wrong when docs/48 sharpened the day by making the
+        /// busy slot SHORT. Nothing measured it, so the two traits that hang
+        /// off it - "panics in a rush" and "unflappable" - ran inverted:
+        /// the penalty fell in the quietest part of the day and the immunity
+        /// protected nobody.
+        ///
+        /// The assertion is deliberately in two halves. The first is the
+        /// rule. The second pins the fact that made the bug possible, so
+        /// that if the content is ever re-shaped until longest == densest,
+        /// this test says so instead of quietly passing again.
+        /// </remarks>
+        [Theory]
+        [InlineData("fastfood")]
+        [InlineData("turk")]
+        public void The_busy_slot_is_the_densest_slot_not_the_longest(string cuisine)
+        {
+            ContentSet content = ContentSetLoader.Load(Paths.Content, cuisine);
+            TimingConfig timing = TimingConfig.Default()
+                .WithSlotDurations(content.SlotDurationsBp);
+            Simulation sim = new Simulation(Economy(), content, timing, Seed);
+
+            // BEFORE SERVICE THERE IS NO BUSY SLOT, and asking must not
+            // make one up. The plan is built by OpenService; with it empty
+            // every slot holds zero guests and the "densest" one is
+            // whichever comes first. The answer is cached per day, so one
+            // early reader would have pinned slot 0 as the rush for the
+            // whole of it - and the traits would have believed it.
+            Assert.Equal(-1, sim.PeakSlotIndex);
+
+            sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+
+            int peak = sim.PeakSlotIndex;
+            Assert.True(peak >= 0, "no busy slot was worked out");
+
+            int longest = 0;
+            for (int i = 1; i < timing.SlotCount; i++)
+                if (timing.SlotTicks(i) > timing.SlotTicks(longest)) longest = i;
+
+            _out.WriteLine(cuisine + ": busy slot " + peak + ", longest slot " + longest);
+            Assert.NotEqual(longest, peak);
+        }
+
     }
 }

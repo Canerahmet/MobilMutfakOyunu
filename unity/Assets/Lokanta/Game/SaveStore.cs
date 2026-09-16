@@ -45,9 +45,37 @@ namespace Lokanta.Game
             get { return Path.Combine(Application.persistentDataPath, "kayit"); }
         }
 
-        private static string StatePath(int slot)
+        /// <summary>
+        /// The slot's state file. Public because the tour tears it on purpose
+        /// to prove the backup below really gets read.
+        /// </summary>
+        public static string StatePath(int slot)
         {
             return Path.Combine(Dir, "yuva" + slot + ".json");
+        }
+
+        /// <summary>
+        /// THE PREVIOUS SAVE, kept for one generation.
+        ///
+        /// The atomic write below already guarantees that a crash never leaves
+        /// HALF a file on disk. It does not, and cannot, guarantee that the
+        /// file it wrote is a save worth having: a bug in Write, a truncating
+        /// file system, a device that reports a flush it did not do - each of
+        /// those produces a complete, atomically installed, unreadable save,
+        /// and the player's sixty-day campaign is gone with nothing to fall
+        /// back on.
+        ///
+        /// `File.Replace` hands the old file over for free: its third argument
+        /// is where to put the copy it is about to overwrite. The cost is one
+        /// extra file of about 100 KB per slot.
+        ///
+        /// ONE generation only - the backup is overwritten on every save. Two
+        /// saves after the damage the backup is damaged too, which is exactly
+        /// what a backup can promise here and no more.
+        /// </summary>
+        private static string BackupPath(int slot)
+        {
+            return StatePath(slot) + ".bak";
         }
 
         private static string InfoPath(int slot)
@@ -122,7 +150,7 @@ namespace Lokanta.Game
 
                 JsonStateWriter w = new JsonStateWriter();
                 sim.Write(w);
-                WriteAtomic(StatePath(slot), w.ToJson());
+                WriteAtomic(StatePath(slot), w.ToJson(), BackupPath(slot));
 
                 System.Globalization.CultureInfo inv =
                     System.Globalization.CultureInfo.InvariantCulture;
@@ -136,7 +164,10 @@ namespace Lokanta.Game
                     DateTime.UtcNow.Ticks.ToString(inv),
                     Simulation.SaveVersion.ToString(inv),
                 });
-                WriteAtomic(InfoPath(slot), info);
+                // The summary gets no backup: it is derived from the state and
+                // is rewritten on the next save. If the fallback below ever
+                // runs, the slot card is one save stale - the campaign is not.
+                WriteAtomic(InfoPath(slot), info, null);
                 return true;
             }
             catch (Exception e)
@@ -152,16 +183,49 @@ namespace Lokanta.Game
         /// </summary>
         public static bool Load(int slot, Simulation sim)
         {
+            string path = StatePath(slot);
+            if (!File.Exists(path)) return false;
             try
             {
-                string path = StatePath(slot);
-                if (!File.Exists(path)) return false;
                 sim.Restore(new JsonStateReader(File.ReadAllText(path)));
                 return true;
             }
             catch (Exception e)
             {
+                // THE STATE FILE IS UNREADABLE. Until now that was the end of
+                // the campaign; there is one more copy to try.
+                //
+                // `sim` may be HALF RESTORED here - Restore reads section by
+                // section and throws where it breaks - and the fallback is safe
+                // for the same reason it is needed: whatever it leaves behind,
+                // it cannot leave a simulation more broken than this one.
                 Debug.LogError("could not load the save (slot " + slot + "): " + e);
+                return LoadBackup(slot, sim);
+            }
+        }
+
+        /// <summary>
+        /// The last resort: the previous save.
+        ///
+        /// It is A SAVE BEHIND - the player loses the last session's progress,
+        /// not the campaign. That trade is only worth making once the main file
+        /// has already failed, which is why it is not tried first.
+        /// </summary>
+        private static bool LoadBackup(int slot, Simulation sim)
+        {
+            string backup = BackupPath(slot);
+            if (!File.Exists(backup)) return false;
+            try
+            {
+                sim.Restore(new JsonStateReader(File.ReadAllText(backup)));
+                Debug.LogWarning("the save was unreadable; the previous one was "
+                    + "loaded instead (slot " + slot + ")");
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("the backup save is unreadable too (slot " + slot
+                    + "): " + e);
                 return false;
             }
         }
@@ -172,6 +236,10 @@ namespace Lokanta.Game
             {
                 if (File.Exists(StatePath(slot))) File.Delete(StatePath(slot));
                 if (File.Exists(InfoPath(slot))) File.Delete(InfoPath(slot));
+                // THE BACKUP TOO. Leaving it behind would make "delete the
+                // slot" a lie - the next campaign started in this slot would
+                // fall back to the deleted one.
+                if (File.Exists(BackupPath(slot))) File.Delete(BackupPath(slot));
             }
             catch (Exception e)
             {
@@ -203,7 +271,7 @@ namespace Lokanta.Game
         /// whichever moment we die at, either the old save or the new save is
         /// on the disk, and there is no state in between.
         /// </summary>
-        private static void WriteAtomic(string path, string text)
+        private static void WriteAtomic(string path, string text, string backup)
         {
             string tmp = path + ".tmp";
 
@@ -215,8 +283,13 @@ namespace Lokanta.Game
                 fs.Flush(true);
             }
 
-            if (File.Exists(path)) File.Replace(tmp, path, null);
-            else File.Move(tmp, path);
+            if (!File.Exists(path)) { File.Move(tmp, path); return; }
+
+            // ignoreMetadataErrors: the replace must not fail over an ACL or a
+            // timestamp the device will not copy. Android's persistentDataPath
+            // and a Windows folder disagree about enough of that metadata for
+            // it to matter, and none of it is the save.
+            File.Replace(tmp, path, backup, true);
         }
 
         /// <summary>

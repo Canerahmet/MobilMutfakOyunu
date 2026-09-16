@@ -118,7 +118,60 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
-        /// AN OLD VERSION SAVE OPENS - and the mechanism REALLY runs.
+        /// The fields each version ADDED, keyed by the version that added them.
+        ///
+        /// This is the table `Simulation.Save.cs` keeps in prose at the top of the
+        /// file, in a form a test can walk. All of them are in the "restaurant"
+        /// section.
+        /// </summary>
+        private static readonly Dictionary<int, string[]> FieldsAddedIn =
+            new Dictionary<int, string[]>
+            {
+                { 21, new[] { "badges", "badgesToday", "creditEverOpened",
+                              "weekReportDay", "weekAxis", "weekAxisPrev" } },
+                { 22, new[] { "cookTenure", "salonTenure" } },
+            };
+
+        /// <summary>Every version the gate claims to read, oldest first.</summary>
+        public static IEnumerable<object[]> ReadableVersions()
+        {
+            for (int v = Simulation.MinReadableVersion; v < Simulation.SaveVersion; v++)
+                yield return new object[] { v };
+        }
+
+        /// <summary>
+        /// THE TABLE COVERS THE WHOLE READABLE RANGE.
+        ///
+        /// The previous migration test wound the version back by
+        /// `Simulation.SaveVersion - 1`, so it SLID FORWARD with every release: at
+        /// SaveVersion 22 it tested 22 -> 21 and never once loaded a version 20
+        /// save - `MinReadableVersion = 20`, the number the gate actually enforces,
+        /// was a claim no test backed. It is the familiar shape: a check that does
+        /// not run looks exactly like one that passes.
+        ///
+        /// Walking a table fixes that only as long as the table keeps up with
+        /// `SaveVersion`, so this test is the part that cannot be forgotten - it
+        /// goes red the moment the version moves without a row being written.
+        /// </summary>
+        [Fact]
+        public void Every_readable_version_is_covered()
+        {
+            for (int v = Simulation.MinReadableVersion + 1; v <= Simulation.SaveVersion; v++)
+                Assert.True(FieldsAddedIn.ContainsKey(v),
+                    "version " + v + " is inside the readable range and no row in "
+                    + "FieldsAddedIn says what it added - the migration test cannot "
+                    + "build a version " + (v - 1) + " save without one");
+
+            foreach (int v in FieldsAddedIn.Keys)
+                Assert.True(v > Simulation.MinReadableVersion && v <= Simulation.SaveVersion,
+                    "FieldsAddedIn has a row for version " + v + ", outside the "
+                    + "readable range " + Simulation.MinReadableVersion + "-"
+                    + Simulation.SaveVersion);
+        }
+
+        /// <summary>
+        /// AN OLD VERSION SAVE OPENS - every version in the readable range, and the
+        /// mechanism REALLY runs.
         ///
         /// If `SaveVersion` goes up, every player's sixty-day campaign is lost;
         /// docs/README wrote that down as a condition before the first update and
@@ -126,17 +179,18 @@ namespace Lokanta.Core.Tests
         /// fields are read through Has()") had been applied in TWO of 126 reads -
         /// that is, another guard argued for in reasoning and never once run.
         ///
-        /// This test takes a version 21 save, deletes the fields that were ADDED in
-        /// 21 and sets the version to 20 - that is, it builds exactly the situation
-        /// that comes after release: an old save in hand, new code. Then it loads
-        /// it.
+        /// The test takes a current save, DELETES every field added after the
+        /// version under test and stamps that version on the header - that is, it
+        /// builds exactly the situation that comes after release: an old save in
+        /// hand, new code. Then it loads it.
         ///
         /// The criterion has two sides: the save MUST OPEN (no exception, the game
         /// carries on) and the missing fields MUST STAY AT THEIR DEFAULTS. Asking
         /// only the first would have passed a migration path that reset everything.
         /// </summary>
-        [Fact]
-        public void An_old_version_save_opens()
+        [Theory]
+        [MemberData(nameof(ReadableVersions))]
+        public void An_old_version_save_opens(int version)
         {
             Simulation a = NewSim();
             for (int i = 0; i < 400; i++) a.Tick();
@@ -146,25 +200,34 @@ namespace Lokanta.Core.Tests
             Newtonsoft.Json.Linq.JObject root =
                 Newtonsoft.Json.Linq.JObject.Parse(w.ToJson());
 
-            // Delete the fields added in version 21 and wind the version back.
-            //
             // THE VERSION IS IN "header", THE FIELDS ARE IN "restaurant". In my
             // first attempt I looked for both in the header and the test's own
             // validation line stopped me - the "old save" I had built was not
             // realistic and would have passed green without testing the mechanism
             // at all.
-            // Delete the fields added in version 22 and set the version to 21.
-            Newtonsoft.Json.Linq.JObject staff =
+            Newtonsoft.Json.Linq.JObject restaurant =
                 (Newtonsoft.Json.Linq.JObject)root["restaurant"];
-            foreach (string field in new[] { "cookTenure", "salonTenure" })
-            {
-                Assert.True(staff[field] != null,
-                    "a field that should be in a version 22 save is missing: " + field
-                    + " - the 'old save' the test builds is not realistic");
-                staff.Remove(field);
-            }
-            ((Newtonsoft.Json.Linq.JObject)root["header"])["version"] =
-                Simulation.SaveVersion - 1;
+            int removed = 0;
+            for (int v = version + 1; v <= Simulation.SaveVersion; v++)
+                foreach (string field in FieldsAddedIn[v])
+                {
+                    Assert.True(restaurant[field] != null,
+                        "a field that should be in a version " + Simulation.SaveVersion
+                        + " save is missing: " + field + " (the table says version "
+                        + v + " added it) - the 'old save' the test builds is not "
+                        + "realistic");
+                    restaurant.Remove(field);
+                    removed++;
+                }
+
+            // WITHOUT THIS LINE the arm for version SaveVersion - 0 would hand
+            // Restore an untouched CURRENT save and pass without the gate ever
+            // being reached.
+            Assert.True(removed > 0,
+                "nothing was removed for version " + version + " - the save handed "
+                + "to Restore is the current one and the version gate never runs");
+
+            ((Newtonsoft.Json.Linq.JObject)root["header"])["version"] = version;
 
             Simulation b = NewSim();
             b.Restore(new JsonStateReader(root));
@@ -175,19 +238,12 @@ namespace Lokanta.Core.Tests
             Assert.Equal(a.ServedParties, b.ServedParties);
 
             // The missing fields are at their defaults: tenure counts from zero.
-            Assert.Equal(0, b.StaffDaysWorked(0, 0));
+            if (restaurant["cookTenure"] == null) Assert.Equal(0, b.StaffDaysWorked(0, 0));
 
             // And it can carry on - the loaded state is in a runnable condition.
             for (int i = 0; i < 200; i++) b.Tick();
         }
 
-        /// <summary>
-        /// Anything OUTSIDE the readable range is rejected.
-        ///
-        /// A one-sided migration test would also have passed an implementation of
-        /// the form "accept every version and leave the fields empty". This arm
-        /// says the gate is still a gate.
-        /// </summary>
         /// <summary>
         /// TENURE IS SEPARATE FROM EXPERIENCE - and the screen shows the tenure.
         ///
@@ -363,6 +419,13 @@ namespace Lokanta.Core.Tests
             }
         }
 
+        /// <summary>
+        /// Anything OUTSIDE the readable range is rejected.
+        ///
+        /// A one-sided migration test would also have passed an implementation of
+        /// the form "accept every version and leave the fields empty". This arm
+        /// says the gate is still a gate.
+        /// </summary>
         [Fact]
         public void A_version_that_is_too_old_is_rejected()
         {

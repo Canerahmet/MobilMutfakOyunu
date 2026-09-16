@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace Lokanta.Game
@@ -48,7 +48,8 @@ namespace Lokanta.Game
 
         private static AudioSource _source;
         private static AudioClip _click, _confirm, _cancel, _coin, _bell,
-                                 _sizzle, _pour, _upset, _levelUp, _day;
+                                 _sizzle, _pour, _upset, _levelUp, _day,
+                                 _alarm, _empty, _combo;
         private static float _volume = 0.7f;
         private static bool _built;
 
@@ -137,6 +138,42 @@ namespace Lokanta.Game
                 return Env(t, n, 0.006f, 0.45f) * Sine(t, f) * 0.4f;
             }));
 
+            // PATIENCE RUNNING OUT. docs/17 marks this as one of the two
+            // sounds that matter most, and it had no sound of its own - it
+            // borrowed the angry-guest grumble, which is the sound of being
+            // TOO LATE. A warning has to be distinguishable from a failure,
+            // so this one RISES where `kizgin` falls.
+            _alarm = Prefer("uyari", () => Tone("uyari", 0.30f, (t, n) =>
+            {
+                float f = t < 0.12f ? 740f : 988f;
+                return Env(t, n, 0.004f, 0.26f) * Sine(t, f) * 0.34f;
+            }));
+
+            // ASKED FOR AND NOT THERE. docs/17's other bold row, and it had
+            // no sound at all: a guest asking for something the kitchen
+            // cannot make was exactly as quiet as one who never asked. Dull
+            // and short - a shelf coming up empty, not an error.
+            _empty = Prefer("bitti", () => Tone("bitti", 0.20f, (t, n) =>
+                Env(t, n, 0.004f, 0.18f) *
+                (Sine(t, 196f) * 0.45f + Noise(t) * 0.12f) * 0.34f));
+
+            // A COMBO LANDED. The signature mechanic of fast food emitted
+            // SimEventKind.ComboOrdered and NOTHING listened: no sound, no
+            // notice, no badge. The share reaches the player in the evening
+            // report and at year end, so the mechanic was not invisible - but
+            // the MOMENT was, and the moment is what teaches the player that
+            // the toggle they flicked is doing something.
+            //
+            // Two notes UP a fourth, short and bright. It has to sit apart
+            // from `para` (the same guest pays a second later) and from
+            // `seviye` (three notes, a much bigger event), so it is quieter
+            // and shorter than either.
+            _combo = Prefer("kombo", () => Tone("kombo", 0.16f, (t, n) =>
+            {
+                float f = t < 0.07f ? 587f : 784f;
+                return Env(t, n, 0.004f, 0.14f) * Sine(t, f) * 0.26f;
+            }));
+
             // The turn of the day: soft, low, two tones.
             _day = Prefer("gun-donumu", () => Tone("gun", 0.7f, (t, n) =>
                 Env(t, n, 0.06f, 0.62f) *
@@ -178,6 +215,9 @@ namespace Lokanta.Game
         public static void Upset() { Play(_upset, 0.8f); }
         public static void LevelUp() { Play(_levelUp); }
         public static void DayChange() { Play(_day); }
+        public static void Alarm() { Play(_alarm, 0.7f); }
+        public static void Empty() { Play(_empty, 0.7f); }
+        public static void Combo() { Play(_combo, 0.8f); }
 
         // --- synthesis --------------------------------------------------------
         private static AudioClip Tone(string name, float seconds, Func<float, float, float> f)

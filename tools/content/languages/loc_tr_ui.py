@@ -275,7 +275,6 @@ UI = {
     # alma) ve ustelik bedavaydi. Cay simdi BEKLEYEN HERKESE gidiyor;
     # "bir masa krizde" degil "salon sabirsiz" sorusunun cevabi.
     "ui.service.done_tea_room": "Salona çay ikram edildi",
-    "ui.service.none_waiting": "Bekleyen masa yok",
     "ui.service.done_care": "{0}. masaya ilgi gösterildi",
     "ui.service.done_care_any": "İlgi gösterildi",
     "ui.service.done_credit": "{0} deftere yazıldı",
@@ -447,7 +446,7 @@ UI = {
     # ICINDE sabit Turkce olarak duruyordu. gen_loc.py'nin docstring'i
     # bunu itiraf ediyordu ("yirmi bes kadar arayuz dizesi hala kodun
     # icinde gomulu") ama hicbir denetim kirmiyordu ve sayi 40'a cikti.
-    # Artik `loc_tarama.py` kiriyor.
+    # Artik `loc_scan.py` kiriyor.
     "ui.evening.money": "Para",
     "ui.evening.in_book": "Defterde",
     # VERESIYE DEFTERI. Mekanigin ikinci karari (erken tahsilat) kodda
@@ -481,6 +480,7 @@ UI = {
     "ui.evening.served_n": "{0} kişi / {1} masa",
     "ui.evening.visits": "{0} ziyaret",
 
+    "ui.error.quit": "Oyunu kapat",
     "ui.error.title": "Oyun açılamadı",
     "ui.error.content": "İçerik dosyaları okunamadı. Bu bir içerik hatası; "
                         "oyun bozuk bir dengeyle açılmaktansa hiç açılmıyor.",

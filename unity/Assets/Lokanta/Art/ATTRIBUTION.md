@@ -63,6 +63,9 @@ names stay Turkish because they are the literal strings `Sfx.cs` looks for:
 | `kizgin` | Customer left angry | Grumble / negative accent |
 | `seviye` | Staff member levelled up | Short success phrase |
 | `gun-donumu` | Day closed | Soft, low transition |
+| `uyari` | A guest's patience is running out | Short rising warning, NOT a failure tone |
+| `bitti` | A dish was asked for and is not in stock | Dull, short - a shelf coming up empty |
+| `kombo` | A combo was sold | Short bright lift, quieter than `para` |
 
 Unity reads `.ogg`, `.wav` and `.mp3`; **`.ogg` should be preferred** (smallest
 in the APK). The extension does not matter, the file **name** does.

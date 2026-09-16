@@ -29,6 +29,10 @@ What is checked:
   3. If there are audio files under Resources/audio/, is there a licence
      for them too.
   4. Does Art/ATTRIBUTION.md mention every folder.
+  5. Does every sound name in Sfx.cs appear in BOTH sound-name lists
+     (the ledger's audio table and Resources/audio/README.md). Those
+     lists are the brief for the files that have not been made yet; a
+     name missing from them is a sound nobody will be asked to record.
 
 Exit code 0 clean, 1 at least one thing is missing.
 """
@@ -36,6 +40,7 @@ from __future__ import print_function
 
 import io
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,6 +49,8 @@ ART = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Art")
 AUDIO = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Resources", "audio")
 LICENSES = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Resources", "licenses")
 ATTRIBUTION = os.path.join(ART, "ATTRIBUTION.md")
+AUDIO_README = os.path.join(AUDIO, "README.md")
+SFX = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Game", "Sfx.cs")
 
 # Folders that carry NO assets: generated, or the project's own output.
 GENERATED = {"Materials", "Prefab", "Animator", "Mesh"}
@@ -147,6 +154,39 @@ def main():
         rows.append("  %-10s %d files" % ("audio", len(clips)))
     else:
         rows.append("  %-10s none (zero risk)" % "audio")
+
+    # --- 5. the sound names ------------------------------------------------
+    #
+    # THE TWO LISTS HAD ALREADY DRIFTED. `uyari` and `bitti` were added to
+    # Sfx.cs and neither the ledger table nor Resources/audio/README.md moved,
+    # so both said "ten sounds" while the code asked for twelve. Nothing
+    # noticed, because nothing was reading Sfx.cs.
+    #
+    # That is not cosmetic: the lists ARE the brief. A sound missing from them
+    # is a sound nobody will ever be asked to record, and the game ships on the
+    # synthesised fallback for ever - silently, because the fallback is a
+    # complete sound and the tour counts it as one.
+    sfx = read(SFX)
+    before = len(problems)
+    wanted = re.findall(r'Prefer\("([^"]+)"', sfx)
+    if not wanted:
+        problems.append("no Prefer(\"...\") call found in Sfx.cs - this check "
+                        "cannot see the sound names any more")
+    for name in wanted:
+        if ("`" + name + "`") not in attribution:
+            problems.append("the sound '%s' is in Sfx.cs and has no row in the "
+                            "audio table of ATTRIBUTION.md" % name)
+        if name not in read(AUDIO_README):
+            problems.append("the sound '%s' is in Sfx.cs and is not in the "
+                            "name list of Resources/audio/README.md" % name)
+    # THE ROW MUST NOT CLAIM WHAT THE CHECK JUST DENIED. The first version
+    # printed "ledger and README agree" on the same run as the MISSING line
+    # that said they did not - a report that contradicts itself is worse than
+    # no report, because the eye reads the row and not the list.
+    if wanted:
+        rows.append("  %-10s %d names, %s" % ("sounds", len(wanted),
+                    "ledger and README agree" if len(problems) == before
+                    else "%d not in both lists" % (len(problems) - before)))
 
     # --- report ------------------------------------------------------------
     for r in rows:

@@ -4,11 +4,18 @@
 otherwise it falls back to the synthesised tone in `Sfx.cs`. So adding a file
 requires no code change, and while the folder is empty the game runs complete.
 
-The file **name** matters, not the extension. The ten expected names (Turkish,
-because they are the literal strings `Sfx.cs` looks for):
+The file **name** matters, not the extension. The thirteen expected names
+(Turkish, because they are the literal strings `Sfx.cs` looks for):
 
-    tik  onay  iptal  para  kapi-zili
-    cizirti  dokme  kizgin  seviye  gun-donumu
+```text
+tik  onay  iptal  para  kapi-zili
+cizirti  dokme  kizgin  seviye  gun-donumu
+uyari  bitti  kombo
+```
+
+`tools/check_licenses.py` reads those names out of `Sfx.cs` and fails if this
+list or the ledger table has fallen behind - the first two of the three above
+were added to the code with both lists left saying "ten".
 
 Which sound each one should be, and the licence rule: the "Audio" section of
 `Art/ATTRIBUTION.md`. In short: only **CC0** or a source open to commercial use

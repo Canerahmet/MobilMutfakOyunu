@@ -48,7 +48,7 @@ land squarely on this game:
 device path **requires no download at all**, where the emulator path wanted
 ~3 GB.
 
-[tools/android/cihaz.ps1](../tools/android/cihaz.ps1) was written: it finds adb
+[tools/android/device.ps1](../tools/android/device.ps1) was written: it finds adb
 independently of the version, checks the device's ABI **before** installing
 (that error message does not say why), installs the APK, runs it, and takes the
 log and a screenshot.
@@ -190,4 +190,4 @@ left, and only a real device can give:
 - touch: two-finger camera, 48 dp targets, real DPI and the notch
 - the Android lifecycle: save integrity in an app backgrounded and then killed
 
-All of these are one command with `tools/android/cihaz.ps1` and a phone.
+All of these are one command with `tools/android/device.ps1` and a phone.

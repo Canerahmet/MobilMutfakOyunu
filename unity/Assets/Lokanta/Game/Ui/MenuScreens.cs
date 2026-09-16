@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -32,6 +32,26 @@ namespace Lokanta.Game.Ui
             Label detail = Theme.Text(_message, Theme.FontSmall, Theme.Warn);
             detail.style.whiteSpace = WhiteSpace.Normal;
             card.Add(detail);
+
+            // A WAY OUT. THIS SCREEN HAD NONE.
+            //
+            // It was built with a title, two labels and a divider - no
+            // control of any kind. At boot it is opened with Replace, so it
+            // is the only screen on the stack: pressing back popped it and
+            // found nothing underneath, leaving an empty root with no screen
+            // and no way to get one. The one screen that exists to explain a
+            // failure was itself a dead end.
+            //
+            // Closing is the only honest offer. The content did not load, so
+            // there is no game behind this to return to.
+            card.Add(Theme.Divider());
+            card.Add(Theme.Btn(Loc.T("ui.error.quit"), () =>
+            {
+                Application.Quit();
+#if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+#endif
+            }, wide: true));
 
             root.Add(card);
             return root;

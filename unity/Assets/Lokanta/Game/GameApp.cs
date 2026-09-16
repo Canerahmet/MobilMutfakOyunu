@@ -396,7 +396,8 @@ namespace Lokanta.Game
             // The sound is LIMITED: in fast mode hundreds of ticks are
             // processed in a single frame, and playing the same sound fifty
             // times over means clipping and a sudden load on the processor.
-            int bell = 0, coin = 0, upset = 0, pour = 0;
+            int bell = 0, coin = 0, upset = 0, pour = 0, alarm = 0, empty = 0,
+                sizzle = 0, combo = 0;
 
             for (int i = 0; i < n; i++)
             {
@@ -413,6 +414,38 @@ namespace Lokanta.Game
                     case SimEventKind.TurnedAway: Sfx.Cancel(); break;
                     case SimEventKind.StaffResigned: Sfx.Upset(); break;
                     case SimEventKind.DishUnlocked: Sfx.LevelUp(); break;
+
+                    // THE TWO ROWS docs/17 PUTS IN BOLD, NEITHER OF WHICH
+                    // HAD A SOUND.
+                    //
+                    // PatienceWarning was silent here and borrowed the
+                    // angry grumble from the table strip - the sound of
+                    // having already lost the guest. A warning that sounds
+                    // like a failure is not a warning.
+                    //
+                    // DishRequested - asked for, not in stock - made no
+                    // sound at all, so the one moment the menu tells you
+                    // it is too narrow passed without a word.
+                    case SimEventKind.PatienceWarning:
+                        if (alarm++ < 2) Sfx.Alarm(); break;
+                    case SimEventKind.DishRequested:
+                        if (empty++ < 2) Sfx.Empty(); break;
+
+                    // THE KITCHEN WAS SILENT AND THE SOUND WAS ALREADY
+                    // WRITTEN. Sfx.Sizzle() was synthesised at startup and
+                    // never called from anywhere - `cizirti` is listed in
+                    // the attribution ledger as "work started in the
+                    // kitchen" and nothing started it. The order reaching
+                    // the kitchen is that moment.
+                    case SimEventKind.OrderTaken:
+                        if (sizzle++ < 1) Sfx.Sizzle(); break;
+
+                    // THE SIGNATURE MECHANIC HAD NO MOMENT. ComboOrdered was
+                    // emitted on every combo sold and reached nothing at all -
+                    // the one dead event left in the switch. The player flicked
+                    // the toggle and the game said nothing until the evening.
+                    case SimEventKind.ComboOrdered:
+                        if (combo++ < 2) Sfx.Combo(); break;
                 }
 
                 // A story beat IS NOT A NOTICE: a three-second strip would be

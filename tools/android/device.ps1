@@ -15,9 +15,9 @@
     nothing else needs downloading.
 
     Usage:
-      .\tools\android\cihaz.ps1                 # install, run, take a log
-      .\tools\android\cihaz.ps1 -Seconds 120    # watch for two minutes
-      .\tools\android\cihaz.ps1 -Uninstall      # remove the app
+      .\tools\android\device.ps1                 # install, run, take a log
+      .\tools\android\device.ps1 -Seconds 120    # watch for two minutes
+      .\tools\android\device.ps1 -Uninstall      # remove the app
 
     Exit code: 0 clean, 1 an error/crash appeared, 2 no device.
 #>

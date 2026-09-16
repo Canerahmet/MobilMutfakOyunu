@@ -43,9 +43,14 @@ import check_font  # noqa: E402
 ROOT = check_font.ROOT
 SOURCE = os.path.join(ROOT, "vendor", "noto-sans-sc", "NotoSansSC-Regular.ttf")
 TARGET = check_font.CJK_FONT
-# The file name is an artefact path that is committed to the repository, so it
-# stays as it is.
-LIST_PATH = os.path.join(HERE, "out", "zh_karakterler.txt")
+# THE LIST THE SUBSET WAS BUILT FROM, committed beside the font so that a
+# later run can say what changed. It used to be `zh_karakterler.txt`, kept
+# Turkish on the reasoning that an artefact path is not source - and that
+# reasoning cost a duplicate: the English rename moved the file, this line did
+# not, the next run wrote the old name back, and the repository carried TWO
+# character lists that disagreed with each other. Neither was wrong; nothing
+# read the one the rename had made.
+LIST_PATH = os.path.join(HERE, "out", "zh_characters.txt")
 
 
 def main():
