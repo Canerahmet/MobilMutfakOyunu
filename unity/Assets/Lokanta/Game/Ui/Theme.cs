@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Lokanta.Game.Ui
@@ -85,10 +85,32 @@ namespace Lokanta.Game.Ui
             return v;
         }
 
+        /// <summary>
+        /// Bir satirin AKIS YONU. Arapca'da ters.
+        ///
+        /// Sagdan sola bir dilde yazi sagdan basliyor ama YERLESIM de
+        /// oyle: onay kutusu metnin sagina, geri oku sagdan sola gecer.
+        /// Metni cevirip yerlesimi birakmak, yarim cevrilmis bir arayuz
+        /// demek - ve yarim cevrilmis, hic cevrilmemisten kotu gorunur.
+        ///
+        /// TEK YERDE olmasi sart: otuz iki satir kurulum yeri var ve
+        /// birinin unutulmasi, o satirin ters akmasi demek. Yon SORULUYOR,
+        /// yazilmiyor.
+        /// </summary>
+        public static FlexDirection RowFlow
+        {
+            get
+            {
+                return Loc.IsRightToLeft
+                    ? FlexDirection.RowReverse
+                    : FlexDirection.Row;
+            }
+        }
+
         public static VisualElement Row(float gap = Gap)
         {
             VisualElement v = new VisualElement();
-            v.style.flexDirection = FlexDirection.Row;
+            v.style.flexDirection = RowFlow;
             SetGap(v, gap, false);
             return v;
         }
@@ -99,9 +121,17 @@ namespace Lokanta.Game.Ui
             // veriliyor. Tek yerde yapiliyor ki iki farkli aralik olusmasin.
             v.RegisterCallback<GeometryChangedEvent>(_ =>
             {
+                // ARALIK FIZIKSEL BIR KENARA VERILIYOR.
+                //
+                // row-reverse'te ilk cocuk EN SAGDA duruyor. Aralik yine
+                // marginLeft'e verilseydi, bosluk bir kaydirilir ve
+                // satirin sol ucunda fazladan bir bosluk, ilk iki oge
+                // arasinda ise hic bosluk kalmazdi.
+                bool ters = !column && Loc.IsRightToLeft;
                 for (int i = 1; i < v.childCount; i++)
                 {
                     if (column) v[i].style.marginTop = gap;
+                    else if (ters) v[i].style.marginRight = gap;
                     else v[i].style.marginLeft = gap;
                 }
             });

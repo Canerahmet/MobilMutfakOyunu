@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -174,13 +174,29 @@ namespace Lokanta.Game.Ui
             if (h == null) return null;
 
             VisualElement box = new VisualElement();
-            box.style.flexDirection = FlexDirection.Row;
+            box.style.flexDirection = Theme.RowFlow;
             box.style.alignItems = Align.Center;
             box.style.backgroundColor = new Color(0.20f, 0.17f, 0.11f);
-            box.style.borderLeftWidth = 3;
-            box.style.borderLeftColor = Theme.Warn;
-            box.style.paddingLeft = Theme.Pad;
-            box.style.paddingRight = Theme.Gap;
+            // SERIDIN VE GENIS BOSLUGUN TARAFI, YAZININ BASLADIGI TARAF.
+            //
+            // Arayuzdeki tek TEK TARAFLI susleme bu. Arapca'da metin
+            // sagdan basliyor; serit solda kalsaydi, vurgu cizgisi
+            // cumlenin bittigi yeri isaret ederdi.
+            bool ters = Loc.IsRightToLeft;
+            if (ters)
+            {
+                box.style.borderRightWidth = 3;
+                box.style.borderRightColor = Theme.Warn;
+                box.style.paddingRight = Theme.Pad;
+                box.style.paddingLeft = Theme.Gap;
+            }
+            else
+            {
+                box.style.borderLeftWidth = 3;
+                box.style.borderLeftColor = Theme.Warn;
+                box.style.paddingLeft = Theme.Pad;
+                box.style.paddingRight = Theme.Gap;
+            }
             box.style.paddingTop = Theme.Gap;
             box.style.paddingBottom = Theme.Gap;
             box.style.marginBottom = Theme.Gap;

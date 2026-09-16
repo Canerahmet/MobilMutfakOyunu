@@ -218,18 +218,60 @@ namespace Lokanta.Game
 
         private IEnumerator Tour()
         {
-            Loc.SetLanguage(0);
-            string text = Loc.T("ui.menu.new");
-            int count = Loc.Count;
-            Loc.SetLanguage(1);
-            string text2 = Loc.T("ui.menu.new");
-            int count2 = Loc.Count;
-            Note(!text2.StartsWith("[") && text2 != text && count2 == count, "Ingilizce metin yuklendi (" + text + " / " + text2 + ", " + count2 + " anahtar)");
+            // BES TABLONUN BESI DE YUKLENIYOR MU.
+            //
+            // Onceden iki dil vardi ve ikisi karsilastiriliyordu. Bes
+            // dilde "ikisi calisiyor" hicbir sey soylemiyor: eksik olan
+            // ucuncu de olabilir. Uc sey birlikte araniyor - tablo
+            // yuklendi mi (anahtar sayisi ayni), metin GERCEKTEN cevrildi
+            // mi (bir onceki dilden farkli) ve anahtar bulundu mu
+            // (kose parantez yok). Ucu birden olmadan bir dil "var"
+            // sayilmiyor.
+            //
+            // UseLanguage: tur oyuncunun dil secimini DISKE YAZMIYOR.
+            string oncekiMetin = null;
+            int oncekiSayi = -1;
+            bool dillerTamam = true;
+            bool kulturTamam = true;
+            string kulturOzeti = string.Empty;
+            string dilOzeti = string.Empty;
+            for (int d = 0; d < Loc.Languages.Length; d++)
+            {
+                Loc.UseLanguage(d);
+
+                // KULTUR GERCEKTEN KURULDU MU.
+                //
+                // CultureInfo cihazdaki ICU verisine bagli ve o veri
+                // budanabiliyor. Loc kuramadigi kulturu degismez kulture
+                // dusuruyor - oyun aciliyor ama sayilar yanlis bicimde.
+                // Dusus masaustunde olmayip telefonda olabilir; en
+                // azindan burada gorulsun.
+                System.Globalization.CultureInfo k = Loc.Culture;
+                if (k == null || k.Equals(System.Globalization.CultureInfo.InvariantCulture))
+                    kulturTamam = false;
+                kulturOzeti += (d > 0 ? ", " : string.Empty)
+                               + Loc.Languages[d] + ":" + (k == null ? "yok" : k.Name);
+
+                string m = Loc.T("ui.menu.new");
+                int n = Loc.Count;
+                bool tamam = !m.StartsWith("[")
+                             && (oncekiMetin == null || m != oncekiMetin)
+                             && (oncekiSayi < 0 || n == oncekiSayi);
+                if (!tamam) dillerTamam = false;
+                dilOzeti += (d > 0 ? ", " : string.Empty) + Loc.Languages[d] + ":" + m;
+                oncekiMetin = m;
+                oncekiSayi = n;
+            }
+            Note(dillerTamam, "Bes dilin metni yuklendi (" + oncekiSayi + " anahtar - " + dilOzeti + ")");
+            Note(kulturTamam, "Bes dilin sayi bicimi kuruldu (" + kulturOzeti + ")");
+
+            // Sayi bicimi de dile bagli: Turkce 8.000, Ingilizce 8,000.
+            Loc.UseLanguage(1);
             string text3 = Loc.Money(800000L);
-            Loc.SetLanguage(0);
+            Loc.UseLanguage(0);
             string text4 = Loc.Money(800000L);
             Note(text3 != text4, "Sayi bicimi dile bagli (" + text4 + " / " + text3 + ")");
-            Loc.SetLanguage(0);
+            Loc.UseLanguage(0);
             for (int i = 0; i < 4; i++)
             {
                 SaveStore.Delete(i);
@@ -250,7 +292,10 @@ namespace Lokanta.Game
             yield return Settle();
             Note(_app.InGame, "Oyun basladi");
             yield return Shot("04-oyun-sabah");
-            yield return CheckStripsBothLanguages("sabah");
+            CheckDefaultLanguage();
+            yield return CheckArabicShaping();
+            yield return ShotAllLanguages("05-dil");
+            yield return CheckStripsAllLanguages("sabah");
             string[] array = new string[4]
             {
                 Loc.T("ui.morning.market"),
@@ -357,7 +402,7 @@ namespace Lokanta.Game
             _app.Paused = true;
             yield return Shot("07-servis-yogun");
             _app.TimeScale = 16f;
-            yield return CheckStripsBothLanguages("servis");
+            yield return CheckStripsAllLanguages("servis");
             if (_app.Rig != null)
             {
                 Vector3 once2 = ((Component)_app.Rig).transform.position;
@@ -809,7 +854,7 @@ namespace Lokanta.Game
             Note(_app.Sim.PlatesClean + _app.Sim.PlatesInUse + _app.Sim.PlatesDirty == platesTotal, "Tabak sayisi korunuyor (" + _app.Sim.PlatesClean + "+" + _app.Sim.PlatesInUse + "+" + _app.Sim.PlatesDirty + "=" + platesTotal + ")");
             yield return Settle();
             yield return Shot("10-aksam");
-            yield return CheckStripsBothLanguages("aksam");
+            yield return CheckStripsAllLanguages("aksam");
             if (_app.Sim.BuildDayReport().SpoiledValue > 0)
             {
                 Note(HasText(Loc.T("ui.evening.spoiled")), "Aksam seridinde cope giden");
@@ -1621,19 +1666,165 @@ namespace Lokanta.Game
             }
         }
 
-        private IEnumerator CheckStripsBothLanguages(string asama)
+        /// <summary>
+        /// KAYDEDILMIS SECIMI OLMAYAN BIR CIHAZ HANGI DILLE ACILIYOR.
+        ///
+        /// Karar acikti: "default olarak oyun ingilizce baslasin". Ama
+        /// bu karar tek bir "return 1;" satirinda yasiyor ve o satirin
+        /// uzerinde, once cihazin dilini tahmin eden bir kod vardi.
+        /// Geri gelmesi bir yanlislikla mumkun ve geri geldiginde
+        /// HICBIR SEY hata vermez - yalnizca Turkce bir telefon oyunu
+        /// Turkce acar, ki bu gelistiricinin kendi telefonunda dogru
+        /// gorunur.
+        ///
+        /// Olcum GERCEK yolu kosuyor: kayit siliniyor, tercih mantigi
+        /// yeniden cagriliyor, cikan dile bakiliyor. Sonra kayit
+        /// oldugu gibi geri konuyor - tur, oyuncunun secimini
+        /// degistirmiyor.
+        /// </summary>
+        private void CheckDefaultLanguage()
         {
-            CheckStrips(asama);
-            Loc.SetLanguage(1);
+            const string anahtar = "lokanta.dil";
+            bool vardi = PlayerPrefs.HasKey(anahtar);
+            int eski = vardi ? PlayerPrefs.GetInt(anahtar) : 0;
+            int suanki = Loc.Language;
+
+            PlayerPrefs.DeleteKey(anahtar);
+            Loc.ApplyPreferred();
+            string acilis = Loc.LanguageCode;
+
+            if (vardi) PlayerPrefs.SetInt(anahtar, eski);
+            else PlayerPrefs.DeleteKey(anahtar);
+            PlayerPrefs.Save();
+            Loc.UseLanguage(suanki);
+
+            Note(acilis == "en", "Kayitsiz cihaz Ingilizce aciliyor (" + acilis + ")");
+        }
+
+        /// <summary>
+        /// ARAPCA HARFLERI BIRLESTI MI.
+        ///
+        /// Bu tek satirlik bir ayara bagli (Edit > Project Settings >
+        /// UI Toolkit > Enable Advanced Text Generator) ve ayar kapaliyken
+        /// HICBIR SEY HATA VERMIYOR: metin ciziliyor, harfler goruluyor,
+        /// kontroller yesil kaliyor. Yalnizca Arapca okuyan biri, yazinin
+        /// birbirine baglanmamis ve ters dizilmis oldugunu goruyor.
+        /// Bu projede "kosmayan bir kontrol, gecen bir kontrolun ta
+        /// kendisine benziyor" dersi tam bu bicimde ogrenildi.
+        ///
+        /// OLCUM: ayni Arapca sozcuk iki kez yaziliyor - biri olcunlu,
+        /// biri gelismis uretici ile. Harfler BIRLESINCE sozcuk KISALIR
+        /// (yalitik sekiller baglantili sekillerden genistir). Iki
+        /// genislik ayniysa birlestirme olmamistir; ayar kapali ya da
+        /// yazi tipi Arapca tablolarini tasimiyor demektir.
+        ///
+        /// Neden genislik: birlestirmenin kendisini sorabilecegimiz bir
+        /// API yok. Genislik, mekanigin kendisinin biraktigi iz.
+        /// </summary>
+        private IEnumerator CheckArabicShaping()
+        {
+            VisualElement kok = ((_app != null && _app.Ui != null) ? _app.Ui.TopView : null);
+            if (kok == null)
+            {
+                NoteIf(olctu: false, ok: false, "Arapca birlestirme: OLCULEMEDI, ekran yok");
+                yield break;
+            }
+
+            // Dilin kendi adi: hem yazi tipinde oldugu bilinen hem de
+            // dort harfi birbirine baglanan bir sozcuk.
+            string soz = Loc.LanguageNames[4];
+
+            Label olcunlu = new Label(soz);
+            olcunlu.style.unityTextGenerator = TextGeneratorType.Standard;
+            olcunlu.style.position = Position.Absolute;
+            olcunlu.style.left = -4000f;
+
+            Label gelismis = new Label(soz);
+            gelismis.style.unityTextGenerator = TextGeneratorType.Advanced;
+            gelismis.languageDirection = LanguageDirection.RTL;
+            gelismis.style.position = Position.Absolute;
+            gelismis.style.left = -4000f;
+
+            kok.Add(olcunlu);
+            kok.Add(gelismis);
+            yield return Settle();
+
+            float a = olcunlu.resolvedStyle.width;
+            float b = gelismis.resolvedStyle.width;
+            kok.Remove(olcunlu);
+            kok.Remove(gelismis);
+
+            bool olctu = a > 1f && b > 1f;
+            NoteIf(olctu, olctu && b < a - 1f,
+                   "Arapca harfler birlesiyor (yalitik " + a.ToString("0.0") +
+                   " dp -> baglantili " + b.ToString("0.0") + " dp)");
+            yield return Settle();
+        }
+
+        /// <summary>
+        /// Her dilde bir goruntu alir.
+        ///
+        /// Cince'nin ve Arapca'nin dogru ciziliip cizilmedigi ancak
+        /// BAKARAK anlasilir: bos kutu da bir karakterdir, ters dizilmis
+        /// bir satir da bir satirdir. Sayiyla olculebilen seyler zaten
+        /// olculuyor; bu goruntuler gozle bakilmak icin.
+        /// </summary>
+        private IEnumerator ShotAllLanguages(string onek)
+        {
+            int onceki = Loc.Language;
+            for (int i = 0; i < Loc.Languages.Length; i++)
+            {
+                Loc.UseLanguage(i);
+                if (_app != null && _app.Ui != null)
+                {
+                    _app.Ui.ApplyLanguage();
+                    _app.Ui.Refresh();
+                }
+                yield return Settle();
+                yield return Shot(onek + "-" + Loc.Languages[i]);
+            }
+            Loc.UseLanguage(onceki);
             if (_app != null && _app.Ui != null)
             {
+                _app.Ui.ApplyLanguage();
                 _app.Ui.Refresh();
             }
             yield return Settle();
-            CheckStrips(asama + "/en");
-            Loc.SetLanguage(0);
+        }
+
+        /// <summary>
+        /// Serit butcesini BUTUN dillerde olcer.
+        ///
+        /// Onceden iki dil vardi ve ikisi de olculuyordu. Bes dile
+        /// cikinca "Turkce ve Ingilizce'de sigiyor" artik bir sey
+        /// kanitlamiyor: serit en uzun metne gore tasar ve o metnin
+        /// hangi dilde oldugunu bilmiyoruz. Ispanyolca Ingilizce'den
+        /// uzun, Cince cok kisa, Arapca arada - hangisinin tastigini
+        /// tahmin etmek yerine besini de olcuyoruz.
+        ///
+        /// ApplyLanguage() cagrisi SART: dil degisince yazi tipi de
+        /// degisiyor (Cince) ve yon de degisiyor (Arapca). Yalnizca
+        /// Refresh() cagirmak, Cince'yi Rubik ile olcmek demekti -
+        /// yani bos kutularin genisligini olcmek.
+        /// </summary>
+        private IEnumerator CheckStripsAllLanguages(string asama)
+        {
+            int onceki = Loc.Language;
+            for (int i = 0; i < Loc.Languages.Length; i++)
+            {
+                Loc.UseLanguage(i);
+                if (_app != null && _app.Ui != null)
+                {
+                    _app.Ui.ApplyLanguage();
+                    _app.Ui.Refresh();
+                }
+                yield return Settle();
+                CheckStrips(asama + "/" + Loc.Languages[i]);
+            }
+            Loc.UseLanguage(onceki);
             if (_app != null && _app.Ui != null)
             {
+                _app.Ui.ApplyLanguage();
                 _app.Ui.Refresh();
             }
             yield return Settle();
@@ -1777,7 +1968,7 @@ namespace Lokanta.Game
 
         private static bool LicenseTextsLoaded()
         {
-            string[] array = new string[3] { "lisans/rubik-ofl", "lisans/kenney-cc0", "lisans/motor-bilesenleri" };
+            string[] array = new string[4] { "lisans/rubik-ofl", "lisans/noto-sans-sc-ofl", "lisans/kenney-cc0", "lisans/motor-bilesenleri" };
             foreach (string text in array)
             {
                 TextAsset val = Resources.Load<TextAsset>(text);

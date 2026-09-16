@@ -103,6 +103,23 @@ karşılamıyor.
 Bu bölüm bir süre "Unity'nin varsayılan teması, Liberation Sans, ayrı bir
 yazı tipi indirilmedi" diyordu ve **yanlıştı**.
 
+### İkinci yazı tipi: Çince
+
+**Noto Sans SC**, SIL Open Font License 1.1 — `Art/Yazi/NotoSansSC-Lokanta.ttf`.
+
+Rubik Latin, Kiril, İbrani ve **Arapça** taşıyor (şekillendirme tabloları
+dahil) ama CJK taşımıyor: Çince tablosunda 765 karakteri karşılamadı. Bu
+font, tam sürümden (10,5 MB) **oyunun gerçekten kullandığı 827 karaktere**
+alt küme çıkarılarak eklendi — 227 KB.
+
+Alt küme Latin harfleri, rakamları ve para simgesini de taşıyor: oyun
+Çince'deyken bütün arayüz bu fontla çiziliyor.
+
+Lisans metni ayrı bir dosya olarak derlemeye giriyor
+(`Resources/lisans/noto-sans-sc-ofl.txt`) ve oyun içi Lisanslar ekranında
+tam metin okunuyor. **Ayrı telif sahibi, ayrı bildirim** — "zaten OFL var"
+demek lisansı karşılamıyor.
+
 ## Klasör eşlemesi (makine okur)
 
 `tools/check_lisans.py` bu tabloyu okuyor. Art/ altındaki her varlık
@@ -115,5 +132,5 @@ kimse yeniden bakmaz.
 | Karakter | Kenney Mini Characters 1.0 | CC0 1.0 |
 | Mobilya | Kenney Furniture Kit 2.0 | CC0 1.0 |
 | Yemek | Kenney Food Kit 2.0 | CC0 1.0 |
-| Yazi | Rubik (Hubert & Fischer) | SIL OFL 1.1 |
+| Yazi | Rubik (Hubert & Fischer) + Noto Sans SC (Google) | SIL OFL 1.1 (ikisi de) |
 | Simge | Projenin kendi üretimi (Editor/IconShot.cs) | — |

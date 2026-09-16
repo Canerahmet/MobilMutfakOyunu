@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -415,17 +415,54 @@ namespace Lokanta.Game.Ui
             // arayan kisi zaten Ingilizce biliyor demektir.
             col.Add(Theme.Head(Loc.T("ui.settings.language")));
             VisualElement diller = Theme.Row(Theme.Gap);
+            // SERIT SARIYOR: bes dil tek satira sigmiyor.
+            //
+            // Iki dilken sigiyordu ve satir sabitti. Bes dilde telefon
+            // eninde (~400 dp) tasardi - ve tasan ogeyi turdaki "ekran
+            // disina tasan oge" kontrolu yakalardi.
+            diller.style.flexWrap = Wrap.Wrap;
+
             for (int i = 0; i < Loc.Languages.Length; i++)
             {
                 int idx = i;
                 bool secili = Loc.Language == i;
-                diller.Add(Theme.Btn(Loc.LanguageNames[i], () =>
+                Button dugme = Theme.Btn(Loc.LanguageNames[i], () =>
                 {
                     Loc.SetLanguage(idx);
+                    // Yazi tipi de dile bagli: Cince'ye gecerken kok
+                    // ogenin fontu degismezse metin bos kutu cikar.
+                    Ui.ApplyLanguage();
                     // Butun ekranlar metni kurulusta okuyor: yigini
                     // tazelemek yeni dili her yere tasiyor.
                     Ui.Refresh();
-                }, primary: secili, wide: true));
+                }, primary: secili, wide: true);
+
+                // HER DIL KENDI ADINI OKUNABILDIGI YAZI TIPIYLE YAZIYOR.
+                //
+                // "中文" Rubik'te YOK. Oyun Turkce'yken o dugme bos kutu
+                // gosterirdi - yani Cince'yi secmek isteyen kisi hangi
+                // dugmeye basacagini goremezdi. Yazi tipi denetimi tam
+                // bunu yakaladi (U+4E2D, U+6587 - Loc.cs).
+                //
+                // Cozum YEREL: yalnizca o dugme. Butun ekrani CJK
+                // fontuna cevirmek, Turkce ekranin yazi tipini bir dil
+                // dugmesi yuzunden degistirmek olurdu.
+                if (Loc.Languages[idx] == "zh" && Ui.FontCJK != null)
+                    dugme.style.unityFontDefinition =
+                        FontDefinition.FromFont(Ui.FontCJK);
+
+                // AYNI GEREKCE, BASKA ENGEL: Arapca dil adinin harfleri
+                // Rubik'te VAR ama olcunlu uretici onlari birlestirmiyor ve ters
+                // diziyor. Arapca okuyan biri, dilini aradigi dugmede
+                // dagilmis harfler gorurdu. Yon ve uretici yalnizca o
+                // dugmede ceviriliyor - ekranin kalani oldugu gibi.
+                if (Loc.Languages[idx] == "ar")
+                {
+                    dugme.style.unityTextGenerator = TextGeneratorType.Advanced;
+                    dugme.languageDirection = LanguageDirection.RTL;
+                }
+
+                diller.Add(dugme);
             }
             col.Add(diller);
 
@@ -485,6 +522,13 @@ namespace Lokanta.Game.Ui
         private static readonly string[] Files =
         {
             "lisans/rubik-ofl",
+            // IKINCI YAZI TIPI = IKINCI LISANS METNI.
+            //
+            // Noto Sans SC ayri bir telif sahibinin eseri ve OFL,
+            // metnin URUNLE BIRLIKTE dagitilmasini istiyor. "Rubik OFL
+            // var, o da OFL" demek lisansi karsilamiyor - iki ayri
+            // bildirimdir.
+            "lisans/noto-sans-sc-ofl",
             "lisans/kenney-cc0",
             "lisans/motor-bilesenleri",
         };

@@ -45,11 +45,29 @@ CONTENT = os.path.join(ROOT, "content")
 OUT = os.path.join(CONTENT, "loc", "tr.json")
 OUT_EN = os.path.join(CONTENT, "loc", "en.json")
 
+
 # Ingilizce tablo ayri bir modulde ama AYNI URETECTEN geciyor: asagidaki
 # dogrulama iki tablonun anahtarlarinin ve bicimleme yer tutucularinin
 # ayni oldugunu sart kosuyor. Ayri bir arac olsaydi iki tablo sessizce
 # ayrisirdi - ve metinde ayrisma "[ui.staff.hire]" yazan bir dugme demek.
 import loc_en  # noqa: E402
+import loc_es  # noqa: E402
+import loc_zh  # noqa: E402
+import loc_ar  # noqa: E402
+
+# EK DILLER: tek liste.
+#
+# Dil eklemek bir satir. Her dil icin ayri bir `build_*` ve ayri bir
+# `OUT_*` yazmak, bu projede bes kez sessizce ayrisan seyin tam
+# kalibiydi: birine yeni bir aile eklenip otekine eklenmemesi.
+#
+# Anahtarlar Loc.cs'deki `Languages` dizisiyle BIREBIR ayni olmali -
+# oyun "loc/<kod>.json" diye ariyor.
+EXTRA = [
+    ("es", loc_es),
+    ("zh", loc_zh),
+    ("ar", loc_ar),
+]
 
 # ---------------------------------------------------------------------------
 # Malzeme adlari
@@ -847,8 +865,8 @@ UI = {
     "ui.credits.audio": "Müzik ve ses",
     "ui.credits.audio_by": "Oyun içinde sentezleniyor",
     "ui.credits.font": "Yazı tipi",
-    "ui.credits.font_by": "Rubik — SIL OFL 1.1",
-    "ui.credits.font_copyright": "Copyright 2015 The Rubik Project Authors",
+    "ui.credits.font_by": "Rubik + Noto Sans SC — SIL OFL 1.1",
+    "ui.credits.font_copyright": "Copyright 2015 The Rubik Project Authors · Copyright 2014-2021 Adobe (Noto Sans SC)",
 
     "ui.cuisine.fastfood_desc": "Hızlı akış, düşük fiş, kalabalık. "
                                 "Menü dar tutulur.",
@@ -1058,36 +1076,59 @@ def _no_duplicates():
     return dup
 
 
-def build_en():
-    """Ingilizce tablo. build() ile AYNI sekilde kuruluyor."""
+def yaz(yol, tablo):
+    """Tabloyu JSON olarak yazar. Uc yerde ayni uc satiri tekrarlamak
+    yerine tek yer: bicim degisirse dillerden biri geride kalmaz."""
+    io.open(yol, "w", encoding="utf-8", newline="\n").write(
+        json.dumps(tablo, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+
+
+
+def build_from(mod):
+    """Bir DIL MODULUNDEN tablo kurar.
+
+    Once bu fonksiyon `build_en` adiyla vardi ve `loc_en`e sabitliydi.
+    Bes dil icin bes kopya, bu projede bes kez sessizce ayrisan seyin
+    tam kalibiydi: birine yeni bir aile eklenip otekine eklenmemesi.
+    Modul disaridan geliyor, govde tek.
+
+    Eksik bir tablo burada PATLIYOR (AttributeError) - ve dogrusu bu:
+    bir dilin "TRAIT_VOICE" tablosu yoksa o dil eksik uretilmemeli,
+    uretim durmali.
+    """
     table = {}
-    for k, v in loc_en.INGREDIENTS.items():
+    for k, v in mod.INGREDIENTS.items():
         table["ingredient." + k] = v
-    for k, v in loc_en.DISHES.items():
+    for k, v in mod.DISHES.items():
         table["dish." + k] = v
-    for k, v in loc_en.ARCHETYPES.items():
+    for k, v in mod.ARCHETYPES.items():
         table["archetype." + k] = v
-    for k, v in loc_en.TRAITS.items():
+    for k, v in mod.TRAITS.items():
         table["trait." + k] = v
-    for k, v in loc_en.TRAIT_DESC.items():
+    for k, v in mod.TRAIT_DESC.items():
         table["trait." + k + ".desc"] = v
-    for k, v in loc_en.TRAIT_VOICE.items():
+    for k, v in mod.TRAIT_VOICE.items():
         table["trait." + k + ".voice"] = v
-    for k, v in loc_en.ROLES.items():
+    for k, v in mod.ROLES.items():
         table["role." + k] = v
-    for k, v in loc_en.STATIONS.items():
+    for k, v in mod.STATIONS.items():
         table["station." + k] = v
-    for k, v in loc_en.CUISINES.items():
+    for k, v in mod.CUISINES.items():
         table["cuisine." + k] = v
-    for k, v in loc_en.STORAGE.items():
+    for k, v in mod.STORAGE.items():
         table["storage." + k] = v
-    for rid, (name, job, beats) in loc_en.REGULARS.items():
+    for rid, (name, job, beats) in mod.REGULARS.items():
         table["regular." + rid + ".name"] = name
         table["regular." + rid + ".job"] = job
         for i, text in enumerate(beats):
             table["regular." + rid + ".beat" + str(i + 1)] = text
-    table.update(loc_en.UI)
+    table.update(mod.UI)
     return table
+
+
+def build_en():
+    """Geriye donuk ad. Govde build_from'da."""
+    return build_from(loc_en)
 
 
 def _placeholders(text):
@@ -1257,14 +1298,33 @@ def main():
             print("  " + x)
         return 1
 
+    # --- EK DILLER ---------------------------------------------------------
+    #
+    # Her biri Turkce tabloyla AYNI karsilastirmadan geciyor. Eksik ya da
+    # fazla anahtar uretimi DURDURUYOR: yarim bir dil, oyunda
+    # "[ui.staff.hire]" yazan bir dugme demek.
+    ekler = []
+    for kod, modul in EXTRA:
+        t = build_from(modul)
+        fark = compare(table, t)
+        if fark:
+            print("")
+            print("--- %s DILI AYRISMIS (%d) ---" % (kod.upper(), len(fark)))
+            for x in fark[:20]:
+                print("  " + x)
+            return 1
+        ekler.append((kod, t))
+
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    io.open(OUT, "w", encoding="utf-8", newline="\n").write(
-        json.dumps(table, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-    io.open(OUT_EN, "w", encoding="utf-8", newline="\n").write(
-        json.dumps(en, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    yaz(OUT, table)
+    yaz(OUT_EN, en)
+    for kod, t in ekler:
+        yaz(os.path.join(CONTENT, "loc", kod + ".json"), t)
+
+    diller = ["tr", "en"] + [k for k, _ in ekler]
     print("")
-    print("yazildi: content/loc/tr.json, content/loc/en.json (%d anahtar x 2 dil)"
-          % len(table))
+    print("yazildi: %d anahtar x %d dil (%s)"
+          % (len(table), len(diller), ", ".join(diller)))
     print("butun metinler tam.")
     return 0
 

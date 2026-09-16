@@ -42,6 +42,35 @@ DEFAULT_FONT = os.path.join(
     ROOT, "unity", "Assets", "Lokanta", "Art", "Yazi", "Rubik.ttf")
 VENDOR_FONT = os.path.join(ROOT, "vendor", "rubik", "Rubik-wght.ttf")
 
+# CINCE AYRI YAZI TIPI.
+#
+# Rubik Latin, Kiril, Ibrani ve ARAPCA tasiyor (sekillendirme tablolari
+# dahil) ama CJK tasimiyor - Cince tablosunda 765 karakteri karsilamadi.
+# Noto Sans SC (SIL OFL 1.1) oyunun KULLANDIGI karakterlere alt kume
+# cikarilarak eklendi: 10,5 MB -> 223 KB.
+CJK_FONT = os.path.join(
+    ROOT, "unity", "Assets", "Lokanta", "Art", "Yazi", "NotoSansSC-Lokanta.ttf")
+
+# HANGI DOSYAYI HANGI YAZI TIPI CIZIYOR.
+#
+# Once tek yazi tipi vardi ve butun metin ona soruluyordu. Iki yazi tipi
+# olunca "herhangi birinde varsa tamam" demek YANLIS olurdu: Cince
+# fontta Turkce harf bulunmasi, Turkce ekranin Cince fontla cizilecegi
+# anlamina gelmez. Her dosya, oyunda onu GERCEKTEN cizecek yazi tipiyle
+# karsilastiriliyor.
+def _is_cjk(ch):
+    """CJK blogundan mi. Oyun bunlari ayri yazi tipiyle ciziyor."""
+    cp = ord(ch)
+    return (0x3000 <= cp <= 0x303F      # CJK noktalama
+            or 0x3400 <= cp <= 0x4DBF   # genisletme A
+            or 0x4E00 <= cp <= 0x9FFF   # ortak ideogramlar
+            or 0xF900 <= cp <= 0xFAFF   # uyumluluk
+            or 0xFF00 <= cp <= 0xFFEF)  # tam genislik bicimler
+
+
+def _font_for(path):
+    return CJK_FONT if os.path.basename(path) == "zh.json" else None
+
 
 def _same_bytes(a, b):
     """Iki dosya ayni mi. Yoksa ikisinden biri eskimis demektir."""
@@ -175,17 +204,30 @@ def main():
     ranges = font_codepoints(args.font)
     seen = {}
 
+    # CINCE AYRI TOPLANIYOR: ayri yazi tipiyle karsilastirilacak.
+    seen_cjk = {}
+
     loc = os.path.join(ROOT, "content", "loc")
     if os.path.isdir(loc):
         for name in sorted(os.listdir(loc)):
-            if name.endswith(".json"):
-                scan_json(os.path.join(loc, name), seen)
+            if not name.endswith(".json"):
+                continue
+            yol = os.path.join(loc, name)
+            scan_json(yol, seen_cjk if _font_for(yol) else seen)
 
     content = os.path.join(ROOT, "content")
     for base, _dirs, files in os.walk(content):
         for name in sorted(files):
-            if name.endswith(".json"):
-                scan_json(os.path.join(base, name), seen)
+            if not name.endswith(".json"):
+                continue
+            yol = os.path.join(base, name)
+            # BU AGAC loc/ KLASORUNU DA GEZIYOR.
+            #
+            # Yukarida zaten dosya dosya yonlendirildi; burada tekrar
+            # taranirsa Cince metin IKINCI KEZ, bu kez Rubik havuzuna
+            # giriyor ve "eksik" diye raporlaniyor - oysa kendi yazi
+            # tipinde var. Ilk yazimda tam bu oldu.
+            scan_json(yol, seen_cjk if _font_for(yol) else seen)
 
     game = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Game")
     for base, _dirs, files in os.walk(game):
@@ -193,12 +235,38 @@ def main():
             if name.endswith(".cs"):
                 scan_csharp(os.path.join(base, name), seen)
 
+    # KODA GOMULU CJK KARAKTERLERI DE CJK FONTUNA GIDIYOR.
+    #
+    # `Loc.LanguageNames` dil adlarini KENDI yazilariyla tasiyor ve
+    # "中文" orada duz bir C# dizesi. Oyunda o dugme CJK fontuyla
+    # ciziliyor (MenuScreens: dil secici her dili okunabildigi yazi
+    # tipiyle yaziyor), yani Rubik'e sormak yanlis soru olurdu.
+    #
+    # Kural DAR: yalnizca CJK blogu. Bir Turkce harfin koda gomulu
+    # olmasi onu CJK fontuna tasimaz.
+    for ch in [c for c in seen if _is_cjk(c)]:
+        seen_cjk.setdefault(ch, seen.pop(ch))
+
     missing = []
     for ch, where in sorted(seen.items()):
         if _control(ch):
             continue
         if not covered(ranges, ord(ch)):
             missing.append((ch, where))
+
+    # --- IKINCI YAZI TIPI: CINCE ------------------------------------------
+    if seen_cjk:
+        if not os.path.exists(CJK_FONT):
+            print("Cince yazi tipi yok: " + os.path.relpath(CJK_FONT, ROOT))
+            return 1
+        cjk_ranges = font_codepoints(CJK_FONT)
+        for ch, where in sorted(seen_cjk.items()):
+            if _control(ch):
+                continue
+            if not covered(cjk_ranges, ord(ch)):
+                missing.append((ch, where))
+        print("cince     : %s (%d benzersiz karakter)"
+              % (os.path.relpath(CJK_FONT, ROOT), len(seen_cjk)))
 
     print("yazi tipi : %s" % os.path.relpath(args.font, ROOT))
     print("taranan   : %d benzersiz karakter" % len(seen))

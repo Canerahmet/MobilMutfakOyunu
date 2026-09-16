@@ -112,7 +112,7 @@ namespace Lokanta.Game.Ui
                                          bool plate = true)
         {
             VisualElement box = Box(PillHeight * 0.5f);
-            box.style.flexDirection = FlexDirection.Row;
+            box.style.flexDirection = Theme.RowFlow;
             box.style.alignItems = Align.Center;
             box.style.height = PillHeight;
             box.style.paddingLeft = 6;
@@ -196,7 +196,7 @@ namespace Lokanta.Game.Ui
                                          Label value)
         {
             VisualElement box = Box();
-            box.style.flexDirection = FlexDirection.Row;
+            box.style.flexDirection = Theme.RowFlow;
             box.style.alignItems = Align.Center;
             box.style.paddingLeft = 10;
             box.style.paddingRight = 12;
@@ -373,7 +373,7 @@ namespace Lokanta.Game.Ui
             Color yuz = ready ? GoDeep : Theme.PanelHi;
             Button b = new Button(() => { Sfx.Click(); onClick?.Invoke(); });
             b.text = string.Empty;
-            b.style.flexDirection = FlexDirection.Row;
+            b.style.flexDirection = Theme.RowFlow;
             b.style.alignItems = Align.Center;
             b.style.justifyContent = Justify.Center;
             b.style.minHeight = 54;
@@ -395,7 +395,7 @@ namespace Lokanta.Game.Ui
             // CIFT OK: referansin "ileri sar" isareti. Tek ucgen
             // "oynat" demek; bu dugme oyunu OYNATMIYOR, gunu ilerletiyor.
             VisualElement oklar = new VisualElement();
-            oklar.style.flexDirection = FlexDirection.Row;
+            oklar.style.flexDirection = Theme.RowFlow;
             oklar.style.marginRight = 12;
             Color okRenk = ready ? Color.white : Theme.InkDim;
             oklar.Add(Icons.Play(okRenk, 18f));
@@ -523,7 +523,7 @@ namespace Lokanta.Game.Ui
         public static VisualElement CheckRow(bool ok, string text, Color? renk = null)
         {
             VisualElement row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
+            row.style.flexDirection = Theme.RowFlow;
             row.style.alignItems = Align.Center;
             row.style.marginBottom = 3;
             row.Add(Icons.Check(ok, renk ?? (ok ? GoDeep : Theme.Bad), 16f));
@@ -556,7 +556,7 @@ namespace Lokanta.Game.Ui
                                              Label value, bool uyari = false)
         {
             VisualElement row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
+            row.style.flexDirection = Theme.RowFlow;
             row.style.alignItems = Align.Center;
             row.style.marginBottom = 3;
             if (dot != null) row.Add(dot);

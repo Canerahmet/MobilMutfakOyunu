@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Lokanta.Game.Ui
@@ -229,6 +229,15 @@ namespace Lokanta.Game.Ui
             At(kare, -s * 0.22f, s * 0.14f);
             kare.style.rotate = new Rotate(45f);
             box.Add(kare);
+
+            // SAGDAN SOLA OKUYAN BIRI ICIN "ILERI" SOLDADIR.
+            //
+            // Bu simge yon bildiren tek simge: "gunu ac", "ertesi gun".
+            // Arapca arayuzde her sey saga akarken ucgenin saga bakmasi,
+            // oyuncuyu geldigi yone isaret etmek olurdu. Diger simgeler
+            // (duraklat, kitap, tabak) yonsuz - onlar cevrilmiyor.
+            if (Loc.IsRightToLeft)
+                box.style.scale = new Scale(new Vector2(-1f, 1f));
             return box;
         }
 

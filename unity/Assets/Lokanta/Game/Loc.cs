@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Lokanta.Content;
 using UnityEngine;
 
@@ -44,19 +44,32 @@ namespace Lokanta.Game
         /// sirayi degistiren, eski cihazlardaki secimi de degistirir -
         /// o yuzden sona eklenir, araya degil.
         /// </summary>
-        public static readonly string[] Languages = { "tr", "en" };
+        public static readonly string[] Languages = { "tr", "en", "es", "zh", "ar" };
 
         /// <summary>Dilin kendi adi. Bir dili KENDI dilinde yazmak sarttir:
         /// "Turkish" yazan bir satiri arayan kisi zaten Ingilizce biliyordur.</summary>
-        public static readonly string[] LanguageNames = { "Türkçe", "English" };
+        public static readonly string[] LanguageNames =
+            { "Türkçe", "English", "Español", "中文", "العربية" };
 
         /// <summary>Her dilin bicimleme kulturu.</summary>
-        private static readonly string[] Cultures = { "tr-TR", "en-GB" };
+        private static readonly string[] Cultures =
+            { "tr-TR", "en-GB", "es-ES", "zh-CN", "ar-EG" };
+
+        /// <summary>
+        /// Dilin yazi yonu SAGDAN SOLA mi.
+        ///
+        /// Yalnizca Arapca. Yon bir DIL ozelligi, bir ekran ayari degil -
+        /// o yuzden burada, dilin yaninda duruyor.
+        /// </summary>
+        private static readonly bool[] Rtl = { false, false, false, false, true };
+
+        /// <summary>Su anki dil sagdan sola mi yaziliyor.</summary>
+        public static bool IsRightToLeft { get { return Rtl[Language]; } }
 
         /// <summary>Su anki dilin dizini.</summary>
         public static int Language { get; private set; }
 
-        /// <summary>Su anki dilin kodu (tr, en).</summary>
+        /// <summary>Su anki dilin kodu (tr, en, es, zh, ar).</summary>
         public static string LanguageCode { get { return Languages[Language]; } }
 
         private const string PrefKey = "lokanta.dil";
@@ -76,7 +89,43 @@ namespace Lokanta.Game
                 int i = PlayerPrefs.GetInt(PrefKey);
                 if (i >= 0 && i < Languages.Length) return i;
             }
-            return Application.systemLanguage == SystemLanguage.Turkish ? 0 : 1;
+            // VARSAYILAN INGILIZCE - CIHAZA BAKILMIYOR.
+            //
+            // Once cihazin dili tahmin ediliyordu ve Turkce bir telefon
+            // oyunu Turkce aciyordu. Kullanicinin karari: "default olarak
+            // oyun ingilizce baslasin".
+            //
+            // Bedeli tek ve kucuk: Turkce oynayacak kisi Ayarlar'dan bir
+            // kez seciyor ve secim kaydediliyor. Karsiligi, oyunu ilk
+            // acan HERKESIN okuyabildigi bir ilk ekran - bes dilin
+            // ortak paydasi Ingilizce.
+            return 1;
+        }
+
+        /// <summary>
+        /// Kultur nesnesini kurar; kuramazsa DEGISMEZ kulture duser.
+        ///
+        /// NEDEN KORUMA: CultureInfo cihazda ICU verisine bagli ve o veri
+        /// budanabiliyor. Kurulamayan bir kultur CultureNotFoundException
+        /// atar - Apply() icinden, yani OYUN ACILIRKEN. Bes dilden birinin
+        /// verisi bir cihazda yoksa, o cihazda oyun hic acilmaz.
+        ///
+        /// Dusus SESSIZ DEGIL: bir uyari basiliyor. Sessiz bir dusus,
+        /// "sayilar neden Ingilizce bicimde" sorusunu cevapsiz birakirdi.
+        /// Degismez kultur yanlis bicim demek, acilmayan oyun demek degil.
+        /// </summary>
+        private static System.Globalization.CultureInfo MakeCulture(string name)
+        {
+            try
+            {
+                return new System.Globalization.CultureInfo(name);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("Kultur kurulamadi (" + name + "): " + e.Message
+                                 + " - degismez bicime dusuldu.");
+                return System.Globalization.CultureInfo.InvariantCulture;
+            }
         }
 
         public static void Load(IContentSource src)
@@ -100,10 +149,37 @@ namespace Lokanta.Game
             Apply(index);
         }
 
+        /// <summary>
+        /// Dili GECICI olarak degistirir - secim KAYDEDILMEZ.
+        ///
+        /// Tur, her dilde serit olcup goruntu aliyor. Bunu SetLanguage
+        /// ile yapmak, turun oyuncunun dil secimini degistirmesi
+        /// demekti: tur bes dili gezip sonuncusunu diske yaziyordu.
+        /// Denemek ile SECMEK ayri seyler; ayri kapilari var.
+        /// </summary>
+        public static void UseLanguage(int index)
+        {
+            if (index < 0 || index >= Languages.Length) return;
+            Apply(index);
+        }
+
+        /// <summary>
+        /// Tercih mantigini yeniden kosar: kayitli secim varsa o, yoksa
+        /// varsayilan.
+        ///
+        /// Turun "kayitsiz bir cihaz hangi dille aciliyor" sorusunu
+        /// GERCEKTEN sorabilmesi icin var. Sabiti okuyup "1 mi" diye
+        /// bakmak, sabitin kendisini olcmek olurdu - acilis yolunu degil.
+        /// </summary>
+        public static void ApplyPreferred()
+        {
+            Apply(Preferred());
+        }
+
         private static void Apply(int index)
         {
             Language = index;
-            Culture = new System.Globalization.CultureInfo(Cultures[index]);
+            Culture = MakeCulture(Cultures[index]);
             Warned.Clear();
             if (_src != null)
                 _table = ContentLoader.ReadStringMap(

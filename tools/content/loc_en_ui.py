@@ -326,8 +326,8 @@ UI = {
     "ui.credits.audio": "Music and sound",
     "ui.credits.audio_by": "Synthesised in-game",
     "ui.credits.font": "Typeface",
-    "ui.credits.font_by": "Rubik — SIL OFL 1.1",
-    "ui.credits.font_copyright": "Copyright 2015 The Rubik Project Authors",
+    "ui.credits.font_by": "Rubik + Noto Sans SC — SIL OFL 1.1",
+    "ui.credits.font_copyright": "Copyright 2015 The Rubik Project Authors · Copyright 2014-2021 Adobe (Noto Sans SC)",
 
     "ui.cuisine.fastfood_desc": "Fast flow, small tickets, crowds. "
                                 "The menu stays narrow.",

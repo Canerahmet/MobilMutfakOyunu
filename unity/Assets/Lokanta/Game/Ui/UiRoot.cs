@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -62,6 +62,73 @@ namespace Lokanta.Game.Ui
         /// </summary>
         public Font Font;
 
+        /// <summary>
+        /// CJK yazi tipi (Noto Sans SC, SIL OFL 1.1).
+        ///
+        /// Rubik Latin, Kiril, Ibrani ve ARAPCA tasiyor - ama CJK
+        /// tasimiyor. Cince tablosunda 765 karakteri karsilamadi
+        /// (tools/art/check_font.py bunu olcuyor). Ikinci bir yazi tipi
+        /// ALT KUME olarak eklendi: 10,5 MB'lik fonttan, oyunun gercekten
+        /// kullandigi 827 karakter -> 227 KB.
+        ///
+        /// Dil Cince oldugunda BUTUN agac bununla ciziliyor; alt kume
+        /// bu yuzden Latin harfleri, rakamlari ve para simgesini de
+        /// tasiyor - yoksa Cince ekranda "12 ¤" bos kutu olurdu.
+        /// </summary>
+        public Font FontCJK;
+
+        /// <summary>
+        /// Su anki dilin yazi tipi.
+        ///
+        /// KARAR DILDE, EKRANDA DEGIL: her ekranin ayri ayri "ben Cince
+        /// miyim" diye sormasi, bir ekranin unutulmasi demekti.
+        /// </summary>
+        public Font FontForLanguage
+        {
+            get
+            {
+                if (Loc.LanguageCode == "zh" && FontCJK != null) return FontCJK;
+                return Font;
+            }
+        }
+
+        /// <summary>
+        /// Kok ogeyi su anki dile gore kuruyor: yazi tipi, yazi yonu
+        /// ve metin ureticisi.
+        ///
+        /// Dil degisince cagriliyor. Kok ogeye vermek butun agaca miras
+        /// kaliyor - ekranlar tek tek dokunmuyor. Ucu de KOKTE duruyor
+        /// cunku ucu de dilin ozelligi; birini ekranda birakmak, o
+        /// ekranin unutulmasi demek.
+        /// </summary>
+        public void ApplyLanguage()
+        {
+            if (_root == null) return;
+
+            Font f = FontForLanguage;
+            if (f != null)
+                _root.style.unityFontDefinition = FontDefinition.FromFont(f);
+
+            // YAZI YONU ve METIN URETICISI.
+            //
+            // Arapca harfleri BIRLESIR: ayni harf sozcugun basinda,
+            // ortasinda ve sonunda baska bir sekil alir. Olcunlu uretici
+            // harfleri tek tek ve soldan saga diziyor - cikan sey Arapca
+            // degil, Arap harflerinden bir liste.
+            //
+            // Gelismis uretici (ATG) birlestirmeyi, iki yonlu siralamayi
+            // ve satir sonunu yapiyor. Ama YALNIZCA ARAPCA'DA aciliyor:
+            // dort dil olcunlu ureticiyle calisiyor ve olculdu. Calisan
+            // dordunu, besincisi icin riske atmanin bir karsiligi yok.
+            bool rtl = Loc.IsRightToLeft;
+            _root.style.unityTextGenerator = rtl
+                ? TextGeneratorType.Advanced
+                : TextGeneratorType.Standard;
+            _root.languageDirection = rtl
+                ? LanguageDirection.RTL
+                : LanguageDirection.LTR;
+        }
+
         private readonly List<UiScreen> _stack = new List<UiScreen>();
         private readonly List<VisualElement> _views = new List<VisualElement>();
         private VisualElement _root;
@@ -83,10 +150,9 @@ namespace Lokanta.Game.Ui
             _root.style.flexGrow = 1;
             _root.style.backgroundColor = Color.clear;
 
-            if (Font != null)
-                _root.style.unityFontDefinition = FontDefinition.FromFont(Font);
-            else
+            if (FontForLanguage == null)
                 Debug.LogWarning("Arayuz yazi tipi baglanmadi; metinler gorunmeyebilir.");
+            ApplyLanguage();
 
             ApplySafeArea();
             _root.RegisterCallback<GeometryChangedEvent>(_ => ApplySafeArea());

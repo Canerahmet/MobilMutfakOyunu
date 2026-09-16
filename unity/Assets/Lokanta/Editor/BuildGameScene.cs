@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Lokanta.Game;
 using Lokanta.Game.Ui;
@@ -107,6 +107,14 @@ namespace Lokanta.EditorTools
                 "Assets/Lokanta/Art/Yazi/Rubik.ttf");
             if (ui.Font == null)
                 Debug.LogWarning("Yazi tipi yok: Assets/Lokanta/Art/Yazi/Rubik.ttf");
+
+            // CJK YAZI TIPI: Cince icin. Rubik CJK tasimiyor.
+            ui.FontCJK = AssetDatabase.LoadAssetAtPath<Font>(
+                "Assets/Lokanta/Art/Yazi/NotoSansSC-Lokanta.ttf");
+            if (ui.FontCJK == null)
+                Debug.LogWarning(
+                    "CJK yazi tipi yok: Assets/Lokanta/Art/Yazi/NotoSansSC-Lokanta.ttf"
+                    + " - Cince secilirse butun metin bos kutu cikar.");
 
             app.Ui = ui;
             app.View = view;

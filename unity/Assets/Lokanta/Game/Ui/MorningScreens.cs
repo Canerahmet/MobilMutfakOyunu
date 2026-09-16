@@ -511,7 +511,7 @@ namespace Lokanta.Game.Ui
             // de dokunma hedefi BUYUYOR - 873 dp genisliginde bir serit.
             Button row = new Button(() => { _open = i; Ui.Refresh(); });
             row.text = string.Empty;
-            row.style.flexDirection = FlexDirection.Row;
+            row.style.flexDirection = Theme.RowFlow;
             row.style.alignItems = Align.Center;
             row.style.paddingLeft = Theme.Pad;
             row.style.paddingRight = Theme.Pad;

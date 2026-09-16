@@ -387,7 +387,7 @@ namespace Lokanta.Game.Ui
             // dokunuslari da ENGELLEMEMELI - kamera odaya yaklasabilsin.
             VisualElement middle = new VisualElement();
             middle.style.flexGrow = 1;
-            middle.style.flexDirection = FlexDirection.Row;
+            middle.style.flexDirection = Theme.RowFlow;
             middle.style.justifyContent = Justify.SpaceBetween;
             middle.style.paddingLeft = Theme.Pad;
             middle.style.paddingRight = Theme.Pad;

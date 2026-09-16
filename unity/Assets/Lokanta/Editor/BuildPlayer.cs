@@ -386,6 +386,14 @@ namespace Lokanta.EditorTools
             // diyor - ucuncusu yapinin kendisinde engelleniyor.
             SyncContent.Run();
 
+            // GELISMIS METIN URETICISI YAPININ PARCASI.
+            //
+            // Arapca harf birlestirmesi bu ayara bagli ve ayar bir onay
+            // kutusu. Elle acilan bir kutu, depoyu yeni klonlayan bir
+            // makinede kapali olur; Arapca bozulur ve hicbir test kirilmaz
+            // - icerik senkronunun ogrettigi ders, ayni kelimelerle.
+            AdvancedText.Set(true);
+
             // ACILIS EKRANI KAPALI.
             //
             // Logo yok (m_SplashScreenLogos bos) ama ekran acikti: oyuncu
