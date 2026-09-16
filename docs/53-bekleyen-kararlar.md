@@ -429,3 +429,25 @@ bir kol taşıyor.
 
 Mutasyonla doğrulandı: `StaffDaysWorked` yine XP döndürünce test kırmızı
 yanıyor.
+
+### Ve ekranda görüldü — ama ilk bakılan kare yanlış kareydi
+
+Kod düzeldi, test geçti, mutasyon kanıtladı. Sonra tur karesine baktım:
+personel kartı **"Seviye 0 (0 gün)"** yazıyordu.
+
+Bir an düzeltmenin tutmadığını sandım. Tutmuştu — **kare 1. günün sabahıydı**
+ve orada "0 gün" doğru: kimse henüz bir gün çalışmamış.
+
+Bunun asıl anlamı şu: **hata zaten o karede görünmezdi.** Kart aylarca "0 gün"
+yazsa bile birinci günün karesi aynı şeyi gösterirdi. Yani bu hatayı yakalayan
+bir kontrol, günün ilerisine bakmak zorunda.
+
+Tur artık 5. günde personel ekranını açıyor ve ölçütü ekrandaki metin:
+
+```
+tamam : Kidem ilerliyor (5. gun, 4 gun)
+tamam : Personel kartinda kidem gercek sayiyi gosteriyor
+```
+
+*Bir sayının doğru olduğunu görmek için doğru ana bakmak gerekiyor; yanlış an,
+yanlış cevabı da doğru gösterir.*

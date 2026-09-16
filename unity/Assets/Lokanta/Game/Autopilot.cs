@@ -910,6 +910,7 @@ namespace Lokanta.Game
             bool magazaAlindi = false;
             bool veresiyeYazildi = false;
             bool komboCevrildi = false;
+            bool kidemOlculdu = false;
             bool defterOlculdu = false;
             int kizginToplam = 0;
             bool kaliteOlculdu = false;
@@ -997,6 +998,34 @@ namespace Lokanta.Game
                     Click(Loc.T("ui.common.ok"));
                     yield return Settle();
                 }
+                // KIDEM EKRANDA DOGRU MU - KAMPANYANIN ICINDE.
+                //
+                // 1. gunun teftisinde personel karti "0 gun" yaziyor ve
+                // o DOGRU: kimse henuz bir gun calismadi. Yani kidem
+                // hatasi orada gorunmez - kart gunlerce "0 gun" yazsa
+                // bile birinci gunun karesi ayni seyi gosterirdi.
+                //
+                // Hatanin kendisi buydu zaten: `StaffDaysWorked` deneyim
+                // donduruyordu ve `tecrubeli` bir personel altmis gun
+                // sonra bile "0 gun" goruunuyordu. Ekrani gordugu yer
+                // gunun ilerisi olmali.
+                if (!kidemOlculdu && _app.Sim.Day >= 5
+                    && Click(Loc.T("ui.morning.staff")))
+                {
+                    yield return Settle();
+                    int gercek = _app.Sim.StaffDaysWorked(0, 0);
+                    Note(gercek > 0,
+                         "Kidem ilerliyor (" + _app.Sim.Day + ". gun, "
+                         + gercek + " gun)");
+                    // Olcut EKRANDAKI metin: kart gercek sayiyi yaziyor mu.
+                    Note(HasText(Loc.T("ui.staff.days",
+                                       _app.Sim.StaffLevel(0, 0), gercek)),
+                         "Personel kartinda kidem gercek sayiyi gosteriyor");
+                    kidemOlculdu = true;
+                    Back();
+                    yield return Settle();
+                }
+
                 if (!Click(Loc.T("ui.morning.open")))
                 {
                     trouble = "servis acilmadi, gun " + _app.Sim.Day;
@@ -1304,6 +1333,8 @@ namespace Lokanta.Game
             // OLCULEMEDI demeli - kirmizi degil. NoteIf tam bunun icin.
             NoteIf(komboCevrildi, komboCevrildi,
                    "Servis sirasinda kombo dugmesine basildi");
+            NoteIf(kidemOlculdu, kidemOlculdu,
+                   "Personel ekraninda kidem olculdu");
             NoteIf(karneOlculdu, karneOlculdu,
                    "Haftalik karne goruldu (60 gunde en az bir hafta)");
             NoteIf(nisanOlculdu, nisanOlculdu,
