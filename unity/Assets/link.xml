@@ -1,47 +1,51 @@
 <!--
-    IL2CPP BUDAMA KORUMASI.
+    IL2CPP STRIPPING GUARD.
 
-    Android yapisi `managedStrippingLevel: High` ile derleniyor
-    (ProjectSettings). Yuksek budama, YALNIZCA yansimayla cagrilan
-    uyeleri "kullanilmiyor" sayip siliyor - ve icerik yukleme
-    tamamen yansima:
+    The Android build compiles with `managedStrippingLevel: High`
+    (ProjectSettings). High stripping treats members that are ONLY ever
+    called through reflection as unused and deletes them - and content
+    loading is entirely reflection:
 
         ContentLoader.cs -> JsonConvert.DeserializeObject<T>(text, Settings)
 
-    Kapsam dar tutuldu: yalnizca yansimayla okunan iki derleme.
-    `preserve="all"` butun tipleri ve uyeleri koruyor; bu derlemeler
-    kucuk (POCO + Newtonsoft), yani boyut bedeli ihmal edilebilir.
+    The scope is kept narrow: only the two assemblies that are read
+    reflectively. `preserve="all"` keeps every type and member; these
+    assemblies are small (POCOs + Newtonsoft), so the size cost is
+    negligible.
 
     ===================================================================
-    BU KORUMA 14 EYLUL'DE OLCULDU - ONCESINDE KOSTURULMAMISTI.
+    THIS GUARD WAS MEASURED ON 14 SEPTEMBER - BEFORE THAT IT HAD NEVER
+    BEEN RUN.
 
-    Bu yorumun eski hali "editorde ve Windows yapisinda hicbir sey
-    gorunmez, yani bu hata projedeki HICBIR testin ulasamadigi tek
-    yapilandirmada yasiyor" diyordu. Dogruydu, ve tam da bu yuzden
-    sorunluydu: koruma akil yurutmeyle yazilmisti, hic KOSMAMISTI.
-    Kosmayan bir kontrol, gecen bir kontrolle ayni gorunuyor.
+    The earlier version of this comment said "nothing shows up in the
+    editor or in a Windows build, so this bug lives in the one
+    configuration NO test in the project can reach". That was true, and
+    it is exactly what made it a problem: the guard had been written by
+    reasoning and never EXECUTED. A check that does not run looks exactly
+    like one that passes.
 
-    Artik kosuyor. docs/46, ve cihaz gerekmiyor:
+    It runs now. See docs/46, and no device is needed:
 
-        .\tools\unity\tur.ps1 -Yapi windows-il2cpp
+        .\tools\unity\tour.ps1 -Build windows-il2cpp
 
-    Windows'u Android'in derleyici ve budayicisiyla (IL2CPP + High)
-    kurup turun kontrollerini ona kosturuyor. Bu dosya yerindeyken
-    129 kontrol geciyor; KALDIRILDIGINDA oyun acilista oluyor.
+    That builds Windows with Android's compiler and stripper (IL2CPP +
+    High) and runs the tour's checks against it. With this file in place
+    129 checks pass; REMOVE IT and the game dies on startup.
 
-    OLCUM YORUMU DUZELTTI. Beklenen belirti "sessiz varsayilan: butun
-    alanlar sifir/null doner" idi. Gercek belirti daha sert ve daha
-    erken:
+    THE MEASUREMENT CORRECTED THE COMMENT. The symptom expected was "a
+    silent default: every field comes back zero or null". The real
+    symptom is harsher and earlier:
 
-        Icerik yuklenemedi: JsonSerializationException: Unable to find
-        a constructor to use for type Lokanta.Content.EconomyDto
+        could not load the content: JsonSerializationException: Unable to
+        find a constructor to use for type Lokanta.Content.EconomyDto
 
-    Budanan sey ozellik YAZICILARI degil, DTO'larin KURUCULARI -
-    Newtonsoft nesneyi hic kuramiyor. ContentSetLoader yukleyemiyor,
-    oyun yarim bir durumda devam ediyor ve sekiz kontrol sonra
-    NullReferenceException ile oluyor; hata ekranina bile varamiyor.
+    What gets stripped is not the property SETTERS but the DTOs'
+    CONSTRUCTORS - Newtonsoft cannot build the object at all.
+    ContentSetLoader cannot load, the game carries on in a half state and
+    dies eight checks later with a NullReferenceException; it never even
+    reaches the error screen.
 
-    Yani tehlike dogru tarif edilmisti, mekanizma yanlis.
+    So the danger was described correctly and the mechanism was wrong.
 -->
 <linker>
   <assembly fullname="Lokanta.Content" preserve="all" />

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "_comment": "URETILEN DOSYA. Elle degistirmeyin; tools/balance/export.py calistirin.",
+  "_comment": "GENERATED FILE. Do not edit by hand; run tools/balance/export.py.",
   "stations": [
     {
       "id": "ocak",

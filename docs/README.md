@@ -81,14 +81,14 @@ change.
 | **[41-ui-and-venue.md](41-ui-and-venue.md)** | **Redesigning the game screen against the reference (cards, capsules, three colour roles), procedural decoration and kitchen identity** | **Current** |
 | **[42-crew-and-intervention.md](42-crew-and-intervention.md)** | **The passive player now goes under; intervention pays off under pressure; the crew recommendation had the wrong name** | **Current** |
 | **[43-review-and-measurement.md](43-review-and-measurement.md)** | **The five-agent review: the tour's 107 checks could not break anything; checks that stay green in a vacuum; a measurement consuming its own source** | **Current** |
-| **[44-store-texts.md](44-store-texts.md)** | **The store's short/full description (in two languages), the privacy policy text and producing screenshots at store resolution** | **Current** |
+| **[44-store-texts.md](44-store-texts.md)** | **The store's short/full description (in five languages), the privacy policy text and producing screenshots at store resolution** | **Current** |
 | **[45-design-review.md](45-design-review.md)** | **The five-agent design pass: price had no channel to demand (a rise at the ceiling was free), intervention was wired to the hall as well, the saturation of the combo axis turned out to be a symptom** | **Current** |
 | **[46-shipped-binary.md](46-shipped-binary.md)** | **Why the emulator does not help (an ARM64-only APK) and `link.xml`: trimming protection that had never been run was measured by mutation — with it removed, the game dies at start-up** | **Current** |
 | **[47-recognition-and-report-card.md](47-recognition-and-report-card.md)** | **Not a daily quest but RECOGNITION: the weekly report card (one moment of success → nine) and seven badges; a unit error was handing out a badge on day one** | **Current** |
 | **[48-day-sharpness.md](48-day-sharpness.md)** | **Why pressure never fired: the busiest moment of the day was 1.24 times the average; the durations were sharpened, and the value of intervention went from +505 to +4,953** | **Current** |
 | **[49-unreachable-mechanics.md](49-unreachable-mechanics.md)** | **Twenty commands scanned on four axes: ingredient quality was on no screen at all, nobody pressed the "chase" button, and early collection turned out to be a trap** | **Current** |
 | **[50-kitchen-texture.md](50-kitchen-texture.md)** | **Wall surfaces by cuisine (wood panelling / steel banding), the floor and the tone of the outside; the tour now plays fast food too, and the clipping measurement was hunting a bug that did not exist** | **Current** |
-| **[51-self-service.md](51-self-service.md)** | **Fast food self-service: a cleaner instead of a waiter, the hall roles wired to the kitchen, volume +43% and the bill −22%; volume is not a lever for the total till** | **Current** |
+| **[51-self-service.md](51-self-service.md)** | **Fast food self-service: a cleaner instead of a waiter, the hall roles wired to the kitchen, volume +43% and the ticket −22%; volume is not a lever for the total till** | **Current** |
 | **[52-split-and-rent.md](52-split-and-rent.md)** | **Fast food rent ×1.15 (raising the rent *raises* the bot's till — measured); the screenshot tool was not drawing self-service at all, the hanging menu panels were covering what was behind them, and the furniture had turned to laminate** | **Current** |
 | **[53-pending-decisions.md](53-pending-decisions.md)** | **The open dishwasher decision was closed by measurement (two "fixes" were tried and both made it worse); the combo answer was reversed by self-service and the tour had never been pressing its button; the staff were given a voice for the first time (`trait.*.voice`)** | **Current** |
 | **[54-five-languages.md](54-five-languages.md)** | **Five languages (tr/en/es/zh/ar), English by default; Arabic letter joining solved with the Advanced Text Generator and measured by the width difference (60 → 40 dp); the layout mirrored; the strip budget is measured in five languages — the longest is Spanish** | **Current** |
@@ -156,23 +156,27 @@ For the detail and the description of every item, see [06-plan-status.md](06-pla
 | The end of the game | A scored evaluation on day 60, free play after it |
 | Currency | A nameless plain stack-of-coins icon plus a number. No real currency symbol |
 
-## Where we stand — 13 September 2026
+## Where we stand — 17 September 2026
 
 **The game plays end to end.** The main menu, cuisine selection, four save
 slots, the sixty-day campaign, the year-end evaluation and free play; two
-cuisines, two languages, the animation layer, day-night lighting and an Android
+cuisines, five languages, the animation layer, day-night lighting and an Android
 package.
 
 | measure | state |
 |---|---|
-| Core tests | 225, all passing |
-| `tools/check.py` | 13 checks, all clean |
-| Smoke tour (a real Windows build, 873×393 dp) | 114 checks, 0 failures |
-| Balance tool | 20 strategies × 60 days, zero reconciliation gap |
+| Core tests | 245, all passing |
+| `tools/check.py` | 16 checks, all clean |
+| Smoke tour (a real Windows build, 873×393 dp) | 176 checks, 0 failures |
+| Balance tool | 25 strategies × 60 days, zero reconciliation gap |
 | Android APK | 90.4 MB, 0 warnings |
 
-*These lines are not written by hand: the numbers come from the output of
-`dotnet test`, `tools/check.py`, `tools/unity/tour.ps1` and `tools/balance`.*
+*The numbers above were read off `tools/check.py`, `tools/unity/tour.ps1` and
+`tools/balance` on the date in the heading, and they are copied here by hand —
+so they go stale. The previous version of this block said they were "not written
+by hand", which was not true, and by the time anyone looked it was claiming 225
+tests, 13 checks and two languages. **Re-read the tools rather than trusting
+this table**; it is a snapshot, not a measurement.*
 
 ### What is left before release
 

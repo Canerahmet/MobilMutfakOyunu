@@ -270,7 +270,7 @@ a few hours later the same command was blocked in `Debug` and passed in
 change there is no problem; the moment it changes there can be.
 
 The symptom is misleading. On one occasion 206 of 213 tests broke together and **pure
-maths** tests like `Fx.MulDiv_sifira_bolmede_atar` gave a `FileLoadException`
+maths** tests like `Fx.MulDiv_throws_on_division_by_zero` gave a `FileLoadException`
 instead of a `DivideByZeroException` — all for the same reason. There is nothing
 to look for in the code.
 

@@ -88,7 +88,7 @@ model was correct, but in the game's real frame the lamp is 40 pixels and the
 lantern a fifth of that — an eight-pixel smudge. The lantern radii were scaled up
 by x1.25; the decision was made *by looking at the render*.
 
-**The bottom of the lantern is measured, not written down.** The lantern is
+**The bottom of the lantern is measured, not hard-coded.** The lantern is
 directly above the pavement and 1.10 m figures pass underneath it. Somebody
 scaling the model up could bring the lantern down to walking height and nothing
 would warn them — the figure would pass through the lamp and the game would go on
@@ -212,7 +212,7 @@ brought it down to ~64. Nobody had measured it again.
 
 ### The bug the tour caught on its first run
 
-The new check came back red on its first run: **"worst case 4 overlapping pairs"**.
+The new check came back red on its first run: **"at worst 4 pairs"**.
 
 The cause was neither the lane nor the shove. When the time multiplier goes past
 `TeleportAbove` (4.5), `Walker` stops drawing the walk and **teleports** to the
@@ -319,7 +319,7 @@ learned twice.
 
 What is worth recording is this: a change **the user asked for** broke the
 **measurement infrastructure**, and the red pointed not at the broken place but at
-somewhere else entirely ("no work is being done in the kitchen"). Without the
+somewhere else entirely ("Work is being done in the kitchen"). Without the
 diagnostic line, the kitchen code is where the search would have started.
 
 ---
@@ -454,15 +454,15 @@ numbers:
 ## New measurements (the tour)
 
 ```
-ok   : A hinged door only on the entrance and the kitchen (2)
-ok   : There is a passage gap for every adjacency (6 gaps / 5 adjacencies)
-ok   : The pedestrians do not walk through each other (worst 0 pairs)
-ok   : The pedestrians do not walk into a lamp post (worst 0 people, 3 posts known)
-ok   : The street lamps are equally spaced (3 posts, deviation 0.00 m)
-ok   : The interior ceiling light is built (16 of them)
-ok   : The interior lights only come on as the day goes by
-ok   : The evening interior fill is on (2.76)
-ok   : The interior lights come on before the street lamps (0.62 < 0.76)
+ok   : Only the entrance and the kitchen have a swinging door (2)
+ok   : There is a gap for every neighbouring pair (6 gaps / 5 neighbouring pairs)
+ok   : The pedestrians do not pass through each other (at worst 0 pairs)
+ok   : The pedestrians do not walk into a lamp post (at worst 0 people, 3 posts known)
+ok   : The street lamps are evenly spaced (3 posts, deviation 0.00 m)
+ok   : Inside ceiling lights were built (16)
+ok   : The inside lights come on only as the day goes on
+ok   : The evening inside fill is lit (2.76)
+ok   : The inside lights come on before the street lamps (0.62 < 0.76)
 ```
 
 `PlacementAudit`: 0 overlapping pairs, 15/15 objects facing the right way, body

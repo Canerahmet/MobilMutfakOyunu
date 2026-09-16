@@ -14,7 +14,7 @@
 
 [12-economy.md](12-economy.md) §5.6 gives every cuisine a signature hourly profile and declares it the heart of the identity:
 
-> "In the restaurant sixty percent of the customers arrive in a single slot. That turns the lunch peak into a real moment of crisis and leaves the evening empty."
+> "In the restaurant sixty per cent of the customers come in a single slice. That turns the lunch peak into a real crisis moment and leaves the evening empty."
 
 [27-time-model.md](27-time-model.md) Decision F finds that same profile physically impossible and demands that the `arrivalWeightsBp` values be renormalised so that no slot exceeds 30%. The profile it proposes for Turkish cuisine is **15% / 30% / 30% / 25%**. That erases the 60% lunch peak.
 
@@ -466,7 +466,7 @@ Three differences translate into what the player sees on the screen.
 
 **First, the difference between a sprint and a marathon.** The fast food day is two short sprints; after each one there is a recovery window and a mistake can be corrected. The restaurant day is a single four-minute uninterrupted stress; there is no recovery inside it and mistakes accumulate. The same density, a completely different management problem.
 
-**Second, the emptying of the evening.** The restaurant's fourth slot is 15% long and takes 12.47% of the customers; the hall is at 73.8%. Fast food's fourth slot is 30% long, takes 35.26% of the customers, and the hall is at 104.4%. The dining room visibly emptying on screen is the exact counterpart of [10](10-cuisine-identity.md)'s "the rhythm of the crowd" line, and one of the six things that read from a distant camera.
+**Second, the emptying of the evening.** The restaurant's fourth slot is 15% long and takes 12.47% of the customers; the hall is at 73.8%. Fast food's fourth slot is 30% long, takes 35.26% of the customers, and the hall is at 104.4%. The hall visibly emptying on screen is the exact counterpart of [10](10-cuisine-identity.md)'s "the rhythm of the crowd" line, and one of the six things that read from a distant camera.
 
 **Third, the face turning away at the door.** Section 5.7: the complaining customer and the hurried student in fast food, the long-haul driver and the lunch-break worker in the restaurant. A different silhouette, different clothing, a different voice.
 

@@ -1,41 +1,42 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Cekirdek simulasyon, .NET tarafi.
+    The core simulation, .NET side.
 
-    KAYNAK BURADA DEGIL. Dosyalar unity/Assets/Lokanta/Core altinda duruyor ve
-    bu proje onlari BAGLAYARAK derliyor. Tek kaynak, iki derleyici:
-      - Unity, Lokanta.Core.asmdef ile derler (noEngineReferences: true)
-      - dotnet, bu csproj ile derler ve testler saniyeler icinde kosar
+    THE SOURCE IS NOT HERE. The files live under
+    unity/Assets/Lokanta/Core and this project compiles them BY LINK. One
+    source, two compilers:
+      - Unity compiles it through Lokanta.Core.asmdef (noEngineReferences: true)
+      - dotnet compiles it through this csproj, and the tests run in seconds
 
-    Neden Assets altinda: asmdef'teki noEngineReferences bayragi "cekirdek
-    Unity'yi bilmez" kuralini DERLEYICI seviyesinde zorluyor. Klasor
-    yerlesiminden daha guclu bir garanti.
+    Why it lives under Assets: the asmdef's noEngineReferences flag enforces
+    the "the core does not know Unity" rule at the COMPILER level. That is a
+    stronger guarantee than a folder layout.
 
-    Neden bin/obj burada: Unity, Assets altindaki her dosya icin .meta uretir.
-    Ara derleme ciktilarini oraya birakmak projeyi kirletirdi.
+    Why bin/obj are here: Unity generates a .meta file for everything under
+    Assets. Leaving intermediate build output there would litter the project.
   -->
 
   <!--
-    IKI HEDEF, TEK KAYNAK.
+    TWO TARGETS, ONE SOURCE.
 
-      netstandard2.1  KORUMA. Unity'nin API yuzeyi bu; cekirdek onun
-                      disina cikarsa derleme burada kirilir. Hicbir
-                      zaman YUKLENMIYOR, yalnizca derleniyor.
-      net10.0         TESTLERIN VE DENGE ARACININ yukledigi derleme.
+      netstandard2.1  THE GUARD. This is Unity's API surface; if the core
+                      steps outside it the build breaks here. It is never
+                      LOADED, only compiled.
+      net10.0         The assembly the tests and the balance tool load.
 
-    Neden ikisi: bu makinede Smart App Control ZORUNLU modda (Windows
-    11, CI politikasi {0283ac0f-...}) ve imzasiz bir netstandard2.1
-    derlemesinin YUKLENMESINI engelliyor - net10.0 olani ayni klasorde,
-    ayni sekilde imzasiz, sorunsuz yukleniyor. Olculdu: cekirdek her
-    degistiginde 213 testin 206'si FileLoadException veriyordu
-    (0x800711C7) ve denge araci hic calismiyordu. Kod hatasi degildi;
-    yalniz hedef cercevesi.
+    Why both: Smart App Control is in ENFORCED mode on this machine
+    (Windows 11, CI policy {0283ac0f-...}) and it blocks an unsigned
+    netstandard2.1 assembly from LOADING - while the net10.0 one, in the
+    same folder and just as unsigned, loads without complaint. Measured:
+    every time the core changed, 206 of 213 tests threw
+    FileLoadException (0x800711C7) and the balance tool did not run at
+    all. It was not a code error; only the target framework.
 
-    Tek hedefe donmek cazip ama ikisi de gerekli: net10.0'a gecmek
-    korumayi kaldirir ve cekirdek sessizce Unity'de olmayan bir API
-    kullanmaya baslar; netstandard2.1'de kalmak bu makinede hicbir seyi
-    kosturamamak demek.
+    Dropping to a single target is tempting and both are needed: moving
+    to net10.0 removes the guard and the core quietly starts using an API
+    Unity does not have; staying on netstandard2.1 means nothing can be
+    run on this machine.
   -->
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>
@@ -51,10 +52,10 @@
   <ItemGroup>
     <Compile Include="..\..\unity\Assets\Lokanta\Core\**\*.cs" />
     <!--
-      Kat plani. unity/Assets/Lokanta/Game altinda ama UnityEngine'e
-      bagli DEGIL, ve testlerin onu dogrulamasi gerekiyor: odalarin
-      arsayi tam kapladigini bugune kadar yalnizca editor betigi
-      kontrol ediyordu, yani plan ancak Unity acilinca sinaniyordu.
+      The floor plan. It sits under unity/Assets/Lokanta/Game but does NOT
+      depend on UnityEngine, and the tests need to verify it: until now the
+      only thing checking that the rooms cover the plot exactly was an editor
+      script, so the plan was tested only when Unity was open.
     -->
     <Compile Include="..\..\unity\Assets\Lokanta\Game\RoomPlan.cs" />
   </ItemGroup>

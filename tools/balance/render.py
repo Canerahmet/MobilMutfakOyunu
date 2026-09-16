@@ -31,16 +31,24 @@ ROWS = model.run()
 
 
 def fmt(n):
-    return "{:,.0f}".format(n).replace(",", ".")
+    """A thousands separator for an ENGLISH document.
+
+    This used to end `.replace(",", ".")`, which turned 8,645 into the
+    Turkish 8.645 - and then wrote it into documents whose own prose
+    says 8,645 four lines further down. In English `-1.165` reads as
+    minus one point one six five, so the tables were not merely
+    inconsistent, they were wrong by three orders of magnitude.
+    """
+    return "{:,.0f}".format(n)
 
 
 # ---------------------------------------------------------------------------
-# The tables. THE HEADINGS AND CELL LABELS STAY TURKISH, and deliberately so:
-# these strings are not this script's output, they are the CONTENT of
-# docs/12-economy.md, docs/14-staff-system.md and
-# docs/32-equipment-and-rebalance.md. Translating them here would drop English
-# tables into the middle of Turkish prose, in files this script is only a
-# writer for. They follow when those documents are translated.
+# The tables. The headings and cell labels are ENGLISH, like the documents
+# they are written into. They were Turkish until the documents were, and the
+# comment that used to sit here said they would "follow when those documents
+# are translated" - which is exactly the kind of promise that gets forgotten,
+# and did: the documents moved and the percent signs and separators stayed
+# behind.
 # ---------------------------------------------------------------------------
 
 def t_rent():
@@ -64,7 +72,7 @@ def t_capacity():
         if key is None:
             share = "separate pool"
         else:
-            share = "%{:.0f}".format(100 * model._shares[key])
+            share = "{:.0f}%".format(100 * model._shares[key])
         L.append("| {} | {} guests | {} | {:.4f} person-days | {} |".format(
             name, cap, wage, 1.0 / cap, share))
     return "\n".join(L)
@@ -102,10 +110,10 @@ def t_margin():
          "|---|---|---|---|---|---|"]
     for r in ROWS:
         rev = r["revenue"]
-        L.append("| {w} | %{i:.0f} | %{m:.0f} | %{k:.0f} | %{e:.0f} | **%{n:.1f}** |".format(
+        L.append("| {w} | {i:.0f}% | {m:.0f}% | {k:.0f}% | {e:.0f}% | **{n:.1f}%** |".format(
             w=r["week"], i=100 * r["ingredients"] / rev, m=100 * r["wages"] / rev,
             k=100 * r["rent"] / rev, e=100 * r["expansion"] / rev,
-            n=100 * r["margin"]).replace("%-", "−%"))
+            n=100 * r["margin"]).replace("-", "−"))
     return "\n".join(L)
 
 

@@ -316,7 +316,7 @@ The measurement that is the reason this file was written, `content/dishes/fastfo
 | Fast food | 8,000 | 11,500 | 17,500 |
 | Turkish | 6,000 | 8,500 | 12,500 |
 
-This interim state does not hit the capacity model either. With the order mix, the cook's time per customer is:
+This interim state does not match the capacity model either. With the order mix, the cook's time per customer is:
 
 ```
 1.0 × 10,333 + 0.6 × 8,438 + 0.5 × 8,000 + 0.1 × 12,917 = 20,688 ms
@@ -397,7 +397,7 @@ There are three options, two of them impossible.
 
 The crew ceiling is 12, the table ceiling is 14. Option 1 is not reachable by any player decision.
 
-**Option 2: lengthen the day.** Section 1.1: utilisation is scale-independent. Nothing changes.
+**Option 2: lengthen the day.** Section 1.1 showed that every task duration is a fraction of the day, so a longer day scales the work and the capacity by the same factor and every utilisation percentage comes out identical. Nothing changes.
 
 **Option 3: calm the arrival profile.** The only option that works. A slot-share ceiling of 30% is set.
 
@@ -427,7 +427,7 @@ There is another, more ambitious route: Turkish cuisine gets a shorter service d
 
 ### 6.1 The old definition is broken
 
-[12-economy.md](12-economy.md) §5.2: "Patience drains while waiting to be seated, for the order to be taken and for the food to arrive." That is, patience is the **total wall clock** from the door to the food.
+[12-economy.md](12-economy.md) §5.2: "Patience drains while waiting to be seated, waiting for the order to be taken and waiting for the food to arrive." That is, patience is the **total wall clock** from the door to the food.
 
 At zero load, that is, with the restaurant empty and no queue at all:
 

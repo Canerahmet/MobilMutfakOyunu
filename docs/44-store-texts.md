@@ -384,7 +384,7 @@ empty sky — it showed the game as smaller than it is. On top of that the tour
 the first place.
 
 Both were fixed at once: the tour now expands over the course of the campaign
-(`Buyu()`, one tier, and only if three times the cost is in the till) and the
+(`Grow()`, one tier, and only if three times the cost is in the till) and the
 image is taken in the middle of the fortieth day. Result: **14 tables, 10 of them
 full, revenue 1,188, satisfaction 78.5, reputation 96.8/100.** Still the game as
 played — sped up, but not faked.

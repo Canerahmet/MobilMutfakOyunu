@@ -148,9 +148,9 @@ Every role has a daily capacity. The base values, for a level-one, bad-tempered 
 | Role | Daily capacity | Daily wage | Work per guest | Share of hall load |
 |---|---|---|---|---|
 | Cook | 28 guests | 140 | 0.0357 person-days | separate pool |
-| Waiter | 26 guests | 110 | 0.0385 person-days | %52 |
-| Dishwasher | 48 guests | 90 | 0.0208 person-days | %28 |
-| Cashier | 70 guests | 100 | 0.0143 person-days | %19 |
+| Waiter | 26 guests | 110 | 0.0385 person-days | 52% |
+| Dishwasher | 48 guests | 90 | 0.0208 person-days | 28% |
+| Cashier | 70 guests | 100 | 0.0143 person-days | 19% |
 <!-- /GENERATED: capacity -->
 
 **The waiter is the first place to block.** They carry 52 per cent of the hall's workload. That is deliberate: the first bottleneck the player notices should be in the hall, because that is where it is visible.
@@ -252,14 +252,14 @@ The result is that the profit margin improves **slowly**.
 <!-- GENERATED: margin -->
 | Week | Stock | Wages | Rent | Expansion | Net margin |
 |---|---|---|---|---|---|
-| 1 | %32 | %27 | %23 | %0 | **%17.7** |
-| 2 | %32 | %42 | %21 | %0 | **%5.2** |
-| 3 | %32 | %42 | %23 | %29 | **−%26.0** |
-| 4 | %32 | %38 | %21 | %0 | **%9.1** |
-| 5 | %32 | %41 | %19 | %29 | **−%20.2** |
-| 6 | %32 | %37 | %17 | %0 | **%14.0** |
-| 7 | %32 | %35 | %18 | %29 | **−%14.4** |
-| 8 | %32 | %31 | %16 | %0 | **%20.1** |
+| 1 | 32% | 27% | 23% | 0% | **17.7%** |
+| 2 | 32% | 42% | 21% | 0% | **5.2%** |
+| 3 | 32% | 42% | 23% | 29% | **−26.0%** |
+| 4 | 32% | 38% | 21% | 0% | **9.1%** |
+| 5 | 32% | 41% | 19% | 29% | **−20.2%** |
+| 6 | 32% | 37% | 17% | 0% | **14.0%** |
+| 7 | 32% | 35% | 18% | 29% | **−14.4%** |
+| 8 | 32% | 31% | 16% | 0% | **20.1%** |
 <!-- /GENERATED: margin -->
 
 **All three expansion weeks go negative.** The rent and the crew grow at the same time while the reputation has not caught up. This is deliberate and was written into the model as a constraint.

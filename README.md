@@ -77,7 +77,7 @@ The strip carries the day's summary; behind **Day report** the money is itemised
 ingredients, what went in the bin, wages, rent. Who came, who was let down.
 
 Every seventh day a **report card** appears: the seven axes against last week.
-And **accolades** — "You ran the peak short-handed", "The book is settled". Not
+And **badges** — "You ran the peak short-handed", "The book is closed". Not
 quests: recognition after the fact, which is why they never fight your plan.
 
 ---
@@ -90,14 +90,14 @@ You choose at the start and it is locked for that save.
 
 | | Fast food | Turkish restaurant |
 |---|---|---|
-| service | **self-service** — no waiter, a busser clears the tables | table service — the waiter takes the order, brings the food, settles the bill |
+| service | **self-service** — no waiter, a cleaner clears the tables | table service — the waiter takes the order, brings the food, settles the bill |
 | rhythm | lunch + dinner, two crests | one hard lunch peak |
 | ticket | low, a volume game (+30% guests) | high, neighbourhood trade |
 | signature | **combo** — raises the average ticket, loads the kitchen | **the tab** — you write a regular into the book, and collecting depends on trust |
 | room | dark tile, laminate tables, steel counter, lit menu board | timber panelling, kilim, copper band, warm light |
 
 Self-service is not just a label: the guest carries their own tray and pays at
-the counter, so half the front-of-house work disappears. What it buys is a
+the counter, so half the hall work disappears. What it buys is a
 crowd — and trays piling up on the tables.
 
 ---
@@ -109,9 +109,9 @@ crowd — and trays piling up on the tables.
 Each of twenty named customers has a three-scene story. A customer who comes
 often and leaves happy opens their scenes:
 
-> *"Artık siparişini söylemiyor. Oturuyor, siz biliyorsunuz."*
+> *"Artık siparişini söylemiyor. Oturuyor, sen biliyorsun."*
 >
-> *("They don't say their order any more. They sit down, and you know.")*
+> *("Doesn't order any more. He sits down; you know.")*
 
 ---
 
@@ -178,13 +178,15 @@ from a model, and the string table opens from one source into five languages.
 ### What lives where
 
 ```
-src/              The game's brain. No Unity, no floating point.
-  Lokanta.Core/     Simulation, economy, saves - the deterministic core
-  Lokanta.Content/  The content-reading layer (JSON -> objects)
-  Lokanta.Harness/  The balance tool: bot strategies x 60 days
+src/              The .NET side. NOTE: the core's SOURCE IS NOT HERE.
+  Lokanta.Core/     A csproj that compiles unity/Assets/Lokanta/Core by link
+  Lokanta.Content/  The same, for unity/Assets/Lokanta/Content
+  Lokanta.Harness/  The balance tool: bot strategies x 60 days (real source)
 tests/            The core's tests (245 of them)
 
-unity/            VIEW and platform only.
+unity/            The source of everything, plus view and platform.
+  Assets/Lokanta/Core/     Simulation, economy, saves - no Unity, no float
+  Assets/Lokanta/Content/  The content-reading layer (JSON -> objects)
   Assets/Lokanta/Game/     Interface, scene, the automated tour
   Assets/Lokanta/Editor/   Build, scene generation, checkers
   Assets/Lokanta/Art/      Models, textures, fonts, ATTRIBUTION.md

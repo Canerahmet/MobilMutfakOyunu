@@ -78,7 +78,7 @@ STREAMS = ["Arrival", "Archetype", "Order", "StaffError",
 
 def main():
     out = {
-        "_comment": "URETILEN DOSYA. tools/balance/rng_reference.py. "
+        "_comment": "GENERATED FILE. tools/balance/rng_reference.py. "
                     "Bagimsiz xoshiro128** uygulamasi; C# ureteci bunu tutturmali.",
         "reference": "https://prng.di.unimi.it/xoshiro128starstar.c",
         "direct": [],

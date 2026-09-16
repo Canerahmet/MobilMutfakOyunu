@@ -17,7 +17,7 @@ The state before: the simulation knew at every moment which table was at which s
 | customer | `Paths.Outside` (z = −0.85, outside the door) | their table | when the party is seated |
 | customer | their table | `Paths.Outside` | when the party gets up |
 | waiting party | the door | `Paths.QueueSpot(i)` | when there is no table |
-| waiter | `Paths.SalonHome` (beside the till) | `Paths.BesideTable` | order / service / bill |
+| waiter | `Paths.HallHome` (beside the till) | `Paths.BesideTable` | order / service / bill |
 | cook | `Paths.CookHome` | `Paths.Fridge` → `Paths.KitchenPost(station)` | when a job starts |
 
 **The speed is tied to the game's speed.** `Walker.Speed = 1.15 m/s` at ×1. The simulation speeds up to ×16; if the walk stays in **real time**, the food arrives while the figure is still halfway along its path. The multiplier is written from `GameApp` every frame (`Paused ? 0 : TimeScale / BaseTimeScale`). But the multiplier has a ceiling: above ×4.5 a walk does not read, so the figure **teleports** — a walk too fast to see is not a walk, it is a flicker.
@@ -32,7 +32,7 @@ The state before: the simulation knew at every moment which table was at which s
 
 `Game/Appliance.cs`. New. One component per oven/stove.
 
-**No particles.** docs/19 targets a low-end Adreno, and the particle system is a documented fill-rate bottleneck on that class of device. The flame and the lamp are both **boxes**: emissive-coloured, casting no shadows, with no collider. Six boxes for three stoves — immeasurable as draw calls.
+**No particles.** docs/19 targets a low-end Adreno, and the particle system is a documented fill-rate bottleneck on that class of device. The flame and the lamp are both **boxes**: emissive-coloured, casting no shadows, with no collider. Six boxes for three stoves — too small to measure as draw calls.
 
 Four separate bugs were fixed one after another, all of them found **by looking at an image**:
 
@@ -45,7 +45,7 @@ Four separate bugs were fixed one after another, all of them found **by looking 
 | the glass is opaque | in URP `_Surface = 1` is an **inspector** setting only | `_SrcBlend` / `_DstBlend` are written at runtime as well |
 | the flame burns in front of the eyes | the eyes had been assumed to be at ±21% | **rendered from above and measured**: x is symmetric (±20.5%), z is **not** — the back row +20.4%, the front row −7.5% (the row of knobs on the front edge has pushed the hob backwards) |
 
-The measurement image: `Lokanta/Figur olcek goruntusu` → `render/scale_stove_ustten.png`.
+The measurement image: `Lokanta/Figure scale screenshot` → `render/scale_stove_from_above.png`.
 
 ---
 
@@ -101,7 +101,7 @@ Both were true and each had a different cause.
 
 ### The table was touching their heads
 
-Measured: a seated figure's head was **0.37 m** above the table; a realistic ratio is 0.51. The root cause: **the furniture was at real scale and the characters were at half scale**. Enlarging the characters broke the toy-like look, so the furniture came down:
+Measured: a seated figure's head was **0.37 m** above the table; a realistic clearance is 0.51 m. The root cause: **the furniture was at real scale and the characters were at half scale**. Enlarging the characters broke the toy-like look, so the furniture came down:
 
 | | before | after |
 |---|---|---|
@@ -130,8 +130,8 @@ empty chairs on Z                        : 0.58 + 0.15               = 0.73 ≤ 
 
 Visual verification:
 
-- `render/scale_masa_ustten.png` (from above, four chairs at equal distance)
-- `render/scale_masa_oyun.png` (the game angle)
+- `render/scale_table_from_above.png` (from above, four chairs at equal distance)
+- `render/scale_table_game_angle.png` (the game angle)
 
 Both of them call `RestaurantView.SeatAt()` — the measuring tool does **not rewrite** the arithmetic, it uses the game's own code.
 
@@ -147,7 +147,7 @@ Two sentences from the user:
 
 These were two symptoms of **the same single bug**. `SitLift` had never been measured; it had been written by eye.
 
-The measuring tool was written for this (`Editor/FigureShot` → the `OTURMA` lines). Three wrong methods were tried and all three were recorded, because each one is a separate trap:
+The measuring tool was written for this (`Editor/FigureShot` → the `SITTING` lines). Three wrong methods were tried and all three were recorded, because each one is a separate trap:
 
 | method | why it did not work |
 |---|---|
@@ -163,7 +163,7 @@ The numbers that came out:
 |---|---|---|
 | cushion surface | 0.355 m | 0.355 m |
 | the figure's underside of the pelvis | 0.281 m | **0.355 m** |
-| the back's rear / the backrest's front | 0.108 m **inside** | 0.042 m **in front of** |
+| the back of the body / the front of the backrest | 0.108 m **inside** | 0.042 m **in front of** |
 | feet | — | 0.14 m above the floor, in mid-air |
 | `SitLift` | 0.26 | **0.316** |
 | `SitForward` (new) | — | **0.15** |
@@ -210,7 +210,7 @@ The bone is added **in the production pipeline** (`ArtPrefabs.AddKnees`), not as
 | readability | `isReadable` is turned on for the FBXs in the character folder — the pack comes with it off and `.vertices` was coming back empty |
 | the split plane | **between the two rings** nearest the middle of the leg's own vertices. If it passed *through* a ring, two vertices at the same point would fall to different bones on a flat-shaded model and the surface would split open; passing between them stretches only a single quad |
 | re-weighting | the 64 vertices below the plane are bound to the new bone, and a **copy** of the mesh is saved as an asset (the pack's file is not changed) |
-| the bind matrix | `diz.worldToLocalMatrix * renderer.localToWorldMatrix` |
+| the bind matrix | `knee.worldToLocalMatrix * smr.transform.localToWorldMatrix` |
 
 **The bind matrix tests itself:** the same formula is applied to the pack's *own* leg bone and compared against the matrix the model ships with. If it does not match, the generated bone would be wrong too — and that means a mesh that slides silently.
 
@@ -261,7 +261,7 @@ The walls are **excluded** from the placement audit: they stand on a room bounda
 | the automatic tour (a real Windows build) | **57/57** |
 | the placement audit (`PlacementAudit`), both cuisines | **0 overlapping pairs** |
 | head-to-table clearance | 0.63 m |
-| sitting (`OTURMA SONUC`) | pelvis +0.094 / leg 0.000 / back 0.005 |
+| sitting (`SITTING VERDICT`) | pelvis +0.094 / leg 0.000 / back 0.005 |
 | AAB | 31.1 MB, **0 warnings** |
 
 To re-measure:

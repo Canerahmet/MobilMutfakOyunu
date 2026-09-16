@@ -52,7 +52,7 @@ without re-measuring it is treating a disease that is not there.*
 
 ---
 
-## 2. The research was right, but mine was not the case
+## 2. The research was right, but my case was not the one it described
 
 Twelve games were swept (RimWorld, Dwarf Fortress, Two Point Hospital, PlateUp!,
 Overcooked, Prison Architect, Tavern Keeper, Supermarket Simulator…). The finding
@@ -412,7 +412,9 @@ without deleting anything and without exercising the mechanism at all — *a mig
 test whose "old save" is not real is not a migration test.*
 
 Verified by mutation too: with the gate made `if (true)`, the test goes red with
-`a field that should be in a version 21 save is missing: badges`.
+`a field that should be in a version 21 save is missing: badges`. *(The test now
+says version 22 — `SaveTests.cs:162`. The line above is the message as it read
+when this entry was written.)*
 
 `MinReadableVersion = 20` — one step back. Anything older **would be invented**:
 what versions 9–14 changed is undocumented, so nobody can write the right gate for

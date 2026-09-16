@@ -91,9 +91,22 @@ gibi daha cok her hic sonra kadar yapiyor ediyor oluyor geliyor veriyor
 diyor bakiyor aliyor koyuyor cikiyor giriyor kaliyor gecen gecti olur olmaz
 varsa yoksa ise diye demek sadece yalnizca ayni farkli butun hepsi bazi
 kendi kendisi onun bunun sunun hangi nerede nereye buraya oraya simdi
+uretilen dosya elle degistirmeyin calistirin kosturun uretec uretecler
 """.split())
 
-SOURCE_SUFFIXES = (".cs", ".py", ".ps1", ".json", ".md", ".uss", ".uxml")
+# THE LIST IS THE BLIND SPOT.
+#
+# It was (.cs .py .ps1 .json .md .uss .uxml) and the check reported the
+# repository fully English while three files sat outside it, entirely in
+# Turkish: unity/Assets/link.xml (the IL2CPP stripping guard, with a
+# stale command in it), src/Lokanta.Core/Lokanta.Core.csproj, and the
+# `_comment` line written into four generated content files.
+#
+# A gate is green over what it does not open. That is this project's
+# oldest lesson, and it turned up inside the tool that exists to enforce
+# the rule against it.
+SOURCE_SUFFIXES = (".cs", ".py", ".ps1", ".json", ".md", ".uss", ".uxml",
+                   ".xml", ".csproj", ".slnx")
 
 SKIP_DIRS = {"Library", "Temp", "obj", "bin", "__pycache__", "build", "aab",
              "vendor", "node_modules", "render", ".git", ".vs", ".gradle",
@@ -142,6 +155,8 @@ tarık şevval uğur barış tuğçe niğde Şanlıurfa
 
 WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 CS_COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
+XML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+XML_SUFFIXES = (".xml", ".csproj", ".slnx", ".uxml", ".uss")
 PY_COMMENT = re.compile(r"#[^\n]*")
 IDENT_SPLIT = re.compile(r"[^A-Za-z]+|(?<=[a-z0-9])(?=[A-Z])")
 # Inline code spans and quoted strings inside Markdown.
@@ -309,7 +324,7 @@ def check_prose():
     bad = []
     for path in walk_files():
         rel = relative(path)
-        if is_exempt(rel) or path.endswith(".json"):
+        if is_exempt(rel):
             continue
         try:
             text = io.open(path, encoding="utf-8-sig").read()
@@ -349,6 +364,27 @@ def check_prose():
                 # inline code spans and quoted strings come out first.
                 target = MD_CODE.sub(" ", line)
                 target, in_quote = strip_quotes(target, in_quote)
+            elif path.endswith(".json"):
+                # A GENERATED FILE SAYS SO IN ITS OWN LANGUAGE.
+                #
+                # Content JSON is ids and numbers, and many ids are
+                # Turkish on purpose (`ocak`, `kuru_fasulye`) - scanning
+                # every value would drown the check. The one place prose
+                # lives is the `_comment` line every generator writes at
+                # the top, so that is the one place read.
+                if '"_comment"' not in line:
+                    continue
+                target = line
+            elif path.endswith(XML_SUFFIXES):
+                # THE WHOLE LINE, not the comment markers on it.
+                #
+                # Pulling `<!-- ... -->` out per line finds nothing on
+                # the INNER lines of a multi-line comment - and that is
+                # the shape link.xml's Turkish is in, so the first
+                # version of this branch reported the file clean. XML
+                # here is directives and prose; element and attribute
+                # names are English anyway, so the line is read whole.
+                target = line
             else:
                 comments = (CS_COMMENT.findall(line) if path.endswith(".cs")
                             else PY_COMMENT.findall(line))

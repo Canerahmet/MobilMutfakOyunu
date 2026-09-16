@@ -33,11 +33,11 @@ the same gate:
 
 Every language goes through **the same drift gate**: if one language's table
 carries a different key set from another's, the generator fails. The result:
-`635 keys × 5 languages`, "every string complete".
+`637 keys × 5 languages`, "all strings complete.".
 
 The request that it be "commonly understood" came down to word choice. The most
 concrete example: the waiter role is *camarero* in Spain and *mesero* in Latin
-America. Both are mutually intelligible; **mesero** was chosen as the natural one
+America. Both are understood in either region; **mesero** was chosen as the natural one
 for the wider audience, and the reasoning sits at the top of the file.
 
 ---
@@ -82,7 +82,7 @@ Rubik carries Latin, Cyrillic, Hebrew and Arabic — it does not carry CJK.
 more typeface came in:
 
 - `vendor/noto-sans-sc/NotoSansSC-Regular.ttf` — **10,540,644 bytes**
-- `unity/Assets/Lokanta/Art/Fonts/NotoSansSC-Lokanta.ttf` — **227,116 bytes**,
+- `unity/Assets/Lokanta/Art/Fonts/NotoSansSC-Lokanta.ttf` — **229,836 bytes**,
   a subset of the **876 code points** the game actually uses
 
 The subset carries the Latin letters, the digits and the currency symbol as
@@ -195,7 +195,7 @@ the budget. It could not have been guessed; it was measured. The measurement
 calls `ApplyLanguage()` — calling only `Refresh()` would have measured Chinese
 with Rubik, that is, measured the width of empty boxes.
 
-A screenshot is taken in each of the five languages as well (`05-dil-*.png`). An
+A screenshot is taken in each of the five languages as well (`05-language-*.png`). An
 empty box is a character too, and a row laid out backwards is still a row — some
 things can only be understood by looking.
 

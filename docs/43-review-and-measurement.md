@@ -190,7 +190,7 @@ if (enFazla > _salon) enFazla = _salon;      // can never be true
 The comment said "the whole hall crew cannot be put on the sink, or the game
 locks itself up". The audit **correctly** found that both lines were no-ops —
 but what was wrong belonged not to the code but to the **comment**:
-`DispatchSalon` never puts server zero (the owner) on the sink, so there is no
+`DispatchHall` never puts server zero (the owner) on the sink, so there is no
 such lock. On top of that, when there is a single hall worker on the first day,
 putting them on the sink is **a legitimate decision**, and with a floor in place
 the plate bottleneck could never be tried in the campaign's first days.
@@ -234,8 +234,8 @@ right, **its caller was asking about the wrong day**. `RequiredCrewTomorrow()`
 was added.
 
 Its side effect was measured and recorded in docs/42: the intervention's gain
-under pressure fell from +861 to +360. **A measurement that shrinks a number by
-improving the thing it measures.**
+under pressure fell from +861 to +360. **A measurement whose number goes DOWN when the
+thing it measures gets better.**
 
 ### The balance tool's own flags
 
@@ -420,9 +420,10 @@ field turns the comment from **documentation** into **legend**.
 ## 8b. A gap the audit did not see: it came out of looking at the renders
 
 All five agents read the code and produced sixty findings, but one was missing:
-**no check asked about the pots on the stove.** It was the user's request ("no
-pots and pans are being put on the stove in the kitchen, there is no realistic
-kitchen picture"), the code was written, the tour runs 112 checks — and there was
+**no check asked about the pots on the stove.** It was the user's request (*"mutfakta ocak
+üzerine tencere vs konulmuyor, gerçekçi bir mutfak görüntüsü yok"* — *"no pots
+and pans are being put on the stove in the kitchen, there is no realistic kitchen
+picture"*), the code was written, the tour runs 112 checks — and there was
 not a single line measuring that the pots existed. If the stove layout changed or
 the `BuildPots` call were dropped, the kitchen would quietly empty again and only
 the user would see it.
@@ -623,7 +624,7 @@ first time by a human.
 
 ## 8g. Light and shadow: the figures were standing in mid-air
 
-The user's question: "is there a problem with the in-game light and shadow". There
+The user's question: *"oyun içi ışık ve gölge konusunda problem var mı"* (*"is there a problem with the in-game light and shadow"*). There
 was.
 
 **First the map had to be drawn — who casts a shadow in this game?**

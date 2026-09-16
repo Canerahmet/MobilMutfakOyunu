@@ -476,7 +476,7 @@ The intervention allowance is daily and counted. If pressing an empty station sp
 
 ## 14. Market price volatility: there has to be something to keep track of
 
-[12-economy.md](12-economy.md) §3 said this: *"there is no early-buying advantage, the stock goes off. Catching a cheap day is not luck, it is a matter of KEEPING TRACK."* `priceVolatilityBp: 2500` was written in the content. **It was not being read.** So the market gave the same price every day and there was nothing to keep track of.
+[12-economy.md](12-economy.md) §3 said this: *"There is no advantage in buying early, stock spoils. Catching a cheap day is not luck, it is a matter of watching."* `priceVolatilityBp: 2500` was written in the content. **It was not being read.** So the market gave the same price every day and there was nothing to keep track of.
 
 Now a separate daily multiplier is rolled for every ingredient at the day's opening (`AdvanceToNextDay`) — from the `Market` stream, in a ±25% band. When you go to the market in the morning you see today's price; the order is billed at that price.
 
@@ -578,14 +578,14 @@ The auditor's checks 1, 2 and 3 now find **nothing at all.**
 
 ## 17. Doner and pide — and the lock system the generator was deleting
 
-The state the user wanted was this: *"if we want to make pide then a stone oven should be needed. For doner, a counter with a doner spit on it should be needed."* The stone oven was written in §10; doner and pide **were not in the content**, which is why they could not be wired up.
+The state the user wanted was this: *"pide yapmak istersek taş fırın gereksin. Döner için döner takılan tezgah gereksin."* (*"if we want to make pide then a stone oven should be needed. For doner, a counter with a doner spit on it should be needed."*) The stone oven was written in §10; doner and pide **were not in the content**, which is why they could not be wired up.
 
 ### The menu stays at 32: four in, four out
 
 | Out | Why |
 |---|---|
 | `tavuk_kanat_izgara` | it reads as fast food; the `tavuk_kanat` ingredient left the Turkish list too |
-| `firin_makarna` | it belongs to Italian cuisine; it was rebound to the new pide instead of to `kasar` |
+| `firin_makarna` | it belongs to Italian cuisine; `kasar` was rebound to the new pide instead |
 | `kiymali_ispanak` | the weakest of the eleven stews; the `ispanak` ingredient was deleted too |
 | `kabak_dolma` | the same |
 
@@ -671,7 +671,7 @@ This is a small restaurant **whose reputation is not at the ceiling**. The one w
 
 This is the same shape as what was found with staff experience (§15): **the mechanic helps the player who is squeezed; it does not touch the player at the ceiling.** And that is right — if it paid off for the player at the ceiling too, the mechanic would be an obligation, not a decision.
 
-In fast food the combo pays off directly: the receipt 55.5 -> **56.2**, the till 26,167 -> **26,698**, but the reputation 99.2 -> 97.7 — the kitchen really is more tired. The trade is visible.
+In fast food the combo pays off directly: the ticket 55.5 -> **56.2**, the till 26,167 -> **26,698**, but the reputation 99.2 -> 97.7 — the kitchen really is more tired. The trade is visible.
 
 ### A new target for the calibration
 

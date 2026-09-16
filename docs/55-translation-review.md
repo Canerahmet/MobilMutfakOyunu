@@ -12,7 +12,7 @@
 
 Four agents ran — Spanish, Chinese, Arabic and **English** (the default language
 and the source the other three were translated from: a mistake there is a
-mistake copied four times). Each of them walked all 635 keys one by one.
+mistake copied four times). Each of them walked all 637 keys one by one.
 
 **All four reports pointed at the same place, and they were right.** What this
 document is about is less what they found than *how* they found it: all four
@@ -52,7 +52,7 @@ this pass the agents asked it.
 
 ## 2. The Chinese build was broken in three places while the font check was green
 
-`check_font.py` said *"everything is covered"*. It could say so because it was
+`check_font.py` said *"result    : all covered"*. It could say so because it was
 asking the wrong question: **"which characters are in the Chinese table"**. But
 `UiRoot.FontForLanguage` draws **the whole tree** with Noto Sans SC when the
 language is Chinese — not only the Chinese text.
@@ -118,7 +118,7 @@ three days", that is, *do* buy. It is the only line that sells the cold store.
 ### The inherited waiter said "the cook you inherited"
 
 `TraitText` writes `ui.staff.inherited` for a person who has **no** trait. The
-inherited hall staff member has no trait either (`Simulation.cs:800`,
+inherited hall staff member has no trait either (`Simulation.cs:847`,
 `_hallTraitA[0] = -1`). So the waiter's card read *"Huysuz — devraldığın aşçı"*
 (*"Bad-tempered — the cook you inherited"*), in five languages at once. A
 separate key was added (`ui.staff.inherited_hall`).
@@ -147,7 +147,7 @@ strings** were correct in only one number band: `{0} أيام` was printing
 "1 أيام". All of them were rewritten into the partitive form, which is correct
 for every number (`{0} من الأيام`). Also, pairs such as `{0} / {1}` with only a
 neutral character between them get mirrored by the bidirectional algorithm — a
-strong Arabic word was put in between.
+strong right-to-left Arabic character was put in between.
 
 **Chinese — 厨房 means a kitchen *room*, not a *type* of cuisine.** Under the
 question *"你先开哪种厨房？"* ("which kitchen room are you opening") stood the
@@ -201,7 +201,7 @@ a chronological log and that order must not be broken, but it was not navigable
 either.
 
 I did **not try** moving the three checkers (`audit_content.py`,
-`check_licenses.py`, `check_urp.py`) into topic folders: it would have staled
+`check_licenses.py`, `check_urp.py`) into topic folders: it would have broken
 fifteen document references for no gain.
 
 ### Instead, a check that makes moving safe
@@ -227,6 +227,9 @@ were renumbered and had been like that for months.
   not replace that — but it left a far better starting point than a blank page.
 - **Three dead keys** — `role.bulasikci`,
   `role.kasiyer`
-  and `ui.hud.angry`: they are maintained in five tables and drawn nowhere.
+  and `ui.hud.angry`: maintained in five tables and drawn nowhere.
+  *(`ui.hud.angry` was deleted on 17 September — see [56](56-english-repository.md).
+  The dead-key scan could not see it: the key was kept "used" by the very
+  comment explaining that it is no longer used.)*
   `loc_tarama.py` looks for dead `ui.*` keys but does not look at the `role.*`
   family.

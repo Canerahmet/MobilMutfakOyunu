@@ -161,7 +161,7 @@ def economy():
 
     return {
         "schemaVersion": 1,
-        "_comment": "URETILEN DOSYA. Elle degistirmeyin; tools/balance/export.py calistirin.",
+        "_comment": "GENERATED FILE. Do not edit by hand; run tools/balance/export.py.",
 
         "startingCash": model.START_CASH * COIN,
         "startingReputationCenti": 3000,
@@ -416,7 +416,7 @@ def cuisines():
         out.append((cid, {
             "id": cid,
             "nameKey": "cuisine." + cid,
-            "_comment": "URETILEN DOSYA. tools/balance/export.py",
+            "_comment": "GENERATED FILE. tools/balance/export.py",
             "slotDurationsBp": slots,
             "eatMs": 38_000,
             # SELF SERVICE: in fast food no waiter comes to the table.
@@ -712,7 +712,7 @@ def equipment():
 
     return {
         "schemaVersion": 1,
-        "_comment": "URETILEN DOSYA. Elle degistirmeyin; tools/balance/export.py calistirin.",
+        "_comment": "GENERATED FILE. Do not edit by hand; run tools/balance/export.py.",
         "stations": stations,
         "cuisineStations": cuisine_stations,
         "storage": {
@@ -752,7 +752,7 @@ def golden():
             "cash": rnd(r["cash"] * COIN),
         })
     return {
-        "_comment": "URETILEN DOSYA. tools/balance/export.py. C# cekirdegi bunu tutturmak zorunda.",
+        "_comment": "GENERATED FILE. tools/balance/export.py. The C# core must reproduce this exactly.",
         "source": "tools/balance/model.py",
         "toleranceCenti": 100,
         "weeks": out,

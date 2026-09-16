@@ -134,7 +134,7 @@ build indirectly.
    morning screen. The fix: the tour, and the clipping measurement, now both
    look at the button's **visible** text. *A player looks at the button's
    words, not at its area.*
-2. **`Duraklat oyunu durdurdu`** ("Pause stopped the game") **was red**, and the
+2. **`Pause stopped the game`** **was red**, and the
    reason was not the game but the lookup: pause is an icon now. Mode buttons
    are found by their names (`ClickNamed`).
 
@@ -275,8 +275,7 @@ contains the chairs (0.9 m) and the **badge** (2.45 m). The measurement is now
 taken while the table is being built, before the chairs are added — at that
 moment there is only the table inside the carrier.
 
-The tour now asks for both at once: *"if there is an eating table, is a plate
-visible on screen"* — "the core is eating" and "the player sees it" are separate
+The tour now asks for both at once: *"An eating table has a plate IN THE SAME FRAME"* — "the core is eating" and "the player sees it" are separate
 claims (the lesson learned on the dishwashing).
 
 ### Sixth slice: readability
@@ -319,7 +318,7 @@ image out**:
 1. **The transparent walls were casting shadows.** The walls are glass (alpha
    0.10) but solid in the shadow map: a 1.15 m panel leaves a dark band **6.5 m**
    long when the sun is at 10 degrees, and that band covered half of the
-   neighbouring room. The wrongness is double — a glass partition does not cast
+   neighbouring room. The error is double — a glass partition does not cast
    a shadow in the first place, and the shadow it cast fell exactly where the
    player needs to look.
 2. **The sun's elevation was far too low.** The elevation was 26 degrees in the
@@ -412,7 +411,7 @@ in with two fingers.
 the tool was counting the strips as taking 40% of the screen, the real worst
 phase is 43.8%. The accepted price stands in the same place, but it now stands
 with the right number. `RoomLayout` prints this as a **warning** on every run
-(48 dp sector floor) and goes **red if it drops below 40 dp**: reporting an
+(the 48 dp industry floor) and goes **red if it drops below 40 dp**: reporting an
 accepted price as an error on every run would be losing a real regression inside
 the noise.
 

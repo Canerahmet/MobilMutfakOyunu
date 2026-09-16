@@ -137,7 +137,7 @@ At the narrower aspect ratio (16:9) the floor is **81-89 dp**; so the worst case
 > The reason for the 1.10 → 1.94 widening is that the pavement needs
 > **two pedestrian lanes**: figures walking in opposite directions were passing
 > through each other. The lane spacing comes from the figure's measured widest
-> body band (the head, 0.67 m — the `PlacementAudit` PROFIL lines). 59 dp is
+> body band (the head, 0.67 m — the `PlacementAudit` PROFILE lines). 59 dp is
 > **23% above** Google's 48 dp minimum.
 >
 > The lesson is not that 71 was wrong, it is that it **was left standing while it
@@ -214,7 +214,7 @@ In the general view **a room is 51-95 dp**. So a badge can sit on top of a room 
 
 **Zooming is not compulsory.** The game can be played from the general view from start to finish: the badge sits on the room, touching it opens the intervention. Moving in on a room is for looking, not out of necessity.
 
-This accepts the research's harshest constraint (zero compulsory navigation taps) while **not paying the biggest cost the research itself counted**: the hall does not fall to decor, because what is touched is not a strip in the bottom bar but a room inside the scene. "Layout design" and "visible growth", 2nd and 3rd in `research/01` §3's list of best-loved mechanics, stay on screen throughout service.
+This accepts the research's harshest constraint (zero compulsory navigation taps) while **not paying the biggest cost the research itself counted**: the hall is not demoted to decoration, because what is touched is not a strip in the bottom bar but a room inside the scene. "Layout design" and "visible growth", 2nd and 3rd in `research/01` §3's list of best-loved mechanics, stay on screen throughout service.
 
 The bottom-bar chips can still be written and would satisfy `review/05`'s item "let the patience warning come through three channels" — but as a **second channel**, not as the primary target.
 
@@ -317,7 +317,7 @@ The user's second sentence:
 
 That was true, but the chair was only the most visible example — **all of the furniture was standing 180° backwards**.
 
-It was measured (`Lokanta/Figur olcek goruntusu`, every object at yaw 0, a red cube at +Z, a blue cube at −Z, seven pieces of furniture in one frame):
+It was measured (`Lokanta/Figure scale screenshot`, every object at yaw 0, a red cube at +Z, a blue cube at −Z, seven pieces of furniture in one frame):
 
 | | the "front" direction at yaw 0 |
 |---|---|
@@ -330,7 +330,7 @@ The fix is a single constant: `RestaurantView.PropYaw = 180`. The angles at the 
 
 **The rule:** when adding a new model, do not **assume** its local "front" direction, **measure** it. Assuming that two models face the same way was the bug itself.
 
-There is a separate verification image too — `Lokanta/Figur olcek goruntusu`: one figure, one chair, on a 1 m grid, **from the side**. The question "is it sitting, or standing in front of the chair" cannot be answered in a full hall seen from above; in this image no ambiguity is left. That is how it was verified that the sitting pose really was being applied — the problem was not the pose, it was the scale.
+There is a separate verification image too — `Lokanta/Figure scale screenshot`: one figure, one chair, on a 1 m grid, **from the side**. The question "is it sitting, or standing in front of the chair" cannot be answered in a full hall seen from above; in this image no ambiguity is left. That is how it was verified that the sitting pose really was being applied — the problem was not the pose, it was the scale.
 
 ---
 
@@ -340,6 +340,6 @@ There is a separate verification image too — `Lokanta/Figur olcek goruntusu`: 
 tools\unity\shot.ps1 -Method "Lokanta.EditorTools.RoomLayout.Capture"
 ```
 
-The output is `tools/art/out/unity/floor_*.png` plus the `OLCUM` (measurement) lines in the log. The line to look at is **`TABAN`** (the floor): the short edge, on screen and with the interface bars in place, of the smallest *open* room. If the table size, a room size, a camera angle or a tier layout changes, **re-measure and look**.
+The output is `tools/art/out/unity/floor_*.png` plus the `MEASURED` (measurement) lines in the log. The line to look at is **`FLOOR`** (the floor): the short edge, on screen and with the interface bars in place, of the smallest *open* room. If the table size, a room size, a camera angle or a tier layout changes, **re-measure and look**.
 
 Anyone changing the camera angles touches `unity/Assets/Lokanta/Game/CameraFit.cs`; the measuring tool reads the same constants, so the two cannot diverge.

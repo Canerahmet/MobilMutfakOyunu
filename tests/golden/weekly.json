@@ -1,5 +1,5 @@
 {
-  "_comment": "URETILEN DOSYA. tools/balance/export.py. C# cekirdegi bunu tutturmak zorunda.",
+  "_comment": "GENERATED FILE. tools/balance/export.py. The C# core must reproduce this exactly.",
   "source": "tools/balance/model.py",
   "toleranceCenti": 100,
   "weeks": [

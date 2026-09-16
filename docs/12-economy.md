@@ -35,7 +35,7 @@ The five-agent review (see [review/00-synthesis.md](review/00-synthesis.md)) fou
 |---|---|---|
 | **The owner was duplicated** | In the capacity table the owner was counted in the waiter, cashier and dishwasher columns at the same time | One person was providing capacity for 36 customers; the real contribution was 12 |
 | **The crew was set to the average** | The crew had been calculated against the weekly average | The weekend is 25% busier; the crew has to be set to the peak and paid for seven days |
-| **The table contradicted the formula** | The formula in section 5.1 gives 76 customers for 14 tables / reputation 85, while the table in section 6 wrote 58 on the same row | The whole growth curve was resting on the wrong demand |
+| **The table contradicted the formula** | The formula in section 5.1 gives 76 customers for 14 tables / reputation 85, while the table in section 6 shows 58 in the same row | The whole growth curve was resting on the wrong demand |
 | **The rounding rule was inconsistent** | Found on 10 September 2026 when comparing against the C# core. Python's `round()` does banker's rounding: the sixth week's weekend demand is exactly 62.5 and Python gave 62 while C# gave 63 | Discrete decisions are now done with integer arithmetic on both sides. See [23-core-contract.md](23-core-contract.md) §2.3 |
 
 The third week's loss was there for the same reason. In the corrected model the expansion weeks still lose money, but it is no longer an arithmetic accident — it is the result of the solved rent and crew load.
@@ -66,9 +66,9 @@ Rent and wages are paid **weekly**, in one go at the end of the seventh day.
 | Tier | Tables | Weekly rent | Cost of moving to this tier |
 |---|---|---|---|
 | Starting | 4 | 850 | — |
-| Second | 7 | 1.950 | 2.500 |
-| Third | 10 | 2.900 | 4.500 |
-| Fourth | 14 | 5.000 | 8.000 |
+| Second | 7 | 1,950 | 2,500 |
+| Third | 10 | 2,900 | 4,500 |
+| Fourth | 14 | 5,000 | 8,000 |
 <!-- /GENERATED: rent -->
 
 The rents are not guesses: they were solved backwards from the net margin targeted for each tier's **mature week** (5%, 9%, 14%, 20%). `tools/balance/solve.py` does that job.
@@ -262,7 +262,7 @@ The service day is split into four slices. The rhythm of the cuisines becomes co
 | Italian | 5% | 20% | 10% | 65% |
 | Japanese ramen | 15% | 50% | 15% | 20% |
 
-In the lokanta sixty per cent of the customers come in a single slice. That turns the lunch peak into a real crisis moment and leaves the evening empty. In Italian it is exactly the reverse.
+In the restaurant sixty per cent of the customers come in a single slice. That turns the lunch peak into a real crisis moment and leaves the evening empty. In Italian it is exactly the reverse.
 
 ---
 
@@ -273,14 +273,14 @@ This is the path a player who plays well is expected to follow. **Not verified.*
 <!-- GENERATED: growth -->
 | Week | Tables | Crew | Cap | Reputation | Guests/day (weekday / weekend) | Avg ticket | Revenue | Stock | Wages | Rent | Expansion | Weekly net | Till |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 4 | 1 | 3 | 35 | 14 / 17 | 50 | 3.640 | −1.165 | −980 | −850 | — | **+645** | 8.645 |
-| 2 | 4 | 2 | 3 | 45 | 15 / 19 | 52 | 4.113 | −1.316 | −1.734 | −850 | — | **+213** | 8.858 |
-| 3 | 7 | 4 | 5 | 52 | 29 / 36 | 56 | 8.506 | −2.722 | −3.544 | −1.950 | −2.500 | **−2.210** | 6.648 |
-| 4 | 7 | 4 | 5 | 60 | 31 / 39 | 58 | 9.460 | −3.027 | −3.622 | −1.950 | — | **+860** | 7.508 |
-| 5 | 10 | 7 | 8 | 68 | 47 / 59 | 63 | 15.567 | −4.981 | −6.335 | −2.900 | −4.500 | **−3.150** | 4.358 |
-| 6 | 10 | 7 | 8 | 75 | 50 / 63 | 66 | 17.371 | −5.559 | −6.475 | −2.900 | — | **+2.438** | 6.796 |
-| 7 | 14 | 10 | 12 | 82 | 74 / 92 | 70 | 27.146 | −8.687 | −9.367 | −5.000 | −8.000 | **−3.908** | 2.888 |
-| 8 | 14 | 10 | 12 | 88 | 77 / 97 | 75 | 30.398 | −9.727 | −9.573 | −5.000 | — | **+6.097** | 8.985 |
+| 1 | 4 | 1 | 3 | 35 | 14 / 17 | 50 | 3,640 | −1,165 | −980 | −850 | — | **+645** | 8,645 |
+| 2 | 4 | 2 | 3 | 45 | 15 / 19 | 52 | 4,113 | −1,316 | −1,734 | −850 | — | **+213** | 8,858 |
+| 3 | 7 | 4 | 5 | 52 | 29 / 36 | 56 | 8,506 | −2,722 | −3,544 | −1,950 | −2,500 | **−2,210** | 6,648 |
+| 4 | 7 | 4 | 5 | 60 | 31 / 39 | 58 | 9,460 | −3,027 | −3,622 | −1,950 | — | **+860** | 7,508 |
+| 5 | 10 | 7 | 8 | 68 | 47 / 59 | 63 | 15,567 | −4,981 | −6,335 | −2,900 | −4,500 | **−3,150** | 4,358 |
+| 6 | 10 | 7 | 8 | 75 | 50 / 63 | 66 | 17,371 | −5,559 | −6,475 | −2,900 | — | **+2,438** | 6,796 |
+| 7 | 14 | 10 | 12 | 82 | 74 / 92 | 70 | 27,146 | −8,687 | −9,367 | −5,000 | −8,000 | **−3,908** | 2,888 |
+| 8 | 14 | 10 | 12 | 88 | 77 / 97 | 75 | 30,398 | −9,727 | −9,573 | −5,000 | — | **+6,097** | 8,985 |
 <!-- /GENERATED: growth -->
 
 **The staff counts come from the capacity model**, they are not guesses. See [14-staff-system.md](14-staff-system.md).

@@ -155,7 +155,10 @@ Five questions for every game: (1) is the venue a single open floor, rooms, or a
 
 **Two Point's lesson about control.** The console port built a **virtual cursor** instead of touch: the left stick drives the cursor, the right stick the camera, the shoulder buttons the zoom and the list navigation; the menu was pinned to the bottom left corner. The reviews said "it settles in within fifteen minutes" but added that "selecting a particular item or person can get hard". The same problems came back in Two Point Museum's Switch 2 port: **overshooting the target** when placing with a stick, **no undo**, mode changes not being visible, menu depth, and **text that is far too small**. The one mitigation that works: **the cursor is held fixed in the middle of the screen and the world slides underneath it.**
 
-**Two Point's lesson about pathfinding — the harshest one for us.** A corridor is not something that is built, it is the **complement of the rooms**: "every part of the hospital plot that is not a room is a corridor." The validity rule is one sentence: **"every room must be connected to a corridor by its door, and every room on the same plot must have a clear path to that door."** The cost of this is documented: stuck patients, "cannot find a path" and "invalid navigation" bug titles; the players' fix is always to break the layout and put it back. In the developers' own account, the hardest part was "the patients' queues and their movement in the corridors" and "the wall thickness and the cell width".
+**Two Point's lesson about pathfinding — the harshest one for us.** A corridor is not something that is built, it is the **complement of the rooms**: "every part of the hospital plot that is not a room is a corridor." The validity rule is one sentence: **a room must reach a corridor through its door, and every room on the plot must have a
+clear path to that door.** *(Paraphrase. The rule was read from an English-language
+source, written down in Turkish, and translated back — so it is quoted here as a
+summary, not as the source's words.)* The cost of this is documented: stuck patients, "cannot find a path" and "invalid navigation" bug titles; the players' fix is always to break the layout and put it back. In the developers' own account, the hardest part was "the patients' queues and their movement in the corridors" and "the wall thickness and the cell width".
 
 **PlateUp's generator contract** is the cleanest written form of the grammar of rooms: a property is added to every pair of adjacent tiles that are not in the same room, **a random door is placed for every pair of adjacent rooms**, and the system **guarantees a path through doors from the front door to every room.**
 
@@ -263,7 +266,7 @@ The grammar of rooms conflicts with that decision in three places:
 
 | Conflict | Evidence |
 |---|---|
-| If there are rooms there are **doors**, and if there are doors there is **connection validity** | Two Point: "every room must be connected to a corridor by its door, and every room must have a clear path to its door". PlateUp: the generator guarantees a path through doors from the front door to every room |
+| If there are rooms there are **doors**, and if there are doors there is **connection validity** | Two Point (paraphrased above): a room reaches a corridor through its door, and every room keeps a clear path to it. PlateUp: the generator guarantees a path through doors from the front door to every room |
 | When connection validity breaks, **agents get stuck, and that is a class of bug** | Documented in Two Point: the "cannot find a path" and "invalid navigation" titles. docs/14 had already written this down as the "shared wound" of Cat Cafe Manager and Tavern Keeper |
 | In a room layout, **walking time turns into an economic variable** | Hot Springs Story: the game calculates distance and duration; how many facilities a guest can consume in a day is set by the walking |
 

@@ -1,34 +1,34 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Icerik yukleme katmani, .NET tarafi.
-    Kaynak unity/Assets/Lokanta/Content altinda; buradan baglaniyor.
+    The content-loading layer, .NET side.
+    The source is under unity/Assets/Lokanta/Content; it is linked from here.
 
-    docs/23-cekirdek-sozlesmesi.md 6.1: Newtonsoft SADECE bu derlemede.
-    Unity tarafinda karsiligi com.unity.nuget.newtonsoft-json paketi ve
-    asmdef'teki precompiledReferences girdisi.
+    docs/23-core-contract.md 6.1: Newtonsoft is in THIS assembly ONLY. On the
+    Unity side its counterpart is the com.unity.nuget.newtonsoft-json package
+    and the precompiledReferences entry in the asmdef.
   -->
 
   <!--
-    IKI HEDEF, TEK KAYNAK.
+    TWO TARGETS, ONE SOURCE.
 
-      netstandard2.1  KORUMA. Unity'nin API yuzeyi bu; cekirdek onun
-                      disina cikarsa derleme burada kirilir. Hicbir
-                      zaman YUKLENMIYOR, yalnizca derleniyor.
-      net10.0         TESTLERIN VE DENGE ARACININ yukledigi derleme.
+      netstandard2.1  THE GUARD. This is Unity's API surface; if the core
+                      steps outside it the build breaks here. It is never
+                      LOADED, only compiled.
+      net10.0         The assembly the tests and the balance tool load.
 
-    Neden ikisi: bu makinede Smart App Control ZORUNLU modda (Windows
-    11, CI politikasi {0283ac0f-...}) ve imzasiz bir netstandard2.1
-    derlemesinin YUKLENMESINI engelliyor - net10.0 olani ayni klasorde,
-    ayni sekilde imzasiz, sorunsuz yukleniyor. Olculdu: cekirdek her
-    degistiginde 213 testin 206'si FileLoadException veriyordu
-    (0x800711C7) ve denge araci hic calismiyordu. Kod hatasi degildi;
-    yalniz hedef cercevesi.
+    Why both: Smart App Control is in ENFORCED mode on this machine
+    (Windows 11, CI policy {0283ac0f-...}) and it blocks an unsigned
+    netstandard2.1 assembly from LOADING - while the net10.0 one, in the
+    same folder and just as unsigned, loads without complaint. Measured:
+    every time the core changed, 206 of 213 tests threw
+    FileLoadException (0x800711C7) and the balance tool did not run at
+    all. It was not a code error; only the target framework.
 
-    Tek hedefe donmek cazip ama ikisi de gerekli: net10.0'a gecmek
-    korumayi kaldirir ve cekirdek sessizce Unity'de olmayan bir API
-    kullanmaya baslar; netstandard2.1'de kalmak bu makinede hicbir seyi
-    kosturamamak demek.
+    Dropping to a single target is tempting and both are needed: moving
+    to net10.0 removes the guard and the core quietly starts using an API
+    Unity does not have; staying on netstandard2.1 means nothing can be
+    run on this machine.
   -->
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>

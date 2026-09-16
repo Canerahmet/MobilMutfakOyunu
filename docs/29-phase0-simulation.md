@@ -18,7 +18,7 @@
 | The balance tool | `src/Lokanta.Harness/` | Five strategies, multi-seed |
 | Tests | `tests/Lokanta.Core.Tests/` | 88 tests |
 
-**The Unity project is configured by code.** The `Lokanta/Proje ayarlarini uygula` menu item, or `tools/unity/run.ps1` in batch mode. No setting is clicked by hand; it repeats.
+**The Unity project is configured by code.** The `Lokanta/Apply the project settings` menu item, or `tools/unity/run.ps1` in batch mode. No setting is clicked by hand; it repeats.
 
 The settings applied: linear colour space; graphics API with Vulkan first and OpenGL ES 3 as the fallback; IL2CPP; ARM64; Android 10 as the floor; ASTC texture compression; AAB output; landscape orientation only; the accelerometer off; the URP asset created and assigned; HDR off; additional light shadows off; **the GPU Resident Drawer off**.
 

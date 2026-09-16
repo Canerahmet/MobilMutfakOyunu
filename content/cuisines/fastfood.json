@@ -1,7 +1,7 @@
 {
   "id": "fastfood",
   "nameKey": "cuisine.fastfood",
-  "_comment": "URETILEN DOSYA. tools/balance/export.py",
+  "_comment": "GENERATED FILE. tools/balance/export.py",
   "slotDurationsBp": [
     2500,
     1800,

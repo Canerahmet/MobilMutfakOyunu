@@ -39,23 +39,23 @@ take = min(the party's plate count, free slots, the plates a cook can attend to 
 | Station | `attendBp` | Tier | Slots | `attendBp` | Price | Needed at tables |
 |---|---|---|---|---|---|---|
 | Stove | 3500 | t0 | 1 | 3500 | — | 4 |
-|  |  | t1 | 2 | 3500 | 2.340 | 7 |
-|  |  | t2 | 3 | 3500 | 3.480 | 10 |
-|  |  | t3 | 4 | 2800 | 10.000 | 14 |
+|  |  | t1 | 2 | 3500 | 2,340 | 7 |
+|  |  | t2 | 3 | 3500 | 3,480 | 10 |
+|  |  | t3 | 4 | 2800 | 10,000 | 14 |
 | Grill | 5600 | t0 | 1 | 5600 | — | 4 |
-|  |  | t1 | 2 | 5600 | 2.340 | 7 |
-|  |  | t2 | 3 | 5600 | 3.480 | 10 |
-|  |  | t3 | 4 | 3500 | 10.000 | 14 |
+|  |  | t1 | 2 | 5600 | 2,340 | 7 |
+|  |  | t2 | 3 | 5600 | 3,480 | 10 |
+|  |  | t3 | 4 | 3500 | 10,000 | 14 |
 | Oven | 2000 | t0 | 1 | 2000 | — | 4 |
-|  |  | t1 | 2 | 2000 | 6.000 | 14 |
+|  |  | t1 | 2 | 2000 | 6,000 | 14 |
 | Cold | 10000 | t0 | 1 | 10000 | — | 4 |
-|  |  | t1 | 1 | 8000 | 3.480 | optional |
+|  |  | t1 | 1 | 8000 | 3,480 | optional |
 | Drinks | 10000 | t0 | 1 | 10000 | — | 4 |
-|  |  | t1 | 1 | 6500 | 3.480 | optional |
+|  |  | t1 | 1 | 6500 | 3,480 | optional |
 | Desserts | 8000 | t0 | 1 | 8000 | — | 4 |
-|  |  | t1 | 1 | 6000 | 3.480 | optional |
+|  |  | t1 | 1 | 6000 | 3,480 | optional |
 
-The whole ladder is **48.080 coins**.
+The whole ladder is **48,080 coins**.
 <!-- /GENERATED: equipment -->
 
 The last tier is 10,000 coins — inside the 8,000-12,000 band §7 of [12-economy.md](12-economy.md) asks for. The whole ladder is **48,080 coins**; the reasonable player's sixty-day net is **42,627**. **So they cannot buy everything and have to choose** — and the mandatory ones (the ones that add slots) are 37,640, the optional ones (the ones that release the cook early) 10,440. That was exactly the target.
@@ -190,10 +190,10 @@ This is not a bug, it is **a designed foundation**: §3 of [12-economy.md](12-ec
 | Tier | `keepBp` | Ingredients saved | Price |
 |---|---:|---:|---:|
 | t0 | 0 | 0 / 36 | — |
-| t1 | 2500 | 13 / 36 | 2.340 |
-| t2 | 10000 | 33 / 36 | 3.480 |
+| t1 | 2500 | 13 / 36 | 2,340 |
+| t2 | 10000 | 33 / 36 | 3,480 |
 
-The whole ladder is **5.820 coins**. Perishable ingredients: **36** items.
+The whole ladder is **5,820 coins**. Perishable ingredients: **36** items.
 
 A tier only saves an ingredient if it can raise its life to **2 days**: a life of 1 and a life of 0 go in the bin the same night.
 <!-- /GENERATED: storage -->
@@ -205,7 +205,7 @@ player peaks at 25,000), and when it was lowered to 4,500 it does get
 bought and **loses 3,700**.
 
 The reason is not the price but the **calendar**. After the second step there is about 4,700
-coins of annual wastage left, and the third step saves part of that; in a
+coins of annual spoilage left, and the third step saves part of that; in a
 sixty-day campaign no price can make that pay. Lowering it further is not
 a solution either — at that point it stops being a **decision** and turns into
 an automatic purchase.

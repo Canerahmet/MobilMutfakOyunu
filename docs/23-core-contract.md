@@ -305,7 +305,7 @@ Turkish has two separate letter i's: a dotless one (U+0131 lowercase, U+0049 upp
 | Number formatting | The core does not produce text. It returns numbers and keys, the view layer formats them |
 | Identifier alphabet | `[a-z0-9_]+`, validation rejects anything else |
 
-`Lokanta.Core` carries no `CultureInfo` reference anywhere, because it does no culture-sensitive operation. This is stronger than the rule: there is no need.
+`Lokanta.Core` carries no `CultureInfo` reference anywhere, because it does no culture-sensitive operation. That is stronger than the rule requires: the core does not merely avoid a culture-sensitive call, it has no way to make one.
 
 ### 4.3 Verification
 
