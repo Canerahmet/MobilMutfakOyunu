@@ -287,7 +287,47 @@ to catch.
 
 This is not a bug, it is the gates doing their job: they are stale *by design*
 between releases, and the only failure would be shipping without re-running
-them.
+them. So the first one was re-run.
+
+### The stripping exam, re-run
+
+```
+.\tools\unity\tour.ps1 -Build windows-il2cpp
+summary: 183 passed, 0 failed, 3 unmeasured
+```
+
+`link.xml` still covers the DTO layer after eighty-odd changed files. The three
+unmeasured lines are the Turkish cuisine's: the combo is FAST FOOD's signature
+mechanic, so "the combo button was pressed during service" has nothing to
+measure here.
+
+**It took three attempts, and none of the failures were the game's.** Smart App
+Control blocks an unsigned binary by HASH, and this build produces two of them:
+
+| attempt | what happened |
+|---|---|
+| 1 | `Start-Process` refused outright - *"An Application Control policy has blocked this file"* |
+| 2 | the player launched, `Player.log` stayed **0 bytes**, and the process sat there for eight minutes on 0.6 s of CPU |
+
+The second one is worth writing down, because from the outside it looks exactly
+like a hang - and a hang looks exactly like the startup death this gate exists
+to catch. The process was still responding, so the dialog behind it could be
+read:
+
+```
+Failed to load il2cpp
+```
+
+Not a stripping failure: `Lokanta.exe` had started and `GameAssembly.dll` had
+been refused. Nothing named the game in the CodeIntegrity log, so the window
+title was the only evidence there was. The incremental build had not re-linked
+the DLL, so attempt 2 was handed the **same hash** that had just been blocked.
+Deleting `build/windows-il2cpp/` forced a re-link, the new hash went through,
+and the exam ran.
+
+The rule this sits under is [CLAUDE.md](../CLAUDE.md) 5: **never turn Smart App
+Control off - it is a one-way switch.** Working around it costs one rebuild.
+Turning it off costs the machine's guarantee, permanently.
 
 ---
 
@@ -296,6 +336,7 @@ them.
 ```
 python tools/check.py              16/16 clean, 249 core tests
 tour.ps1 -Cuisine fastfood         179 passed, 0 failed, 5 unmeasured
+tour.ps1 -Build windows-il2cpp     183 passed, 0 failed, 3 unmeasured
 ```
 
 **The balance was re-run**, because the peak fix changes how two traits behave
