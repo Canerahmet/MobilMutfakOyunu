@@ -438,7 +438,94 @@ namespace Lokanta.Game.Ui
             v.touchScrollBehavior = ScrollView.TouchScrollBehavior.Elastic;
             v.scrollDecelerationRate = 0.135f;
             v.elasticity = 0.1f;
+
+            // AND SOMETHING HAS TO TAKE THE SCROLLBAR'S PLACE.
+            //
+            // Hiding the bar was right - it is a thick light-grey desktop
+            // control with arrow buttons on it and it looked foreign in the
+            // screenshot. But it was also the ONLY thing on screen saying
+            // "there is more below", and nothing replaced it. What that cost,
+            // measured on the shipped frames at 873 x 393:
+            //
+            //   settings        the hints button, the "Language" heading, ALL
+            //                   FIVE language buttons and Back are below the
+            //                   fold. A five-language game with no reachable
+            //                   way to change language.
+            //   cuisine choice  the SECOND cuisine and Back. The screen that
+            //                   sells the game offers one of the two things it
+            //                   is selling.
+            //   main menu       with a save present, a fourth button pushes
+            //                   the content 47 dp past the viewport.
+            //   slot choice     slots 3 and 4 and Back.
+            //
+            // All four are draggable. None of them says so. The back key gets
+            // the player out (UiRoot), so it is not a trap - but a control
+            // nobody can find has not shipped.
+            Fade(v);
             return v;
+        }
+
+        /// <summary>
+        /// The bottom edge fade: the scrollbar's replacement.
+        ///
+        /// IT IS STACKED STRIPS, NOT A GRADIENT. UI Toolkit's C# style API has
+        /// no gradient fill, and this project has a standing rule against
+        /// reaching for a drawing API that "worked in the editor and did not
+        /// show up in the build" - Icons.cs builds every icon in the game out
+        /// of rectangles for exactly that reason. Six strips of the background
+        /// colour at rising alpha read as a fade at 393 dp and cannot fail in
+        /// a way the editor hides.
+        ///
+        /// IT ONLY APPEARS WHEN THERE IS SOMETHING BELOW. A fade on a screen
+        /// that fits would be a lie in the other direction, and this project
+        /// has enough of those. The check runs on GeometryChangedEvent, which
+        /// is the only moment either height is known.
+        ///
+        /// `pickingMode = Ignore` on every part: the fade sits over the
+        /// content and must never eat a press meant for the control beneath.
+        /// </summary>
+        private static void Fade(ScrollView v)
+        {
+            VisualElement fade = new VisualElement();
+            fade.pickingMode = PickingMode.Ignore;
+            fade.style.position = Position.Absolute;
+            fade.style.left = 0;
+            fade.style.right = 0;
+            fade.style.bottom = 0;
+            fade.style.height = 28;
+            fade.style.display = DisplayStyle.None;
+
+            const int steps = 6;
+            for (int i = 0; i < steps; i++)
+            {
+                VisualElement strip = new VisualElement();
+                strip.pickingMode = PickingMode.Ignore;
+                strip.style.flexGrow = 1;
+                strip.style.backgroundColor = new Color(
+                    Bg.r, Bg.g, Bg.b, (i + 1) / (float)steps * 0.95f);
+                fade.Add(strip);
+            }
+            // hierarchy.Add, NOT Add.
+            //
+            // ScrollView overrides Add() to put the child in its
+            // contentContainer - so `v.Add(fade)` made the fade a piece of
+            // CONTENT: it added its own 28 dp to the content height, scrolled
+            // away with the content instead of staying pinned to the bottom
+            // edge, and fed the GeometryChangedEvent below with a height it
+            // had itself caused. A fade that makes the content taller, and
+            // then measures the content to decide whether to show itself, is
+            // a loop.
+            v.hierarchy.Add(fade);
+
+            v.contentContainer.RegisterCallback<GeometryChangedEvent>(_ =>
+            {
+                float content = v.contentContainer.resolvedStyle.height;
+                float view = v.contentViewport.resolvedStyle.height;
+                // A dp of slack: a content box that is a rounding error taller
+                // than its viewport is not "more below".
+                fade.style.display = (content > view + 1f)
+                    ? DisplayStyle.Flex : DisplayStyle.None;
+            });
         }
 
         /// <summary>A thin separating line.</summary>

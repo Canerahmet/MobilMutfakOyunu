@@ -1,15 +1,15 @@
-# SATIR SONU HER YERDE LF.
+# LF LINE ENDINGS, EVERYWHERE.
 #
-# Icerik URETILIYOR ve uretecler acikca LF yaziyor
+# The content is GENERATED and the generators write LF explicitly
 # (tools/balance/export.py, tools/content/gen_loc.py: newline="\n").
-# Git for Windows varsayilani calisma kopyasini CRLF'e cevirir; o zaman
-# `python tools/balance/export.py` her kosuda BUTUN icerik dosyalarini
-# degismis gosterirdi - gercek bir degisiklik olmadan. Uretilen ile
-# depodaki ayni olmali, yoksa "icerik guncel mi" sorusu okunamaz hale
-# gelir.
+# Git for Windows converts the working copy to CRLF by default, and then
+# `python tools/balance/export.py` would show EVERY content file as changed
+# on every run - without a single real change in any of them. What the
+# generator writes and what the repository holds have to be the same file,
+# or the question "is the content up to date" cannot be answered by looking.
 * text=auto eol=lf
 
-# Ikili dosyalar dokunulmasin.
+# Binary files: leave them alone.
 *.png binary
 *.jpg binary
 *.zip binary

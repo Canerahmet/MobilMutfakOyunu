@@ -1,6 +1,6 @@
 # --- Unity ----------------------------------------------------------------
-# Library 7,3 GB ve TAMAMEN turetilmis: Unity onu Assets + ProjectSettings'ten
-# yeniden kuruyor. Temp/Logs/UserSettings de oyle.
+# Library is 7.3 GB and ENTIRELY derived: Unity rebuilds it from Assets +
+# ProjectSettings. Temp/Logs/UserSettings are the same.
 unity/Library/
 unity/Temp/
 unity/Logs/
@@ -14,9 +14,9 @@ unity/*.csproj
 unity/*.sln
 *.unityproxy
 
-# --- Yapi ciktilari --------------------------------------------------------
-# build/ 757 MB ve icinde 90 MB'lik APK var; GitHub'in dosya siniri 100 MB.
-# Ikisi de yeniden uretilebilir.
+# --- Build output ----------------------------------------------------------
+# build/ is 757 MB and holds a 90 MB APK; GitHub's file limit is 100 MB.
+# Both are reproducible.
 build/
 aab/
 
@@ -29,12 +29,28 @@ __pycache__/
 *.pyc
 
 # --- Render ----------------------------------------------------------------
-# Calisma renderleri turetilmis ve her turda yeniden uretiliyor.
-# MAGAZA goruntuleri haric: onlar yayin varligi (docs/44).
+# Working renders are derived and remade on every tour.
+# The STORE images are the exception: they are a release asset (docs/44).
 render/*
-!render/magaza/
+# THE NEGATION HAD TO MOVE WITH THE FOLDER. The English rename moved
+# render/magaza to render/store and this line did not, so for the last day
+# render/* has ignored everything and the un-ignore has pointed at a folder
+# that no longer exists. The store images - the ones the comment above calls
+# a release asset - simply stopped being committed, silently, because an
+# ignore rule fails by doing nothing.
+!render/store/
 
-# --- Isletim sistemi -------------------------------------------------------
+# --- Operating system ------------------------------------------------------
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Unity's Performance Testing package writes these into Assets/Resources on
+# every run that loads the test framework, and deletes them again on the next
+# one. They got swept into a commit by a `git add -A` taken while a tour was
+# running, and the next tour deleted them - which is how a generated file
+# announces that it does not belong in the repository.
+unity/Assets/Resources/PerformanceTestRunInfo.json
+unity/Assets/Resources/PerformanceTestRunInfo.json.meta
+unity/Assets/Resources/PerformanceTestRunSettings.json
+unity/Assets/Resources/PerformanceTestRunSettings.json.meta

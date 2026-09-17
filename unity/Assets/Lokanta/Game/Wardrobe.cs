@@ -31,7 +31,21 @@ namespace Lokanta.Game
     public static class Wardrobe
     {
         /// <summary>The staff member's role. The clothes are built from it.</summary>
-        public enum Role { Cook, Dishwasher, Waiter }
+        /// <summary>
+        /// The staff member's role. The clothes are built from it.
+        ///
+        /// CLEANER IS NOT A DECORATION. docs/51 removed the waiter from fast
+        /// food entirely and put a cleaner in their place - it is the sharpest
+        /// mechanical difference between the two cuisines, worth +43% volume
+        /// and -22% on the ticket. The interface renames the role, the
+        /// simulation runs a different hall loop for it, and the FIGURE went
+        /// on wearing a dinner jacket, a white shirt and a burgundy bow tie,
+        /// because Dress had no arm for it and fell through to `default`.
+        ///
+        /// A self-service burger bar with a waiter standing in it contradicts
+        /// the one thing that picture is supposed to say.
+        /// </summary>
+        public enum Role { Cook, Dishwasher, Waiter, Cleaner }
 
         /// <summary>
         /// How many dressings were ATTEMPTED and how many were COMPLETED.
@@ -180,6 +194,20 @@ namespace Lokanta.Game
                     Gloves(leftArm, rightArm, height, mat, block);
                     break;
 
+                // THE CLEANER: the dishwasher's apron and gloves, and a cap.
+                //
+                // Built out of the parts that already exist rather than new
+                // geometry - the apron says "work clothes", the yellow gloves
+                // are the one colour that reads from a distance (the reason
+                // they were chosen for the dishwasher), and the cap separates
+                // the two from each other at a glance. It has to read at ~32
+                // dp, so the silhouette does the work, not the detail.
+                case Role.Cleaner:
+                    RubberApron(figure.transform, torso, scale, thickness, mat, block);
+                    Gloves(leftArm, rightArm, height, mat, block);
+                    Cap(head, height, b.max.y, mat, block);
+                    break;
+
                 default:
                     SuitJacket(figure.transform, torso, scale, thickness, mat, block);
                     break;
@@ -211,6 +239,32 @@ namespace Lokanta.Game
             go.transform.rotation = head.rotation;
             go.transform.position = new Vector3(head.position.x,
                                                 top - height * 0.045f,
+                                                head.position.z);
+        }
+
+        /// <summary>
+        /// THE CLEANER'S CAP: a flat band and a short peak.
+        ///
+        /// It is built like Hat and sized well under it - a chef's toque is
+        /// 31% of the figure's height on purpose, because it is the one piece
+        /// of state that has to read at overview size. The cleaner is not
+        /// competing for that; the cap only has to separate them from the
+        /// dishwasher, who wears the same apron and gloves.
+        /// </summary>
+        private static void Cap(Transform head, float height, float top,
+                                Material mat, MaterialPropertyBlock block)
+        {
+            Modeler m = new Modeler();
+            m.Prism(10, 0.42f, 0.44f, 0.20f, Vector3.zero,
+                    Quaternion.identity, Rubber);                     // the band
+            m.Box(new Vector3(0f, -0.02f, 0.30f),
+                  new Vector3(0.42f, 0.06f, 0.28f), Rubber);          // the peak
+
+            GameObject go = m.Build(head, HatName, mat, block);
+            Scale(go.transform, head, height * 0.20f);
+            go.transform.rotation = head.rotation;
+            go.transform.position = new Vector3(head.position.x,
+                                                top - height * 0.030f,
                                                 head.position.z);
         }
 

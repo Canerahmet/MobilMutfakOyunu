@@ -2234,7 +2234,22 @@ namespace Lokanta.Game
         private Color RoomColor(in RoomPlan.Room r)
         {
             Palette p = Pal(CuisineId);
-            if (r.IsDining) return p.FloorDark;
+
+            // THE DINING ROOM IS NO LONGER THE DARKEST FLOOR IN THE BUILDING.
+            //
+            // It used to take FloorDark - the darkest tone in the palette -
+            // so the one room the player is asked to watch had less light
+            // coming back off it than the store room. Combined with a sky
+            // brighter than the interior (DayLight.cs), the subject of the
+            // picture was its darkest region.
+            //
+            // The back of house still reads as the back of house: the lerps
+            // below start from FloorDark and stay where they were, so the
+            // kitchen and the wash room are colder and the store darker than
+            // the hall, which is the distinction this method exists to make.
+            // What changes is that the hall is now the brightest floor rather
+            // than the dimmest.
+            if (r.IsDining) return p.Floor;
             if (r.Name == "Kitchen" || r.Name == "Sink")
                 return Color.Lerp(p.FloorDark, RoomKitchen, 0.65f);
             return Color.Lerp(p.FloorDark, RoomService, 0.65f);
@@ -3529,7 +3544,16 @@ namespace Lokanta.Game
                     if (i < sim.Cooks) role = Wardrobe.Role.Cook;
                     else if (i >= _staff.Count - sim.Dishwashers)
                         role = Wardrobe.Role.Dishwasher;
-                    else role = Wardrobe.Role.Waiter;
+                    // AND IN SELF SERVICE THE HALL IS A CLEANER, NOT A
+                    // WAITER. docs/51 replaced the role outright; the interface
+                    // renames it and the simulation runs a different hall loop
+                    // for it. This line fell through to Waiter, so a
+                    // self-service burger bar had a figure in a dinner jacket
+                    // and a bow tie standing in it - the picture contradicting
+                    // the mechanic that is supposed to separate the two
+                    // cuisines.
+                    else role = sim.SelfService
+                        ? Wardrobe.Role.Cleaner : Wardrobe.Role.Waiter;
                     Wardrobe.Dress(_staff[i], role, _floorMat, _block);
                 }
 

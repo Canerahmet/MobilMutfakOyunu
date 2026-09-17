@@ -132,6 +132,25 @@ cihaz cihazlar tarama taramasi karakter karakterler dar genis yuva
 SOURCE_SUFFIXES = (".cs", ".py", ".ps1", ".json", ".md", ".uss", ".uxml",
                    ".xml", ".csproj", ".slnx")
 
+# FILES WITH NO EXTENSION AT ALL, read by exact name.
+#
+# The suffix list is how this check decides what to open, and the files that
+# CONFIGURE the repository have no suffix to match. `.gitignore` was written
+# in Turkish from the first commit - four section headings and three
+# paragraphs of reasoning - and every run of this check reported the
+# repository fully English, because it never opened the file.
+#
+# It cost more than tidiness. The English rename moved `render/magaza` to
+# `render/store` and the un-ignore line under `render/*` still said
+# `!render/magaza/`, so for a day the store screenshots - the ones the
+# comment three lines above calls a release asset - were silently ignored
+# and stopped being committed. An ignore rule fails by doing nothing.
+#
+# The list is exact names rather than a pattern: a dotfile sweep would pull
+# in `.gitattributes`, editor state and whatever else lands at the root, and
+# a check that shouts at things nobody edits gets switched off.
+SOURCE_NAMES = (".gitignore", ".gitattributes", ".editorconfig")
+
 SKIP_DIRS = {"Library", "Temp", "obj", "bin", "__pycache__", "build", "aab",
              "vendor", "node_modules", "render", ".git", ".vs", ".gradle",
              "Logs", "UserSettings"}
@@ -273,7 +292,7 @@ def walk_files():
     for base, dirs, files in os.walk(ROOT):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
         for name in sorted(files):
-            if name.endswith(SOURCE_SUFFIXES):
+            if name.endswith(SOURCE_SUFFIXES) or name in SOURCE_NAMES:
                 yield os.path.join(base, name)
 
 
@@ -409,6 +428,16 @@ def check_prose():
                 # here is directives and prose; element and attribute
                 # names are English anyway, so the line is read whole.
                 target = line
+            elif os.path.basename(path) in SOURCE_NAMES:
+                # A CONFIG FILE IS COMMENTS AND PATHS. The paths are names on
+                # disk and `check_names` already covers those, so only the
+                # `#` comments are prose here - the same rule as a .py file,
+                # named separately because these have no extension to match.
+                comments = PY_COMMENT.findall(line)
+                if not comments:
+                    continue
+                target = " ".join(c if isinstance(c, str) else c[0]
+                                  for c in comments)
             else:
                 comments = (CS_COMMENT.findall(line) if path.endswith(".cs")
                             else PY_COMMENT.findall(line))

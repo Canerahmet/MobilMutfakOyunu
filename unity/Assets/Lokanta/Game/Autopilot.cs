@@ -540,7 +540,39 @@ namespace Lokanta.Game
             // giving work. If the check has already been satisfied the window
             // closes at 40 s as before, so the later checks find the peak
             // exactly as they did.
-            while ((elapsed < 40f || (working == 0 && simTasks > 0 && elapsed < 75f))
+            // THE EXTENSION NOW COVERS EVERY HEADLINE CHECK, not just the
+            // kitchen one.
+            //
+            // The rule stated above is right - "the extension only comes into
+            // play if the thing to be measured HAS NOT BEEN SEEN YET" - and it
+            // was written for exactly one thing, the cook. Everything else in
+            // this window still closed at a flat 40 real seconds, and on
+            // 17 September a fast food run came back with FIVE reds at once:
+            //
+            //   FAIL : Service produces occupied tables (at most 0)
+            //   FAIL : There is movement in the hall (0 figures on their way)
+            //   FAIL : An approaching figure opened the door (0 doors)
+            //   FAIL : The guest comes in from the street (0 figures outside)
+            //   FAIL : Work is being done in the kitchen (0 people; ... 0 times)
+            //
+            // The SAME BINARY then passed twice - once at phone scale and once
+            // at store scale - so it was neither a code regression nor the
+            // render resolution, which is what I suspected first and checked
+            // second. It was this window closing before a thin day-one hall
+            // (four tables, twelve guests) happened to show any of it.
+            //
+            // A check that comes back red on one run in three is worse than no
+            // check: it teaches the reader to re-run until it is green, and
+            // then it can never fail for a real reason again.
+            //
+            // The extension does NOT lower a bar. It keeps looking, to the same
+            // 75 s ceiling, while something it is supposed to see is still
+            // unseen - and once everything has been seen the window closes at
+            // 40 s exactly as before, so the table checks that follow still
+            // find the peak.
+            bool allSeen() => _occupiedMost > 0 && j > 0 && before > 0
+                              && outside > 0 && working > 0;
+            while ((elapsed < 40f || (!allSeen() && elapsed < 75f))
                    && cv != null)
             {
                 // THE WINDOW WATCHES A CONDITION, NOT A FIXED SLICE.

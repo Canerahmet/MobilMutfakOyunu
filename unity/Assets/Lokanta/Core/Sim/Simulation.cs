@@ -3576,6 +3576,14 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
+        /// Self service: no waiter, a cleaner who clears the tables
+        /// (docs/51). The simulation already branches on the content's own
+        /// flag in two places; the VIEW had no way to ask, so it dressed the
+        /// cleaner as a waiter.
+        /// </summary>
+        public bool SelfService { get { return _content.SelfService; } }
+
+        /// <summary>
         /// Can a tab be opened for this party. The rule is DERIVED: only the
         /// FREQUENT archetypes (TierIndex 0). docs/13 put the veresiyeEligible
         /// field in the "regulars" file, but that content does not exist yet;

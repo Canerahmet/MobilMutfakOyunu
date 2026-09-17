@@ -269,11 +269,24 @@ namespace Lokanta.Game
             // the sky stays cool, the interior stays warm - which is what the
             // cuisine tint was always for and could never show while the
             // value was this high.
+            //
+            // THESE NUMBERS WERE FOUND BY MEASURING, TWICE. The ratio is
+            // (median luminance of everything that is not a flat field) over
+            // (the background's luminance), off the shipped store frame:
+            //
+            //     before          0.47x   the sky was twice the subject
+            //     first attempt   0.71x   better, still inverted
+            //     these stops     see docs/58
+            //     the night frame 2.08x   what a frame that reads looks like
+            //
+            // Guessing at this is what produced the first attempt. The whole
+            // point of the ratio is that it can be re-measured on the next
+            // build with one command.
             if (Cam != null)
                 Cam.backgroundColor = Mix(t,
-                    Tint(new Color(0.17f, 0.21f, 0.27f)),
-                    Tint(new Color(0.21f, 0.28f, 0.36f)),
-                    Tint(new Color(0.26f, 0.19f, 0.17f)),
+                    Tint(new Color(0.115f, 0.145f, 0.190f)),
+                    Tint(new Color(0.145f, 0.195f, 0.255f)),
+                    Tint(new Color(0.185f, 0.135f, 0.120f)),
                     new Color(0.04f, 0.05f, 0.09f));   // night: NO tint
 
             // THE WARM FILL INSIDE: the hall's own light. The outside going
