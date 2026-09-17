@@ -288,6 +288,104 @@ namespace Lokanta.Game.Ui
             return box;
         }
 
+        // =====================================================================
+        // THE THREE VERBS.
+        //
+        // These are what the player DOES during service - rush the kitchen,
+        // send tea out to the room, attend a table - and they had no icons at
+        // all. Three text buttons sized by the length of their own words, so
+        // "Tea" was a third the width of "Speed up" and the set read as three
+        // accidental rectangles rather than three peers. In Spanish the widths
+        // are different again.
+        //
+        // Drawn, like every other icon here: the star that came from a font
+        // once reached the player as an empty box.
+        //
+        // Each one says WHERE the verb lands, because that is the decision:
+        // the kitchen, the whole room, or one table.
+
+        /// <summary>Rush the kitchen: a flame.</summary>
+        public static VisualElement Flame(Color c, float s = 20f)
+        {
+            VisualElement box = Box(s);
+
+            // The body: a rounded blob, wider low and narrower high.
+            VisualElement body = Rect(s * 0.58f, s * 0.54f, c, s * 0.27f);
+            At(body, s * 0.21f, s * 0.42f);
+            box.Add(body);
+
+            // The tip: a smaller square turned 45 degrees, so the flame comes
+            // to a point instead of a dome. Rotation is how Icons draws every
+            // diagonal - there is no path API in play here.
+            VisualElement tip = Rect(s * 0.34f, s * 0.34f, c, s * 0.06f);
+            At(tip, s * 0.33f, s * 0.20f);
+            tip.style.rotate = new Rotate(45f);
+            box.Add(tip);
+            return box;
+        }
+
+        /// <summary>Tea for the room: a glass on a saucer.</summary>
+        public static VisualElement Cup(Color c, float s = 20f)
+        {
+            VisualElement box = Box(s);
+
+            // The glass: narrower at the foot, which is the shape of the
+            // tea glass the word means. A trapezoid is not available, so the
+            // taper is faked with a wide body and a narrow foot.
+            VisualElement body = Rect(s * 0.46f, s * 0.42f, c, s * 0.08f);
+            At(body, s * 0.27f, s * 0.18f);
+            box.Add(body);
+            VisualElement foot = Rect(s * 0.26f, s * 0.10f, c, s * 0.04f);
+            At(foot, s * 0.37f, s * 0.58f);
+            box.Add(foot);
+
+            // The saucer.
+            VisualElement saucer = Rect(s * 0.84f, s * 0.12f, c, s * 0.06f);
+            At(saucer, s * 0.08f, s * 0.70f);
+            box.Add(saucer);
+            return box;
+        }
+
+        /// <summary>Attend a table: a speech bubble.</summary>
+        public static VisualElement Speech(Color c, float s = 20f)
+        {
+            VisualElement box = Box(s);
+            VisualElement bubble = Rect(s * 0.86f, s * 0.62f, c, s * 0.18f);
+            At(bubble, s * 0.07f, s * 0.12f);
+            box.Add(bubble);
+
+            // The tail, bottom left - the direction a bubble points when it
+            // belongs to somebody sitting at the table below it.
+            VisualElement tail = Rect(s * 0.20f, s * 0.20f, c, s * 0.03f);
+            At(tail, s * 0.22f, s * 0.64f);
+            tail.style.rotate = new Rotate(45f);
+            box.Add(tail);
+            return box;
+        }
+
+        /// <summary>A lock: a mechanic that has not opened yet.</summary>
+        public static VisualElement Lock(Color c, float s = 20f)
+        {
+            VisualElement box = Box(s);
+            VisualElement body = Rect(s * 0.66f, s * 0.46f, c, s * 0.10f);
+            At(body, s * 0.17f, s * 0.46f);
+            box.Add(body);
+
+            // The shackle: a ring with the bottom half covered by the body,
+            // which is how a rounded rect becomes an arch.
+            VisualElement shackle = Rect(s * 0.42f, s * 0.42f, Color.clear, s * 0.21f);
+            At(shackle, s * 0.29f, s * 0.16f);
+            shackle.style.borderTopWidth = s * 0.11f;
+            shackle.style.borderLeftWidth = s * 0.11f;
+            shackle.style.borderRightWidth = s * 0.11f;
+            shackle.style.borderBottomWidth = 0f;
+            shackle.style.borderTopColor = c;
+            shackle.style.borderLeftColor = c;
+            shackle.style.borderRightColor = c;
+            box.Add(shackle);
+            return box;
+        }
+
         /// <summary>Plus: two bars.</summary>
         public static VisualElement Plus(Color c, float s = 14f)
         {

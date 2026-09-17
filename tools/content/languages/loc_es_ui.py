@@ -317,7 +317,6 @@ UI = {
     "ui.service.running_sub": "Servicio en marcha",
     "ui.service.rush": "Acelerar",
     "ui.service.table_n": "Mesa {0}",
-    "ui.service.target_auto": "impaciente",
     "ui.service.tea": "Té",
 
     # --- settings ---------------------------------------------------------

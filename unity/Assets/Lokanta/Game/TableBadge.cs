@@ -119,12 +119,24 @@ namespace Lokanta.Game
             fill.transform.SetParent(pivot.transform, false);
             fill.transform.localPosition = new Vector3(Width * 0.5f, 0f, 0f);
 
-            // The selection frame is a little BIGGER than the badge and
-            // BEHIND it: it does not cover the bar, it leaves a thin edge
-            // around it.
+            // The selection frame is BIGGER than the badge and BEHIND it: it
+            // does not cover the bar, it leaves an edge around it.
+            //
+            // +0.10 / +0.06 WAS NOT AN EDGE, IT WAS A ROUNDING ERROR. Against
+            // a badge that measured 4.4 dp on screen, three hundredths of a
+            // metre each side came to under a dp - one reviewer compared the
+            // tour's "a table is selected" screenshot with the one before it
+            // and could find no difference at all in the picture.
+            //
+            // It matters more now than it did: the target readout has come off
+            // the bottom strip (it cost 75 dp of the one group that had none
+            // to spare, and "> 3" is a number the player has to match up
+            // against a table anyway), so THIS is the channel that says which
+            // table is selected. A channel that carries the whole answer has
+            // to be visible.
             GameObject mark = Quad("Mark", material, new Color(1f, 0.93f, 0.72f));
             mark.transform.localScale =
-                new Vector3(Width + 0.10f, Thickness + 0.06f, Thickness);
+                new Vector3(Width + 0.22f, Thickness + 0.18f, Thickness);
             mark.transform.localPosition = new Vector3(0f, 0f, 0.006f);
             mark.SetActive(false);
 

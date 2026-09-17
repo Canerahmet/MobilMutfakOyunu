@@ -978,39 +978,6 @@ namespace Lokanta.Game.Ui
         /// player should see what they are pressing ON the button - not in a
         /// notice afterwards.
         /// </summary>
-        /// <summary>
-        /// The interventions' CURRENT TARGET - on a badge of its own rather
-        /// than in the button text.
-        ///
-        /// For a while the target was appended to both buttons' text ("Tea >
-        /// most impatient", "Attention > most impatient"). That cost two
-        /// things:
-        ///
-        ///   1. THE SAME INFORMATION TWICE. Both buttons go to the same
-        ///      target.
-        ///   2. The string length depended on THE LANGUAGE: English "most
-        ///      impatient" is longer than the Turkish. The strip had already
-        ///      overflowed once and the suffix had been cut from "most
-        ///      impatient" down to a single word - so this was the second
-        ///      time we hit the same wall.
-        ///
-        /// Measured: with the suffix gone, three buttons stopped being
-        /// clipped. The target is now on one badge and the buttons say only
-        /// the VERB - which is a button's job anyway.
-        /// </summary>
-        private VisualElement TargetBadge()
-        {
-            int sel = App.ValidSelection();
-            string text = sel >= 0
-                ? "› " + (sel + 1)
-                : "› " + Loc.T("ui.service.target_auto");
-
-            Label l = Theme.Text(text, Theme.FontSmall, Theme.InkDim);
-            l.style.flexShrink = 0;
-            l.style.marginLeft = 2;
-            l.style.unityTextAlign = TextAnchor.MiddleCenter;
-            return l;
-        }
 
         /// <summary>
         /// The notice writes the TABLE number, not the party index.
@@ -1227,7 +1194,19 @@ namespace Lokanta.Game.Ui
             int left = App.Sim.InterventionsLeft;
             bool done = App.Sim.ServiceComplete;
 
-            VisualElement box = Theme.Row(6);
+            // THE GROUP IS A COLUMN: the budget over the verbs it gates.
+            //
+            // In a row the four pips took 67 dp of width, and that was 67 dp
+            // the three buttons did not have - measured, they came out at
+            // 70 dp each and "Speed up" and "Attention" both broke onto two
+            // lines mid-word. Stacked, the pips cost about 14 dp of HEIGHT,
+            // which this strip has (the group is 66 dp in an 86 dp strip) and
+            // that width has to come from somewhere.
+            //
+            // It also says the thing the row could not: four charges sitting
+            // directly above the three ways to spend them is one object, and
+            // the shape of the decision is the point of the group.
+            VisualElement box = Theme.Column(2);
             box.style.flexGrow = 1;
             // The intervention box GIVES UP ITS SPACE: the signature button
             // next to it and "Close the day" are fixed width, while the box
@@ -1255,8 +1234,26 @@ namespace Lokanta.Game.Ui
             box.style.paddingRight = 7;
             box.style.paddingTop = 6;
             box.style.paddingBottom = 6;
-            box.style.alignItems = Align.Center;
+            // STRETCH, NOT CENTRE. The group is a COLUMN now, so alignItems
+            // is the HORIZONTAL axis: Center left both children content-sized,
+            // and a row of three buttons at `flexBasis: 0` inside an
+            // auto-width parent is degenerate - the verbs row grew past the
+            // group's own edge and landed on the Tab button. The overlap
+            // detector caught it at 26 dp, which is what it is for.
+            box.style.alignItems = Align.Stretch;
             Theme.Round(box, Kit.CardRadius);
+
+            // A COPPER EDGE ALONG THE TOP: this group is the one the player
+            // acts through.
+            //
+            // The strip was five dark boxes in a row - pause, speed, these
+            // three verbs, the signature button, "Close the day" - all the
+            // same colour, all different heights, and the one group that IS
+            // the game was the least distinguishable of them. The accent is
+            // spent here and nowhere else in the strip, because this is the
+            // thing the store text means by "the service is where you are".
+            box.style.borderTopWidth = 2;
+            box.style.borderTopColor = Theme.Accent;
 
             // THE STATION NAME IS NOT ON THE BUTTON.
             //
@@ -1276,7 +1273,23 @@ namespace Lokanta.Game.Ui
                 BuildBottom();
             }, wide: true);
             rush.SetEnabled(left > 0 && !done);
-            box.Add(rush);
+            // THE THREE VERBS SHARE A ROW OF THEIR OWN.
+            //
+            // They were direct children of the group alongside the pips and
+            // the target readout, all competing for the same width, and
+            // `flexGrow` on a button whose siblings are a fixed-width pip row
+            // does not produce three equal buttons - it produced three at
+            // their minimum width with the labels wrapped onto three lines
+            // ("Spe/ed/up"). An explicit third each, inside a row that owns
+            // the space, cannot be argued with by the layout engine.
+            VisualElement verbs = Theme.Row(6);
+            // No flexGrow: in a column that would stretch the row's HEIGHT.
+            // Its width comes from the group's Stretch above.
+            verbs.style.flexShrink = 1;
+            verbs.style.alignItems = Align.Stretch;
+
+            Verb(rush, Icons.Flame(left > 0 ? Theme.Accent : Theme.InkDim, 19f));
+            verbs.Add(rush);
 
             // TEA PICKS NO TARGET: IT GOES TO THE WHOLE HALL.
             //
@@ -1315,7 +1328,8 @@ namespace Lokanta.Game.Ui
             // No one waiting, no tea: burning an allowance with nobody to
             // send it to would make no sense.
             tea.SetEnabled(left > 0 && !done && App.Sim.WaitingParties > 0);
-            box.Add(tea);
+            Verb(tea, Icons.Cup(left > 0 ? Theme.Accent : Theme.InkDim, 19f));
+            verbs.Add(tea);
 
             Button care = Theme.Btn(Loc.T("ui.service.attention"), () =>
             {
@@ -1327,7 +1341,8 @@ namespace Lokanta.Game.Ui
                 BuildBottom();
             }, wide: true);
             care.SetEnabled(left > 0 && !done);
-            box.Add(care);
+            Verb(care, Icons.Speech(left > 0 ? Theme.Accent : Theme.InkDim, 19f));
+            verbs.Add(care);
 
             // THE ALLOWANCE LEFT: DOTS, NOT A NUMBER.
             //
@@ -1342,23 +1357,68 @@ namespace Lokanta.Game.Ui
             // with the tab button present too - all three were being
             // clipped. The touch target comes from `minWidth` rather than
             // from the padding, so narrowing it does not hurt pressability.
+            // 8 -> 4. The last four dp "Attention" needed to stop breaking
+            // mid-word into "Attentio / n".
+            //
+            // Safe for the same reason the original comment gives for
+            // narrowing it to 8 in the first place: the touch target comes
+            // from `minWidth = Theme.Touch`, not from the padding, so
+            // trimming the padding costs nothing pressable. The label is
+            // centred under an icon now rather than filling the button, so
+            // there is no longer any text sitting against the edge.
             foreach (Button d in new[] { rush, tea, care })
             {
-                d.style.paddingLeft = 8;
-                d.style.paddingRight = 8;
+                d.style.paddingLeft = 4;
+                d.style.paddingRight = 4;
             }
 
             // THE TARGET BADGE: it came off two buttons' labels and landed
             // here.
-            box.Add(TargetBadge());
+            // THE TARGET READOUT IS GONE FROM THE STRIP.
+            //
+            // It was a 14 dp grey string reading "> impatient" or "> 3", and
+            // it cost about 75 dp of the one group that had none to spare -
+            // enough that the three verbs beside it could not fit their own
+            // labels on one line.
+            //
+            // It is not lost: selecting a table puts a brighter frame behind
+            // that table's badge in the WORLD (TableBadge), which is where
+            // the player is looking and which says WHICH table rather than
+            // a number they have to match up. A cryptic string 200 dp away
+            // from the thing it describes was the weaker of the two channels,
+            // and it was the one taking the space.
 
-            VisualElement pips = Theme.Row(0);
+            // THE BUDGET SITS WITH THE VERBS IT GATES.
+            //
+            // The pips were 9 dp dots at the far right of a wide box, past the
+            // target label, so "these three share these four charges" - the
+            // whole shape of the decision - was not on screen anywhere. They
+            // are bigger and they now come first, against the buttons.
+            //
+            // A spent charge is drawn as an OUTLINE rather than a dim dot: an
+            // empty socket reads as "this was used" where a grey dot just
+            // reads as a smaller dot.
+            VisualElement pips = Theme.Row(5);
             pips.style.alignItems = Align.Center;
-            pips.style.marginLeft = 4;
-            pips.style.marginRight = 2;
+            pips.style.justifyContent = Justify.Center;
+            pips.style.flexShrink = 0;
+            pips.style.height = 13;
             for (int i = 0; i < App.Sim.InterventionsPerDay; i++)
-                pips.Add(Theme.Dot(i < left ? Theme.Accent : Theme.Line, 9f));
+            {
+                if (i < left) { pips.Add(Theme.Dot(Theme.Accent, 10f)); continue; }
+                VisualElement spent = Theme.Dot(Color.clear, 10f);
+                spent.style.borderTopWidth = 2;
+                spent.style.borderBottomWidth = 2;
+                spent.style.borderLeftWidth = 2;
+                spent.style.borderRightWidth = 2;
+                spent.style.borderTopColor = Theme.Line;
+                spent.style.borderBottomColor = Theme.Line;
+                spent.style.borderLeftColor = Theme.Line;
+                spent.style.borderRightColor = Theme.Line;
+                pips.Add(spent);
+            }
             box.Add(pips);
+            box.Add(verbs);
             row.Add(box);
 
             // --- the signature mechanic: one or the other, by cuisine ---
@@ -1400,7 +1460,18 @@ namespace Lokanta.Game.Ui
             // Once service is over, "Close the day" is THE ONLY MEANINGFUL
             // ACTION: it turns green and the intervention buttons close.
             // There is no such thing as offering tea to a finished service.
-            row.Add(Kit.Cta(Loc.T("ui.service.close"),
+            // THE CTA'S SIZE FOLLOWS WHETHER IT IS THE ACTION.
+            //
+            // During service it is the biggest object in the strip and its own
+            // subtitle says "Service running" - it is not what the player is
+            // doing, it is what they will do when they have finished doing the
+            // thing this strip is for. Meanwhile the three verbs had about
+            // 48 dp each and "Speed up" wrapped onto three lines.
+            //
+            // So it gives the width back until the service is over, and takes
+            // it again the moment it IS the only meaningful action - which is
+            // a state the code already knows and already uses for the colour.
+            Button cta = Kit.Cta(Loc.T("ui.service.close"),
                             done ? Loc.T("ui.service.close_sub")
                                  : Loc.T("ui.service.running_sub"),
                             () =>
@@ -1433,7 +1504,67 @@ namespace Lokanta.Game.Ui
                 App.CloseDay();
                 BuildBottom();
                 BuildCards();
-            }, done));
+            }, done);
+            // NO WIDTH CAP ON THE CTA, and the reason is a measurement.
+            //
+            // Capping it was this round's first attempt at finding room for
+            // the three verbs, and it cost more than it bought: at 190 and at
+            // 210 the title "Close the day" broke onto two lines, which makes
+            // the button TALLER, which makes the whole strip taller, which
+            // moves the camera - the tour's "the camera came back to the
+            // overview framing" check went red by 0.76 m and the service strip
+            // measured 176 dp in English against a 154 dp budget.
+            //
+            // The width the verbs needed came from the pips moving onto their
+            // own line instead. The strip's height is not free space: it is
+            // the hall's.
+            cta.style.flexShrink = 1;
+            row.Add(cta);
+        }
+
+        /// <summary>
+        /// Turns one of the three service verbs into an icon-over-label button
+        /// of the same width as the other two.
+        ///
+        /// WHY EQUAL WIDTH. `Theme.Btn` sizes to its text, so the three came
+        /// out at the widths of the words "Speed up", "Tea" and "Attention" -
+        /// three unequal rectangles that read as an accident rather than as a
+        /// set of three things you choose between. In Spanish the proportions
+        /// are different again, and in Turkish different again. A player
+        /// learning the game has to see three peers.
+        ///
+        /// `flexBasis = 0` with `flexGrow = 1` is what makes them equal: they
+        /// share the group's width rather than claiming their content's. The
+        /// label still wraps rather than clipping, which is why the icon goes
+        /// ABOVE it instead of beside it - beside it, the longest translation
+        /// would push the icon out.
+        ///
+        /// The icon carries WHERE the verb lands - the kitchen, the room, one
+        /// table - because that is the actual decision, and it is the part
+        /// that survives at a glance when the words do not.
+        /// </summary>
+        private static void Verb(Button b, VisualElement icon)
+        {
+            // READ THE LABEL OFF THE BUTTON, do not pass it again. The caller
+            // has already put the translated string there; a second parameter
+            // would be a second source for one string, which is how a
+            // translation ends up applied to one of them and not the other.
+            string label = b.text;
+            b.text = string.Empty;
+            b.style.flexDirection = FlexDirection.Column;
+            b.style.alignItems = Align.Center;
+            b.style.justifyContent = Justify.Center;
+            b.style.flexGrow = 1;
+            b.style.flexBasis = 0;
+            b.style.paddingTop = 3;
+            b.style.paddingBottom = 3;
+
+            Label caption = Theme.Text(label, Theme.FontSmall, Theme.Ink);
+            caption.style.marginTop = 1;
+            caption.style.unityTextAlign = TextAnchor.MiddleCenter;
+
+            b.Add(icon);
+            b.Add(caption);
         }
 
         /// <summary>

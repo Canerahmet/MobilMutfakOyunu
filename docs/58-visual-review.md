@@ -487,6 +487,54 @@ The pairs above are same-cuisine, same-build.
 
 ---
 
+## 10b. The bottom strip
+
+> *"Su an altta duran kisim biraz kaba gibi."*
+>
+> *("The part at the bottom looks a bit crude at the moment.")*
+
+It was, and the reason is worth naming: the strip held four different KINDS of
+thing - the clock, the three verbs, the signature mechanic and the phase advance
+- in five dark boxes of five different sizes, all the same colour, with nothing
+saying which of them was the game.
+
+The three verbs were the worst of it. They are what the player DOES during
+service, and they were plain text buttons sized by the length of their own
+words, so "Tea" was a third the width of "Speed up" and the set read as three
+accidental rectangles. The four charges that gate all three sat at the far end
+of the box past a grey `> impatient`, so the shape of the decision - *three ways
+to spend four charges* - was not on screen anywhere.
+
+**What it is now.** One group with a copper edge along its top - the accent is
+spent there and nowhere else in the strip, because that group is the one the
+player acts through. Inside it, the four charges sit centred directly above
+three equal-width buttons, each with a drawn icon saying WHERE the verb lands:
+a flame for the kitchen, a glass for the room, a speech bubble for one table.
+A spent charge is an empty socket rather than a dim dot.
+
+**Four things were tried and thrown away on the way**, all of them measured
+rather than argued:
+
+| attempt | what the measurement said |
+|---|---|
+| `flexGrow` on the three buttons | They stayed at their 52 dp minimum and the labels broke into "Spe/ed/up". A button whose siblings are a fixed-width pip row does not get an equal third |
+| A width cap on the CTA, to free room | Its own title wrapped to two lines, which made the button taller, which made the STRIP taller - 176 dp against a 154 dp budget - and the tour's camera check went red by 0.76 m. **The strip's height is the hall's.** |
+| Moving the pips into a column | Right idea, wrong axis: in a column `alignItems` is the HORIZONTAL one, and `Center` left the verb row content-sized so it grew past the group and landed on the Tab button. The overlap detector caught it at 26 dp |
+| Dropping the `> impatient` readout | Kept. It cost ~75 dp of the one group with none to spare, and it is a number the player has to match against a table anyway |
+
+That last one has a condition attached. The readout was the only textual answer
+to "which table is selected", so removing it makes the WORLD the only channel -
+and the selection frame there was `+0.10 / +0.06` metres against a badge
+measuring 4.4 dp, which is under a dp of edge. One reviewer compared the tour's
+"a table is selected" screenshot against the one before it and could find no
+difference in the picture at all. The frame is `+0.22 / +0.18` now. **Removing a
+weak channel is only safe once the one it leaves behind is strong.**
+
+Strip height after all of it: **162 dp in every language**, against 154 before.
+Eight dp of hall for a group that says what it is.
+
+---
+
 ## 11. THE RELEASE BUILD IS BLOCKED ON THIS MACHINE
 
 Re-running the two pre-release gates after this round found something that has

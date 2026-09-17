@@ -317,7 +317,6 @@ UI = {
     "ui.service.running_sub": "الدوام جارٍ",
     "ui.service.rush": "تسريع",
     "ui.service.table_n": "الطاولة {0}",
-    "ui.service.target_auto": "الأكثر نفادًا للصبر",
     "ui.service.tea": "شاي",
 
     # --- settings ---------------------------------------------------------

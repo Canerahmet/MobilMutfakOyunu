@@ -253,7 +253,6 @@ UI = {
     "ui.service.credit": "Veresiye",
     # Once yalnizca "Hak" yaziyordu ve neyin hakki oldugu belli degildi.
     # Secim yokken hedefi oyun seciyor; dugme bunu soylemeli.
-    "ui.service.target_auto": "sabırsız",
 
     # SERVIS GERI BILDIRIMLERI.
     #

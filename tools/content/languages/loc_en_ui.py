@@ -189,7 +189,6 @@ UI = {
     # "most impatient" (14) is LONGER than the Turkish "sabırsız" (8) and
     # the strip sits right on its limit: the wrapping that overflowed in
     # TR would have opened up all over again in English.
-    "ui.service.target_auto": "impatient",
     "ui.evening.title": "Day report",
     "ui.evening.revenue": "Takings",
     "ui.evening.ingredients": "Ingredients",

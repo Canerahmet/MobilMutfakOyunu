@@ -311,7 +311,6 @@ UI = {
     "ui.service.running_sub": "营业中",
     "ui.service.rush": "催后厨",
     "ui.service.table_n": "{0} 号桌",
-    "ui.service.target_auto": "最急的",
     "ui.service.tea": "上茶",
 
     # --- settings ---------------------------------------------------------
