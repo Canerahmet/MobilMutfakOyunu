@@ -175,6 +175,13 @@ def main():
          [PY, os.path.join("tools", "check_english.py")]),
         ("urp settings",
          [PY, os.path.join("tools", "check_urp.py")]),
+
+        # The colour grade: docs/19 allows a LIGHT one, and the expensive
+        # effects all sit in the same asset with their override already
+        # enabled - so turning bloom on is typing a number, not adding a
+        # feature.
+        ("colour grade",
+         [PY, os.path.join("tools", "check_grade.py")]),
         # LICENCES: the gate for a commercial release. If an asset folder
         # is left without a licence or without a row in the attribution
         # ledger, a release risk is created - and it is not Google Play

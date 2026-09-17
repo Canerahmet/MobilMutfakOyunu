@@ -558,6 +558,7 @@ namespace Lokanta.Game
             int working = 0;
             // How far a WALKING figure ever gets inside a table set.
             float intruding = 0f;
+            string intruderWho = "nobody";
             int processed = 0;
             int busyCooks = 0;
             int simTasks = 0;
@@ -698,7 +699,14 @@ namespace Lokanta.Game
                 cleanLeast = Mathf.Min(cleanLeast, _app.Sim.PlatesClean);
                 washing = Mathf.Max(washing, cv.WashingCount);
                 wait = Mathf.Max(wait, cv.WalkSlipWorst);
-                intruding = Mathf.Max(intruding, cv.WorstFurnitureOverlap);
+                // THE NUMBER WITHOUT THE NAME WAS NOT DIAGNOSABLE - see
+                // RestaurantView.WorstIntruder.
+                float intrudingNow = cv.WorstFurnitureOverlap;
+                if (intrudingNow > intruding)
+                {
+                    intruding = intrudingNow;
+                    intruderWho = cv.WorstIntruder;
+                }
                 GameScreen gameScreen = ((_app.Ui != null) ? (_app.Ui.Top as GameScreen) : null);
                 if (gameScreen != null)
                 {
@@ -753,10 +761,19 @@ namespace Lokanta.Game
             // beside a table clips the set's circle by a few centimetres for a
             // frame. Zero would make this a check that goes red on timing.
             Note(intruding < 0.10f, "Nobody walks through the furniture (worst "
-                 + intruding.ToString("0.00") + " m inside a table set)");
+                 + intruding.ToString("0.00") + " m inside a table set; "
+                 + intruderWho + ")");
             Note(cv != null && cv.WallCount >= 8, "The room walls were built (" + ((cv != null) ? cv.WallCount : 0) + " slabs)");
             Note(cv != null && cv.WallsClear, "The walls are transparent and have no colliders");
-            Note(cv != null && cv.DoorCount == 2, "Only the entrance and the kitchen have a swinging door (" + ((cv != null) ? cv.DoorCount : 0) + ")");
+            // 2 -> 1 ON 18 SEPTEMBER, and the check moved with the decision
+            // rather than being relaxed to fit it. The kitchen leaf is gone at
+            // the user's request - "let there be no door between the wash room
+            // and the kitchen, just a gap, let them walk straight through" - so
+            // the street door is the only swinging panel left in the game. An
+            // EXACT count either way: this exists to catch a leaf reappearing on
+            // some interior doorway, which is the failure that made it worth
+            // writing.
+            Note(cv != null && cv.DoorCount == 1, "Only the street door swings (" + ((cv != null) ? cv.DoorCount : 0) + ")");
             Note(cv != null && cv.GapCount >= cv.LinkCount + 1, "There is a gap for every neighbouring pair (" + ((cv != null) ? cv.GapCount : 0) + " gaps / " + ((cv != null) ? cv.LinkCount : 0) + " neighbouring pairs)");
             Note(before > 0, "An approaching figure opened the door (" + before + " doors)");
             Note(outside > 0, "The guest comes in from the street (" + outside + " figures outside)");
@@ -769,6 +786,14 @@ namespace Lokanta.Game
             Note(cv != null && cv.TrayCount <= cv.StaffCount, "The tray count does not exceed the crew (" + ((cv != null) ? cv.TrayCount : (-1)) + " trays / " + ((cv != null) ? cv.StaffCount : 0) + " staff)");
             Note(cv != null && cv.PotCount > 0, "There is a pan on top of the stoves (" + ((cv != null) ? cv.PotCount : 0) + " stoves)");
             NoteIf(Wardrobe.Attempted > 0, Wardrobe.Dressed == Wardrobe.Attempted, "All the staff were dressed (" + Wardrobe.Dressed + "/" + Wardrobe.Attempted + ")");
+            // THE CROWD: recoloured, or exactly what it looked like before?
+            //
+            // A crowd that failed to take the cuisine colormap is still a
+            // crowd - twelve perfectly ordinary figures in a restaurant. There
+            // is nothing to notice, which is why it is counted.
+            int crowdBare = ((cv != null) ? cv.CrowdUndressed : -1);
+            int crowdDressed = ((cv != null) ? cv.CrowdDressed : 0);
+            Note(crowdBare == 0 && crowdDressed > 0, "The crowd wears the cuisine (" + crowdDressed + " figures recoloured, " + crowdBare + " still in the pack's own clothes)");
             Note(cv != null && cv.StreetWalkers >= 3, "There are people passing along the street (" + ((cv != null) ? cv.StreetWalkers : 0) + " people)");
             Note(cv != null && wait < 0.15f, "The feet do not slide while walking (at worst " + (wait * 100f).ToString("0") + "% deviation)");
             Note(cv != null && pedestrianOverlaps == 0, "The pedestrians do not pass through each other (at worst " + pedestrianOverlaps + " pairs)");
@@ -904,11 +929,32 @@ namespace Lokanta.Game
                 yield return Settled();
                 Note(_app.Rig.FocusRoom == workingFrames, "Zoomed in on the room");
                 Note(Vector3.Distance(((Component)_app.Rig).transform.position, once2) > 1f, "The camera really moved");
+
+                // THE READOUT FOLLOWS THE CAMERA STEP (docs/31 8.1).
+                //
+                // Measured on BOTH sides of the same trip, in one check,
+                // because the failure worth catching is the pair going wrong
+                // together - both sets on at once, or the swap working one way
+                // only. Either leaves badges in the hall, and a screenshot
+                // with badges in it looks like a screenshot that passed.
+                RestaurantView badgeView = _app.View;
+                int roomBadgesZoomed = (badgeView != null) ? badgeView.VisibleRoomBadges : -1;
+                int tableBadgesZoomed = (badgeView != null) ? badgeView.VisibleTableBadges : -1;
+
                 yield return Shot("17-room-view");
                 _app.Rig.Overview();
                 yield return Settled();
                 float num14 = Vector3.Distance(((Component)_app.Rig).transform.position, _app.Rig.OverviewPosition);
                 Note(_app.Rig.FocusRoom < 0 && num14 < 0.5f, "Came back to the overview (" + num14.ToString("0.00") + " m)");
+
+                int roomBadgesWide = (badgeView != null) ? badgeView.VisibleRoomBadges : -1;
+                int tableBadgesWide = (badgeView != null) ? badgeView.VisibleTableBadges : -1;
+                NoteIf(tableBadgesZoomed + roomBadgesWide > 0,
+                       tableBadgesZoomed > 0 && roomBadgesZoomed == 0
+                       && roomBadgesWide > 0 && tableBadgesWide == 0,
+                       "The badge moves to the room in the overview and back to the table in the room ("
+                       + "in the room " + tableBadgesZoomed + " table / " + roomBadgesZoomed + " room, "
+                       + "in the overview " + tableBadgesWide + " table / " + roomBadgesWide + " room)");
             }
             else
             {

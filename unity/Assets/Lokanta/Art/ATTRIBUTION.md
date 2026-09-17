@@ -20,7 +20,7 @@ cannot be published.
 |---|---|---|---|---|---|
 | Kenney Food Kit | 2.0 | https://kenney.nl/assets/food-kit | CC0 1.0 | 2026-09-11 | Plates, food and kitchen objects |
 | Kenney Furniture Kit | 2.0 | https://kenney.nl/assets/furniture-kit | CC0 1.0 | 2026-09-11 | Tables, chairs, cabinets, counters |
-| Kenney Mini Characters | 1.0 | https://kenney.nl/assets/mini-characters | CC0 1.0 | 2026-09-11 | Customer and staff figures **and 32 animation clips** |
+| Kenney Mini Characters | 1.0 | https://kenney.nl/assets/mini-characters | CC0 1.0 | 2026-09-11 | Customer and staff figures **and 32 animation clips**, **recoloured per cuisine** |
 | Kenney Modular Characters | 1.0 | https://kenney.nl/assets/modular-characters | CC0 1.0 | 2026-09-11 | **NOT USED** — the package turned out to be 2D sprites, not a 3D wardrobe |
 
 There are two records and **both must be right**: this file and `vendor/ATTRIBUTION.md`. They drifted apart for a while — this one said the Furniture Kit was 1.0 (the truth: 2.0, `Art/Furniture/License.txt`) and showed Modular Characters as used, when that package was never used at all because it turned out to be 2D sprites. The pre-release asset licence audit ([21](../../../../docs/21-business-and-release.md) D6) reads this table; one wrong row invalidates the audit.
@@ -128,6 +128,16 @@ The licence text goes into the build as a separate file
 in-game Licences screen. **Separate copyright holder, separate notice** — saying
 "there is already an OFL" does not satisfy the licence.
 
+### A derived file is still the original's licence
+
+`Characters/Textures/colormap-crowd-fastfood.png` and `-turk.png` are the
+pack's own `colormap.png` with the clothing swatches recoloured
+(`tools/art/gen_crowd.py`). CC0 1.0 permits modification and redistribution
+without condition, so the derived files ship under the same row — but they are
+listed anyway, because a file in this tree with no row is a file nobody can
+account for a year from now, and the release audit ([21](../../../../docs/21-business-and-release.md) D6)
+reads this table, not the folder.
+
 ## Folder mapping (read by a machine)
 
 `tools/check_licenses.py` reads this table. Every asset folder under Art/ must
@@ -137,6 +147,7 @@ it" is true once — when a new folder is added nobody looks again.
 | Folder | Package | Licence |
 |---|---|---|
 | Characters | Kenney Mini Characters 1.0 | CC0 1.0 |
+| Characters/Textures/colormap-crowd-*.png | Derived from the above by `tools/art/gen_crowd.py` | CC0 1.0 |
 | Furniture | Kenney Furniture Kit 2.0 | CC0 1.0 |
 | Food | Kenney Food Kit 2.0 | CC0 1.0 |
 | Fonts | Rubik (Hubert & Fischer) + Noto Sans SC (Google) | SIL OFL 1.1 (both) |

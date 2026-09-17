@@ -423,6 +423,26 @@ namespace Lokanta.Game
             }
 
             if (!anyHit) return;
+
+            // IN THE OVERVIEW THE BADGE IS THE TARGET AND THE ROOM IS THE TRIP
+            // (docs/31 7: "the badge sits on the room, touching it opens the
+            // intervention"; zooming in is for looking, not out of necessity).
+            //
+            // It is checked FIRST because the badge stands over the room and a
+            // ray that reached it would otherwise carry on to the floor
+            // underneath and fly the camera in - the player would have aimed
+            // at a readout and been moved instead.
+            //
+            // A badge with no live table falls through to the trip: an empty
+            // room's badge is not a dead target, it is the room.
+            RoomBadgeTouch badge = hit.collider.GetComponentInParent<RoomBadgeTouch>();
+            if (badge != null)
+            {
+                if (SelectTable(badge.TableIndex)) return;
+                if (badge.RoomIndex >= 0) FocusOn(badge.RoomIndex);
+                return;
+            }
+
             RoomTouch t = hit.collider.GetComponentInParent<RoomTouch>();
             if (t != null) FocusOn(t.RoomIndex);
         }

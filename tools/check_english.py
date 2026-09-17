@@ -469,6 +469,68 @@ def check_prose():
     return bad
 
 
+# ---------------------------------------------------------------- pass 4
+# Unity assets that carry ONE name of their own inside them.
+#
+# `.prefab` and `.unity` are deliberately not here: they hold an `m_Name` for
+# every object in the hierarchy, and a child called "Govde" is an identifier
+# question, which pass 2 already asks of the code that looks it up.
+ASSET_SUFFIXES = (".mat", ".asset")
+
+
+def check_asset_names():
+    """An asset's INTERNAL name must match its file name.
+
+    THE RENAMES STOPPED AT THE FILE SYSTEM. The English pass renamed
+    `Mobilya_wood.mat` to `Furniture_wood.mat` and twenty others with it, and
+    every one of them still said `m_Name: Mobilya_wood` inside. This check
+    reported the repository fully English for weeks, because `.mat` was not in
+    the suffix list - the same failure as `.gitignore` above, in a different
+    place.
+
+    It is not cosmetic. `m_Name` is what `Material.name` returns at runtime,
+    and RestaurantView.Tinted decides what colour a thing is painted by
+    reading it. The furniture tinting survived only because the renaming had
+    changed the PREFIX and the branch matches the suffix: `Mobilya_wood` still
+    contains "wood". The next rename would not have been so lucky.
+
+    Comparing against the file name rather than sniffing for Turkish is
+    deliberate: `Mobilya` is a single token, and turkish_text needs two words
+    on a line before it will call something a sentence - so a one-word asset
+    name is invisible to the prose pass by design. This asks a question that
+    has an exact answer instead.
+    """
+    bad = []
+    for base, dirs, files in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+        for name in sorted(files):
+            if not name.endswith(ASSET_SUFFIXES):
+                continue
+            path = os.path.join(base, name)
+            try:
+                text = io.open(path, encoding="utf-8", errors="replace").read()
+            except Exception:
+                continue
+            stem = os.path.splitext(name)[0]
+            # THE EMPTY ONES ARE NOT NAMES. A URP material carries a
+            # MonoBehaviour side-car (AssetVersion) with a blank `m_Name`, so
+            # counting every line found TWO in half the materials and this
+            # pass skipped exactly the files it was written for - the first
+            # run reported two offenders where there were twenty-three.
+            found = [ln.split(":", 1)[1].strip()
+                     for ln in text.splitlines()
+                     if ln.startswith("  m_Name:")]
+            found = [f for f in found if f]
+            # Exactly one is the case this pass is about. An asset file with
+            # several real names (a sub-asset bundle) is a different shape and
+            # is left to the passes that read identifiers.
+            if len(found) != 1:
+                continue
+            if found[0] != stem:
+                bad.append("%s  says m_Name: %s" % (relative(path), found[0]))
+    return sorted(bad)
+
+
 def _utf8_stdout():
     """Print findings without dying on them.
 
@@ -495,18 +557,22 @@ def main():
     names = check_names()
     idents = check_identifiers()
     prose = check_prose()
+    assets = check_asset_names()
 
     print("names       : %d Turkish file or folder names" % len(names))
     print("identifiers : %d Turkish identifiers" % len(idents))
     print("prose       : %d Turkish comment or document lines" % len(prose))
+    print("assets      : %d assets whose internal name is not their file name"
+          % len(assets))
 
-    total = len(names) + len(idents) + len(prose)
+    total = len(names) + len(idents) + len(prose) + len(assets)
     if not total:
         print("result      : the repository is written in English")
         return 0
 
     limit = None if args.list else 15
-    for title, rows in (("NAME", names), ("IDENTIFIER", idents), ("PROSE", prose)):
+    for title, rows in (("NAME", names), ("IDENTIFIER", idents),
+                        ("PROSE", prose), ("ASSET", assets)):
         if not rows:
             continue
         print()

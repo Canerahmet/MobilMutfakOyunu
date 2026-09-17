@@ -44,7 +44,7 @@ namespace Lokanta.Game
 
         private Simulation Source { get { return App != null && App.Sim != null ? App.Sim : Preview; } }
 
-        [Header("Mobilya")]
+        [Header("Furniture")]
         public GameObject TablePrefab;
         public GameObject ChairPrefab;
         public GameObject StovePrefab;
@@ -99,9 +99,34 @@ namespace Lokanta.Game
         /// <summary>The colour of the threshold mat. Lighter than the floor, and not attention-seeking.</summary>
         public Color MatColor = new Color(0.42f, 0.36f, 0.30f);
 
-        [Header("Insanlar")]
+        [Header("People")]
         public GameObject[] CustomerPrefabs;
         public GameObject[] StaffPrefabs;
+
+        /// <summary>
+        /// The ONE material every figure in the pack shares.
+        ///
+        /// It is held by reference rather than matched by name because it is
+        /// the key `Tinted` swaps the crowd's texture on, and a name match
+        /// would also catch Food_colormap, which is the plates.
+        /// </summary>
+        public Material CharacterMaterial;
+
+        /// <summary>
+        /// The crowd's clothes, one palette per cuisine
+        /// (tools/art/gen_crowd.py).
+        ///
+        /// The figures cannot be tinted: the whole body samples one texture,
+        /// so a `_BaseColor` would repaint the SKIN as well - and identity in
+        /// this game never comes from a face (docs/25). The generator
+        /// recolours the clothing swatches of the pack's colormap and leaves
+        /// the four skin tones and the hair darks byte-identical.
+        ///
+        /// It costs nothing at draw time: it is still one material for every
+        /// figure in the scene, so the batching is unchanged.
+        /// </summary>
+        public Texture2D CrowdMapFastfood;
+        public Texture2D CrowdMapTurk;
 
         /// <summary>
         /// The distance from the chair's centre to the table's centre (m). A
@@ -276,7 +301,7 @@ namespace Lokanta.Game
         /// <summary>So that the scale screenshot uses the same numbers.</summary>
         public const float SitForwardM = SitForward;
 
-        [Header("Renkler")]
+        [Header("Colours")]
         // A CLOSED ROOM IS NO LONGER DRAWN - so it has no colour either.
         //
         // Rooms that had not been opened used to stand there as dark grey
@@ -298,6 +323,18 @@ namespace Lokanta.Game
 
         private readonly List<Transform> _tables = new List<Transform>();
         private readonly List<TableBadge> _badges = new List<TableBadge>();
+
+        /// <summary>
+        /// One badge per DINING ROOM, shown in the overview in place of the
+        /// table badges (docs/31 8.1).
+        ///
+        /// Indexed by room, so the entry for a room that is not a dining room
+        /// - or is not open at this tier - is simply null.
+        /// </summary>
+        private readonly List<TableBadge> _roomBadges = new List<TableBadge>();
+
+        /// <summary>Which room each table stands in. Built with the tables.</summary>
+        private readonly List<int> _roomOfTable = new List<int>();
         private readonly List<GameObject> _pool = new List<GameObject>();
         private readonly Dictionary<int, GameObject> _seated = new Dictionary<int, GameObject>();
         private readonly List<GameObject> _staff = new List<GameObject>();
@@ -309,6 +346,9 @@ namespace Lokanta.Game
         /// on every call meant eight needless lookups a frame.
         /// </summary>
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        /// <summary>The albedo texture slot. URP/Lit calls it _BaseMap.</summary>
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
 
         private Material _floorMat;
         private int _builtTables = -1;
@@ -511,6 +551,8 @@ namespace Lokanta.Game
 
             _tables.Clear();
             _badges.Clear();
+            _roomBadges.Clear();
+            _roomOfTable.Clear();
             _stoves.Clear();
             _tableSquareZ = 0f;
             _chairs.Clear();
@@ -537,6 +579,7 @@ namespace Lokanta.Game
             _seated.Clear();
             _queued.Clear();
             _leaving.Clear();
+            _leavingTable.Clear();
             _staff.Clear();
             _staffFigure.Clear();
 
@@ -550,6 +593,7 @@ namespace Lokanta.Game
             // on showing a bug that has been FIXED as broken.
             _workClip.Clear();
             _washHold.Clear();
+            _washPost.Clear();
             _figureOf.Clear();
             _builtTables = -1;
             _staffBuilt = -1;
@@ -574,6 +618,7 @@ namespace Lokanta.Game
             BuildRoomLights(tables);
             BuildRoomProps(tables);
             BuildTables(tables);
+            BuildRoomBadges(tables);
             // THE SCENE'S DECORATION COMES LAST: the back wall, the sign, the
             // plant pots and the kitchen's extractor hood. They all take their
             // colour from the cuisine's IDENTITY.
@@ -834,8 +879,20 @@ namespace Lokanta.Game
         /// </summary>
         private static bool Paneled(string a, string b)
         {
-            return (a == "Kitchen" && b == "Entry")
-                || (a == "Entry" && b == "Kitchen");
+            // NOTHING HAS A LEAF INSIDE THE BUILDING ANY MORE.
+            //
+            // The leaf used to be on kitchen <-> entrance, and after the room
+            // swap it moved to kitchen <-> wash room, which is the doorway the
+            // figures actually use. The user asked for it to go: "let there be
+            // no door between the wash room and the kitchen, just a gap, let
+            // them walk straight through".
+            //
+            // That is the same decision as the one recorded above, carried one
+            // room further - in a small restaurant the only real threshold is
+            // the street door, and that one is built by Threshold(), not here.
+            // A leaf on a back-of-house doorway is a swinging panel nobody
+            // looks at, on the route the staff use most.
+            return false;
         }
 
         /// <summary>A gap in a wall: where it is and whether it has a leaf.</summary>
@@ -882,7 +939,9 @@ namespace Lokanta.Game
                 float x0 = Mathf.Max(A.X0, B.X0);
                 float x1 = Mathf.Min(A.X0 + A.W, B.X0 + B.W);
                 if (x1 - x0 < DoorWidth + MinJamb * 2f) return false;
-                spot = (x0 + x1) * 0.5f;
+                // Not the midpoint any more - see Paths.DoorAlong, which the
+                // WALK through this gap is derived from too.
+                spot = Paths.DoorAlong(in A, in B, x0, x1);
                 vertical = false;
                 return true;
             }
@@ -1956,13 +2015,73 @@ namespace Lokanta.Game
         {
             if (_streetLife == null) _streetLife = gameObject.GetComponent<StreetLife>();
             if (_streetLife == null) _streetLife = gameObject.AddComponent<StreetLife>();
-            _streetLife.Build(transform, CustomerPrefabs, 20260912);
+            _streetLife.Build(transform, CustomerPrefabs, 20260912, Retint);
         }
 
         private StreetLife _streetLife;
 
         /// <summary>The number of people passing on the street. So the tour can ask.</summary>
         public int StreetWalkers { get { return _streetLife == null ? 0 : _streetLife.Count; } }
+
+        /// <summary>
+        /// How many figures wear the pack's own colormap, and how many wear
+        /// the cuisine's.
+        ///
+        /// THIS IS THE GUARD, NOT A STATISTIC. A crowd that is not recoloured
+        /// looks exactly like the game did before the recolouring existed:
+        /// twelve ordinary figures in a restaurant. There is no symptom to
+        /// notice, so the tour has to count.
+        ///
+        /// Counted over the renderers rather than over the spawn sites, so
+        /// adding a FOURTH place that puts a figure down (and forgetting to
+        /// dress it) turns this red as well.
+        /// </summary>
+        public int CrowdUndressed { get { return CountCrowd(true); } }
+        public int CrowdDressed { get { return CountCrowd(false); } }
+
+        private int CountCrowd(bool undressed)
+        {
+            if (CharacterMaterial == null) return 0;
+
+            // THE TEST IS "THIS CUISINE'S MAP", NOT "A CROWD MAP", and that
+            // distinction is the whole reason this method was rewritten.
+            //
+            // The first version asked whether the material carried one of the
+            // two crowd textures. It reported 0 undressed while the crowd was
+            // WRONG IN BOTH CUISINES: ArtPrefabs.FindTexture had matched the
+            // substring "colormap" and re-pointed the pack's own material at
+            // colormap-crowd-fastfood, so every figure in the Turkish
+            // restaurant was wearing the fast-food palette - and the guard
+            // said yes, because a fast-food map is a crowd map.
+            //
+            // A guard that accepts the wrong answer is worse than no guard: it
+            // was green through the entire hour it took to find that.
+            Texture pack = CharacterMaterial.HasProperty(BaseMapId)
+                           ? CharacterMaterial.GetTexture(BaseMapId) : null;
+            Texture want = CuisineId == "turk" ? CrowdMapTurk : CrowdMapFastfood;
+
+            int n = 0;
+            foreach (Renderer r in GetComponentsInChildren<Renderer>(true))
+            {
+                Material[] ms = r.sharedMaterials;
+                for (int i = 0; i < ms.Length; i++)
+                {
+                    if (ms[i] == null) continue;
+                    Texture map = ms[i].HasProperty(BaseMapId)
+                                  ? ms[i].GetTexture(BaseMapId) : null;
+                    if (map == null) continue;
+
+                    // Not a figure at all - the furniture, the food, the floor.
+                    bool figure = map == pack || map == CrowdMapFastfood
+                                  || map == CrowdMapTurk;
+                    if (!figure) continue;
+
+                    bool right = want != null && map == want;
+                    if (right != undressed) n++;
+                }
+            }
+            return n;
+        }
 
         /// <summary>The number of passers-by chatting. So the tour can ask.</summary>
         public int StreetChatting
@@ -2368,7 +2487,9 @@ namespace Lokanta.Game
                         // On the right wall: its face at -X, that is, towards the room.
                         // While it was on the left wall 90 was right; it was corrected
                         // when it moved.
-                        Place(FridgePrefab, r.X0 + r.W - 0.55f, r.Z0 + r.D - 0.7f, -90f);
+                        WallFlush(Place(FridgePrefab, r.X0 + r.W - 0.55f,
+                                        r.Z0 + r.D - 0.7f, -90f),
+                                  r.X0 + r.W, 0, -1f);
 
                         // THE PREP RUN, ALONG THE LEFT WALL: the kitchen was a
                         // row of stoves and a fridge, with nothing to put
@@ -2417,8 +2538,11 @@ namespace Lokanta.Game
                             // x = 0.34 so the counter's far edge stays clear of
                             // KitchenPost's leftmost post at 0.75 with half a
                             // body (0.22) to spare.
-                            Place(CounterPrefab, r.X0 + 0.34f,
-                                  prepZ0 + (prepZ1 - prepZ0) * t, 90f);
+                            // x is now MEASURED against the wall instead of
+                            // guessed at 0.34 - see WallFlush.
+                            WallFlush(Place(CounterPrefab, r.X0 + 0.5f,
+                                            prepZ0 + (prepZ1 - prepZ0) * t, 90f),
+                                      r.X0, 0, 1f);
                         }
 
                         // NO SHELVES ABOVE IT. ShelfPrefab is a floor-standing
@@ -2432,12 +2556,18 @@ namespace Lokanta.Game
                         break;
                     case "Sink":
                         BuildDishStation(r);
-                        // THE FRONT CORRIDOR HAS TO STAY CLEAR (Paths.LaneZ = 0.55).
-                        // The counter was at z=0.7, standing right on the corridor;
-                        // the guests and the waiters walk through there. It was moved
-                        // to the middle of the room - which is the right place for a
-                        // prep counter anyway.
-                        Place(CounterPrefab, r.CenterX, r.Z0 + 2.2f, 0f);
+                        // NOTHING IN THE MIDDLE OF THE ROOM.
+                        //
+                        // There used to be a lone counter here, left over from
+                        // the days when this was the entrance and it was the
+                        // till. The user's question was the whole argument
+                        // against it: "what is that furniture at the bottom of
+                        // the wash room, I did not understand it".
+                        //
+                        // A prop the player cannot name is not decoration, it
+                        // is a question mark - and the floor it stood on is
+                        // the only clear ground between the kitchen gap and
+                        // the sinks.
                         break;
                     case "Store":
                         LineUp(r, ShelfPrefab, 2, 0.6f, 180f);
@@ -2477,96 +2607,150 @@ namespace Lokanta.Game
         {
             _dirtyStack.Clear();
             _cleanStack.Clear();
+            _washSpots.Clear();
+            _sinkWater.Clear();
+            _foam.Clear();
 
             const float Inset = 0.6f;
             float z = r.Z0 + r.D - Inset;
 
-            // ONE SINK, NOT TWO - and it was THE PLACEMENT AUDIT that said so.
+            // TWO SINKS NOW, AND THE ROOM IS THE WHOLE REASON.
             //
-            // The first version put two sinks and two counters; the audit
-            // found a 0.16 m overlap. The reason is arithmetic: the room is 3.2
-            // m wide and each of the four objects is ~0.84 m, so 3.36 m is
-            // needed. A counter + a sink + a counter is 2.52 m and fits
-            // comfortably.
+            // This used to be one sink, and the note here was right at the
+            // time: "the room is 3.2 m wide and each of the four objects is
+            // ~0.84 m, so 3.36 m is needed" - two sinks and two counters did
+            // not fit, and the placement audit said so with a 0.16 m overlap.
             //
-            // It is right for the telling too: the user said "let them wash it
-            // by hand in the sink" - a single sink unit.
-            float sink = r.CenterX;
-            float sinkTop = TopOf(Place(SinkPrefab, sink, z, 180f));
-
-            // THE WASHING FIGURE stands IN FRONT of the sink, not behind it:
-            // behind it is the wall. Its face is towards the sink, that is +Z
-            // (yaw 0).
-            _washSpot = new Vector3(sink, 0f, z - 0.75f);
-
-            // The two stacks have to be SEPARATE: two stacks piling up in the
-            // same place read as "sitting there", not as "being washed".
+            // But the simulation can put TWO people on the washing up (a
+            // waiter goes to help), and both of them walked to the same spot
+            // in front of the same sink and stood inside each other. The user
+            // saw it: "two characters are washing up at the same sink,
+            // inside each other, wrong".
             //
-            // The stacks stand ON TOP OF THE COUNTER and the height is taken
-            // by MEASURING the counter rather than by writing it down: in the
-            // first version 0.92 m was guessed and the plates hung in the air.
-            // If the counter model's height changes, the stack changes with
-            // it.
-            float leftX = r.X0 + 0.55f;
-            float rightX = r.X0 + r.W - 0.55f;
-            float stackZ = z - 0.02f;
-            float top = TopOf(Place(CounterPrefab, leftX, stackZ, 180f));
-            TopOf(Place(CounterPrefab, rightX, stackZ, 180f));
+            // The room swap (RoomPlan, 18 September) makes the wash room
+            // 5.2 m. Four objects at 0.84 m need 3.36 m of that, so they go in
+            // as a run of four with 1.02 m between centres - clean counter,
+            // sink, sink, dirty counter - and nothing touches.
+            // THE RUN STARTS RIGHT OF THE KITCHEN GAP.
+            //
+            // It used to be centred on the wall, which put a sink squarely in
+            // front of the doorway: the cook came through the gap and walked
+            // out of the basin. The user asked for the two things that fix it
+            // together - "move the sinks a little to the right, let the way
+            // through between the kitchen and the wash room be at the top
+            // left".
+            //
+            // Paths.BackDoorClear is the far jamb of that gap; the first unit
+            // stands half its own width beyond it. What is left is 2.87 m
+            // between the first and last centres for four units 0.84 m wide,
+            // so they sit 0.96 m apart with 0.12 m of air between neighbours.
+            float from = r.X0 + Paths.BackDoorClear + 0.45f;
+            float to = r.X0 + r.W - 0.48f;
+            float[] xs = new float[4];
+            for (int i = 0; i < 4; i++)
+                xs[i] = from + (to - from) * (i / 3f);
 
             // BY THE FLOW: dirty on the RIGHT, clean on the LEFT.
             //
             // The dirty plates come from the hall (the halls are at x > 8.4,
-            // that is, on the right), the clean plates go to the kitchen (the
-            // kitchen is at x < 5.2, on the left). The first version had it the
-            // other way round and every plate crossed the room once more for
-            // nothing.
+            // that is, on the right) and the clean ones go to the kitchen,
+            // which after the room swap is straight up from here rather than
+            // to the left - but the left counter is still the one nearer the
+            // kitchen door, so the direction of travel is unchanged.
+            //
+            // The stacks stand ON TOP OF THE COUNTER and the height is taken
+            // by MEASURING the counter rather than by writing it down: in the
+            // first version 0.92 m was guessed and the plates hung in the air.
+            float leftX = xs[0];
+            float rightX = xs[3];
+            float stackZ = z - 0.02f;
+            float top = TopOf(WallFlush(Place(CounterPrefab, leftX, stackZ, 180f),
+                                        r.Z0 + r.D, 2, -1f));
+            TopOf(WallFlush(Place(CounterPrefab, rightX, stackZ, 180f),
+                            r.Z0 + r.D, 2, -1f));
             BuildPlateStack(_cleanStack, leftX, stackZ, top);
             BuildPlateStack(_dirtyStack, rightX, stackZ, top);
 
-            // THE TAP'S WATER: it runs only while somebody is washing.
-            //
-            // A thin slab, from above the sink down into the basin. No
-            // particles - the target is a low-end Adreno (docs/19) and at this
-            // camera distance a jet of water is a few pixels anyway. Its height
-            // is taken by MEASURING the sink (TopOf), not by writing it down.
-            _water = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            _water.name = "TapWater";
-            _water.transform.SetParent(transform, false);
-            _water.transform.localPosition =
-                new Vector3(sink, sinkTop - 0.07f, z - 0.06f);
-            _water.transform.localScale = new Vector3(0.035f, 0.15f, 0.035f);
-            Collider waterCol = _water.GetComponent<Collider>();
-            if (waterCol != null)
+            for (int k = 1; k <= 2; k++)
             {
-                if (Application.isPlaying) Destroy(waterCol); else DestroyImmediate(waterCol);
-            }
-            Renderer waterRen = _water.GetComponent<Renderer>();
-            if (_waterMat != null) waterRen.sharedMaterial = _waterMat;
-            waterRen.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            waterRen.receiveShadows = false;
-            _water.SetActive(false);
+                float sink = xs[k];
+                GameObject unit = WallFlush(Place(SinkPrefab, sink, z, 180f),
+                                            r.Z0 + r.D, 2, -1f);
+                float sinkTop = TopOf(unit);
+                float sinkZ = unit != null ? unit.transform.localPosition.z : z;
 
-            // FOAM: a few small white clumps inside the basin.
-            //
-            // Running water on its own reads as "rinsing"; the foam says
-            // "washing". No particles - four small boxes, all created at build
-            // time with only their visibility changing.
-            // Clustered and of DIFFERENT SIZES: four slabs of equal size at
-            // equal spacing read as tiling rather than as foam. Five
-            // overlapping pieces of different sizes give a mass.
+                // THE WASHING FIGURE stands IN FRONT of the sink, not behind
+                // it: behind it is the wall. Its face is towards the sink,
+                // that is +Z (yaw 0).
+                //
+                // One post per sink, and which washer gets which is decided
+                // once and held (see _washPost) - not recomputed per frame,
+                // because two figures swapping posts every frame is worse to
+                // look at than two figures sharing one.
+                _washSpots.Add(new Vector3(sink, 0f, sinkZ - 0.75f));
+                _sinkWater.Add(TapWater(sink, sinkTop, sinkZ));
+                _foam.Add(Suds(sink, sinkTop, sinkZ));
+            }
+
+            // WHERE THE COOK PICKS UP A PLATE: in front of the clean stack.
+            _plateSpot = new Vector3(leftX, 0f, stackZ - 0.75f);
+        }
+
+        /// <summary>
+        /// The tap's water: it runs only while somebody is washing at THIS
+        /// sink.
+        ///
+        /// A thin slab, from above the sink down into the basin. No particles
+        /// - the target is a low-end Adreno (docs/19) and at this camera
+        /// distance a jet of water is a few pixels anyway. Its height is taken
+        /// by MEASURING the sink (TopOf), not by writing it down.
+        /// </summary>
+        private GameObject TapWater(float x, float sinkTop, float z)
+        {
+            GameObject water = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            water.name = "TapWater";
+            water.transform.SetParent(transform, false);
+            water.transform.localPosition = new Vector3(x, sinkTop - 0.07f, z - 0.06f);
+            water.transform.localScale = new Vector3(0.035f, 0.15f, 0.035f);
+            Collider col = water.GetComponent<Collider>();
+            if (col != null)
+            {
+                if (Application.isPlaying) Destroy(col); else DestroyImmediate(col);
+            }
+            Renderer ren = water.GetComponent<Renderer>();
+            if (_waterMat != null) ren.sharedMaterial = _waterMat;
+            ren.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            ren.receiveShadows = false;
+            water.SetActive(false);
+            return water;
+        }
+
+        /// <summary>
+        /// FOAM: a few small white clumps inside one basin.
+        ///
+        /// Running water on its own reads as "rinsing"; the foam says
+        /// "washing". No particles - five small boxes, all created at build
+        /// time with only their visibility changing.
+        ///
+        /// Clustered and of DIFFERENT SIZES: four slabs of equal size at equal
+        /// spacing read as tiling rather than as foam. Five overlapping pieces
+        /// of different sizes give a mass.
+        /// </summary>
+        private List<GameObject> Suds(float x, float sinkTop, float z)
+        {
             float[] fx = { -0.07f, 0.00f, 0.06f, -0.03f, 0.03f };
             float[] fz = { -0.02f, 0.03f, -0.01f, 0.05f, -0.04f };
             float[] fy = { 0.000f, 0.014f, 0.004f, 0.020f, 0.008f };
             float[] fw = { 0.085f, 0.070f, 0.078f, 0.055f, 0.062f };
 
-            _foam.Clear();
+            List<GameObject> suds = new List<GameObject>(fx.Length);
             for (int i = 0; i < fx.Length; i++)
             {
                 GameObject k = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 k.name = "Foam";
                 k.transform.SetParent(transform, false);
                 k.transform.localPosition = new Vector3(
-                    sink + fx[i], sinkTop - 0.062f + fy[i], z - 0.05f + fz[i]);
+                    x + fx[i], sinkTop - 0.062f + fy[i], z - 0.05f + fz[i]);
                 k.transform.localScale = new Vector3(fw[i], 0.030f, fw[i] * 0.85f);
                 k.transform.localRotation = Quaternion.Euler(0f, i * 17f, 0f);
 
@@ -2583,11 +2767,9 @@ namespace Lokanta.Game
                 _block.SetColor(BaseColorId, new Color(0.97f, 0.98f, 0.99f));
                 kr.SetPropertyBlock(_block);
                 k.SetActive(false);
-                _foam.Add(k);
+                suds.Add(k);
             }
-
-            // WHERE THE COOK PICKS UP A PLATE: in front of the clean stack.
-            _plateSpot = new Vector3(leftX, 0f, stackZ - 0.75f);
+            return suds;
         }
 
         /// A stack of plates: thin slabs one on top of another.
@@ -2681,6 +2863,17 @@ namespace Lokanta.Game
 
         private readonly List<float> _washHold = new List<float>();
 
+        /// <summary>
+        /// Which sink each staff member is using, or -1.
+        ///
+        /// HELD, NOT RECOMPUTED. The obvious version picks the nearest free
+        /// sink every frame, and two washers then swap basins whenever one
+        /// drifts a centimetre - which looks worse than the bug it replaced.
+        /// A post is claimed when the walk starts and released when the task
+        /// ends.
+        /// </summary>
+        private readonly List<int> _washPost = new List<int>();
+
         private const int PlateStackMax = 10;
 
         /// <summary>The height between two plates (m).</summary>
@@ -2706,7 +2899,17 @@ namespace Lokanta.Game
 
         private readonly List<GameObject> _dirtyStack = new List<GameObject>();
         private readonly List<GameObject> _cleanStack = new List<GameObject>();
-        private Vector3 _washSpot;
+        /// <summary>
+        /// One standing spot per sink.
+        ///
+        /// A LIST, BECAUSE THE SIMULATION CAN PUT TWO PEOPLE ON THE WASHING
+        /// UP. It used to be a single Vector3 and both of them walked to it:
+        /// the user's report was "two characters are washing up at the same
+        /// sink, inside each other, wrong". One spot per sink and a held
+        /// assignment (_washPost) is the fix; the room swap is what made room
+        /// for the second sink.
+        /// </summary>
+        private readonly List<Vector3> _washSpots = new List<Vector3>();
 
         /// PREVIEW: puts a staff member at the sink and has them wash.
         ///
@@ -2722,18 +2925,20 @@ namespace Lokanta.Game
             Figure f = _staffFigure[i];
             if (w == null || f == null) return;
 
-            w.Warp(_washSpot, 0f);
+            w.Warp(WashSpotAt(0), 0f);
             f.Sample(Figure.Pose.Wash, 0.5f);
             ShowCarry(_staff[i], 1);
             ShowSponge(_staff[i], true);
-            if (_water != null) _water.SetActive(true);
+            if (_sinkWater.Count > 0 && _sinkWater[0] != null)
+                _sinkWater[0].SetActive(true);
 
             // Let the stacks look full too: an empty sink does not say
             // "washing".
             Show(_dirtyStack, 5);
             Show(_cleanStack, 3);
-            for (int k = 0; k < _foam.Count; k++)
-                if (_foam[k] != null) _foam[k].SetActive(true);
+            if (_foam.Count > 0)
+                for (int k = 0; k < _foam[0].Count; k++)
+                    if (_foam[0][k] != null) _foam[0][k].SetActive(true);
         }
 
         /// The largest relative deviation between the clip speed and the
@@ -2770,15 +2975,83 @@ namespace Lokanta.Game
             }
         }
 
-        /// <summary>In front of the sink: where the washing figure stands.</summary>
-        public Vector3 WashSpot { get { return _washSpot; } }
+        /// <summary>In front of the first sink. The tour and the preview use it.</summary>
+        public Vector3 WashSpot
+        {
+            get { return _washSpots.Count > 0 ? _washSpots[0] : Vector3.zero; }
+        }
+
+        /// <summary>
+        /// Which sink this staff member is washing at right now, or -1.
+        ///
+        /// Asked of the FIGURE and not of the task: the simulation saying "it
+        /// is washing" and the figure being SEEN at a basin are two different
+        /// things, and it was the second that was broken.
+        /// </summary>
+        private int WashingSink(int who)
+        {
+            if (who >= _staff.Count || who >= _staffFigure.Count) return -1;
+            Figure f = _staffFigure[who];
+            if (f == null || f.Current != Figure.Pose.Wash) return -1;
+            if (_staff[who] == null) return -1;
+
+            Vector3 p = _staff[who].transform.localPosition;
+            for (int k = 0; k < _washSpots.Count; k++)
+            {
+                Vector3 d = p - _washSpots[k];
+                d.y = 0f;
+                if (d.sqrMagnitude < 1.2f * 1.2f) return k;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// Gives this staff member a sink and remembers it.
+        ///
+        /// The lowest FREE one. If there are more washers than sinks the last
+        /// one doubles up rather than standing still - a figure that refuses
+        /// to work because the room is full is a worse picture than two at one
+        /// basin, and with two sinks it takes three washers to reach that.
+        /// </summary>
+        private int ClaimWashPost(int who)
+        {
+            while (_washPost.Count < _staff.Count) _washPost.Add(-1);
+            if (who < 0 || who >= _washPost.Count) return 0;
+            if (_washPost[who] >= 0) return _washPost[who];
+
+            int sinks = Mathf.Max(1, _washSpots.Count);
+            for (int k = 0; k < sinks; k++)
+            {
+                bool taken = false;
+                for (int i = 0; i < _washPost.Count && !taken; i++)
+                    taken = i != who && _washPost[i] == k;
+                if (taken) continue;
+                _washPost[who] = k;
+                return k;
+            }
+            _washPost[who] = sinks - 1;
+            return sinks - 1;
+        }
+
+        /// <summary>How many sinks the wash room has.</summary>
+        public int SinkCount { get { return _washSpots.Count; } }
+
+        /// <summary>The standing spot at sink k, clamped to what exists.</summary>
+        private Vector3 WashSpotAt(int k)
+        {
+            if (_washSpots.Count == 0) return Vector3.zero;
+            if (k < 0) k = 0;
+            if (k >= _washSpots.Count) k = _washSpots.Count - 1;
+            return _washSpots[k];
+        }
 
         /// <summary>In front of the clean plate stack: where the cook picks up a plate.</summary>
         public Vector3 PlateSpot { get { return _plateSpot; } }
 
         private Vector3 _plateSpot;
-        private GameObject _water;
-        private readonly List<GameObject> _foam = new List<GameObject>();
+        /// <summary>The running tap at each sink, and the suds in each basin.</summary>
+        private readonly List<GameObject> _sinkWater = new List<GameObject>();
+        private readonly List<List<GameObject>> _foam = new List<List<GameObject>>();
 
         /// The number of figures standing at the sink right now. So the tour
         /// can ask.
@@ -2805,13 +3078,7 @@ namespace Lokanta.Game
             {
                 int n = 0;
                 for (int i = 0; i < _staff.Count; i++)
-                {
-                    Figure f = _staffFigure[i];
-                    if (f == null || f.Current != Figure.Pose.Wash) continue;
-                    Vector3 d = _staff[i].transform.localPosition - _washSpot;
-                    d.y = 0f;
-                    if (d.sqrMagnitude < 1.2f * 1.2f) n++;
-                }
+                    if (WashingSink(i) >= 0) n++;
                 return n;
             }
         }
@@ -2837,11 +3104,24 @@ namespace Lokanta.Game
         /// </summary>
         private void UpdateWater()
         {
-            bool running = WashingCount > 0;
-            if (_water != null && _water.activeSelf != running) _water.SetActive(running);
-            for (int i = 0; i < _foam.Count; i++)
-                if (_foam[i] != null && _foam[i].activeSelf != running)
-                    _foam[i].SetActive(running);
+            // PER SINK, NOT FOR THE ROOM. With two basins, running both taps
+            // because one person is washing says the wrong thing twice over:
+            // it hides how many people are on it, and it leaves a tap running
+            // over an empty basin.
+            for (int k = 0; k < _sinkWater.Count; k++)
+            {
+                bool running = false;
+                for (int i = 0; i < _staff.Count && !running; i++)
+                    running = WashingSink(i) == k;
+
+                GameObject w = _sinkWater[k];
+                if (w != null && w.activeSelf != running) w.SetActive(running);
+                if (k >= _foam.Count) continue;
+                List<GameObject> suds = _foam[k];
+                for (int i = 0; i < suds.Count; i++)
+                    if (suds[i] != null && suds[i].activeSelf != running)
+                        suds[i].SetActive(running);
+            }
         }
 
         private static void Show(List<GameObject> stack, int count)
@@ -3015,6 +3295,48 @@ namespace Lokanta.Game
             ren.SetPropertyBlock(_block);
         }
 
+        /// <summary>
+        /// Slides a prop until its back is flush with a wall, by MEASURING the
+        /// prop rather than by writing its depth down.
+        ///
+        /// THE BUG THIS FIXES. The kitchen's prep counters were put at
+        /// `r.X0 + 0.34` on the reasoning that a counter is about 0.6 m deep,
+        /// so a third of a metre in would clear the wall. It does not: the
+        /// prefab's pivot is not its centre, and in the screenshot the backs
+        /// of both counters came out through the left wall into the street.
+        /// The user saw it: "the things put against the left wall in the
+        /// kitchen look as if their backs stick out through the wall".
+        ///
+        /// A depth written in a comment is a depth that stops being true the
+        /// day the art pack changes. This asks the object.
+        ///
+        /// `axis` is 0 for x and 2 for z; `inward` is +1 when the room lies at
+        /// coordinates ABOVE the wall line and -1 when it lies below.
+        /// </summary>
+        private GameObject WallFlush(GameObject go, float wall, int axis, float inward)
+        {
+            if (go == null) return null;
+            Renderer[] rs = go.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return go;
+
+            Bounds b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+
+            // The face that looks at the wall.
+            float outer = inward > 0f
+                ? (axis == 0 ? b.min.x : b.min.z)
+                : (axis == 0 ? b.max.x : b.max.z);
+
+            // The wall's INNER surface, plus a finger's width so the two
+            // surfaces do not z-fight along their whole length.
+            float want = wall + inward * (WallThick * 0.5f + 0.02f);
+
+            Vector3 p = go.transform.localPosition;
+            if (axis == 0) p.x += want - outer; else p.z += want - outer;
+            go.transform.localPosition = p;
+            return go;
+        }
+
         private GameObject Place(GameObject prefab, float x, float z, float yaw)
         {
             if (prefab == null) return null;
@@ -3023,6 +3345,39 @@ namespace Lokanta.Game
             go.transform.localRotation = Quaternion.Euler(0f, yaw + PropYaw, 0f);
             Retint(go);
             return go;
+        }
+
+        /// <summary>
+        /// A badge over every open dining room (docs/31 8.1).
+        ///
+        /// WHY THIS EXISTS AT ALL. docs/30 counted the cost of the room
+        /// camera and got a damning number: a full tour of four halls is
+        /// twelve taps a slice, "120% of the entire budget for the service
+        /// stage, in return for zero decisions". docs/31 answered it by
+        /// refusing the premise - the player does not travel to see, the
+        /// overview IS the scan - and that answer only holds if the overview
+        /// actually CARRIES the state. It did not: the readout was on the
+        /// table, and a table is 16 dp from up there.
+        ///
+        /// So this is not decoration; it is the half of the camera argument
+        /// that was written down and never built.
+        ///
+        /// Placed at the ROOM's centre and not above the tables: the badge
+        /// stands for the room, and a badge that drifted with the table grid
+        /// would read as belonging to one of the tables under it.
+        /// </summary>
+        private void BuildRoomBadges(int tables)
+        {
+            for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+            {
+                RoomPlan.Room r = RoomPlan.Rooms[i];
+                bool wanted = r.IsDining && RoomPlan.RoomOpen(in r, tables);
+                _roomBadges.Add(wanted
+                    ? TableBadge.CreateRoom(
+                          transform, _badgeMat,
+                          new Vector3(r.X0 + r.W * 0.5f, 0f, r.Z0 + r.D * 0.5f), i)
+                    : null);
+            }
         }
 
         private void BuildTables(int tables)
@@ -3087,6 +3442,10 @@ namespace Lokanta.Game
                 // is zoomed into. The interventions no longer pick their target
                 // themselves.
                 TableTouch.Attach(holder.transform, _tables.Count);
+                // WHICH ROOM THIS TABLE IS IN, asked once here rather than
+                // every frame: the room badge has to summarise its own room
+                // and RoomAt is a loop over the room list.
+                _roomOfTable.Add(Paths.RoomAt(holder.transform.position));
                 _tables.Add(holder.transform);
             }
         }
@@ -3200,15 +3559,116 @@ namespace Lokanta.Game
 
         private int _eatingNow, _eatingLast;
 
+        /// <summary>
+        /// The room badges, refreshed from the worst table in each room.
+        ///
+        /// "WORST" IS DEFINED ONCE, HERE. The ordering is not a preference,
+        /// it is what the player can still do something about:
+        ///
+        ///   left angry     already lost - the alarm, and it outranks
+        ///                  everything because it is the only state the whole
+        ///                  badge exists to prevent
+        ///   waiting        the live ones, sorted by patience left
+        ///   waiting to pay nobody is going to walk out over it
+        ///   eating         nothing to do; a calm green room
+        ///
+        /// A room where everything is eating still shows its badge. "This
+        /// room is fine" is an answer, and a badge that vanished when the
+        /// room was fine would make an empty sky mean two different things.
+        /// </summary>
+        private void UpdateRoomBadges(Simulation sim, bool overview)
+        {
+            if (_roomBadges.Count == 0) return;
+
+            if (_roomWorst == null || _roomWorst.Length != _roomBadges.Count)
+                _roomWorst = new int[_roomBadges.Count];
+            for (int i = 0; i < _roomWorst.Length; i++) _roomWorst[i] = -1;
+
+            if (overview)
+            {
+                int[] score = _roomScore;
+                if (score == null || score.Length != _roomBadges.Count)
+                    score = _roomScore = new int[_roomBadges.Count];
+                for (int i = 0; i < score.Length; i++) score[i] = int.MaxValue;
+
+                for (int t = 0; t < _tables.Count && t < _roomOfTable.Count; t++)
+                {
+                    int room = _roomOfTable[t];
+                    if (room < 0 || room >= score.Length) continue;
+                    CustomerStage st = sim.TableStage(t);
+                    if (st == CustomerStage.None || st == CustomerStage.Done) continue;
+
+                    int k = Rank(st, sim.TablePatienceBp(t));
+                    if (k >= score[room]) continue;
+                    score[room] = k;
+                    _roomWorst[room] = t;
+                }
+            }
+
+            for (int i = 0; i < _roomBadges.Count; i++)
+            {
+                TableBadge b = _roomBadges[i];
+                if (b == null) continue;
+                int t = _roomWorst[i];
+                if (b.Touch != null) b.Touch.TableIndex = t;
+                if (!overview || t < 0) { b.Hide(); continue; }
+                b.Show(sim.TableStage(t), sim.TablePatienceBp(t),
+                       App != null && App.SelectedTable == t);
+            }
+        }
+
+        private static int Rank(CustomerStage stage, int patienceBp)
+        {
+            if (stage == CustomerStage.LeftAngry) return -1;
+            if (stage == CustomerStage.Eating) return patienceBp + 20000;
+            if (stage == CustomerStage.WaitingToPay) return patienceBp + 10000;
+            return patienceBp;
+        }
+
+        /// <summary>
+        /// How many badges of each kind are actually on screen.
+        ///
+        /// THE GUARD FOR docs/31 8.1, and it has to be a COUNT OF BOTH. The
+        /// failure this is aimed at is not "the room badge is missing" - it is
+        /// the two readouts being shown at once, or the swap going one way and
+        /// not the other. Either of those still leaves a hall with badges in
+        /// it, which is exactly what a passing screenshot looks like.
+        /// </summary>
+        public int VisibleRoomBadges { get { return Visible(_roomBadges); } }
+        public int VisibleTableBadges { get { return Visible(_badges); } }
+
+        private static int Visible(List<TableBadge> badges)
+        {
+            int n = 0;
+            for (int i = 0; i < badges.Count; i++)
+                if (badges[i] != null && badges[i].gameObject.activeSelf) n++;
+            return n;
+        }
+
+        private int[] _roomWorst;
+        private int[] _roomScore;
+
         private void UpdateCustomers(Simulation sim)
         {
+            // WHICH READOUT THE FRAME IS SHOWING (docs/31 8.1).
+            //
+            // ONE OF THE TWO, NEVER BOTH. A room badge above the room and
+            // three table badges inside it say the same thing twice at two
+            // sizes, and the smaller one is 16 dp - the reader's eye has to
+            // pick, which is the cost the room badge existed to remove.
+            bool overview = App == null || App.Rig == null || App.Rig.FocusRoom < 0;
+            UpdateRoomBadges(sim, overview);
+
             _eatingNow = 0;
             for (int t = 0; t < _tables.Count; t++)
             {
                 // The table's state: the stage and the patience left.
                 if (t < _badges.Count && _badges[t] != null)
-                    _badges[t].Show(sim.TableStage(t), sim.TablePatienceBp(t),
-                                    App != null && App.SelectedTable == t);
+                {
+                    if (overview) _badges[t].Hide();
+                    else _badges[t].Show(sim.TableStage(t), sim.TablePatienceBp(t),
+                                         App != null && App.SelectedTable == t);
+                }
 
                 int guests = Mathf.Min(sim.TableGuests(t), VisibleGuests);
                 Vector3 table = _tables[t].localPosition;
@@ -3309,7 +3769,7 @@ namespace Lokanta.Game
                     else if (!want && has)
                     {
                         _seated.Remove(key);
-                        SendHome(figure);
+                        SendHome(figure, key / Seats);
                     }
                 }
             }
@@ -3320,10 +3780,11 @@ namespace Lokanta.Game
             for (int i = _leaving.Count - 1; i >= 0; i--)
             {
                 GameObject go = _leaving[i];
-                if (go == null) { _leaving.RemoveAt(i); continue; }
+                if (go == null) { _leaving.RemoveAt(i); _leavingTable.RemoveAt(i); continue; }
                 Walker w = WalkerOf(go);
                 if (w.Moving) continue;
                 _leaving.RemoveAt(i);
+                _leavingTable.RemoveAt(i);
                 Give(go);
             }
             _eatingLast = _eatingNow;
@@ -3416,7 +3877,7 @@ namespace Lokanta.Game
         /// especially leaving angry - is the game's most expensive event and
         /// it was not visible on screen at all.
         /// </summary>
-        private void SendHome(GameObject figure)
+        private void SendHome(GameObject figure, int fromTable = -1)
         {
             if (figure == null) return;
 
@@ -3431,9 +3892,24 @@ namespace Lokanta.Game
             GameObject captured = figure;
             w.GoTo(_path, float.NaN, () => { /* at the door: it stays in the loop */ });
             _leaving.Add(captured);
+            _leavingTable.Add(fromTable);
         }
 
         private readonly List<GameObject> _leaving = new List<GameObject>();
+
+        /// <summary>
+        /// The table each leaving figure GOT UP FROM, or -1 for the one who
+        /// was standing in the queue.
+        ///
+        /// KEPT AS AN INDEX RATHER THAN WORKED OUT FROM THE GEOMETRY. The
+        /// furniture check first tried to recognise a figure's own table by
+        /// distance - "is the walk's origin inside this set" - and that was
+        /// an inference where an exact answer was available two lines away
+        /// in the caller. It went red about one run in five on a guest
+        /// standing at its own seat, and an intermittent red is worse than a
+        /// steady one: it teaches the reader to scroll past.
+        /// </summary>
+        private readonly List<int> _leavingTable = new List<int>();
 
         /// <summary>A SINGLE buffer for the waypoints: it produces no garbage per frame.</summary>
         private readonly List<Vector3> _path = new List<Vector3>(8);
@@ -3481,17 +3957,43 @@ namespace Lokanta.Game
         {
             get
             {
+                _worstIntruder = null;
                 float worst = 0f;
-                for (int i = 0; i < _staff.Count; i++) worst = Mathf.Max(worst, Intruding(_staff[i]));
+                // The staff have no table of their own; a guest does, and it is
+                // known exactly rather than guessed at from distance.
+                for (int i = 0; i < _staff.Count; i++)
+                    worst = Mathf.Max(worst, Intruding(_staff[i], -1));
                 foreach (KeyValuePair<int, GameObject> kv in _seated)
-                    worst = Mathf.Max(worst, Intruding(kv.Value));
-                for (int i = 0; i < _leaving.Count; i++) worst = Mathf.Max(worst, Intruding(_leaving[i]));
+                    worst = Mathf.Max(worst, Intruding(kv.Value, kv.Key / Seats));
+                for (int i = 0; i < _leaving.Count && i < _leavingTable.Count; i++)
+                    worst = Mathf.Max(worst, Intruding(_leaving[i], _leavingTable[i]));
                 return worst;
             }
         }
 
+        /// <summary>
+        /// WHO walked into WHAT, and from where.
+        ///
+        /// THE NUMBER ALONE WAS NOT DIAGNOSABLE. This check went green at
+        /// 0.00 m, then red at 0.51 m on a later run with nothing about
+        /// walking changed, and the only thing it could say was "0,51 m". It
+        /// was called flaky for a while on that evidence, which is what a
+        /// measurement with no subject earns: whether the path is bad depends
+        /// on WHICH table the party was seated at, so it comes and goes with
+        /// the seating and looks like noise.
+        ///
+        /// The project's own rule, from the layout check: name the worst
+        /// offender.
+        /// </summary>
+        public string WorstIntruder
+        {
+            get { return string.IsNullOrEmpty(_worstIntruder) ? "nobody" : _worstIntruder; }
+        }
+
+        private string _worstIntruder;
+
         /// <summary>How far this figure is inside a table set, if it is walking.</summary>
-        private float Intruding(GameObject go)
+        private float Intruding(GameObject go, int ownTable)
         {
             if (go == null || Moving(go) == 0) return 0f;
             Vector3 p = go.transform.localPosition;
@@ -3501,16 +4003,66 @@ namespace Lokanta.Game
             const float setRadius = SeatRadius + 0.20f;
             const float halfBody = 0.22f;
 
+            // THE TABLE YOU ARE WALKING TO IS NOT FURNITURE YOU WALK THROUGH.
+            //
+            // A waiter serving table 2 ends up 0.52 m from its centre, and a
+            // guest sitting down ends up ON a chair - both well inside
+            // `setRadius + halfBody`. Counting that would make this check fire
+            // on every service in the game, so the set the figure is HEADING
+            // FOR is left out, and only the ones it crosses on the way count.
+            //
+            // The table a figure GOT UP FROM is excused for the same reason,
+            // and it is passed in as `ownTable` rather than recognised by
+            // distance: the caller knows the index exactly. The distance test
+            // below stays for the STAFF, who have no table of their own but do
+            // stand at one while they serve it.
+            //
+            // It took a second tour run to see this half at all: "at (11,8, 0,6) inside
+            // table 1 at (11,8, 1,4), heading for (2,6, 2,0)" - a waiter
+            // standing where it had just served, on its way to the kitchen. It
+            // starts inside those chairs; there is no route out that does not.
+            //
+            // TWO TABLES ARE EXCUSED AND NO OTHERS: the one you came from and
+            // the one you are going to are yours, everything between them is
+            // somebody else's. Cross a third on the way and this still sees
+            // it - which is the case it caught first: "at (10,5, 1,4) inside
+            // table 0 at (10,0, 1,4), heading for (10,5, 3,1)", a waiter
+            // walking up the column to the back table straight through the
+            // front one.
+            Walker wk = WalkerOf(go);
+            Vector3 dest = wk != null ? wk.Destination : p;
+            Vector3 origin = wk != null ? wk.Origin : p;
+
             float worst = 0f;
             for (int i = 0; i < _tables.Count; i++)
             {
                 Vector3 t = _tables[i].localPosition;
+                if (i == ownTable) continue;
+                if (Own(dest, t, setRadius) || Own(origin, t, setRadius)) continue;
+
                 float dx = p.x - t.x, dz = p.z - t.z;
                 float d = Mathf.Sqrt(dx * dx + dz * dz);
                 float into = setRadius + halfBody - d;
-                if (into > worst) worst = into;
+                if (into <= worst) continue;
+                worst = into;
+                _worstIntruder = go.name
+                                 + " at (" + p.x.ToString("0.0") + ", "
+                                 + p.z.ToString("0.0") + ") is inside table " + i
+                                 + " at (" + t.x.ToString("0.0") + ", "
+                                 + t.z.ToString("0.0") + "), from ("
+                                 + origin.x.ToString("0.0") + ", "
+                                 + origin.z.ToString("0.0") + ") heading for ("
+                                 + dest.x.ToString("0.0") + ", "
+                                 + dest.z.ToString("0.0") + ")";
             }
             return worst;
+        }
+
+        /// <summary>Is this point inside that table's own set?</summary>
+        private static bool Own(Vector3 p, Vector3 table, float setRadius)
+        {
+            float dx = p.x - table.x, dz = p.z - table.z;
+            return dx * dx + dz * dz < setRadius * setRadius;
         }
 
         public int MovingCount
@@ -3684,11 +4236,18 @@ namespace Lokanta.Game
                     if (_staffTask.Count > last) _staffTask.RemoveAt(last);
                     if (_cookRoutine.Count > last) _cookRoutine.RemoveAt(last);
                     if (_washHold.Count > last) _washHold.RemoveAt(last);
+                    if (_washPost.Count > last) _washPost.RemoveAt(last);
                 }
                 while (_staff.Count < want && StaffPrefabs != null && StaffPrefabs.Length > 0)
                 {
                     GameObject prefab = StaffPrefabs[_staff.Count % StaffPrefabs.Length];
                     GameObject go = Instantiate(prefab, transform);
+                    // The staff are the same pack, so they take the same crowd
+                    // colormap. Their outfit goes ON TOP of it (Wardrobe), but
+                    // their trousers, arms and shoes are still the texture - and
+                    // one dressed figure standing among eleven undressed ones
+                    // would read as a bug, not as a uniform.
+                    Retint(go);
                     _staff.Add(go);
                     // INACTIVE CHILD OBJECTS ARE SCANNED TOO (true).
                     //
@@ -3705,6 +4264,7 @@ namespace Lokanta.Game
                     _staffTask.Add(int.MinValue);
                     _cookRoutine.Add(null);
                     _washHold.Add(0f);
+                    _washPost.Add(-1);
                 }
 
                 // THE CLOTHES: the chef's hat and the apron.
@@ -3912,6 +4472,10 @@ namespace Lokanta.Game
                     continue;
                 }
 
+                // The post is let go the moment the task changes, so the
+                // next person to be sent to the sink can have it.
+                if (task != WashTask && i < _washPost.Count) _washPost[i] = -1;
+
                 ShowSponge(_staff[i], task == WashTask);
 
                 if (task == WashTask)
@@ -3939,7 +4503,7 @@ namespace Lokanta.Game
                     _washHold[i] = WashWalkTimeout;
 
                     ShowCarry(_staff[i], 2);
-                    Paths.Between(_path, w.transform.localPosition, _washSpot);
+                    Paths.Between(_path, w.transform.localPosition, WashSpotAt(ClaimWashPost(i)));
                     GameObject washBody = _staff[i];
                     w.GoTo(_path, 0f, () =>
                     {
@@ -4269,6 +4833,7 @@ namespace Lokanta.Game
             // own dice (docs/23, replay).
             GameObject prefab = CustomerPrefabs[_pool.Count % CustomerPrefabs.Length];
             GameObject go = Instantiate(prefab, transform);
+            Retint(go);
             go.SetActive(false);
             _pool.Add(go);
             return go;

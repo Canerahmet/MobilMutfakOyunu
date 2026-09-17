@@ -7,6 +7,7 @@ using Lokanta.Game;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering;
 
 namespace Lokanta.EditorTools
@@ -71,6 +72,13 @@ namespace Lokanta.EditorTools
                 Invoke(view, "Update");
 
                 Audit(view);
+                // THE CROWD, COUNTED. The recolouring has no symptom when it
+                // fails - a crowd in the pack's own clothes is still a crowd -
+                // so this tool says the number next to the picture it just took.
+                UnityEngine.Debug.Log("  MEASURED crowd (" + cuisine + "): "
+                                      + view.CrowdDressed + " figures in the "
+                                      + "cuisine's clothes, " + view.CrowdUndressed
+                                      + " in the pack's own");
                 UnityEngine.Debug.Log("  DIAGNOSIS tables: eating " + view.EatingTables);
 
                 // THE SCENE BUDGET AT FULL EXPANSION (docs/19 B5).
@@ -601,6 +609,26 @@ namespace Lokanta.EditorTools
             // the render showed the restaurant across 38% of the frame.
             cam.fieldOfView = CameraFit.FieldOfView;
             cam.aspect = width / (float)height;
+
+            // THE PREVIEW CAMERA HAS TO ASK FOR THE COLOUR GRADE TOO.
+            //
+            // This tool builds its OWN camera - the file already carries the
+            // scar about the lights, "the preview's job is to SHOW the game,
+            // not to flatter it" - and a camera built in code has
+            // renderPostProcessing FALSE. So the day the grade was wired
+            // (docs/58, the colour grading row) every render in render/ came
+            // out ungraded and looked exactly right, because it looked exactly
+            // like the day before.
+            //
+            // It was caught by measuring rather than by looking: the contrast
+            // was driven to -100, the frame was rendered again, and the mean
+            // colour of the two images was IDENTICAL to a tenth of a level.
+            // A grade you cannot see in the picture and cannot see in the
+            // numbers is a grade that is not running.
+            UniversalAdditionalCameraData camData =
+                camGo.AddComponent<UniversalAdditionalCameraData>();
+            camData.renderPostProcessing = true;
+            camData.antialiasing = AntialiasingMode.None;
 
             // If no angle is given, THE GAME's angle. When one is given it is
             // only for inspection shots: the question "is it sitting down"

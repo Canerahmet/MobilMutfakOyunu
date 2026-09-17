@@ -276,12 +276,76 @@ namespace Lokanta.EditorTools
                 }
 
                 ConfigureUrp(urp);
+                ConfigureGrade();
 
                 GraphicsSettings.defaultRenderPipeline = urp;
                 QualitySettings.renderPipeline = urp;
                 Ok("renderPipeline", urp.name);
             }
             catch (Exception e) { Fail("URP", e); }
+        }
+
+        /// <summary>
+        /// Wires the post-processing pass onto the renderer.
+        ///
+        /// WHY IT WAS OFF. `postProcessData: {fileID: 0}` is not a setting
+        /// anyone chose; it is what a URP renderer asset says when nobody has
+        /// touched it. docs/19 permitted "at most a light colour grading
+        /// table" from the start and docs/58 found the allowance still
+        /// unspent: the game was shipping Unity's raw output.
+        ///
+        /// THE DATA ASSET IS FOUND, NOT PATHED. It lives inside the URP
+        /// package and the package folder carries a content hash
+        /// (`com.unity.render-pipelines.universal@7865b6b91f8a`), so a written
+        /// path is right until the next package update and then silently
+        /// finds nothing.
+        ///
+        /// What the pass actually costs on a phone is NOT measured here and
+        /// cannot be: it forces the camera through an intermediate target, and
+        /// that is bandwidth, which no desktop run tells you anything about.
+        /// tools/check_grade.py holds the shape of the grade; docs/21 holds
+        /// the device measurement as an open release item.
+        /// </summary>
+        private static void ConfigureGrade()
+        {
+            try
+            {
+                string[] found = AssetDatabase.FindAssets("t:PostProcessData");
+                if (found.Length == 0)
+                {
+                    Fail("post-processing", new Exception(
+                        "no PostProcessData asset in the project or its packages"));
+                    return;
+                }
+
+                UnityEngine.Object data = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                    AssetDatabase.GUIDToAssetPath(found[0]));
+
+                string path = "Assets/Settings/LokantaURP_Renderer.asset";
+                UnityEngine.Object renderer =
+                    AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                if (renderer == null)
+                {
+                    Fail("post-processing", new Exception("no renderer at " + path));
+                    return;
+                }
+
+                SerializedObject so = new SerializedObject(renderer);
+                SerializedProperty p = so.FindProperty("postProcessData");
+                if (p == null)
+                {
+                    Fail("post-processing", new Exception(
+                        "the renderer has no postProcessData field - the URP "
+                        + "version has moved it"));
+                    return;
+                }
+                p.objectReferenceValue = data;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(renderer);
+                AssetDatabase.SaveAssets();
+                Ok("post-processing", "wired (" + data.name + ")");
+            }
+            catch (Exception e) { Fail("post-processing", e); }
         }
 
         /// <summary>

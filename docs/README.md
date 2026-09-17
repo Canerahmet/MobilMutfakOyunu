@@ -61,6 +61,7 @@ change.
 | [25-game-name.md](25-game-name.md) | Ten name candidates, a store collision scan, a recommendation | Open |
 | `../tools/balance/` | The balance model: `model.py` the formulas, `solve.py` the parameter search, `render.py` writing into the documents | Working |
 | `../tools/art/` | Blender generation scripts; `gen_table.py` is the validation example | Working |
+| `../tools/store/` | `compose.py`: pads every store screenshot with its own edge rows to 2183x1120 (1.949 : 1), because the shot frame is 2.22 : 1 and Play refuses anything over 2 : 1 | Working |
 | `../src/Lokanta.Core/` | The pure C# core: `Fx` integer arithmetic, `Rng`, the demand and crew models. No Unity reference | Phase 0, slice 1 |
 | `../src/Lokanta.Content/` | JSON loading and validation. Newtonsoft only here | Phase 0, slice 1 |
 | `../tests/Lokanta.Core.Tests/` | 249 tests: arithmetic, RNG cross-validation, culture, the floating-point ban, the golden table, the simulation | All passing |
@@ -168,8 +169,8 @@ package.
 | measure | state |
 |---|---|
 | Core tests | 249, all passing |
-| `tools/check.py` | 16 checks, all clean |
-| Smoke tour (a real Windows build, 873×393 dp) | 184 checks, 0 failures (fast food; 5 have nothing to measure in that cuisine) |
+| `tools/check.py` | 18 checks, all clean |
+| Smoke tour (a real Windows build, 873×393 dp) | 196 checks, 0 failures (fast food; 1 has nothing to measure in that cuisine) |
 | Balance tool | 25 strategies × 60 days, zero reconciliation gap |
 | Android APK | 90.6 MB, 0 warnings; arm64 only, libraries uncompressed and 16 KB aligned |
 

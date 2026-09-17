@@ -28,13 +28,33 @@ namespace Lokanta.Game
         /// The front corridor's z. The plot's front edge is z=0; the
         /// corridor is just above it and runs past the front of every room.
         ///
-        /// The 0.55 was chosen BY MEASUREMENT: the entrance's plant pots and
-        /// the wash room's counter stood in this lane and both were moved
-        /// back (RestaurantView.BuildRoomProps). The first hall's front row
-        /// of tables is at z=1.35 and, with the chair radius, comes down to
-        /// z=0.9 - so 0.55 passes in front of them too.
+        /// The entrance's plant pots and the wash room's counter once stood in
+        /// this lane and both were moved back
+        /// (RestaurantView.BuildRoomProps).
+        ///
+        /// 0.55 -> 0.30, AND THE OLD NUMBER WAS MEASURED AGAINST THE WRONG
+        /// EDGE. The note here used to say the front row "comes down to z=0.9
+        /// with the chair radius, so 0.55 passes in front of them too". The
+        /// chair radius is not the edge that matters: a chair CENTRE sits
+        /// 0.58 m from the table and the chair is about 0.40 m deep, so the
+        /// set's outer edge is at 1.35 - 0.78 = 0.57 - and a figure is 0.44 m
+        /// across. At 0.55 the walker's near side was at 0.77, a fifth of a
+        /// metre INSIDE the front chairs, which is what the tour finally said
+        /// out loud once it was made to name its offender: "at (10,0, 0,6) is
+        /// inside table 0 at (10,0, 1,4)".
+        ///
+        /// THE AISLE IS 0.57 m WIDE AND THE FIGURE IS 0.44. That leaves 13 cm
+        /// of slack in total, so the lane is not "chosen" any more - it is
+        /// CENTRED in the only gap it has: the walker's centre may lie between
+        /// 0.22 (clear of the front wall at z=0) and 0.35 (clear of the
+        /// chairs), and 0.30 is the middle of that.
+        ///
+        /// Worth knowing rather than hiding: a hall with this table density
+        /// has no room for a second aisle anywhere. The side lanes
+        /// (Paths.SideLane) exist because the perimeter is the only clear
+        /// ground there is.
         /// </summary>
-        public const float LaneZ = 0.55f;
+        public const float LaneZ = 0.30f;
 
         /// <summary>The door's x: the middle of the entrance room.</summary>
         public static float DoorX
@@ -247,9 +267,45 @@ namespace Lokanta.Game
                 return;
             }
 
-            if (Mathf.Abs(from.x - target.x) < 0.35f) return;
+            if (Mathf.Abs(from.x - target.x) >= 0.35f)
+                into.Add(new Vector3(from.x, 0f, LaneZ));
 
-            into.Add(new Vector3(from.x, 0f, LaneZ));
+            // COMING IN FROM ANOTHER ROOM IS STILL A WALK ACROSS THIS ONE.
+            //
+            // InRoom was added for the case where both ends are in the SAME
+            // room and the tour went green at 0.00 m - then came back red at
+            // 0.51 m on a later run with nothing about walking changed. It was
+            // called flaky for a while, and it was not: the two cases are not
+            // the same path.
+            //
+            // A waiter coming from the kitchen reached the front corridor at
+            // THE TARGET'S OWN X and then went straight up that column,
+            // through every table set standing between the corridor and the
+            // table. The tour's own words once it was made to name the
+            // offender: "character-male-c at (10,5, 1,4) is inside table 0 at
+            // (10,0, 1,4), heading for (10,5, 3,1)" - the back table of the
+            // column, reached through the front one. Which tables are in the
+            // way depends on which table the party was seated at, so it came
+            // and went with the seating.
+            //
+            // The approach is now the same one InRoom uses for a walk inside
+            // the room: in at the SIDE lane nearest the target, up the lane to
+            // the target's row, across. Measured against the real grid: the
+            // lanes sit 0.28 m off the wall and the nearest table centre is
+            // 1.10-1.30 m away, over the 1.00 m a figure needs.
+            //
+            // The corridor point is written out rather than read back off
+            // `into`: the first version used the last waypoint added, which
+            // after a back-room exit is a point in the OTHER room, and the
+            // approach was then computed from the wrong end of the building.
+            Vector3 mouth = new Vector3(target.x, 0f, LaneZ);
+            int before = into.Count;
+            InRoom(into, mouth, target, targetRoom);
+            if (into.Count > before) return;
+
+            // Not a dining room: there is nothing in the middle of the kitchen
+            // or the sink room to walk through, so it is approached head-on.
+            if (Mathf.Abs(from.x - target.x) < 0.35f) return;
             into.Add(new Vector3(target.x, 0f, LaneZ));
         }
 
@@ -344,9 +400,61 @@ namespace Lokanta.Game
             RoomPlan.Room r = RoomPlan.Rooms[room];
             if (r.Z0 < 0.01f) return false;             // front row
 
-            door = new Vector3(r.CenterX, 0f, r.Z0);
+            // WHERE THE GAP IS, ASKED OF THE SAME FUNCTION THE WALL USES.
+            //
+            // This used to return the middle of the room and
+            // RestaurantView.Shared independently put the gap at the middle of
+            // the shared edge. They agreed only by coincidence, and the
+            // comment at the top of Lane already warned what happens when the
+            // door is in one place and the way through in another. The
+            // neighbour is looked up here so both sides can call DoorAlong.
+            float x = r.CenterX;
+            for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+            {
+                RoomPlan.Room n = RoomPlan.Rooms[i];
+                if (Mathf.Abs(n.Z0 + n.D - r.Z0) > 0.01f) continue;
+                float x0 = Mathf.Max(n.X0, r.X0);
+                float x1 = Mathf.Min(n.X0 + n.W, r.X0 + r.W);
+                if (x1 - x0 < 1.4f) continue;
+                x = DoorAlong(in r, in n, x0, x1);
+                break;
+            }
+
+            door = new Vector3(x, 0f, r.Z0);
             return true;
         }
+
+        /// <summary>
+        /// Where the gap sits along an edge two rooms share.
+        ///
+        /// THE MIDDLE, EXCEPT BETWEEN THE KITCHEN AND THE WASH ROOM. The wash
+        /// room's back wall is a solid run of four units - clean counter,
+        /// sink, sink, dirty counter - and the middle of that wall is a sink.
+        /// The user watched a cook come through it: "when going from the
+        /// kitchen to the wash room it opens the door behind the sink and goes
+        /// through the sink".
+        ///
+        /// So the gap takes the LEFT END of the wall, where the user asked for
+        /// it, and BuildDishStation starts its run clear of it. The two
+        /// numbers are written next to each other for that reason.
+        /// </summary>
+        public static float DoorAlong(in RoomPlan.Room a, in RoomPlan.Room b,
+                                      float from, float to)
+        {
+            bool kitchenWash = (a.Name == "Kitchen" && b.Name == "Sink")
+                               || (a.Name == "Sink" && b.Name == "Kitchen");
+            if (kitchenWash) return from + BackDoorInset;
+            return (from + to) * 0.5f;
+        }
+
+        /// <summary>The kitchen gap's centre, measured in from the left end of the wall.</summary>
+        public const float BackDoorInset = 0.72f;
+
+        /// <summary>
+        /// The first x right of that gap that furniture may use: the far jamb
+        /// plus a finger's width. RestaurantView.DoorWidth is 1.10.
+        /// </summary>
+        public const float BackDoorClear = BackDoorInset + 0.55f + 0.06f;
 
         // =====================================================================
         /// <summary>
@@ -448,23 +556,63 @@ namespace Lokanta.Game
             return new Vector3(m.X0 + 0.9f + (m.W - 2.2f) * t, 0f, m.CenterZ - 0.3f);
         }
 
-        /// <summary>Where the waiter waits when idle: beside the till at the entrance.</summary>
+        /// <summary>
+        /// Where the waiter waits when idle: beside the till at the entrance.
+        ///
+        /// TWO COLUMNS, NOT ONE ROW - and the room swap is why. This used to
+        /// spread them along the room's width, which was fine while the
+        /// entrance was the 5.2 m room: three waiters got 1.2 m each and a
+        /// figure is 0.9 m across. The entrance is now the 3.2 m room
+        /// (RoomPlan, 18 September), the usable width dropped to 1.6 m, and
+        /// the placement audit caught it on the first run afterwards - two
+        /// pairs of staff overlapping by 0.41 m.
+        ///
+        /// The new room is narrow and DEEP (3.2 x 5.4), so the queue turns
+        /// through ninety degrees: two columns 1.5 m apart, stepping back in
+        /// rows. The band it steps through is bounded at both ends by things
+        /// that are already there - the front corridor (Paths.LaneZ) at one
+        /// end and the till counter at the other, which sits at z = Z0 + D -
+        /// 0.8 and is 0.6 deep.
+        /// </summary>
         public static Vector3 HallHome(int index, int count)
         {
             RoomPlan.Room g = Room("Entry");
             if (count < 1) count = 1;
-            float t = (index % count + 0.5f) / count;
-            // -2.05: the till counter is at z = Z0 + D - 0.8 and is 0.6 deep,
-            // so it starts at 2.9. The figure's depth is 1.12 m; standing at
-            // 2.4 the placement audit measured a 0.14 m overlap - the waiter
-            // was waiting inside the counter.
-            return new Vector3(g.X0 + 0.8f + (g.W - 1.6f) * t, 0f, g.Z0 + g.D - 2.05f);
+            if (index < 0) index = 0;
+
+            int col = index % 2;
+            int row = index / 2;
+
+            float x = g.X0 + 0.85f + col * (g.W - 1.70f);
+
+            float zFrom = g.Z0 + 1.30f;              // clear of the corridor
+            float zTo = g.Z0 + g.D - 1.55f;          // clear of the till counter
+            int rows = Mathf.Max(1, (count + 1) / 2);
+            float step = rows > 1
+                ? Mathf.Min(1.25f, (zTo - zFrom) / (rows - 1))
+                : 0f;
+
+            return new Vector3(x, 0f, zFrom + step * row);
         }
 
-        /// <summary>Where a party waiting for a table stands: beside the door.</summary>
+        /// <summary>
+        /// Where a party waiting for a table stands: behind the door.
+        ///
+        /// IT RUNS BACK INTO THE ROOM, NOT SIDEWAYS ALONG THE FRONT. Four
+        /// parties at 0.55 m need 1.65 m of frontage and the entrance is now
+        /// the 3.2 m room (RoomPlan, 18 September), with the door in the
+        /// middle - so a sideways queue put the last two parties past the wall
+        /// and into the first hall.
+        ///
+        /// Receding from the door is the better picture anyway: a queue that
+        /// grows towards the camera reads as a queue, where one that grows
+        /// sideways reads as a row of people standing about.
+        /// </summary>
         public static Vector3 QueueSpot(int index)
         {
-            return new Vector3(DoorX + 0.85f + (index % 4) * 0.55f, 0f, LaneZ + 0.15f);
+            RoomPlan.Room g = Room("Entry");
+            float x = Mathf.Min(DoorX + 0.85f, g.X0 + g.W - 0.55f);
+            return new Vector3(x, 0f, LaneZ + 0.30f + (index % 4) * 0.60f);
         }
 
         // =====================================================================

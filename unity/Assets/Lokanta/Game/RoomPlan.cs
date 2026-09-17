@@ -55,8 +55,27 @@ namespace Lokanta.Game
         public static readonly Room[] Rooms =
         {
             new Room { Name = "Kitchen",  X0 =  0.0f, Z0 = 4.0f, W = 5.2f, D = 5.6f, Tier = 0 },
-            new Room { Name = "Entry",   X0 =  0.0f, Z0 = 0.0f, W = 5.2f, D = 4.0f, Tier = 0 },
-            new Room { Name = "Sink", X0 =  5.2f, Z0 = 0.0f, W = 3.2f, D = 5.4f, Tier = 0 },
+            // THE ENTRANCE AND THE WASH ROOM SWAPPED PLACES (18 September 2026).
+            //
+            // The user's words: "let us move the restaurant's entrance door to
+            // the room one to the right, and let the dishwasher move to the
+            // leftmost room" - and the two rectangles are all that changed.
+            // The names, the array order and every lookup by name stayed put.
+            //
+            // It is not only where the user wants the door. The wash room was
+            // 3.2 m wide and BuildDishStation's own comment records what that
+            // cost: "ONE SINK, NOT TWO - the room is 3.2 m wide and each of
+            // the four objects is ~0.84 m". So two people washing up had one
+            // sink between them and stood inside each other, which is what the
+            // user saw. At 5.2 m a counter, two sinks and a counter fit with
+            // room to spare.
+            //
+            // The adjacencies improve too: the wash room now shares its whole
+            // 5.2 m edge with the kitchen instead of 1.4 m of corner, and the
+            // store no longer touches the entrance at all - which is the rule
+            // Connect() has been enforcing by hand.
+            new Room { Name = "Entry",   X0 =  5.2f, Z0 = 0.0f, W = 3.2f, D = 5.4f, Tier = 0 },
+            new Room { Name = "Sink",    X0 =  0.0f, Z0 = 0.0f, W = 5.2f, D = 4.0f, Tier = 0 },
             new Room { Name = "Store",    X0 =  5.2f, Z0 = 5.4f, W = 3.2f, D = 4.2f, Tier = 0 },
             new Room { Name = "Hall1",  X0 =  8.4f, Z0 = 0.0f, W = 5.0f, D = 4.4f, Tier = 1, Tables = 4 },
             new Room { Name = "Hall2",  X0 =  8.4f, Z0 = 4.4f, W = 5.0f, D = 5.2f, Tier = 2, Tables = 3 },

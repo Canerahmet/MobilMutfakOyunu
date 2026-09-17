@@ -174,7 +174,7 @@ AAB and **the AAB stayed at 30.8 MB** — a small download, a small install.
 | 5 | **The Data Safety form** | The declaration is ready: **"This app does not collect user data"** — verified by the evidence above. Filling it in takes minutes, but there is no release without it |
 | 6 | **The IARC age rating** | No release without the questionnaire being filled in. There is nothing obstructive in the content (no violence; "veresiye" — the tab — is a credit mechanic, not gambling). Proposal: **13+ and "not directed at children"** — if "children" is picked by mistake because of Kenney's cartoon style, the Families Policy obligations open up |
 | 7 | **The money model** | [D2](#d2-price) says $4.99 per cuisine, but `com.unity.purchasing` is **not in the project** and there is not a single line of purchasing in the code. There is no lock on the cuisine selection screen either: `CuisineScreen` wires both cards straight to `SlotScreen`. So the game could be released today as **free with TWO cuisines open**. A free→paid transition is **impossible**, so this decision is irreversible |
-| 8 | **Store images and copy** | **Mostly closed** — [44](44-store-texts.md): the short description, the full description (TR+EN) and the privacy policy text are written; screenshots are generated automatically by `tour.ps1 -Store` at 2183×983 (the same dp layout, 20:9) and sit under `render/store/`. The icon is ready. **The one remaining visual job: the feature graphic (1024×500)** — it depends on a cover design and the name decision |
+| 8 | **Store images and copy** | **Mostly closed** — [44](44-store-texts.md): the short description, the full description (TR+EN) and the privacy policy text are written; screenshots are generated automatically by `tour.ps1 -Store` at 2183×983 (the same dp layout, 20:9) and sit under `render/store/`. **Upload the `play/` copies, not those**: 2183×983 is 2.2208 : 1 and Play refuses anything over 2 : 1, so `python tools/store/compose.py` pads each frame with its own edge rows to 2183×1120 = 1.949 : 1 - no crop, no resample (see [58](58-visual-review.md) §13.6). The icon is ready. **The one remaining visual job: the feature graphic (1024×500)** — it depends on a cover design and the name decision |
 
 ### The order
 
@@ -194,6 +194,16 @@ both:
 .\tools\unity\tour.ps1 -Build windows-il2cpp   # the stripping exam, no device needed
 .\tools\android\device.ps1                    # a real phone, ARM64
 ```
+
+**And one measurement only a device can make: the colour grade's frame cost.**
+Post-processing was switched on on 17 September 2026
+([58](58-visual-review.md) §13.3). The grade itself is on-tile and cheap, but
+enabling the pass at all forces the camera through an INTERMEDIATE RENDER
+TARGET, and on a tiling GPU that is bandwidth - which no desktop run says
+anything about. On the first phone, capture the frame time with the grade on
+and with `camData.renderPostProcessing = false` in `BuildGameScene`, on the
+SAME build, and if it does not pay for itself revert that one line. Until then
+this is a known unmeasured cost, not a verified one.
 
 **Why the first is mandatory:** Android is built with
 `ManagedStrippingLevel.High` and the content loading uses reflection.

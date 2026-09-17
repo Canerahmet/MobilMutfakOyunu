@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace Lokanta.Game
 {
@@ -207,6 +208,49 @@ namespace Lokanta.Game
             if (src == null) return null;
             if (_tinted.TryGetValue(src, out Material ready)) return ready;
 
+            // THE CROWD IS A TEXTURE SWAP, NOT A TINT.
+            //
+            // Everything else in this method is a flat _BaseColor material, so
+            // a colour copy is the whole job. The figures are not: all twelve
+            // of them share ONE material and ONE colormap, and the shirt, the
+            // trousers and the FACE are different rectangles of that single
+            // texture. Multiplying _BaseColor would repaint the skin, and
+            // docs/25 is explicit that identity here comes from the
+            // environment, the light, the silhouette and the clothes and never
+            // from a face.
+            //
+            // So the swap happens a step earlier, in tools/art/gen_crowd.py,
+            // which recolours the clothing swatches and asserts the four skin
+            // tones come through byte-identical. Here it is one copy with a
+            // different _BaseMap - and because it is still ONE material for
+            // every figure in the scene, the batching does not change.
+            if (CharacterMaterial != null && src == CharacterMaterial)
+            {
+                Texture2D map = CuisineId == "turk" ? CrowdMapTurk : CrowdMapFastfood;
+                Material dressed = src;
+                if (map == null)
+                {
+                    // NOT SILENT: with the texture missing the crowd simply
+                    // wears the pack's own colours, which is exactly what the
+                    // scene looked like before this existed - a failure with
+                    // no symptom. Autopilot's CrowdUndressed check is the
+                    // measurement; this is the reason printed next to it.
+                    Debug.LogWarning("RestaurantView: no crowd colormap for '"
+                                     + CuisineId + "' - the figures keep the "
+                                     + "pack's own clothes (run "
+                                     + "tools/art/gen_crowd.py and rebuild the "
+                                     + "scene)");
+                }
+                else
+                {
+                    dressed = new Material(src);
+                    dressed.name = src.name + "_" + CuisineId;
+                    dressed.SetTexture(BaseMapId, map);
+                }
+                _tinted[src] = dressed;
+                return dressed;
+            }
+
             Palette p = Pal(CuisineId);
             string srcName = src.name.ToLowerInvariant();
             Color? tint = null;
@@ -354,9 +398,23 @@ namespace Lokanta.Game
             Modeler m = new Modeler();
             Modeler glow = new Modeler();
 
+            // THE SKYLINE IS ITS OWN MESH, AND THAT IS NOT TIDINESS.
+            //
+            // It used to go into `m`, which is built with `receive: true`
+            // because the FLOOR is in that group. So the row of distant
+            // buildings was receiving the near scene's shadows: bands of dark
+            // fell across blocks nine metres behind the back wall, with
+            // nothing visible to cast them. The user's report was exactly
+            // that - "there are shadows behind the restaurant at the top of
+            // the screen, I do not understand what they are, it looks wrong".
+            //
+            // A backdrop that is meant to read as DISTANCE must not be lit by
+            // what is standing in front of it.
+            Modeler far = new Modeler();
+
             FloorPattern(m, p, tables);
             Backdrop(m, p, left, right, back);
-            Skyline(m, p, left, right, back);
+            Skyline(far, p, left, right, back);
             Planters(m, p, left, right);
             KitchenHood(m, p, tables);
             ServiceCounter(m, glow, p, tables);
@@ -374,6 +432,22 @@ namespace Lokanta.Game
             // refused, the guests and the staff stood on a flat colour and
             // nothing in the building was attached to the ground.
             _decor = m.Build(transform, "Decor", _floorMat, _block, receive: true);
+
+            // UNLIT, AND THAT IS THE ACTUAL FIX.
+            //
+            // Taking the skyline out of the shadow-receiving group helped, and
+            // it was still a row of dark slabs, because the lighting was never
+            // the colour's problem: the sun comes from BEHIND the building
+            // (52 degrees, yaw 208), so every face these blocks turn towards
+            // the camera is in shade and lit by ambient alone. No albedo
+            // survives that - the same thing TableBadge learned when a green
+            // badge on a lit material measured 1.47:1 contrast against a floor
+            // it should have had 7.57:1 on.
+            //
+            // On URP/Unlit the authored colour is what is drawn, which is the
+            // whole point of a hazy backdrop: it is meant to be flat.
+            _skyline = far.Build(transform, "Skyline",
+                                 _badgeMat != null ? _badgeMat : _floorMat, _block);
 
             // THE GLOWING PARTS ARE ON A SEPARATE MATERIAL: while the emission
             // keyword is off the shader never reads that field, so a colour
@@ -403,7 +477,7 @@ namespace Lokanta.Game
             }
         }
 
-        private GameObject _decor, _decorGlow;
+        private GameObject _decor, _decorGlow, _skyline;
 
         /// <summary>The number of decoration parts (draws). So the tour can ask.</summary>
         public int DecorDrawCount
@@ -489,10 +563,28 @@ namespace Lokanta.Game
             // cool haze, so they sit BEHIND the sky's own value rather than
             // in front of it, and the restaurant stays the only saturated
             // thing in the frame.
-            Color haze = new Color(0.36f, 0.38f, 0.42f);
-            Color a = Color.Lerp(p.Wall, haze, 0.72f);
-            Color b = Color.Lerp(p.Wall, haze, 0.80f);
-            Color roof = Color.Lerp(p.Wall, haze, 0.62f);
+            // MIXED TOWARDS THE CUISINE'S SKY, not towards a fixed grey.
+            //
+            // The colour written here is now the colour drawn (the mesh is
+            // unlit - see BuildDecor), so it has to be judged against the
+            // BACKGROUND rather than against a lighting model. Two neighbours
+            // at 0.38 and 0.46 of the way from the wall to the sky put the row
+            // clearly above the sky's own value without ever reaching the
+            // restaurant's: the building in front stays the brightest and the
+            // only saturated thing in the frame.
+            //
+            // The parapet goes the other way, back towards the wall. A roof
+            // line has to be DARKER than the face below it or a block stops
+            // reading as a block.
+            // The target is the sky DIMMED, not the sky itself. Mixed towards
+            // the raw value the Turkish row came out a bright tan band across
+            // the top of the frame - lighter than the restaurant it is meant
+            // to sit behind. 0.72 pulls the target under the building's own
+            // range in both cuisines while keeping each one's hue.
+            Color far = new Color(p.Sky.r * 0.72f, p.Sky.g * 0.72f, p.Sky.b * 0.72f);
+            Color a = Color.Lerp(p.Wall, far, 0.38f);
+            Color b = Color.Lerp(p.Wall, far, 0.46f);
+            Color roof = Color.Lerp(p.Wall, far, 0.26f);
 
             int i = 0;
             for (float x = from; x < to; i++)
@@ -500,11 +592,14 @@ namespace Lokanta.Game
                 // Widths cycle 4.2 / 6.0 / 5.1 so the rhythm does not read as
                 // a fence.
                 float w = i % 3 == 0 ? 4.2f : (i % 3 == 1 ? 6.0f : 5.1f);
-                // Heights cycle over five steps between 3.6 and 6.0 m. The
-                // back wall is 2.6, so every one clears it - and the ceiling
-                // is low enough that the row sits along the top of the frame
-                // instead of filling it.
-                float h = 3.6f + (i % 5) * 0.6f;
+                // 3.6-6.0 m -> 3.0-4.4 m. The tall version ran off the TOP of
+                // the frame: what the player saw was a row of rectangles with
+                // no tops, which is a wall, not a skyline. A block has to show
+                // its parapet to read as a building, and at the overview
+                // camera that means staying under about 4.5 m.
+                //
+                // The back wall is 2.6, so every one of them still clears it.
+                float h = 3.0f + (i % 5) * 0.35f;
 
                 m.Box(new Vector3(x + w * 0.5f, h * 0.5f, z + 2.0f),
                       new Vector3(w - 0.35f, h, 4.0f), i % 2 == 0 ? a : b);
@@ -614,7 +709,36 @@ namespace Lokanta.Game
         /// </summary>
         private void Planters(Modeler m, Palette p, float left, float right)
         {
-            // Along the front: between the pavement and the building (z = -0.10).
+            List<float> xs = PlanterSpots(left, right);
+            for (int i = 0; i < xs.Count; i++) Planter(m, p, xs[i], TerraceZ);
+        }
+
+        /// <summary>
+        /// Where the planters stand along the front.
+        ///
+        /// SHARED WITH THE RAILING, and that is the point. The pots used to
+        /// sit at z = -0.26 and the rail runs at -0.42; the pot is 0.46 deep,
+        /// so the rail went straight through every one of them. The user saw
+        /// it: "there is a fence going through the plants or pots in front of
+        /// the restaurant".
+        ///
+        /// There is nowhere to move them to. The band between the shopfront
+        /// (front face -0.10) and the rail (back face -0.46) is 0.36 m and the
+        /// pot is 0.46; in front of the rail is the pavement, where the
+        /// pedestrian lanes run. Both were tried on paper and both leave the
+        /// pot clipping something.
+        ///
+        /// So the pots stay ON the rail line and the RAIL BREAKS AROUND THEM,
+        /// exactly as it already breaks around the door. A planter set into a
+        /// railing run is a real streetscape detail rather than a compromise -
+        /// it reads as a pier, and it gives the long front a rhythm it did not
+        /// have.
+        ///
+        /// The two ends are left out: the corner posts stand there.
+        /// </summary>
+        private static List<float> PlanterSpots(float left, float right)
+        {
+            List<float> xs = new List<float>();
             int count = Mathf.Max(2, Mathf.RoundToInt((right - left) / 3.2f));
             float gap = (right - left) / count;
 
@@ -623,9 +747,18 @@ namespace Lokanta.Game
                 float x = left + gap * i;
                 // Not blocking the front of the door: the entrance is at Paths.DoorX.
                 if (Mathf.Abs(x - Paths.DoorX) < 1.3f) continue;
-                Planter(m, p, x, -0.26f);
+                // Nor standing inside a corner post.
+                if (x - left < 0.45f || right - x < 0.45f) continue;
+                xs.Add(x);
             }
+            return xs;
         }
+
+        /// <summary>Half the width of the break a planter takes out of the rail.</summary>
+        private const float PlanterHalf = 0.27f;
+
+        /// <summary>The line the railing and the planters share.</summary>
+        private const float TerraceZ = -0.42f;
 
         private void Planter(Modeler m, Palette p, float x, float z)
         {
@@ -1083,8 +1216,8 @@ namespace Lokanta.Game
         /// exist.
         ///
         /// It goes in the entrance room, on the LEFT wall: that is the only
-        /// empty strip left apart from the front corridor (Paths.LaneZ =
-        /// 0.55) and the counter + plant pots behind it (z = 3.2 / 3.3).
+        /// empty strip left apart from the front corridor (Paths.LaneZ) and
+        /// the counter + plant pots behind it (z = 3.2 / 3.3).
         /// </summary>
         private void TrayStation(Modeler m, Modeler glow, Palette p, int tables)
         {
@@ -1209,21 +1342,48 @@ namespace Lokanta.Game
         /// </summary>
         private void Terrace(Modeler m, Palette p, float left, float right)
         {
-            const float z = -0.42f;
+            const float z = TerraceZ;
             const float y = 0.36f;
 
-            // Along the top rail; the front of the door stays OPEN.
-            float gap0 = Paths.DoorX - 0.95f, gap1 = Paths.DoorX + 0.95f;
+            // WHAT THE RAIL HAS TO MISS: the door, and every planter.
+            //
+            // The rail used to be two long runs with a gap at the door, and it
+            // was drawn without reference to the planters - which stand on the
+            // same line and are 0.54 m across, so it went through all of them.
+            // The breaks are built from the SAME list the pots are placed
+            // from (PlanterSpots); two lists would drift apart the first time
+            // the spacing changed.
+            List<float> breaks = new List<float>();
+            breaks.Add(Paths.DoorX - 0.95f);
+            breaks.Add(Paths.DoorX + 0.95f);
+
+            List<float> pots = PlanterSpots(left, right);
+            for (int i = 0; i < pots.Count; i++)
+            {
+                breaks.Add(pots[i] - PlanterHalf);
+                breaks.Add(pots[i] + PlanterHalf);
+            }
+            breaks.Sort();
+
             RailPost(m, p, left + 0.05f, z);
             RailPost(m, p, right - 0.05f, z);
 
-            Rail(m, p, left + 0.05f, gap0, z, y);
-            Rail(m, p, gap1, right - 0.05f, z, y);
-
             // The posts on either side of the door: the gap has to read as a
-            // "gateway", not as a "break".
-            RailPost(m, p, gap0, z);
-            RailPost(m, p, gap1, z);
+            // "gateway", not as a "break". The planters need no post - the pot
+            // IS the pier.
+            RailPost(m, p, Paths.DoorX - 0.95f, z);
+            RailPost(m, p, Paths.DoorX + 0.95f, z);
+
+            // The runs between the breaks. Rail() itself drops anything under
+            // 0.3 m, so a planter that lands next to the door gap simply
+            // merges with it instead of leaving a stub.
+            float from = left + 0.05f;
+            for (int i = 0; i < breaks.Count; i += 2)
+            {
+                Rail(m, p, from, breaks[i], z, y);
+                from = breaks[i + 1];
+            }
+            Rail(m, p, from, right - 0.05f, z, y);
         }
 
         private void RailPost(Modeler m, Palette p, float x, float z)

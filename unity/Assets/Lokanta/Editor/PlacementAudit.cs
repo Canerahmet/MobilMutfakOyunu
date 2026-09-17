@@ -77,6 +77,71 @@ namespace Lokanta.EditorTools
             }
         }
 
+        /// <summary>
+        /// Does every prop stay inside the room it stands in?
+        ///
+        /// THE GAP THIS FILLS. The clash pass compares objects with each
+        /// other and never asks about the WALLS, so the kitchen's prep
+        /// counters stood with their backs out through the left wall into the
+        /// street for a day and the audit reported "0 clashing pairs" the
+        /// whole time. The user found it by looking: "the things put against
+        /// the left wall in the kitchen look as if their backs stick out
+        /// through the wall".
+        ///
+        /// A prop whose CENTRE is outside every room is street furniture -
+        /// the planters, the lamp posts, the terrace chairs - and is left
+        /// alone; this asks only about things that are meant to be in a room.
+        ///
+        /// The tolerance is the wall's own half-thickness plus a little:
+        /// a prop pushed flush against a wall touches it by design, and the
+        /// door leaf genuinely sits in the wall line.
+        /// </summary>
+        private static void Contained(string cuisine, List<Item> all)
+        {
+            const float Tolerance = 0.08f;
+
+            int outside = 0;
+            float worst = 0f;
+            string worstName = "";
+
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (all[i].IsFigure) continue;
+
+                Vector3 c = all[i].Box.center;
+                int room = -1;
+                for (int k = 0; k < RoomPlan.Rooms.Length && room < 0; k++)
+                {
+                    RoomPlan.Room r = RoomPlan.Rooms[k];
+                    if (c.x >= r.X0 && c.x <= r.X0 + r.W
+                        && c.z >= r.Z0 && c.z <= r.Z0 + r.D) room = k;
+                }
+                if (room < 0) continue;
+
+                RoomPlan.Room rr = RoomPlan.Rooms[room];
+                Bounds b = all[i].Box;
+                float over = Mathf.Max(
+                    Mathf.Max(rr.X0 - b.min.x, b.max.x - (rr.X0 + rr.W)),
+                    Mathf.Max(rr.Z0 - b.min.z, b.max.z - (rr.Z0 + rr.D)));
+                if (over <= Tolerance) continue;
+
+                outside++;
+                if (over > worst)
+                {
+                    worst = over;
+                    worstName = all[i].Name + " out of " + rr.Name;
+                }
+                if (outside <= 8)
+                    Debug.Log(string.Format(
+                        "  OUTSIDE {0,-34} is {1:0.00} m past the wall of {2}",
+                        Short(all[i].Name), over, rr.Name));
+            }
+
+            Debug.Log(string.Format(
+                "  ROOMS {0}: {1} props out through a wall, worst {2:0.00} m [{3}]",
+                cuisine, outside, worst, Short(worstName)));
+        }
+
         private struct Item
         {
             public string Name;
@@ -212,7 +277,8 @@ namespace Lokanta.EditorTools
                 // the back wall" - but that was never available: an AABB over
                 // a merged mesh cannot answer it either way. Better to
                 // measure the pairs that CAN be measured and say so.
-                if (t.name == "Decor" || t.name == "DecorGlow") continue;
+                if (t.name == "Decor" || t.name == "DecorGlow"
+                    || t.name == "Skyline") continue;
 
                 Bounds? b = PosedBounds(t);
                 if (b != null) all.Add(new Item { Name = t.name, Box = b.Value });
@@ -259,6 +325,8 @@ namespace Lokanta.EditorTools
             Debug.Log(string.Format(
                 "  RESULT {0}: {1} objects, {2} clashing pairs ({3} with a figure), largest {4:0.00} m [{5}]",
                 cuisine, all.Count, clashes, figureClashes, largest, Short(largestName)));
+
+            Contained(cuisine, all);
 
             // How much room a figure takes on screen: the average footprint.
             float width = 0f, depth = 0f, height = 0f;

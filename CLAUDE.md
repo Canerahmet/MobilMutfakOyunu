@@ -77,7 +77,7 @@ Smart App Control off; it is a one-way switch.**
 Verification, in order of cost:
 
 ```
-python tools/check.py            16 checks, 249 core tests
+python tools/check.py            18 checks, 249 core tests
 .\tools\unity\tour.ps1           the game plays itself in a real build
 ```
 

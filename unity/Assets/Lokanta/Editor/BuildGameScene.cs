@@ -5,6 +5,7 @@ using Lokanta.Game.Ui;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 
 namespace Lokanta.EditorTools
@@ -84,6 +85,31 @@ namespace Lokanta.EditorTools
             cam.backgroundColor = new Color(0.055f, 0.062f, 0.075f);
             CameraRig rig = camGo.AddComponent<CameraRig>();
             camGo.AddComponent<AudioListener>();
+
+            // THE COLOUR GRADE IS SWITCHED ON HERE (docs/19, docs/58).
+            //
+            // docs/19 has always permitted "at most a light colour grading
+            // table" and it was never wired: postProcessData was 0, the
+            // default volume profile was untouched, and the game shipped with
+            // Unity's raw linear output.
+            //
+            // ONLY THE ON-TILE EFFECTS. In URP 17 tonemapping, colour
+            // adjustments, white balance and split toning are folded into the
+            // uber pass and stay on-tile; bloom and depth of field resolve to
+            // memory and do not. A published Android benchmark takes a frame
+            // from 25 ms to 60.5 ms with bloom on, which is the whole budget
+            // twice over - so the profile leaves every one of those neutral
+            // and tools/check_grade.py fails the build if one wakes up.
+            //
+            // THE FRAME COST IS STILL UNMEASURED ON A PHONE. There is no test
+            // device; what is measured here is the PICTURE (render/*.png) and
+            // the CONTENT of the profile. docs/21 carries the device check.
+            UniversalAdditionalCameraData camData =
+                camGo.AddComponent<UniversalAdditionalCameraData>();
+            camData.renderPostProcessing = true;
+            // No anti-aliasing on top of it: the render scale is already 0.8
+            // and a second full-screen pass is exactly what this is avoiding.
+            camData.antialiasing = AntialiasingMode.None;
 
             // --- hall --------------------------------------------------------
             GameObject viewGo = new GameObject("Restaurant");
@@ -197,6 +223,23 @@ namespace Lokanta.EditorTools
                 Prefab("Food/meat-patty"), Prefab("Food/cheese"),
             };
 
+            // THE CROWD WEARS THE CUISINE (tools/art/gen_crowd.py).
+            //
+            // THE MATERIAL IS THE ONE ArtPrefabs GENERATES, not the one the FBX
+            // import produced. There are two, and only the generated one is on
+            // the prefabs: `Character_colormap.mat` comes out of the FBX and
+            // `Characters_Character_colormap.mat` is what ArtPrefabs writes and
+            // then re-points every character prefab at. Wiring the FBX one here
+            // made `Tinted` compare against a material NOTHING IN THE SCENE
+            // USES - so the crowd was never recoloured and nothing said so.
+            //
+            // It is handed over by reference rather than matched by name
+            // because that is what Tinted keys the swap on, and a name match
+            // would also catch Food_colormap - the plates.
+            view.CharacterMaterial = Mat("Characters_Character_colormap");
+            view.CrowdMapFastfood = Tex("colormap-crowd-fastfood");
+            view.CrowdMapTurk = Tex("colormap-crowd-turk");
+
             List<GameObject> customers = new List<GameObject>();
             foreach (string s in new[] { "a", "b", "c", "d", "e", "f" })
             {
@@ -236,6 +279,16 @@ namespace Lokanta.EditorTools
                 Debug.LogError("PROBLEMS: no material: " + name
                                + " (run 'Lokanta/Generate the model prefabs')");
             return m;
+        }
+
+        private static Texture2D Tex(string name)
+        {
+            string path = "Assets/Lokanta/Art/Characters/Textures/" + name + ".png";
+            Texture2D t = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (t == null)
+                Debug.LogError("PROBLEMS: no texture: " + path
+                               + " (run 'python tools/art/gen_crowd.py')");
+            return t;
         }
 
         private static GameObject Prefab(string relative)

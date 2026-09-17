@@ -1234,14 +1234,51 @@ namespace Lokanta.EditorTools
                 AssetDatabase.CreateFolder(parent, child);
         }
 
+        /// <summary>
+        /// The pack's own colormap for a folder.
+        ///
+        /// THE NAME IS MATCHED EXACTLY, and that is a scar. This used to
+        /// return the first texture whose PATH CONTAINED "colormap", in
+        /// whatever order the asset database happened to hand them over.
+        /// The moment tools/art/gen_crowd.py put
+        /// `colormap-crowd-fastfood.png` next to `colormap.png`, that became
+        /// the first match: every character material in the project was
+        /// silently re-pointed at the fast-food crowd texture, the prefabs
+        /// were rewritten to match, and the game went on rendering perfectly
+        /// - in the wrong clothes, in both cuisines.
+        ///
+        /// It cost an hour of looking in the wrong place, because the
+        /// symptom was "my new texture has no effect" and the cause was
+        /// "your new texture replaced the base one". A substring match over
+        /// an unordered list is not a lookup; it is a race with the file
+        /// system.
+        ///
+        /// So: the exact file name wins, and if there is no exact match but
+        /// there ARE near misses, this says so instead of picking one.
+        /// </summary>
         private static string FindTexture(string folder)
         {
             if (!AssetDatabase.IsValidFolder(folder + "/Textures")) return null;
+
+            string exact = null;
+            List<string> near = new List<string>();
             foreach (string g in AssetDatabase.FindAssets(
                          "t:Texture2D", new[] { folder + "/Textures" }))
             {
                 string p = AssetDatabase.GUIDToAssetPath(g);
-                if (p.ToLower().Contains("colormap")) return p;
+                string file = System.IO.Path.GetFileName(p).ToLowerInvariant();
+                if (file == "colormap.png") exact = p;
+                else if (file.Contains("colormap")) near.Add(p);
+            }
+            if (exact != null) return exact;
+            if (near.Count == 1) return near[0];
+            if (near.Count > 1)
+            {
+                Debug.LogError("PROBLEMS: " + folder + "/Textures has no "
+                               + "colormap.png but " + near.Count + " files that "
+                               + "look like one (" + string.Join(", ", near)
+                               + ") - refusing to guess which one the pack's "
+                               + "materials should use");
             }
             return null;
         }

@@ -246,7 +246,7 @@ Item 5's numerical justification holds in the new floor plan too: the kitchen's 
 
 ## 8. The three things this requires
 
-1. **The badge sits on the room, not on the table.** A table is 16 dp in the general view; there is no point putting a badge there. A "3 customers waiting" badge sitting on the room is both visible and touchable.
+1. **The badge sits on the room, not on the table.** A table is 16 dp in the general view; there is no point putting a badge there. A "3 customers waiting" badge sitting on the room is both visible and touchable. **Built on 17 September 2026** ([58](58-visual-review.md) §13.2): one badge per open dining room showing the room's worst table, 2.20 m wide which measures about 87 dp in the overview frame, with a touch target that selects that table. The table badges are hidden while the overview is up and the room badges while a room is - one readout at a time, because two of them at two sizes make the reader choose, which is the cost this decision existed to remove.
 2. **The zoom is stepped, not continuous.** Two steps: general and room. If a free zoom (pinch) is added, the table stays between 16 and 30 dp in the intermediate steps, so touch does not work in that range. With steps, the touch rule is definite at each step.
 3. **The room view is not a room, it is a ZOOM STEP.** Fitting a 5.0 × 4.4 m room vertically into a 20:9 frame necessarily means showing about 12 metres horizontally. When the player moves in on a room they also see part of its neighbours. That is good: the context is not lost.
 
@@ -255,8 +255,16 @@ Item 5's numerical justification holds in the new floor plan too: the kitchen's 
 | Room | Size | Area | Inside it | The system it is tied to |
 |---|---|---|---|---|
 | Kitchen | 5.2 × 5.6 m | 29.1 m² | stove, counter, extractor hood | the cook pool ([14](14-staff-system.md)), station slots ([32](32-equipment-and-rebalance.md)) |
-| Entry / till | 5.2 × 4.0 m | 20.8 m² | the till, the door | the hall pool, the cashier |
-| Sink room | 3.2 × 5.4 m | 17.3 m² | sink, shelf | the hall pool, the dishwasher |
+| Entry / till | 3.2 × 5.4 m | 17.3 m² | the till, the door, the tray station | the hall pool, the cashier |
+| Wash room | 5.2 × 4.0 m | 20.8 m² | **two** sinks, two plate counters | the hall pool, the dishwasher |
+
+**These two swapped places on 18 September 2026**, at the user's request: the
+door moved one room to the right and the dishwasher to the leftmost room. Only
+the rectangles changed - the names, the array order in `RoomPlan` and every
+lookup by name stayed as they were. The wash room needed the extra width for a
+reason the code had already written down: at 3.2 m a counter, two sinks and a
+counter do not fit, so two people washing up shared one basin and stood inside
+each other. See [58](58-visual-review.md) §14.2.
 | **Store** | 3.2 × 4.2 m | **13.4 m²** | cold room, dry shelf, crates | **stock and spoilage** ([32](32-equipment-and-rebalance.md) §7) |
 | Hall ×4 | 4.6-5.0 × 4.4-5.2 m | 20-26 m² | 3-4 table sets | table capacity ([12](12-economy.md)) |
 

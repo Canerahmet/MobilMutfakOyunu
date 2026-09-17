@@ -290,7 +290,15 @@ namespace Lokanta.Game
         // =====================================================================
         /// <summary>
         /// Fills the street. prefabs: the guest figures (the same pack).
-        public void Build(Transform root, GameObject[] prefabs, int seed)
+        /// <param name="dress">
+        /// Called on each new figure, right after it is created. The street
+        /// wears the same crowd colormap as the hall: the pavement is two
+        /// metres from the window and in frame the whole time, so a street
+        /// full of the pack's own colours next to a recoloured hall would
+        /// read as the recolouring being broken.
+        /// </param>
+        public void Build(Transform root, GameObject[] prefabs, int seed,
+                          System.Action<GameObject> dress = null)
         {
             _rng = new System.Random(seed);
 
@@ -301,6 +309,7 @@ namespace Lokanta.Game
             {
                 GameObject go = Instantiate(prefabs[i % prefabs.Length], root);
                 go.name = "Passerby";
+                if (dress != null) dress(go);
                 Pedestrian p = new Pedestrian
                 {
                     Body = go,

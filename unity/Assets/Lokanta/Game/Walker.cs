@@ -95,6 +95,9 @@ namespace Lokanta.Game
         /// <summary>Has it yet to arrive?</summary>
         public bool Moving { get { return _at < _path.Count; } }
 
+        /// <summary>Where the current path began. The figure's own position if it has none.</summary>
+        public Vector3 Origin { get; private set; }
+
         /// <summary>The last point of the current path; where it stands if there is no path.</summary>
         public Vector3 Destination
         {
@@ -128,6 +131,11 @@ namespace Lokanta.Game
         public void GoTo(List<Vector3> waypoints, float finalYaw,
                          System.Action onArrive)
         {
+            // WHERE THIS WALK STARTED. Kept because the table a figure GOT UP
+            // FROM is inside its own chairs by definition, exactly as the one
+            // it is walking to is - see RestaurantView.Intruding, which
+            // excuses both and nothing else.
+            Origin = transform.localPosition;
             _path.Clear();
             if (waypoints != null) _path.AddRange(waypoints);
             _at = 0;

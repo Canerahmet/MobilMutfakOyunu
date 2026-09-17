@@ -49,6 +49,13 @@
 - Only one directional light is real-time.
 - Characters are lit by light probes.
 - No heavy post-processing. At most a light colour grading table.
+  **Spent, on 17 September 2026:** contrast +8, saturation +6, white balance
+  +6, and nothing else. `tools/check_grade.py` enforces the 'light' half of
+  that sentence - it refuses nine off-tile effects by name, because every
+  override already sits in the shared volume profile with its override state
+  enabled, so turning bloom on is typing a number rather than adding a
+  feature. The frame cost on a device is still unmeasured; see
+  [21](21-business-and-release.md).
 
 The warm evening light that carries the cuisine's identity is provided by baked light and colour grading. There is no need for real-time shadows.
 
