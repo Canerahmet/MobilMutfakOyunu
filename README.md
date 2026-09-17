@@ -6,7 +6,7 @@ bad-tempered cook and sixty days.
 A 2.5D low-poly restaurant management game, landscape, Android first. Unity 6 +
 URP, built by one person.
 
-![Day forty](render/store/20-store-service.png)
+![Day forty](render/store/turk/en/20-store-service.png)
 
 *Day forty, fast food: the lit menu board above the counter, the hot line in the
 middle, tills at the ends — no waiter, the guest carries their own tray.*
@@ -23,11 +23,11 @@ The day has three phases and each one asks a different question.
 
 ### Morning — decisions
 
-![Morning](render/store/04-game-morning.png)
+![Morning](render/store/turk/en/04-game-morning.png)
 
 *Opening preparation: menu, stock and kitchen in three rows.*
 
-![Market](render/store/05-market.png)
+![Market](render/store/turk/en/05-market.png)
 
 **The market.** Today's price of every ingredient is shown against its yearly
 average, together with its shelf life. A cheap day is an opportunity if you can
@@ -37,13 +37,13 @@ many days to buy for, and your cold store's tier sets the ceiling.
 Ingredient quality lives here too: three tiers, the cheap one up to 25% cheaper
 and it does not leave the guest happy.
 
-![Menu](render/store/05-menu.png)
+![Menu](render/store/turk/en/05-menu.png)
 
 **The menu.** There are thirty-two dishes and you cannot keep them all open:
 every dish on the menu ties up stock, and anything that spoils goes in the bin
 tonight. A narrow menu wastes less; a wide one draws more.
 
-![Crew](render/store/05-crew.png)
+![Crew](render/store/turk/en/05-crew.png)
 
 **The crew.** Wages are paid every day, the peak comes two days a week. A full
 crew serves everyone but eats the cash; running one short earns more, and pays
@@ -51,7 +51,7 @@ for it with guests who get up from the table angry.
 
 ### Service — this is where you are
 
-![Table selected](render/store/16-table-selected.png)
+![Table selected](render/store/turk/en/16-table-selected.png)
 
 The day is shaped around a peak: a hard lunch rush in the Turkish restaurant,
 two smaller crests at lunch and dinner in fast food. The peak becomes crushing
@@ -68,7 +68,7 @@ They all come out of one purse, and whatever you do not spend burns at midnight.
 
 ### Evening — the reckoning
 
-![Evening](render/store/10-evening.png)
+![Evening](render/store/turk/en/10-evening.png)
 
 *Today's profit, guests served, revenue — and **spoilage**, the game's largest
 invisible cost.*
@@ -84,7 +84,7 @@ quests: recognition after the fact, which is why they never fight your plan.
 
 ## Two cuisines, two signatures
 
-![Choosing a cuisine](render/store/02-cuisine-choice.png)
+![Choosing a cuisine](render/store/turk/en/02-cuisine-choice.png)
 
 You choose at the start and it is locked for that save.
 
@@ -104,7 +104,7 @@ crowd — and trays piling up on the tables.
 
 ## Regulars
 
-![A story beat](render/store/15-story.png)
+![A story beat](render/store/turk/en/15-story.png)
 
 Each of twenty named customers has a three-scene story. A customer who comes
 often and leaves happy opens their scenes:
@@ -117,7 +117,7 @@ often and leaves happy opens their scenes:
 
 ## Day sixty
 
-![Year-end review](render/store/13-review.png)
+![Year-end review](render/store/turk/en/13-review.png)
 
 You are scored on seven axes: wealth, reputation, regulars, crew, premises,
 resilience and your cuisine's signature. Seven axes rather than one number,
@@ -213,7 +213,10 @@ tools/            The scripts that generate and verify everything.
 docs/             A numbered log. Each number is the record of one piece of
                   work; the index is in docs/README.md.
 vendor/           Third-party source files, with their licences
-render/           Generated screenshots; the store images in render/store/
+render/           Generated screenshots; the store images in
+                  render/store/<cuisine>[/<language>]/ - the pictures
+                  below are the English set, which is what the default
+                  Play listing wants
 ```
 
 The rule: **one direction, once.** `src/` does not know Unity, `unity/` does not
