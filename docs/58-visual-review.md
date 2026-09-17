@@ -465,7 +465,78 @@ Listed so they are not lost, and ordered by what they cost against what they buy
 
 ---
 
-## What the reviewers said not to break
+## The state after the round
+
+```
+python tools/check.py                17/17 clean, 249 core tests
+tour.ps1 -Cuisine turk               189 passed, 0 failed
+tour.ps1 -Cuisine fastfood -Runs 2   186/0 and 185/0
+tour.ps1 -Store -Lang en             194 passed, 0 failed
+tour.ps1 -Build windows-il2cpp       BLOCKED - see section 11
+BuildPlayer.Android                  BLOCKED - see section 11
+```
+
+The tour is 194 checks where it was 176 at the start of the day. Eighteen of
+those are new: the torn-save arms from [57](57-end-to-end-audit.md), and the
+layout pass across four screens that had never been measured.
+
+**Two numbers deliberately not compared.** The Turkish run and the fast food run
+are different check counts because the cuisines have different mechanics, and
+this project has written down more than once that comparing them is the mistake.
+The pairs above are same-cuisine, same-build.
+
+---
+
+## 11. THE RELEASE BUILD IS BLOCKED ON THIS MACHINE
+
+Re-running the two pre-release gates after this round found something that has
+nothing to do with the round: **neither of them can run any more.**
+
+```
+tour.ps1 -Build windows-il2cpp   ->  Fatal error in Unity CIL Linker
+BuildPlayer.Android              ->  Fatal error in Unity CIL Linker
+```
+
+Both go through the same `UnityLinker.exe`, and the linker dies on the same
+line:
+
+```
+System.IO.FileLoadException: Could not load file or assembly
+'...Editor/Data/il2cpp/build/deploy/Analytics.Api.Output.dll'.
+An Application Control policy has blocked this file. (0x800711C7)
+```
+
+`0x800711C7` is the Smart App Control signature this project already has a
+memory about. What is new is **where** it is landing. This is not the project's
+own output: it is a file inside the Unity Editor installation, and
+
+```
+Analytics.Api.Output.dll   11,264 bytes   17 August 2026
+Signature status : NotSigned
+```
+
+it is **unsigned**. Smart App Control blocks unsigned binaries by HASH, and a
+shipped Editor file has a fixed hash, so unlike the project's own DLLs there is
+no rebuild that changes it. Tried twice; identical failure. The machine's policy
+state is `VerifiedAndReputablePolicyState = 1`, enforced.
+
+**What still works:** everything else. The Mono Windows build compiles and the
+tour runs on it, so the whole measurement layer, every check and every
+screenshot in this document is unaffected. Both IL2CPP paths are blocked, which
+is precisely the release path: the Android package and the stripping exam.
+
+**It worked this morning.** A Windows-IL2CPP build passed at 02:20 and an
+Android APK at 02:29, both from this machine. Nothing in the project changed
+between then and 11:48 that touches the linker. SAC takes its verdicts from a
+cloud reputation service, so the policy moved underneath the machine.
+
+**It is not mine to resolve, and the rule stands:** [CLAUDE.md](../CLAUDE.md) 5,
+*never turn Smart App Control off - it is a one-way switch.* It stays on. The
+last good APK on disk is the one from 02:29 and it predates this round's work,
+so it should not be treated as shippable.
+
+**What the last APK does prove** is that nothing in the project is at fault: the
+same source built cleanly nine hours earlier.
 
 Recorded because several of these were nearly collateral damage.
 

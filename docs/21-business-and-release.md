@@ -203,6 +203,27 @@ where there is no stripping. When a **new** assembly that uses reflection is
 added, `link.xml` does not know about it; this run is the only thing that catches
 that moment. Measured: [46](46-shipped-binary.md) §4.
 
+### BOTH OF THEM ARE BLOCKED AS OF 17 SEPTEMBER 2026
+
+Smart App Control has begun refusing an **unsigned DLL inside the Unity Editor
+installation** that `UnityLinker.exe` loads:
+
+```
+Analytics.Api.Output.dll   unsigned, 11,264 bytes
+An Application Control policy has blocked this file. (0x800711C7)
+```
+
+Both IL2CPP paths - the stripping exam and the Android package - go through that
+linker, so neither can run. The Mono Windows build and the whole measurement
+layer are unaffected. It worked on this machine at 02:20 and 02:29 the same day
+and nothing in the project changed in between; SAC takes its verdicts from a
+cloud reputation service.
+
+SAC is not being turned off (rule 5, one-way). **Until it is resolved there is no
+release build**, and the APK sitting in `build/android/` predates it.
+
+See [58](58-visual-review.md) 11.
+
 **Why the second is mandatory:** the shipped binary is ARM64 and that code is
 not produced by any desktop run. An emulator is no substitute — because the APK
 carries only `arm64-v8a`, it cannot even be installed on an emulator.
