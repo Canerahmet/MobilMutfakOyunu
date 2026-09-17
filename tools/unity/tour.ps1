@@ -1,4 +1,4 @@
-<#
+﻿<#
     Smoke tour runner
     ==========================================================================
     Why it exists: THERE WAS NO SCRIPT AT ALL that ran the tour. "-lokanta-tour"
@@ -146,11 +146,19 @@ for ($i = 1; $i -le $Runs; $i++) {
 # the tour had run, the images had been produced, but they were lost before
 # they were copied. Copying has nothing to do with checking the result.
 if ($Store) {
-    $dest = Join-Path $Root "render\store"
-    if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
+    # ONE FOLDER PER CUISINE.
+    #
+    # Every store run wrote into render\store, so the second cuisine's
+    # screenshots SILENTLY REPLACED the first one's - and the two look
+    # different on purpose (fast food is self service, a cleaner instead of a
+    # waiter, a different hall). The Play listing wants both, and what was
+    # sitting in the folder was whichever cuisine happened to be run last,
+    # with nothing in the name to say which.
+    $dest = Join-Path (Join-Path $Root "render\store") $Cuisine
+    if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
     Copy-Item (Join-Path (Join-Path $env:TEMP "lokanta_tour_1") "*.png") $dest -Force
     Write-Output ""
-    Write-Output ("=== store images: {0} ===" -f $dest)
+    Write-Output ("=== store images ({0}): {1} ===" -f $Cuisine, $dest)
 }
 
 if ($crash -gt 0) {

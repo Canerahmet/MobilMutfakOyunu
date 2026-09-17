@@ -360,9 +360,37 @@ namespace Lokanta.EditorTools
             // SHADOW - no test caught it, it was seen in a screenshot and
             // fixed.
             //
-            // 45 = in the worst case (narrow aspect ratio, thick interface
-            // bars) the furthest corner of the scene is 39.4 m, plus a margin.
-            SetUrpField(so, "m_ShadowDistance", p => p.floatValue = 45f, "URP shadow distance");
+            // 45 WAS MEASURED AT THE WRONG TIER, and it is the same class of
+            // error as the 14 above - a distance that is right for the scene
+            // as it was when somebody looked at it.
+            //
+            // 45 came from "the furthest corner is 39.4 m, plus a margin". That
+            // corner is the OPENING restaurant. The plot grows: by tier 4 the
+            // camera has pulled back to fit fourteen tables and the back wall
+            // sits at ~46 m - past the distance entirely. Worse, URP fades the
+            // last cascade over `m_CascadeBorder` (0.2), so the fade starts at
+            // 0.8 x 45 = 36 m and the dining room was inside it at EVERY tier.
+            //
+            // 70 clears tier 4's back wall with a real margin. The price is
+            // texel size: on a single 2048 map, 45 m = 2.2 cm/texel and 70 m =
+            // 3.4 cm. The note below records that 9 cm was not enough; 3.4 is
+            // a long way from that.
+            SetUrpField(so, "m_ShadowDistance", p => p.floatValue = 70f, "URP shadow distance");
+
+            // SOFT SHADOWS. BuildGameScene asks the sun for
+            // `LightShadows.Soft` (BuildGameScene.cs:47) and the pipeline was
+            // refusing it - `m_SoftShadowsSupported: 0` makes every shadow in
+            // the game hard-edged whatever the light says. A request that is
+            // silently denied is worse than one that was never made: the code
+            // reads as though the decision had been taken.
+            //
+            // It costs a wider filter tap in the shadow pass. Judged worth it
+            // on a scene with ONE shadow-casting light, one cascade and a
+            // handful of casters - but it is a per-pixel cost on a phone and
+            // it has NOT been measured on a device, because there is no test
+            // phone. Flagged rather than assumed.
+            SetUrpField(so, "m_SoftShadowsSupported", p => p.boolValue = true,
+                        "URP soft shadows");
             SetUrpField(so, "m_ShadowCascadeCount", p => p.intValue = 1, "URP shadow cascades");
             // At 45 m on a single cascade a 512 map = 18 cm/texel and the
             // shadows become unrecognisable. 1024 = 9 cm and that WAS NOT

@@ -331,8 +331,27 @@ namespace Lokanta.Game
         /// The dead branch was misleading - it read as "a glowing part gets a
         /// separate material", when in fact it never ran.
         /// </summary>
+        /// <param name="receive">
+        /// WHETHER THE SURFACE TAKES A SHADOW. The default is false and that
+        /// was the only behaviour until now - every mesh this class builds
+        /// refused shadows, including `FloorPattern`, which lays the planks
+        /// and tiles 6 mm above the room slab and is therefore the VISIBLE
+        /// top surface of every floor in the building.
+        ///
+        /// So the characters cast (ArtPrefabs.cs:774 turns casting on for
+        /// people and off for props) and there was nothing inside to catch
+        /// it. Outside there was: the pavement is a plain slab and takes a
+        /// shadow, which is why in every screenshot the pedestrians and the
+        /// lamp posts are planted and the dining tables six metres away
+        /// float.
+        ///
+        /// It is a flag rather than a blanket change because the two things
+        /// this class builds want opposite answers: a floor should take a
+        /// shadow, an extractor hood 2.4 m up should not - it would collect
+        /// the sun's own shadow and read as a stain.
+        /// </param>
         public GameObject Build(Transform parent, string name, Material mat,
-                                MaterialPropertyBlock block)
+                                MaterialPropertyBlock block, bool receive = false)
         {
             GameObject root = new GameObject(name);
             root.transform.SetParent(parent, false);
@@ -360,7 +379,7 @@ namespace Lokanta.Game
                 go.AddComponent<OwnedMesh>().Mesh = mesh;
                 MeshRenderer r = go.AddComponent<MeshRenderer>();
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                r.receiveShadows = false;
+                r.receiveShadows = receive;
 
                 r.sharedMaterial = mat;
                 r.GetPropertyBlock(block);

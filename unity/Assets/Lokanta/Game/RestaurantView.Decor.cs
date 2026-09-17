@@ -368,7 +368,11 @@ namespace Lokanta.Game
             Storefront(m, p, left, right);
             PatioSeats(m, p, left, right);
 
-            _decor = m.Build(transform, "Decor", _floorMat, _block);
+            // receive: true - THE FLOOR IS IN HERE. `FloorPattern` is part of this
+            // group and it is what the player sees underfoot; with shadows
+            // refused, the guests and the staff stood on a flat colour and
+            // nothing in the building was attached to the ground.
+            _decor = m.Build(transform, "Decor", _floorMat, _block, receive: true);
 
             // THE GLOWING PARTS ARE ON A SEPARATE MATERIAL: while the emission
             // keyword is off the shader never reads that field, so a colour

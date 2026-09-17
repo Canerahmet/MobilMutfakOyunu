@@ -160,6 +160,8 @@ def main():
          [PY, os.path.join("tools", "audit_content.py")]),
         ("font coverage",
          [PY, os.path.join("tools", "art", "check_font.py")]),
+        ("icons have a picture",
+         [PY, os.path.join("tools", "art", "check_icons.py")]),
         ("store listing texts",
          [PY, os.path.join("tools", "content", "check_store_texts.py")]),
         ("document links",
