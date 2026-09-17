@@ -530,6 +530,30 @@ namespace Lokanta.Game.Ui
             _day = Theme.Text("", Theme.FontBody, Theme.Ink);
             row.Add(Kit.Badge(_day));
 
+            // THE LEFT GROUP SITS ON A PLATE. The till and the reputation
+            // have had one all along; the day, the phase, the day's progress
+            // and the rent countdown did not.
+            //
+            // The strip has no background on purpose - "the space that wins
+            // goes to the hall" - and that is right for the STRIP. It is not
+            // right for the text: over a bright wooden counter in the zoomed
+            // room view, `Service 1 / 60` and `Rent in 6 days` were simply
+            // unreadable, and docs/16 says the rent countdown has to be
+            // visible at all times. Adding a skyline behind the building made
+            // it worse, because the top corners stopped being flat colour.
+            //
+            // A plate under the text rather than a bar across the strip: the
+            // hall keeps everything the group does not stand on.
+            VisualElement leftPlate = Theme.Row(0);
+            leftPlate.style.alignItems = Align.Center;
+            leftPlate.style.backgroundColor = Kit.CardBg;
+            leftPlate.style.paddingLeft = 8;
+            leftPlate.style.paddingRight = 10;
+            leftPlate.style.paddingTop = 3;
+            leftPlate.style.paddingBottom = 3;
+            leftPlate.pickingMode = PickingMode.Ignore;
+            Theme.Round(leftPlate, Kit.CardRadius);
+
             VisualElement dayGroup = new VisualElement();
             dayGroup.style.marginLeft = 8;
             dayGroup.pickingMode = PickingMode.Ignore;
@@ -565,7 +589,7 @@ namespace Lokanta.Game.Ui
 
             VisualElement track = Kit.Meter(out _meterFill, 138f, 9f);
             dayGroup.Add(track);
-            row.Add(dayGroup);
+            leftPlate.Add(dayGroup);
 
             // THE RENT COUNTDOWN. docs/02 calls the weekly rent "the
             // metronome of the pressure", and that metronome was not on the
@@ -573,7 +597,8 @@ namespace Lokanta.Game.Ui
             // player only noticed after the figure had dropped.
             _rent = Theme.Text("", Theme.FontSmall, Theme.InkDim);
             _rent.style.marginLeft = Theme.Pad;
-            row.Add(_rent);
+            leftPlate.Add(_rent);
+            row.Add(leftPlate);
 
             VisualElement spacer = new VisualElement();
             spacer.style.flexGrow = 1;

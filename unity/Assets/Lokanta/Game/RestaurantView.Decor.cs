@@ -356,6 +356,7 @@ namespace Lokanta.Game
 
             FloorPattern(m, p, tables);
             Backdrop(m, p, left, right, back);
+            Skyline(m, p, left, right, back);
             Planters(m, p, left, right);
             KitchenHood(m, p, tables);
             ServiceCounter(m, glow, p, tables);
@@ -428,6 +429,101 @@ namespace Lokanta.Game
         /// camera is looking at it from behind anyway - but it makes the
         /// place a ROOM.
         /// </summary>
+        /// <summary>
+        /// THE BLOCK THE RESTAURANT STANDS IN: a row of neighbouring facades
+        /// behind it, and one at each end of the street.
+        ///
+        /// WHY. Measured off the store frame: 37% of it was a single flat
+        /// colour - the camera's clear colour standing in for the sky - and
+        /// the building sat in it as a slab with a hard dark edge and nothing
+        /// behind, above or beside it. That is the clearest "this is a level
+        /// editor, not a place" tell in the picture, and at night it is
+        /// forgiven only because darkness is a plausible thing to see.
+        ///
+        /// IT COSTS NOTHING IN FRAMING. `CameraFit.OpenBounds` is built from
+        /// the open rooms plus `StreetInFrame` and nothing else - I read it
+        /// before writing this - so geometry placed BEHIND the back wall does
+        /// not move the camera a millimetre and does not shrink the
+        /// restaurant. That is the whole reason this is the cheap fix and
+        /// "pull the camera in" is not: the camera is already bound by the
+        /// touch-target measurement in docs/31.
+        ///
+        /// WHAT THEY ARE NOT. They are not buildings you can enter, light or
+        /// expand into; they are a backdrop. So they are deliberately dull:
+        /// darker than the restaurant's own wall, low contrast between
+        /// neighbours, no windows lit by day. A skyline that competes with the
+        /// hall for attention would be worse than the flat colour, which at
+        /// least does not pretend to be interesting.
+        ///
+        /// THE HEIGHTS ARE VARIED BUT NOT RANDOM PER FRAME. The pattern is
+        /// derived from the facade's index, so the street looks the same every
+        /// time the scene is built - a skyline that reshuffles on a rebuild
+        /// would be a bug the player sees as flicker.
+        /// </summary>
+        private void Skyline(Modeler m, Palette p, float left, float right, float back)
+        {
+            // FAR BACK. The first attempt put them at back + 2.6 and they
+            // loomed: a dark mass directly behind the roofline, filling the
+            // top of the frame and sitting under the day counter in the HUD.
+            // The measurement improved (37.3% of the frame flat, down to
+            // 26.5%) and the PICTURE got worse, which is the whole argument
+            // for looking at the frame as well as at the number.
+            float z = back + 7.0f;
+
+            // Wider than the plot on both sides: the row has to run out of the
+            // frame, not stop inside it. A skyline with visible ends is a
+            // stage set.
+            float from = left - 9f;
+            float to = right + 9f;
+
+            // ATMOSPHERE, NOT DARKNESS.
+            //
+            // The first attempt made them DARKER than the restaurant's wall,
+            // on the reasoning that the building in front should stay the
+            // brightest thing. It does - but a dark block against a mid-grey
+            // sky reads as a heavy near object, not a distant one, and the
+            // row came out as a black wall pressing on the roofline.
+            //
+            // Distance desaturates and lifts towards the sky; it does not
+            // darken. These are the wall colour pulled most of the way to a
+            // cool haze, so they sit BEHIND the sky's own value rather than
+            // in front of it, and the restaurant stays the only saturated
+            // thing in the frame.
+            Color haze = new Color(0.36f, 0.38f, 0.42f);
+            Color a = Color.Lerp(p.Wall, haze, 0.72f);
+            Color b = Color.Lerp(p.Wall, haze, 0.80f);
+            Color roof = Color.Lerp(p.Wall, haze, 0.62f);
+
+            int i = 0;
+            for (float x = from; x < to; i++)
+            {
+                // Widths cycle 4.2 / 6.0 / 5.1 so the rhythm does not read as
+                // a fence.
+                float w = i % 3 == 0 ? 4.2f : (i % 3 == 1 ? 6.0f : 5.1f);
+                // Heights cycle over five steps between 3.6 and 6.0 m. The
+                // back wall is 2.6, so every one clears it - and the ceiling
+                // is low enough that the row sits along the top of the frame
+                // instead of filling it.
+                float h = 3.6f + (i % 5) * 0.6f;
+
+                m.Box(new Vector3(x + w * 0.5f, h * 0.5f, z + 2.0f),
+                      new Vector3(w - 0.35f, h, 4.0f), i % 2 == 0 ? a : b);
+
+                // A parapet: the line that stops a block reading as a
+                // rectangle of colour.
+                m.Box(new Vector3(x + w * 0.5f, h + 0.13f, z + 2.0f),
+                      new Vector3(w - 0.20f, 0.26f, 4.3f), roof);
+
+                x += w;
+            }
+        }
+
+        /// <summary>Scales a colour's brightness, keeping its alpha.</summary>
+        private static Color Mul(Color c, float k)
+        {
+            return new Color(c.r * k, c.g * k, c.b * k, c.a);
+        }
+
         private void Backdrop(Modeler m, Palette p, float left, float right, float back)
         {
             float width = right - left;
