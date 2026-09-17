@@ -203,7 +203,7 @@ where there is no stripping. When a **new** assembly that uses reflection is
 added, `link.xml` does not know about it; this run is the only thing that catches
 that moment. Measured: [46](46-shipped-binary.md) §4.
 
-### BOTH OF THEM ARE BLOCKED AS OF 17 SEPTEMBER 2026
+### They were blocked for part of 17 September 2026, and are not now
 
 Smart App Control has begun refusing an **unsigned DLL inside the Unity Editor
 installation** that `UnityLinker.exe` loads:
@@ -219,10 +219,20 @@ layer are unaffected. It worked on this machine at 02:20 and 02:29 the same day
 and nothing in the project changed in between; SAC takes its verdicts from a
 cloud reputation service.
 
-SAC is not being turned off (rule 5, one-way). **Until it is resolved there is no
-release build**, and the APK sitting in `build/android/` predates it.
+SAC was not turned off (rule 5, one-way). **It did not need to be.**
 
-See [58](58-visual-review.md) 11.
+SAC then blocked `Burst.Backend` too, which killed the Mono build as well - and
+chasing that turned up the question nobody had asked: there is not one
+`[BurstCompile]` in the project and Burst is not in `Packages/manifest.json`. It
+arrives underneath URP and the input system. **The game has never used it.**
+
+`ProjectSettings/BurstAotSettings_*.json` with `EnableBurstCompilation: false`,
+and both gates came back: the Android package at 90.5 MB / 0 warnings and the
+stripping exam at 191 passed / 0 failed. The package also lost
+`lib_burst_generated.so`, a native library it had been carrying for a compiler
+nothing called.
+
+See [58](58-visual-review.md) 11, including which half of that is proven.
 
 **Why the second is mandatory:** the shipped binary is ARM64 and that code is
 not produced by any desktop run. An emulator is no substitute — because the APK

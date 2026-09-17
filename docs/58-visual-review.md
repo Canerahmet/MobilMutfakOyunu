@@ -472,8 +472,8 @@ python tools/check.py                17/17 clean, 249 core tests
 tour.ps1 -Cuisine turk               189 passed, 0 failed
 tour.ps1 -Cuisine fastfood -Runs 2   186/0 and 185/0
 tour.ps1 -Store -Lang en             194 passed, 0 failed
-tour.ps1 -Build windows-il2cpp       BLOCKED - see section 11
-BuildPlayer.Android                  BLOCKED - see section 11
+tour.ps1 -Build windows-il2cpp       191 passed, 0 failed
+BuildPlayer.Android                  90.5 MB, 0 warnings
 ```
 
 The tour is 194 checks where it was 176 at the start of the day. Eighteen of
@@ -535,7 +535,7 @@ Eight dp of hall for a group that says what it is.
 
 ---
 
-## 11. THE RELEASE BUILD IS BLOCKED ON THIS MACHINE
+## 11. The release build was blocked, and the cause was a compiler nobody used
 
 Re-running the two pre-release gates after this round found something that has
 nothing to do with the round: **neither of them can run any more.**
@@ -579,12 +579,51 @@ between then and 11:48 that touches the linker. SAC takes its verdicts from a
 cloud reputation service, so the policy moved underneath the machine.
 
 **It is not mine to resolve, and the rule stands:** [CLAUDE.md](../CLAUDE.md) 5,
-*never turn Smart App Control off - it is a one-way switch.* It stays on. The
-last good APK on disk is the one from 02:29 and it predates this round's work,
-so it should not be treated as shippable.
+*never turn Smart App Control off - it is a one-way switch.* It stays on.
 
-**What the last APK does prove** is that nothing in the project is at fault: the
-same source built cleanly nine hours earlier.
+### CORRECTION, later the same day: it WAS mine to resolve
+
+The paragraph above was wrong, and the way it was wrong is worth keeping.
+
+SAC then went further and blocked `Burst.Backend` as well, which killed the
+**Mono** build too - at that point the machine could not build anything at all.
+Chasing that one turned up the question nobody had asked:
+
+```
+grep -rn "BurstCompile" unity/Assets/   ->  nothing
+grep -n  "burst" unity/Packages/manifest.json  ->  nothing
+```
+
+**The game does not use Burst.** Not one `[BurstCompile]` anywhere, and it is not
+a dependency the project asked for - it arrives underneath URP and the input
+system. So an AOT compilation step that nothing in the game benefits from was a
+hard build failure, and turning it off is less a workaround than the removal of
+something that should never have been in the build:
+`ProjectSettings/BurstAotSettings_*.json`, `EnableBurstCompilation: false`.
+
+With it off, **both** gates came back:
+
+```
+BuildPlayer.Android              90.5 MB, 0 warnings
+tour.ps1 -Build windows-il2cpp   191 passed, 0 failed
+```
+
+and the package lost a native library it had been carrying for nothing:
+`lib_burst_generated.so` is gone, six `.so` files where there were seven.
+
+**Honest about the causation.** The Windows-Mono failure was Burst and the fix
+is certain there. The IL2CPP failure named a different file -
+`Analytics.Api.Output.dll`, refused inside `UnityLinker.exe` - and I cannot
+fully separate two explanations: that disabling Burst removed the linker plugin
+whose attribute scan was reaching that assembly, which the stack trace makes
+plausible, or that SAC's cloud reputation simply changed its mind in the hours
+between. Both gates pass now; only the first of the two is proven.
+
+**What I got wrong:** I looked at a blocked binary, recognised a trap the
+project already had a memory about, and handed it back as the user's problem
+without asking whether the blocked thing was needed at all. The rule about not
+turning SAC off was right and is untouched. The conclusion drawn from it - that
+there was nothing left to do - was not.
 
 Recorded because several of these were nearly collateral damage.
 
