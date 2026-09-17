@@ -2369,6 +2369,66 @@ namespace Lokanta.Game
                         // While it was on the left wall 90 was right; it was corrected
                         // when it moved.
                         Place(FridgePrefab, r.X0 + r.W - 0.55f, r.Z0 + r.D - 0.7f, -90f);
+
+                        // THE PREP RUN, ALONG THE LEFT WALL: the kitchen was a
+                        // row of stoves and a fridge, with nothing to put
+                        // anything down on.
+                        //
+                        // A small restaurant kitchen is a sequence and the
+                        // sequence was missing its middle: cold store, PREP,
+                        // cooking line, pass. The fridge is in the back-right
+                        // corner, the stoves along the back wall and the pass
+                        // at the front (RestaurantView.Decor's service
+                        // counter) - so prep belongs on the left wall, which
+                        // turns the line into an L and leaves the middle of
+                        // the room clear.
+                        //
+                        // THE MIDDLE HAS TO STAY CLEAR, and that is not a
+                        // matter of taste: Paths.CookHome puts the idle cook
+                        // at the room's centre and Paths.KitchenPost puts the
+                        // working cook in front of the stoves, so an island
+                        // would be something to walk through - and the in-room
+                        // routing added today covers DINING rooms only.
+                        //
+                        // It runs from the middle of the room to the back
+                        // wall, not the full depth: the front half is where a
+                        // cook coming in from the entrance walks.
+                        // TWO, NOT THREE, AND THE AUDIT SAID SO.
+                        //
+                        // The counter prefab is 0.92 m long. Three of them
+                        // wanted 2.76 m of wall and the first run gave them
+                        // 1.94, so they stood INSIDE each other - the
+                        // placement audit reported 0.23 m of overlap between
+                        // neighbours and 0.38 m between the top one and the
+                        // leftmost stove. That audit had been reporting
+                        // nothing but noise until this morning, which is why
+                        // it is worth saying that it caught this the first
+                        // time it was asked.
+                        //
+                        // So the run starts further forward and holds two:
+                        // 2.09 m of wall for 1.84 m of counter, and 0.76 m
+                        // clear of the cooking line.
+                        float prepZ0 = r.Z0 + r.D * 0.35f;
+                        float prepZ1 = r.Z0 + r.D - 1.55f;
+                        int prepCount = 2;
+                        for (int i = 0; i < prepCount; i++)
+                        {
+                            float t = (i + 0.5f) / prepCount;
+                            // x = 0.34 so the counter's far edge stays clear of
+                            // KitchenPost's leftmost post at 0.75 with half a
+                            // body (0.22) to spare.
+                            Place(CounterPrefab, r.X0 + 0.34f,
+                                  prepZ0 + (prepZ1 - prepZ0) * t, 90f);
+                        }
+
+                        // NO SHELVES ABOVE IT. ShelfPrefab is a floor-standing
+                        // unit - the store room lines the wall with it - not a
+                        // wall bracket, and `Place` puts things on the floor.
+                        // Two floor units cannot share one wall strip, so a
+                        // shelf here would simply stand inside the counter.
+                        // The kitchen hood already gives the back wall its
+                        // vertical detail; the left wall does not need
+                        // clutter it cannot hold.
                         break;
                     case "Sink":
                         BuildDishStation(r);

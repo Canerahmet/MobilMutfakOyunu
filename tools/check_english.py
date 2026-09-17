@@ -469,7 +469,24 @@ def check_prose():
     return bad
 
 
+def _utf8_stdout():
+    """Print findings without dying on them.
+
+    This tool's whole job is to report Turkish text, and on a Windows
+    console the default code page cannot encode it: the run ended in
+    `UnicodeEncodeError: 'charmap' codec can't encode character` and the
+    check went RED with no finding shown. A checker that cannot print its
+    own answer is worse than one that finds nothing - the reader sees a
+    crash and has to guess whether there was a real problem behind it.
+    """
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 def main():
+    _utf8_stdout()
     ap = argparse.ArgumentParser()
     ap.add_argument("--list", action="store_true",
                     help="print every violation instead of a sample")

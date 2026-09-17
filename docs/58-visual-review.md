@@ -535,6 +535,104 @@ Eight dp of hall for a group that says what it is.
 
 ---
 
+## 12. Three things the user saw that no check was watching
+
+> *"Karakterler mobilyalarin icinden geciyor bunu duzelt. Ayrica mutfak
+> yerlesimini vs daha gercekci yap. Kapi vs onlarin yerlerini de kontrol et.
+> Ayrica musteri ve karakterlerin ismi secilen dile gore degissin."*
+>
+> *("Characters are walking through the furniture, fix it. Also make the kitchen
+> layout more realistic. Check the doors and their positions too. And the
+> customers' and characters' names should change with the chosen language.")*
+
+### Walking through the furniture
+
+`Paths.Lane` said why in one line: `if (targetRoom == sourceRoom) return;`.
+Between rooms it routed through doors; **inside** a room it added no waypoints at
+all, so a waiter crossing a dining room went in a straight line through every
+table and chair.
+
+**There is no gap to walk between tables, and that is measured.** A chair sits
+`SeatRadius` 0.58 m from the table's centre and is about 0.40 m deep, so a table
+set is roughly 1.56 m across. The grid cell is 1.85 × 1.70, which leaves 0.29 m
+between sets in x and 0.14 m in z — against a figure about 0.45 m wide. Routing
+*between* them was never available at this table density, and no amount of
+cleverness in the path code would have found a way through.
+
+What **is** available is the perimeter: `RoomPlan.TableSpots` centres the grid in
+the room, leaving 0.50–0.65 m on all four sides, and every table in these rooms
+touches it. The route is now out to the nearer side lane, along it, and in —
+three waypoints and no pathfinding, which is the rule this layer was built on.
+
+**Mutation-verified**, because a claim about furniture needed a number:
+
+| | worst a walking figure gets inside a table set |
+|---|---:|
+| with the fix | **0.00 m** |
+| with the routing removed again | **0.50 m**, and the check goes red |
+
+### The placement audit had been reporting noise
+
+Asked to check the doors and the furniture, the answer came back: **93 clashing
+pairs** — and every single one was against `Decor`, the merged mesh `Modeler`
+builds one of per colour, whose axis-aligned box covers most of the building.
+Not one real object-to-object overlap in the scene.
+
+A list where every line is noise is a list nobody reads, and the one real clash
+it exists to catch would have been invisible in it. With the merged group
+skipped it reports something usable — and it earned that the first time it was
+asked, catching the prep counters below.
+
+### The kitchen had no middle
+
+A small restaurant kitchen is a sequence — cold store, **prep**, cooking line,
+pass — and this one went straight from the fridge to the stoves. The pass exists
+(the service counter), the fridge is in the back-right corner, the stoves line
+the back wall, so prep belongs on the left wall, which turns the line into an L.
+
+**The middle has to stay clear**, and not as a matter of taste: `Paths.CookHome`
+puts the idle cook at the room's centre and `Paths.KitchenPost` puts the working
+cook in front of the stoves, so an island would be something to walk through —
+and the in-room routing above covers dining rooms only.
+
+The first attempt put three counters where two fit. The counter prefab is 0.92 m
+and the run was 1.94 m, so they stood inside each other: the audit reported
+0.23 m between neighbours and 0.38 m against the leftmost stove. Two counters,
+a run starting further forward, 0.76 m clear of the cooking line — **0 clashing
+pairs**.
+
+### Names follow the language
+
+Nine of the twenty named regulars carry a Turkish register marker. They are
+kept here as quoted terms because the whole point is the word itself:
+"Usta" (master craftsman), "Teyze" (auntie), "Bey" and "Hanım" (formal),
+"Abla" (elder sister), "Dede" (grandad), "Abi" (elder brother), "Hoca"
+(coach or teacher), "Şoför" (driver). That marker is what says how the owner
+knows this person. It is the point of a named regular,
+so this is not transliteration:
+
+| | what it maps to |
+|---|---|
+| **es** | *Don* / *Doña* for the elders, *Profe* for the coach — the same warm-formal register, used the same way |
+| **zh** | X 师傅 is the exact counterpart of *Usta*, X 阿姨 of *Teyze*, X 爷爷 of *Dede*, 老 X of the familiar elder. Almost one to one |
+| **ar** | Arabic has *usta* (الأسطى) from the same Ottoman root, plus عم, خالة and الحاج — and several of the Turkish names are Arabic in origin anyway |
+| **en** | the least of this, so plain first names with Auntie / Uncle / Grandad / Coach where the register really carries |
+
+The 96 staff names became `name.staff.N` in all five tables, index-aligned with
+`content/names.json`. **The core hands out an index and the view resolves it**, so
+a row is the same *person* in every language and a save keeps its meaning across
+a language change: switching language renames the cook rather than replacing
+them. `gen_loc` checks the length, because a short list would leave the last few
+names untranslated without a word.
+
+And the tour was building the expected tenure notice from `Sim.StaffName` while
+`Notices.cs` had moved to `Loc.StaffName` — a Turkish name compared against a
+translated one, which would have turned that check quietly UNMEASURED. The
+comment directly above it already records that exact lesson from an earlier
+round.
+
+---
+
 ## 11. The release build was blocked, and the cause was a compiler nobody used
 
 Re-running the two pre-release gates after this round found something that has
