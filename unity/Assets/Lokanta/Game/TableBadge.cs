@@ -50,10 +50,25 @@ namespace Lokanta.Game
         /// has to look as if it BELONGS to the table, not like a separate
         /// object hanging in the air.
         private const float Width = 0.88f;
-        // 0.11 -> 0.18. In the general view the badge was 9 dp high; on a
-        // phone that is a thin line. The table spacing is 1.70 m, so 0.18
-        // does not touch the neighbouring table's badge.
-        private const float Thickness = 0.18f;
+        // 0.11 -> 0.18 -> 0.36, AND THE SECOND NUMBER WAS NEVER RE-TAKEN.
+        //
+        // The note that used to stand here said 0.11 gave 9 dp and implied
+        // 0.18 fixed it. Measured off the shipped store frame on 17 September:
+        // the badge is 45 x 11 px at 2.5 px per dp, i.e. 18 x 4.4 dp. Under a
+        // millimetre on a phone.
+        //
+        // The measurement was right when it was taken and the camera moved
+        // afterwards - the street was added and the fit pulled back to hold
+        // it, so every world-space size in the frame shrank and nothing
+        // re-measured. Same shape as the shadow distance in ProjectSetup.
+        //
+        // 0.36 is double, and the constraint it has to respect is unchanged:
+        // table spacing is 1.70 m, so two neighbouring badges are nowhere near
+        // touching. It is still small - the real answer is docs/31 8.1, which
+        // decided that in the OVERVIEW the badge belongs on the room and not
+        // on the table, and was never built. This makes the existing channel
+        // legible; it does not replace that decision.
+        private const float Thickness = 0.36f;
 
         private Transform _fill;
         private Renderer _fillRenderer;
@@ -152,9 +167,20 @@ namespace Lokanta.Game
         /// <summary>Reflects the table's state. On an empty table the badge is hidden.</summary>
         public void Show(CustomerStage stage, int patienceBp, bool selected = false)
         {
+            // LEAVING ANGRY IS THE ONE MOMENT THIS BADGE EXISTS FOR, and it
+            // was the one moment the badge switched itself off.
+            //
+            // LeftAngry was in this hide list, so the instant the thing the
+            // player was supposed to prevent actually happened, the only
+            // indicator of it vanished. The game plays a sound for it
+            // (Sfx.Upset) and shows a notice - and the table itself, the place
+            // the player is looking, went quiet.
+            //
+            // It stays, in a solid dark red at full width: not a meter any
+            // more but a mark. The party is gone a moment later and the stage
+            // falls to None, so it clears itself.
             bool visible = stage != CustomerStage.None
-                           && stage != CustomerStage.Done
-                           && stage != CustomerStage.LeftAngry;
+                           && stage != CustomerStage.Done;
 
             if (gameObject.activeSelf != visible) gameObject.SetActive(visible);
             if (!visible) return;
@@ -173,7 +199,11 @@ namespace Lokanta.Game
             _shownBp = step;
             _shownStage = stage;
 
-            float k = Mathf.Clamp01(patienceBp / 10000f);
+            // The angry mark is FULL WIDTH. Patience is zero by then, so the
+            // meter would draw nothing at all - which is how it managed to be
+            // invisible even after it stopped being hidden.
+            float k = stage == CustomerStage.LeftAngry
+                ? 1f : Mathf.Clamp01(patienceBp / 10000f);
             _fill.localScale = new Vector3(k, 1f, 1f);
 
             _fillRenderer.GetPropertyBlock(_block);
@@ -190,6 +220,10 @@ namespace Lokanta.Game
         /// </summary>
         private static Color ColorFor(CustomerStage stage, float patience)
         {
+            // Darker and more saturated than the "running out" red, so that
+            // "they are about to go" and "they have gone" do not read as the
+            // same state at a glance.
+            if (stage == CustomerStage.LeftAngry) return new Color(0.68f, 0.13f, 0.12f);
             if (stage == CustomerStage.Eating) return new Color(0.42f, 0.68f, 0.44f);
             if (stage == CustomerStage.WaitingToPay) return new Color(0.85f, 0.72f, 0.35f);
 

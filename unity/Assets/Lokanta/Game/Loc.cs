@@ -74,6 +74,22 @@ namespace Lokanta.Game
         /// <summary>The index of the current language.</summary>
         public static int Language { get; private set; }
 
+        /// <summary>
+        /// The index of a language code ("tr", "en", ...), or -1.
+        ///
+        /// Public so that a caller with a code rather than an index - the
+        /// tour's -lokanta-lang flag - does not have to keep its own copy of
+        /// the list. Two copies of a list of languages is how a sixth one
+        /// gets added to only one of them.
+        /// </summary>
+        public static int IndexOf(string code)
+        {
+            if (string.IsNullOrEmpty(code)) return -1;
+            for (int i = 0; i < Languages.Length; i++)
+                if (Languages[i] == code) return i;
+            return -1;
+        }
+
         /// <summary>The code of the current language (tr, en, es, zh, ar).</summary>
         public static string LanguageCode { get { return Languages[Language]; } }
 

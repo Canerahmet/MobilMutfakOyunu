@@ -175,12 +175,69 @@ namespace Lokanta.Game
         /// <summary>Is the station working? Not every frame - ON CHANGE.</summary>
         public void SetWorking(bool on)
         {
-            if (on == _on) return;
+            SetLoad(on ? 1 : 0, 4);
+        }
+
+        /// <summary>
+        /// HOW HARD the station is working, not merely whether it is.
+        ///
+        /// This class's own comment says the case: "in a management game 'the
+        /// kitchen is jammed' is the decision taken most often, and the only
+        /// place the player can see it is the kitchen itself". The core has
+        /// always known - `StationLoad` returns a BACKLOG COUNT - and the view
+        /// threw the number away with `if (load <= 0) continue;` and lit a
+        /// boolean lamp. A backlog of one and a backlog of nine were the same
+        /// picture, while "rush the kitchen" is one of the three verbs the
+        /// whole service phase is built on.
+        ///
+        /// Two channels, both free - the hobs already exist and are already
+        /// coloured on change:
+        ///
+        ///   HOW MANY hobs are lit   = how much work is on the station
+        ///   WHAT COLOUR they are    = whether it is coping
+        ///
+        ///     load <= slots        blue    working
+        ///     load  > slots        amber   over capacity, a queue is forming
+        ///     load >= 2 x slots    red     jammed
+        ///
+        /// Colour alone would not do it: the stove is a handful of pixels at
+        /// the default camera and the kitchen sits in the frame's weakest
+        /// corner. The count of lit hobs is the channel that survives at that
+        /// size, and the colour is what the player reads once they look.
+        /// </summary>
+        public void SetLoad(int load, int slots)
+        {
+            if (slots < 1) slots = 1;
+            bool on = load > 0;
+
+            // Four hobs stand for the station's capacity, so a stove at its
+            // slot count is FULL rather than at some arbitrary fraction: the
+            // picture means "this station is at its limit", which is the thing
+            // being decided about.
+            int lit = load <= 0 ? 0
+                : Mathf.Clamp(Mathf.CeilToInt(4f * load / slots), 1, 4);
+
+            Color flame = load <= slots ? FlameOn
+                : (load >= slots * 2 ? FlameJammed : FlameBusy);
+
+            if (on == _on && lit == _lit && flame == _flame) return;
             _on = on;
+            _lit = lit;
+            _flame = flame;
+
             Paint(_lamp, on ? LampOn : LampOff);
             for (int i = 0; _flames != null && i < _flames.Length; i++)
-                Paint(_flames[i], on ? FlameOn : FlameOff);
+                Paint(_flames[i], i < lit ? flame : FlameOff);
         }
+
+        private int _lit = -1;
+        private Color _flame = Color.clear;
+
+        /// <summary>Over capacity: a queue is forming at this station.</summary>
+        private static readonly Color FlameBusy = new Color(1.00f, 0.60f, 0.16f);
+
+        /// <summary>Jammed: twice the slots or worse.</summary>
+        private static readonly Color FlameJammed = new Color(1.00f, 0.28f, 0.18f);
 
         private void Update()
         {

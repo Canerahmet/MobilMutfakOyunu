@@ -70,6 +70,121 @@ namespace Lokanta.Game.Ui
         /// Centring is only safe when the content fits, and the layout does
         /// not know in advance whether it will.
         /// </summary>
+        /// <summary>
+        /// A COLUMN THAT SPILLS INTO THE NEXT ONE.
+        ///
+        /// The game is LANDSCAPE: 873 x 393 dp. Every menu page was built as
+        /// a single centred column capped at 420-560 dp, so a page with more
+        /// than about five rows ran off the bottom of a screen that had four
+        /// hundred dp of unused width on either side of it. The tour's new
+        /// layout check put numbers on it:
+        ///
+        ///     main menu        [Quit] 36 dp past the edge
+        ///     cuisine choice   [Back] 316 dp past, 6 elements
+        ///     slot choice      [Back] 506 dp past, 8 elements
+        ///     settings         [Back] 189 dp past, 8 elements
+        ///
+        /// And because Theme.Mobile hides the scrollbars, none of it said so.
+        ///
+        /// `flexWrap` on a column turns the height into the wrapping axis:
+        /// children fill the first column, then start a second beside it. One
+        /// property, no per-screen layout code, and a page that already fits
+        /// is untouched - wrapping only happens when something does not fit.
+        ///
+        /// THE HEIGHT HAS TO COME FROM THE VIEWPORT, and the first attempt
+        /// got this wrong in a way worth recording: `height = 100%` inside a
+        /// ScrollView resolves against the CONTENT container, and that grows
+        /// with its content. A column asking to be as tall as the box its own
+        /// content defines has no bound at all, so `flexWrap` had nothing to
+        /// wrap against and the four screens came back with byte-identical
+        /// failures. The bound is `contentViewport`, which is the window the
+        /// content scrolls behind and does not move with it - read in
+        /// WrapWidth once the column is in the tree.
+        /// </summary>
+        internal static VisualElement WrapColumn()
+        {
+            VisualElement col = Theme.Column(Theme.Gap);
+            col.style.flexWrap = Wrap.Wrap;
+            col.style.alignSelf = Align.Center;
+            col.style.alignContent = Align.Center;
+            col.style.justifyContent = Justify.Center;
+            col.style.maxWidth = Length.Percent(100);
+            col.style.flexShrink = 0;
+
+            // Each child is given the column's width rather than the container
+            // being given one: in a wrapping column the container's width is
+            // what the children make it, so capping the container would cap
+            // the whole set of columns and squeeze them all.
+            col.style.width = StyleKeyword.Auto;
+            return col;
+        }
+
+        /// <summary>
+        /// Gives every child of a wrapping column its width. Called once,
+        /// after the children are in.
+        ///
+        /// The width goes on the CHILDREN, not on the container: in a wrapping
+        /// column the container's width is whatever its columns add up to, so
+        /// capping the container would cap the whole set and squeeze them
+        /// together. One walk at the end rather than a call per child, so the
+        /// screens keep reading as a plain list of what is on them.
+        /// </summary>
+        internal static void WrapWidth(VisualElement col, float width)
+        {
+            for (int i = 0; i < col.childCount; i++)
+            {
+                VisualElement c = col[i];
+                c.style.width = width;
+                c.style.flexShrink = 0;
+            }
+
+            // AND THE HEIGHT, from the viewport, once there is one.
+            //
+            // The callback is on the VIEWPORT, not on the column: the
+            // viewport's height depends on the screen and the column's
+            // depends on what we are about to put in it, so listening to the
+            // viewport cannot feed itself. Listening to the column would.
+            ScrollView sv = col.GetFirstAncestorOfType<ScrollView>();
+            if (sv == null) return;
+            sv.contentViewport.RegisterCallback<GeometryChangedEvent>(_ =>
+            {
+                float h = sv.contentViewport.resolvedStyle.height;
+                if (h > 1f) col.style.height = h;
+            });
+        }
+
+        /// <summary>
+        /// A title and a Back button on ONE line.
+        ///
+        /// Stacked, they cost 52 dp of height plus a gap, and on a 393 dp
+        /// landscape screen that was exactly the difference between the
+        /// cuisine and slot screens fitting and their Back buttons hanging
+        /// below the bottom edge. Side by side they cost nothing: the title
+        /// was never using the width.
+        ///
+        /// It also puts Back in the top-right, which in landscape is the
+        /// corner a thumb does NOT reach - correct for a control you want
+        /// findable and not easy to hit by accident. The Android back key
+        /// remains the quick way out (UiRoot).
+        /// </summary>
+        internal static VisualElement Header(string title, System.Action back)
+        {
+            VisualElement row = Theme.Row(Theme.Gap);
+            row.style.alignItems = Align.Center;
+            row.style.flexShrink = 0;
+
+            Label t = Theme.Title(title);
+            t.style.flexGrow = 1;
+            t.style.marginBottom = 0;
+            row.Add(t);
+
+            Button b = Theme.Btn(Loc.T("ui.hud.back"), back);
+            b.style.width = 140;
+            b.style.flexShrink = 0;
+            row.Add(b);
+            return row;
+        }
+
         internal static VisualElement Backdrop()
         {
             ScrollView v = Theme.Mobile(new ScrollView(ScrollViewMode.Vertical));
@@ -104,11 +219,10 @@ namespace Lokanta.Game.Ui
         {
             VisualElement root = ErrorScreen.Backdrop();
 
-            VisualElement col = Theme.Column(Theme.Gap);
-            col.style.maxWidth = 420;
-            col.style.alignSelf = Align.Center;
-            col.style.width = Length.Percent(100);
-            col.style.flexShrink = 0;
+            // LANDSCAPE: it spills into a second column instead of off the
+            // bottom. Backdrop.WrapColumn, and WrapWidth after the children
+            // are in.
+            VisualElement col = ErrorScreen.WrapColumn();
 
             Label title = Theme.Text(Loc.T("ui.game.title"), Theme.FontHuge, Theme.Accent);
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -137,6 +251,7 @@ namespace Lokanta.Game.Ui
 #endif
 
             root.Add(col);
+            ErrorScreen.WrapWidth(col, 420);
             return root;
         }
 
@@ -172,22 +287,53 @@ namespace Lokanta.Game.Ui
         public override VisualElement Build()
         {
             VisualElement root = ErrorScreen.Backdrop();
+
+            // THE TWO CARDS SIT SIDE BY SIDE. This screen is not a list, it
+            // is a COMPARISON: two cuisines, two signature mechanics, one
+            // irreversible choice tied to the save (docs/07). Stacked in a
+            // portrait column on an 873 dp-wide landscape phone, the second
+            // one was below the fold - so the screen that sells the game
+            // offered one of the two things it is selling.
+            //
+            // Generic wrapping was tried first and it is the wrong tool here:
+            // it packs by height and does not know that the title belongs
+            // above BOTH cards and the Back button below both, so it pushed
+            // them into a third column and off the side of the screen. The
+            // tour's layout check did not catch that either, because it was
+            // only watching the bottom edge - both were fixed together.
+            // width, NOT maxWidth. A column with an auto width and a
+            // maxWidth of 100% sizes itself to its CONTENT and the cap never
+            // binds - the two cards pushed it wider than the screen and the
+            // buttons inside them landed 47 dp outside. The same trap as the
+            // height in WrapColumn, one property along.
             VisualElement col = Theme.Column(Theme.Gap);
-            col.style.maxWidth = 560;
             col.style.alignSelf = Align.Center;
             col.style.width = Length.Percent(100);
             col.style.flexShrink = 0;
 
-            col.Add(Theme.Title(Loc.T("ui.cuisine.pick")));
+            col.Add(ErrorScreen.Header(Loc.T("ui.cuisine.pick"), () => Ui.Pop()));
 
-            col.Add(Card("fastfood", Loc.T("cuisine.fastfood"),
-                Loc.T("ui.cuisine.combo"),
-                Loc.T("ui.cuisine.fastfood_desc")));
-            col.Add(Card("turk", Loc.T("cuisine.turk"),
-                Loc.T("ui.cuisine.credit"),
-                Loc.T("ui.cuisine.turk_desc")));
-
-            col.Add(Theme.Btn(Loc.T("ui.hud.back"), () => Ui.Pop()));
+            VisualElement row = Theme.Row(Theme.Gap);
+            row.style.alignItems = Align.FlexStart;
+            foreach (VisualElement card in new[]
+            {
+                Card("fastfood", Loc.T("cuisine.fastfood"),
+                     Loc.T("ui.cuisine.combo"),
+                     Loc.T("ui.cuisine.fastfood_desc")),
+                Card("turk", Loc.T("cuisine.turk"),
+                     Loc.T("ui.cuisine.credit"),
+                     Loc.T("ui.cuisine.turk_desc")),
+            })
+            {
+                // Equal halves rather than a fixed width: Spanish is the
+                // longest of the five languages and the card has to be able
+                // to grow taller rather than wider.
+                card.style.flexGrow = 1;
+                card.style.flexBasis = 0;
+                card.style.marginBottom = 0;
+                row.Add(card);
+            }
+            col.Add(row);
             root.Add(col);
             return root;
         }
@@ -234,17 +380,48 @@ namespace Lokanta.Game.Ui
         public override VisualElement Build()
         {
             VisualElement root = ErrorScreen.Backdrop();
+
+            // FOUR SLOTS IN A 2 x 2 GRID. Stacked in a portrait column, slot 2
+            // was cut mid-word and slots 3 and 4 were off the screen entirely
+            // - on the game's SECOND screen, and Backdrop's own docstring
+            // records this exact screen once stranding the player.
+            //
+            // Generic wrapping was tried first and it moved the problem rather
+            // than solving it: it packs purely by height, so it pushed the
+            // title and the Back button into a third column and 367 dp off the
+            // side. A title belongs above ALL the slots and Back below them,
+            // and only the slots themselves want to be a grid - which is
+            // something the screen knows and a generic helper cannot.
             VisualElement col = Theme.Column(Theme.Gap);
-            col.style.maxWidth = 560;
             col.style.alignSelf = Align.Center;
             col.style.width = Length.Percent(100);
             col.style.flexShrink = 0;
 
-            col.Add(Theme.Title(Loc.T("ui.slot.title")));
+            col.Add(ErrorScreen.Header(Loc.T("ui.slot.title"), () => Ui.Pop()));
 
-            for (int i = 0; i < SaveStore.SlotCount; i++) col.Add(Row(i));
-
-            col.Add(Theme.Btn(Loc.T("ui.hud.back"), () => Ui.Pop()));
+            VisualElement grid = Theme.Row(Theme.Gap);
+            grid.style.flexWrap = Wrap.Wrap;
+            grid.style.alignItems = Align.FlexStart;
+            for (int i = 0; i < SaveStore.SlotCount; i++)
+            {
+                VisualElement slot = Row(i);
+                // ALL FOUR ON ONE LINE, not two by two.
+                //
+                // 2 x 2 was tried and the second row's cards ran 45 dp below
+                // the screen: the header takes 52 dp and what is left does not
+                // divide into two slot cards. Four across is the shape the
+                // screen actually has - 873 dp of width and 393 of height -
+                // and it gives every slot the same prominence, which is right
+                // for four things the player is choosing between.
+                //
+                // Just under a quarter: the three gaps between four cards have
+                // to come out of the width, or the fourth wraps.
+                slot.style.width = Length.Percent(23.5f);
+                slot.style.flexShrink = 0;
+                slot.style.marginBottom = 0;
+                grid.Add(slot);
+            }
+            col.Add(grid);
             root.Add(col);
             return root;
         }
@@ -405,11 +582,10 @@ namespace Lokanta.Game.Ui
         public override VisualElement Build()
         {
             VisualElement root = ErrorScreen.Backdrop();
-            VisualElement col = Theme.Column(Theme.Gap);
-            col.style.maxWidth = 480;
-            col.style.alignSelf = Align.Center;
-            col.style.width = Length.Percent(100);
-            col.style.flexShrink = 0;
+            // LANDSCAPE: it spills into a second column instead of off the
+            // bottom. Backdrop.WrapColumn, and WrapWidth after the children
+            // are in.
+            VisualElement col = ErrorScreen.WrapColumn();
 
             col.Add(Theme.Title(Loc.T("ui.settings.title")));
 
@@ -513,6 +689,7 @@ namespace Lokanta.Game.Ui
 
             col.Add(Theme.Btn(Loc.T("ui.settings.back"), () => Ui.Pop()));
             root.Add(col);
+            ErrorScreen.WrapWidth(col, 400);
             return root;
         }
 

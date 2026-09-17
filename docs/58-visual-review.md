@@ -386,6 +386,66 @@ that it does not belong in the repository. They are ignored now.
 
 ---
 
+## 9b. The check that was missing, and the four screens it found
+
+Section 6 fixed the *signal* — a fade where the scrollbar used to be. It did
+not fix the *layouts*, and nothing measured them: `ClippedButtons`,
+`OverlappingButtons` and `StripHeight` all walk `GameScreen`'s own strips, so no
+menu, list, settings or dialog screen had ever been measured by anything.
+
+`Autopilot.CheckScreenLayout` walks the whole visible tree of whatever screen the
+tour is standing on and asks two things of it: is every visible button at least
+48 dp in **both** axes, and does every button and label stay inside the panel. It
+names the worst offender, because "3 controls are too small" sends the reader
+hunting and `[Language] 873x44` does not.
+
+It went red on its first run, on exactly the four screens section 6 predicted:
+
+```
+FAIL : layout main menu      [Quit] 36 dp past the edge
+FAIL : layout cuisine choice [Back] 316 dp past the edge, 6 elements
+FAIL : layout slot choice    [Back] 506 dp past the edge, 8 elements
+FAIL : layout settings       [Back] 189 dp past the edge, 8 elements
+```
+
+### What it took to make them green
+
+Four attempts, and three of them are worth recording because each was wrong in
+a way that looked right.
+
+**One.** A wrapping column: `flexWrap` so the content spills into a second
+column instead of off the bottom. The rebuild came back with **byte-identical**
+numbers. `height: 100%` inside a ScrollView resolves against the *content*
+container, and that grows with its content — a column asking to be as tall as
+the box its own content defines has no bound at all. The bound is
+`contentViewport`, which is the window the content scrolls behind. Identical
+numbers were the tell: a real change that achieves nothing usually moves
+something.
+
+**Two.** With a real bound the four screens went green — and the cuisine screen
+had lost its title and its Back button off the **right** edge, where the check
+was not looking. It only measured the bottom, because that is where the hidden
+scrollbar used to speak. **A check that watches one edge teaches you the other
+three are safe.** It measures all four now, and that immediately re-reddened two
+screens that had just been declared clean.
+
+**Three.** Generic wrapping is the wrong tool where items have different roles.
+It packs purely by height and cannot know that a title belongs above *all* the
+cards and Back below *all* of them, so it pushed both into a third column. The
+cuisine screen's two cards are a **comparison** and are now an explicit row; the
+four save slots are a **set** and are now one row of four. Both screens put the
+title and Back on a shared header line, which costs nothing — the title was
+never using the width — and saves the 52 dp that was the whole overflow.
+
+Then `maxWidth: 100%` on an auto-width column turned out to be the same trap as
+the height, one property along: the column sizes to its content and the cap
+never binds.
+
+Final: **189 passed, 0 failed.** Both cuisines, all five language buttons, all
+four save slots and every Back button are on screen.
+
+---
+
 ## 10. Found, verified, and not yet done
 
 Listed so they are not lost, and ordered by what they cost against what they buy.
@@ -393,15 +453,15 @@ Listed so they are not lost, and ordered by what they cost against what they buy
 | | what | why it is not done yet |
 |---|---|---|
 | **The screenshot aspect ratio** | 2183 × 983 = **2.2204 : 1**, which breaches Play's long-standing "no side more than twice the other" rule (2183 > 2 × 983 by 217 px) | The fix is to composite into a 1920 × 1080 canvas rather than re-shoot — re-shooting at 16:9 changes the dp layout and invalidates every measurement in [41](41-ui-and-venue.md). Confirm with one upload attempt first |
-| **The store screenshots are in Turkish** | The dev machine has a Turkish preference saved; the default listing is English | Needs a `-lokanta-lang` flag beside the existing `-lokanta-cuisine` |
-| **The back wall stands over a hole of sky** | `Backdrop` spans the full plot while `BuildFloors` refuses a floor for a closed room, so at tier 1 there is a 5 × 5 m hole with a 2.6 m wall over it and a side return hanging on nothing. In every store screenshot and the whole first session | Either clip the backdrop to the built footprint or — better — build closed rooms as a visible unfinished shell, which gives expansion a before and after |
-| **The table badge is ~4 dp tall** | Measured off the shipped frame: 45 × 11 px ÷ 2.5. `TableBadge`'s own comment claims the fix took it to 9 dp and up; the measurement was never re-taken after the street pushed the camera back. And `LeftAngry` **hides the badge**, so the moment the thing you were meant to prevent happens, the indicator disappears | [31](31-rooms-and-camera.md) §8.1 already decided the answer — the badge belongs on the ROOM in the overview and on the table when zoomed — and it was never built |
-| **The kitchen is a lamp, not a meter** | `StationLoad` returns a backlog count and the view throws it away: `if (load <= 0) continue;`. A backlog of 1 and of 9 are the same picture, while "rush the kitchen" is one of the three verbs | ~10 lines, and `Appliance.cs`'s own comment already argues for it |
+| ~~The store screenshots are in Turkish~~ | **Done.** `tour.ps1 -Lang en`. It uses `Loc.UseLanguage`, which applies without persisting — a tour run must not leave the developer's own language changed behind it — and with no flag nothing happens at all, so the measurement runs are untouched | The store copy goes to `render/store/<cuisine>/<lang>/`, so five listings can have five sets |
+| ~~The back wall stands over a hole of sky~~ | **Done.** At tier 1 the open rooms bound a 13.4 × 9.6 m box and Hall2 (5.0 × 5.2 m) is closed, so a rectangle of sky sat inside the building with a 2.6 m wall over it. Closed rooms are now built as a bare concrete **shell**: no wall, no door, no furniture, and the collider destroyed so it is genuinely not touchable rather than merely untagged | It costs nothing in framing — `CameraFit.OpenBounds` is built from the open rooms and the street — and it shows the player the space expansion buys, which the campaign's main progression path had never had on screen |
+| ~~The table badge is ~4 dp tall~~ | **Half done.** Thickness 0.18 → 0.36, and `LeftAngry` no longer hides the badge — it shows a full-width dark red mark, darker than the "running out" red so that *about to go* and *gone* do not read alike. Patience is zero by then, so the meter would have drawn nothing even after it stopped being hidden | The badge is legible now, not solved. [31](31-rooms-and-camera.md) §8.1 decided the real answer — in the OVERVIEW the badge belongs on the room, not the table — and that is still unbuilt |
+| ~~The kitchen is a lamp, not a meter~~ | **Done.** How many hobs are lit is the load; their colour is whether the station is coping — blue at or under capacity, amber over, red at twice. Colour alone would not carry it: the stove is a handful of pixels at the default camera, so the count of lit hobs is the channel that survives at that size | `Simulation.StationSlotCount` was added because a load without a capacity has no scale: three plates on a one-slot hob is a jam, three on a four-slot range is a quiet morning |
 | **The backdrop is still one flat colour** | It is darker and more neutral now, so it stops fighting the building - but 37% of the hero frame is still a single value with no sky, no horizon and nothing behind the restaurant. `DayLight` already drives that colour through four day stops, so a two-stop gradient quad could be driven from the same curve | The reasoning on record is [19](19-technical-setup.md)'s fill budget, and it is worth testing rather than inheriting: a quad at the far plane replaces the camera clear instead of stacking on it, so it adds no overdraw. `CameraFit.OpenBounds` is built from the room plan and the street only, so decor placed BEHIND the building does not push the camera back either - which means a row of neighbouring facades is free in framing terms |
 | **No colour grading** | `postProcessData: {fileID: 0}`, `m_RendererFeatures: []`, an untouched default volume profile. [19](19-technical-setup.md) already permits *"at most a light colour grading table"* — this is an unimplemented allowance, not a rejected idea. In Unity 6.3 URP, tonemapping, colour adjustments, white balance, split toning and vignette run on-tile; bloom and depth of field do not, and bloom has a published Android benchmark taking a frame from 25 ms to 60.5 ms | Wants a device to verify. There is no test phone |
 | **The main menu has no game in it** | 80.9% of that frame is one flat colour: a near-black field, an orange wordmark and three grey pills. It is the first thing a store visitor sees and the first thing a player opens | The build already renders the hall, and `08-pause` proves a scrim over the live scene composites correctly |
 | **The customers are twelve stock prefabs** | The staff get a wardrobe and the furniture gets a per-cuisine material copy; the customers get neither, in both cuisines | The one-material-copy trick already ships for furniture and costs no draw calls |
-| **No UI layout check exists** | `ClippedButtons`, `OverlappingButtons` and `StripHeight` walk `GameScreen` only. Not one menu, list, settings or dialog screen is measured by anything — which is how §6 shipped | The check should walk the whole tree of whatever screen the tour is on, and fail on a visible button under 48 dp in either axis or an element whose bounds leave the panel. Prove it by shrinking one button and watching it go red |
+| ~~No UI layout check exists~~ | **Done, and it earned its place on the first run** — see §9b. It walks the whole visible tree of whatever screen the tour is on and reports the worst offender by name | It did not need a mutation to prove it fires: it went red immediately on the four screens §6 predicted, and red again when the first fix moved the overflow sideways |
 
 ---
 

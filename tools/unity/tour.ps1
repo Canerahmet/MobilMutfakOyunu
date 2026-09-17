@@ -38,6 +38,12 @@ param(
     # measured at all.
     [ValidateSet("turk","fastfood")]
     [string]$Cuisine = "turk",
+    # WHICH LANGUAGE. Empty means "leave the device preference alone", which
+    # is what the measurement runs want. The STORE runs want English, because
+    # that is the default Play listing - and until this flag existed every
+    # store screenshot came out in whatever language this machine had saved.
+    [ValidateSet("","tr","en","es","zh","ar")]
+    [string]$Lang = "",
     [string]$Build = "windows",
     [string]$Root = "D:\ClaudeCodeProjects\MobilOyun"
 )
@@ -65,6 +71,23 @@ if (-not (Test-Path $exe)) {
 $fail = 0
 $crash = 0
 
+# THE ARGUMENT LIST IS BUILT, NOT INTERPOLATED.
+#
+# The first attempt put an `@()` inside the array literal passed to
+# -ArgumentList, on the assumption that an empty array would vanish. It does
+# not: PowerShell nests it, Start-Process sees a null element and refuses the
+# whole call with "the argument collection contains a null value". Adding the
+# language arguments to a list afterwards is the version that has no empty
+# case to get wrong.
+function Get-TourArgs([string[]] $tail) {
+    $a = [System.Collections.Generic.List[string]]::new()
+    $a.Add("-lokanta-tour"); $a.Add("-lokanta-out"); $a.Add($out)
+    $a.Add("-lokanta-cuisine"); $a.Add($Cuisine)
+    if ($Lang) { $a.Add("-lokanta-lang"); $a.Add($Lang) }
+    foreach ($t in $tail) { $a.Add($t) }
+    return $a.ToArray()
+}
+
 for ($i = 1; $i -le $Runs; $i++) {
     $out = Join-Path $env:TEMP ("lokanta_tour_{0}" -f $i)
     if (Test-Path $out) { Remove-Item $out -Recurse -Force }
@@ -79,18 +102,16 @@ for ($i = 1; $i -le $Runs; $i++) {
         # 2183x983 = 2.5 times 873x393 dp. The aspect ratio is the same (20:9),
         # so the frame is EXACTLY what is seen on the phone.
         $p = Start-Process -FilePath $exe -PassThru -Wait `
-            -ArgumentList @("-lokanta-tour", "-lokanta-out", $out,
-                            "-lokanta-cuisine", $Cuisine,
-                            "-lokanta-scale", "2.5",
-                            "-screen-width", "2183", "-screen-height", "983",
-                            "-screen-fullscreen", "0")
+            -ArgumentList (Get-TourArgs @("-lokanta-scale", "2.5",
+                                          "-screen-width", "2183",
+                                          "-screen-height", "983",
+                                          "-screen-fullscreen", "0"))
     }
     else {
         $p = Start-Process -FilePath $exe -PassThru -Wait `
-            -ArgumentList @("-lokanta-tour", "-lokanta-out", $out,
-                            "-lokanta-cuisine", $Cuisine,
-                            "-screen-width", "873", "-screen-height", "393",
-                            "-screen-fullscreen", "0")
+            -ArgumentList (Get-TourArgs @("-screen-width", "873",
+                                          "-screen-height", "393",
+                                          "-screen-fullscreen", "0"))
     }
 
     $code = $p.ExitCode
@@ -155,10 +176,13 @@ if ($Store) {
     # sitting in the folder was whichever cuisine happened to be run last,
     # with nothing in the name to say which.
     $dest = Join-Path (Join-Path $Root "render\store") $Cuisine
+    if ($Lang) { $dest = Join-Path $dest $Lang }
     if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
     Copy-Item (Join-Path (Join-Path $env:TEMP "lokanta_tour_1") "*.png") $dest -Force
     Write-Output ""
-    Write-Output ("=== store images ({0}): {1} ===" -f $Cuisine, $dest)
+    $langNote = ""
+    if ($Lang) { $langNote = " / $Lang" }
+    Write-Output ("=== store images ({0}{1}): {2} ===" -f $Cuisine, $langNote, $dest)
 }
 
 if ($crash -gt 0) {

@@ -1660,6 +1660,20 @@ namespace Lokanta.Core.Sim
         }
 
         /// <summary>
+        /// How many plates this station can work on at once, at its current
+        /// equipment tier.
+        ///
+        /// The load on its own is a number without a scale: three plates on a
+        /// one-slot hob is a jam, three on a four-slot range is a quiet
+        /// morning. The view needs both to draw a meter rather than a lamp.
+        /// </summary>
+        public int StationSlotCount(int station)
+        {
+            if (station < 0 || station >= _stationTier.Length) return 0;
+            return StationSlots(station);
+        }
+
+        /// <summary>
         /// Is the hall worker CARRYING FOOD right now.
         ///
         /// The view turns this into a plate in the waiter's hand: serving is

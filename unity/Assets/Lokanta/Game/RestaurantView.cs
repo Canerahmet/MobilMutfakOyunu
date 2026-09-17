@@ -613,8 +613,33 @@ namespace Lokanta.Game
             {
                 RoomPlan.Room r = RoomPlan.Rooms[i];
 
-                // A ROOM THAT HAS NOT BEEN OPENED IS NOT BUILT AT ALL.
-                if (!RoomPlan.RoomOpen(in r, tables)) continue;
+                // A ROOM THAT HAS NOT BEEN OPENED IS BUILT AS A SHELL.
+                //
+                // It used to be skipped entirely, and that left a HOLE. The
+                // backdrop wall spans the bounding box of the OPEN rooms
+                // (RestaurantView.Decor.cs), and that box is not the same
+                // shape as the rooms in it: at tier 1 the open rooms reach
+                // x 13.4 and z 9.6, but Hall2 (x 8.4-13.4, z 4.4-9.6) is
+                // closed. So a 5.0 x 5.2 m rectangle of sky sat inside the
+                // building, with a 2.6 m wall standing over it and a side
+                // return hanging in mid-air on nothing.
+                //
+                // It is on screen for the whole first session and in every
+                // store screenshot, and it is the single clearest "this is a
+                // level editor" tell in the frame.
+                //
+                // A SHELL IS BETTER THAN A CLIPPED WALL. Clipping the backdrop
+                // to the built footprint would work and it would give a
+                // staircase-shaped wall, because the footprint is L-shaped.
+                // Building the closed room as a bare, unfinished slab fills
+                // the rectangle AND shows the player the space they can expand
+                // into - and expansion is the campaign's main progression
+                // path, which until now had no before and after on screen.
+                //
+                // IT COSTS NOTHING IN FRAMING. CameraFit.OpenBounds is built
+                // from the OPEN rooms and the street only, so a shell does not
+                // push the camera back by a millimetre.
+                if (!RoomPlan.RoomOpen(in r, tables)) { BuildShell(in r); continue; }
 
                 GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 floor.name = "Room_" + r.Name;
@@ -644,6 +669,49 @@ namespace Lokanta.Game
                 floor.AddComponent<RoomTouch>().RoomIndex = i;
             }
         }
+
+        /// <summary>
+        /// A ROOM THAT HAS NOT BEEN BOUGHT YET: a bare concrete slab.
+        ///
+        /// It is deliberately NOT a room. No wall, no door, no furniture, no
+        /// RoomTouch - it is not a place the player can act on, and it must
+        /// not read as one. What it does is stop the building having a hole
+        /// in it, and give expansion something visible to buy.
+        ///
+        /// THE COLLIDER IS REMOVED. The floor primitive comes with one, and
+        /// leaving it would put an invisible 14 m box in the ray's path
+        /// without a RoomTouch behind it - the tap would hit nothing and the
+        /// player would learn that part of the building does not respond.
+        /// Destroying it is what makes "not touchable" true rather than
+        /// merely untagged.
+        ///
+        /// It sits 2 cm BELOW the finished floors. Level with them the two
+        /// would z-fight along the 4 cm gap; below, the step reads as a floor
+        /// that has not been laid yet.
+        /// </summary>
+        private void BuildShell(in RoomPlan.Room r)
+        {
+            GameObject shell = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            shell.name = "Shell_" + r.Name;
+            shell.transform.SetParent(transform, false);
+            shell.transform.localPosition = new Vector3(r.CenterX, -0.07f, r.CenterZ);
+            shell.transform.localScale = new Vector3(r.W - 0.04f, 0.1f, r.D - 0.04f);
+
+            Collider c = shell.GetComponent<Collider>();
+            if (c != null) Destroy(c);
+
+            Renderer ren = shell.GetComponent<Renderer>();
+            ren.sharedMaterial = _floorMat;
+            ren.GetPropertyBlock(_block);
+            _block.SetColor(BaseColorId, ShellColor);
+            ren.SetPropertyBlock(_block);
+        }
+
+        /// <summary>
+        /// Unfinished concrete. It is the same in both cuisines on purpose:
+        /// an empty shell has no identity yet - that is what buying it is for.
+        /// </summary>
+        private static readonly Color ShellColor = new Color(0.255f, 0.243f, 0.231f);
 
         /// <summary>
         /// THE TRANSPARENT WALLS AND DOORS THAT SEPARATE THE ROOMS.
@@ -3904,16 +3972,24 @@ namespace Lokanta.Game
             int n = _stoves.Count;
             for (int i = 0; i < n; i++)
             {
-                bool busy = false;
+                // THE BACKLOG IS SUMMED, NOT TESTED.
+                //
+                // This used to `break` on the first station with anything on
+                // it, so the stove knew "somebody is cooking" and nothing
+                // else. Stove i stands for stations i, i+n, i+2n..., so the
+                // load it should show is the load of all of them together -
+                // and the slots likewise, or a stove standing for two stations
+                // would read as jammed whenever both were merely busy.
+                //
                 // The upper limit is FIXED: App can be null in the preview and
                 // StationLoad returns 0 out of range anyway.
+                int load = 0, slots = 0;
                 for (int st = i; st < 16; st += n)
                 {
-                    if (sim.StationLoad(st) <= 0) continue;
-                    busy = true;
-                    break;
+                    load += sim.StationLoad(st);
+                    slots += sim.StationSlotCount(st);
                 }
-                _stoves[i].SetWorking(busy);
+                _stoves[i].SetLoad(load, slots);
             }
         }
 

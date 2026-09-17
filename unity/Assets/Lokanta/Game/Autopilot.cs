@@ -90,6 +90,7 @@ namespace Lokanta.Game
             _dir = OutDir();
             Directory.CreateDirectory(_dir);
             MatchPhoneDp();
+            ApplyLanguageFlag();
             if (ScaleFlag() > 1.01f)
             {
                 Hints.MarkAllSeen();
@@ -143,6 +144,59 @@ namespace Lokanta.Game
                 return 1;
             }
             return 1;
+        }
+
+        /// <summary>
+        /// -lokanta-lang: which language the tour runs in.
+        ///
+        /// WHY IT HAD TO EXIST. The game opens in the device's preferred
+        /// language, falling back to English; this machine has Turkish saved
+        /// in PlayerPrefs, so every screenshot the store tour has ever
+        /// produced is a TURKISH interface. The default Play listing is
+        /// English. An English-speaking visitor would have opened the listing
+        /// and seen "Servis" ("Service"), "Bugun"
+        /// ("Today") and "Gunu kapat" ("Close the day").
+        ///
+        /// Nothing was wrong with the game, the tour or the translation. The
+        /// screenshots simply inherited the developer's own preference,
+        /// silently, because there was no way to say otherwise.
+        ///
+        /// It uses `Loc.UseLanguage`, which applies WITHOUT persisting: a tour
+        /// run must not leave the developer's own language changed behind it.
+        /// With no flag nothing happens at all and the tour behaves exactly as
+        /// it did, so the measurement runs are unaffected.
+        /// </summary>
+        private static void ApplyLanguageFlag()
+        {
+            int index = LanguageFlag();
+            if (index == Loc.Language) return;
+            Loc.UseLanguage(index);
+            Debug.Log("  tour language: " + Loc.LanguageCode);
+        }
+
+        /// <summary>
+        /// The language index the tour should be in: the flag's, or whatever
+        /// is already current when there is no flag.
+        ///
+        /// It is a QUERY rather than a stored field because the tour changes
+        /// the language several times on purpose - the number-format check,
+        /// the five-language strip check - and each of those has to put back
+        /// the language the RUN asked for, not the one the machine had saved.
+        /// A single place to ask stops the next one getting it wrong.
+        /// </summary>
+        private static int LanguageFlag()
+        {
+            string[] a = Environment.GetCommandLineArgs();
+            for (int i = 0; i < a.Length - 1; i++)
+            {
+                if (a[i] != "-lokanta-lang") continue;
+                int index = Loc.IndexOf(a[i + 1]);
+                if (index >= 0) return index;
+                Debug.LogWarning("Tour: unknown -lokanta-lang value ("
+                                 + a[i + 1] + "), leaving the language alone");
+                return Loc.Language;
+            }
+            return Loc.Language;
         }
 
         private static float ScaleFlag()
@@ -277,7 +331,20 @@ namespace Lokanta.Game
             Loc.UseLanguage(0);
             string text4 = Loc.Money(800000L);
             Note(text3 != text4, "The number format follows the language (" + text4 + " / " + text3 + ")");
-            Loc.UseLanguage(0);
+            // BACK TO THE TOUR'S LANGUAGE, not to Turkish.
+            //
+            // This said `Loc.UseLanguage(0)` - index 0 is Turkish - so the
+            // format check above left the whole rest of the tour in Turkish
+            // whatever had been asked for. It is why the first `-Lang en` run
+            // produced a set of English-flagged screenshots with Turkish
+            // buttons on them.
+            Loc.UseLanguage(LanguageFlag());
+            if (_app != null && _app.Ui != null)
+            {
+                _app.Ui.ApplyLanguage();
+                _app.Ui.Refresh();
+            }
+            yield return Settle();
             for (int i = 0; i < 4; i++)
             {
                 SaveStore.Delete(i);
@@ -286,14 +353,17 @@ namespace Lokanta.Game
             _app.Ui.Replace(new MainMenuScreen());
             yield return Settle();
             yield return Shot("01-main-menu");
+            CheckScreenLayout("main menu");
             Note(Click(Loc.T("ui.menu.new")), "New game button");
             yield return Settle();
             yield return Shot("02-cuisine-choice");
+            CheckScreenLayout("cuisine choice");
             int cuisine = CuisineFlag();
             Note(Click(Loc.T("ui.cuisine.start"), cuisine),
                  cuisine == 0 ? "Fast food button" : "Turkish restaurant button");
             yield return Settle();
             yield return Shot("03-slot-choice");
+            CheckScreenLayout("slot choice");
             Note(Click(Loc.T("ui.cuisine.start")), "First slot");
             yield return Settle();
             Note(_app.InGame, "The game started");
@@ -839,6 +909,7 @@ namespace Lokanta.Game
             {
                 yield return Settle();
                 yield return Shot("09-settings");
+                CheckScreenLayout("settings");
                 Back();
                 yield return Settle();
             }
@@ -2042,6 +2113,134 @@ namespace Lokanta.Game
                 _app.Ui.Refresh();
             }
             yield return Settle();
+        }
+
+        /// <summary>
+        /// EVERY SCREEN, NOT JUST THE GAME SCREEN.
+        ///
+        /// `CheckStrips`, `ClippedButtons` and `OverlappingButtons` all walk
+        /// `GameScreen`'s own `_top` / `_bottom` / `_cards` / `_stats`. Not
+        /// one menu, list, settings or dialog screen has ever been measured by
+        /// anything - and on 17 September four of them turned out to be
+        /// hiding controls below an invisible fold, including ALL FIVE
+        /// language buttons on a screen belonging to a five-language game.
+        ///
+        /// This walks the whole visible tree of whatever screen the tour is
+        /// standing on and asks two questions of it:
+        ///
+        ///   1. Is every visible Button at least 48 dp in BOTH axes? Google's
+        ///      floor, and the project's own Theme.Touch is 52. A row that is
+        ///      873 dp wide and 44 dp tall fails, because width does not buy
+        ///      height - which is exactly the argument the dish rows carried
+        ///      in a comment for weeks.
+        ///   2. Does every visible element stay inside the panel? An element
+        ///      whose bottom edge is past the panel's is content the player
+        ///      cannot see and, with the scrollbars hidden, cannot know about.
+        ///
+        /// IT REPORTS THE WORST OFFENDER BY NAME. "3 controls are too small"
+        /// sends the reader hunting; "ui.settings.language 873x44" does not.
+        ///
+        /// A tolerance of 1 dp on the panel bounds: a control whose edge lands
+        /// a rounding error outside is not a defect, and a check that cries
+        /// wolf gets switched off.
+        /// </summary>
+        private void CheckScreenLayout(string where)
+        {
+            VisualElement root = (_app != null && _app.Ui != null) ? _app.Ui.TopView : null;
+            if (root == null) { Note(ok: false, "layout " + where + ": no screen"); return; }
+
+            Rect panel = root.worldBound;
+            if (float.IsNaN(panel.width) || panel.width <= 0f)
+            {
+                Note(ok: false, "layout " + where + ": the screen has no size yet");
+                return;
+            }
+
+            // NO SCALE DIVISION. `worldBound` is in the PANEL's coordinate
+            // space, and MatchPhoneDp has already made that space dp - the
+            // panel is 873 x 393 whether the window is 873 px or 2183.
+            //
+            // The first version divided by the render scale as well, so at 1x
+            // it was right by accident and at store scale every size came out
+            // 2.5 times too small: a 52 dp button reported as 21 dp and four
+            // screens went red for controls that were the correct size all
+            // along. A unit error that only shows in one of two run modes is
+            // the worst kind, because the mode it is right in is the one that
+            // runs most often.
+
+            int small = 0, outside = 0;
+            string smallWorst = null, outsideWorst = null;
+            float smallest = float.MaxValue, furthest = 0f;
+
+            foreach (VisualElement v in root.Query<VisualElement>().Build())
+            {
+                if (v.resolvedStyle.display == DisplayStyle.None) continue;
+                if (v.resolvedStyle.opacity <= 0.01f) continue;
+                Rect r = v.worldBound;
+                if (float.IsNaN(r.width) || r.width <= 0f || r.height <= 0f) continue;
+
+                float w = r.width, h = r.height;
+
+                if (v is Button && v.enabledInHierarchy)
+                {
+                    float least = Mathf.Min(w, h);
+                    if (least < 48f)
+                    {
+                        small++;
+                        if (least < smallest)
+                        {
+                            smallest = least;
+                            smallWorst = Name(v) + " " + Mathf.RoundToInt(w)
+                                         + "x" + Mathf.RoundToInt(h) + " dp";
+                        }
+                    }
+                }
+
+                // EVERY EDGE, and only for things that carry something. A
+                // decorative element bleeding past an edge is a background; a
+                // button or a label past one is lost content.
+                //
+                // THE FIRST VERSION MEASURED THE BOTTOM ONLY, and it was
+                // wrong within the hour: the fix for the four overflowing
+                // screens made them wrap sideways, the cuisine screen's title
+                // and Back button went off the RIGHT edge, and this check
+                // reported the screen clean. A check that watches one edge
+                // teaches you that the other three are safe.
+                if (!(v is Button) && !(v is Label)) continue;
+                float over = Mathf.Max(
+                    Mathf.Max(r.yMax - panel.yMax, panel.yMin - r.yMin),
+                    Mathf.Max(r.xMax - panel.xMax, panel.xMin - r.xMin));
+                if (over > 1f)
+                {
+                    outside++;
+                    if (over > furthest)
+                    {
+                        furthest = over;
+                        outsideWorst = Name(v) + " "
+                                       + Mathf.RoundToInt(over) + " dp outside";
+                    }
+                }
+            }
+
+            Note(small == 0, "layout " + where + ": every control is 48 dp or more ("
+                 + small + " under" + (smallWorst != null ? " - worst " + smallWorst : "") + ")");
+            Note(outside == 0, "layout " + where + ": nothing is off the screen ("
+                 + outside + (outsideWorst != null ? " - worst " + outsideWorst : "") + ")");
+        }
+
+        /// <summary>A name for a report line: the text if it has any, else the type.</summary>
+        private static string Name(VisualElement v)
+        {
+            string t = (v as TextElement)?.text;
+            // SQUARE BRACKETS, NOT QUOTATION MARKS. `tools/art/check_font.py`
+            // scans the C# string literals for characters the shipped font has
+            // to carry, and it cannot tell a label the player reads from a
+            // line that only ever reaches a log. A plain " is not in the CJK
+            // subset, so writing one here turned the font check red.
+            if (!string.IsNullOrEmpty(t))
+                return "[" + (t.Length > 24 ? t.Substring(0, 24) : t) + "]";
+            if (!string.IsNullOrEmpty(v.name)) return v.name;
+            return v.GetType().Name;
         }
 
         private void CheckStrips(string phase)
