@@ -39,6 +39,10 @@ render/*
 # a release asset - simply stopped being committed, silently, because an
 # ignore rule fails by doing nothing.
 !render/store/
+# The per-cuisine and per-language folders only. A bare render/store/*.png is
+# the OLD flat layout - every store run used to overwrite it, so what sat
+# there was whichever cuisine ran last with nothing in the name to say which.
+render/store/*.png
 
 # --- Operating system ------------------------------------------------------
 Thumbs.db
