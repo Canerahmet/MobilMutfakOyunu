@@ -185,12 +185,30 @@ namespace Lokanta.Game.Ui
             return row;
         }
 
-        internal static VisualElement Backdrop()
+        internal static VisualElement Backdrop() { return Backdrop(opaque: true); }
+
+        /// <param name="opaque">
+        /// FALSE lets the 3D scene behind show through a scrim.
+        ///
+        /// Only the MAIN MENU uses it, and only because there is a restaurant
+        /// behind it to show (GameApp.ShowMenuScene). Every other menu page
+        /// stays opaque: a settings list over a moving hall is the "ghosting"
+        /// fault this project already fixed once on the morning screens, where
+        /// three per cent of a lit scene leaking through was enough to make the
+        /// rows unreadable.
+        ///
+        /// 0.55 rather than the pause screen's 0.72: the pause scrim's job is
+        /// to say "the game has stopped", and this one's is the opposite - the
+        /// hall should still read as alive underneath.
+        /// </param>
+        internal static VisualElement Backdrop(bool opaque)
         {
             ScrollView v = Theme.Mobile(new ScrollView(ScrollViewMode.Vertical));
             v.style.flexGrow = 1;
             v.style.minHeight = 0;
-            v.style.backgroundColor = Theme.Bg;
+            v.style.backgroundColor = opaque
+                ? Theme.Bg
+                : new Color(Theme.Bg.r, Theme.Bg.g, Theme.Bg.b, 0.55f);
             v.style.paddingLeft = Theme.Pad * 2;
             v.style.paddingRight = Theme.Pad * 2;
             v.style.paddingTop = Theme.Pad * 2;
@@ -217,42 +235,87 @@ namespace Lokanta.Game.Ui
     {
         public override VisualElement Build()
         {
-            VisualElement root = ErrorScreen.Backdrop();
+            // THE HALL SHOWS THROUGH. GameApp builds a real preview
+            // simulation at boot - four tables, fast food, the figures walking
+            // - so the first frame of the game finally has the game in it.
+            VisualElement root = ErrorScreen.Backdrop(opaque: false);
 
             // LANDSCAPE: it spills into a second column instead of off the
             // bottom. Backdrop.WrapColumn, and WrapWidth after the children
             // are in.
-            VisualElement col = ErrorScreen.WrapColumn();
+            // ONE PRIMARY, AND THE REST QUIET.
+            //
+            // It was five buttons of equal weight in a wrapping column, and at
+            // 873 x 393 with the title and the tagline above them the set did
+            // not fit: the column spilled and "Quit" ended up in a second
+            // column beside the others. Five equally loud choices is also not
+            // what a menu is - the player came to play, and everything else on
+            // this screen is somewhere they go once.
+            //
+            // Continue when there is a save, New Game when there is not. The
+            // other one joins the quiet row, so the row has three or four items
+            // and the column always has exactly two.
+            VisualElement col = Theme.Column(Theme.Gap);
+            col.style.alignSelf = Align.Center;
+            col.style.alignItems = Align.Center;
+            col.style.flexShrink = 0;
 
             Label title = Theme.Text(Loc.T("ui.game.title"), Theme.FontHuge, Theme.Accent);
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
             title.style.unityTextAlign = TextAnchor.MiddleCenter;
-            title.style.marginBottom = Theme.Pad;
+            title.style.marginBottom = 2;
             col.Add(title);
 
-            Label sub = Theme.Text(Loc.T("ui.menu.tagline"), Theme.FontBody, Theme.InkDim);
+            Label sub = Theme.Text(Loc.T("ui.menu.tagline"), Theme.FontBody, Theme.Ink);
             sub.style.unityTextAlign = TextAnchor.MiddleCenter;
-            sub.style.marginBottom = Theme.Pad * 2;
+            sub.style.marginBottom = Theme.Pad;
             col.Add(sub);
 
-            if (AnySave())
-                col.Add(Theme.Btn(Loc.T("ui.menu.continue"),
-                    () => Ui.Push(new SlotScreen(SlotScreen.Mode.Load)), primary: true));
+            bool saved = AnySave();
+            Button primary = saved
+                ? Theme.Btn(Loc.T("ui.menu.continue"),
+                            () => Ui.Push(new SlotScreen(SlotScreen.Mode.Load)),
+                            primary: true)
+                : Theme.Btn(Loc.T("ui.menu.new"),
+                            () => Ui.Push(new CuisineScreen()), primary: true);
+            primary.style.width = 320;
+            primary.style.flexShrink = 0;
+            col.Add(primary);
 
-            col.Add(Theme.Btn(Loc.T("ui.menu.new"),
-                () => Ui.Push(new CuisineScreen())));
-            col.Add(Theme.Btn(Loc.T("ui.menu.settings"),
-                () => Ui.Push(new SettingsScreen())));
-            col.Add(Theme.Btn(Loc.T("ui.menu.credits"),
-                () => Ui.Push(new CreditsScreen())));
+            // THE QUIET ROW. Small, level with each other, and nowhere near as
+            // loud as the one button the player came for.
+            VisualElement rest = Theme.Row(Theme.Gap);
+            rest.style.justifyContent = Justify.Center;
+            rest.style.flexWrap = Wrap.Wrap;
 
+            if (saved) Minor(rest, Loc.T("ui.menu.new"), () => Ui.Push(new CuisineScreen()));
+            Minor(rest, Loc.T("ui.menu.settings"), () => Ui.Push(new SettingsScreen()));
+            Minor(rest, Loc.T("ui.menu.credits"), () => Ui.Push(new CreditsScreen()));
 #if UNITY_STANDALONE || UNITY_EDITOR
-            col.Add(Theme.Btn(Loc.T("ui.menu.quit"), Quit));
+            Minor(rest, Loc.T("ui.menu.quit"), Quit);
 #endif
+            col.Add(rest);
 
             root.Add(col);
-            ErrorScreen.WrapWidth(col, 420);
             return root;
+        }
+
+        /// <summary>
+        /// A secondary menu entry: the ordinary button treatment at a width
+        /// that fits its own label, so four of them sit on one line.
+        ///
+        /// It keeps `Theme.Btn` rather than being a bare Label, because that is
+        /// where the 52 dp touch floor and the pressed state live - the two
+        /// things this project has already lost once by building a control out
+        /// of `new Button(...)`.
+        /// </summary>
+        private static void Minor(VisualElement row, string label, System.Action onClick)
+        {
+            Button b = Theme.Btn(label, onClick);
+            b.style.paddingLeft = Theme.Pad;
+            b.style.paddingRight = Theme.Pad;
+            b.style.flexShrink = 0;
+            row.Add(b);
         }
 
         private static bool AnySave()

@@ -150,6 +150,8 @@ namespace Lokanta.Game
             sfx.playOnAwake = false;
             Sfx.Init(sfx);
 
+            if (string.IsNullOrEmpty(LoadError)) ShowMenuScene();
+
             if (Ui != null)
             {
                 Ui.App = this;
@@ -162,6 +164,76 @@ namespace Lokanta.Game
             if (Autopilot.Requested && Ui != null)
                 gameObject.AddComponent<Autopilot>()
                           .Begin(this, Ui.GetComponent<UnityEngine.UIElements.UIDocument>());
+        }
+
+        /// <summary>
+        /// A RESTAURANT BEHIND THE MAIN MENU.
+        ///
+        /// Measured: 80.9% of the main-menu frame was a single flat colour - a
+        /// near-black field, an orange wordmark and three identical grey pills.
+        /// It is the first thing a store visitor sees and the first thing a
+        /// player opens, and there is nothing in it from the game. A shopper
+        /// cannot tell it is a restaurant game.
+        ///
+        /// NOTHING NEW HAD TO BE BUILT. `RestaurantView.Source` already falls
+        /// back to `Preview` when no campaign is loaded, and the editor's
+        /// screenshot tool has driven that path for weeks - so what the menu
+        /// shows is the game's own scene code, not a picture of it.
+        ///
+        /// It is a REAL simulation, not a still: the figures walk, the stove
+        /// lights, the street runs. Costing a Simulation at boot is cheap (it
+        /// is integers and arrays; the balance harness builds sixty-day runs in
+        /// milliseconds) and it is the same object a campaign would use.
+        ///
+        /// FAST FOOD, four tables: the cuisine everybody has without paying,
+        /// and the opening tier rather than a grown restaurant - the menu
+        /// should not show a shop the player has not earned.
+        ///
+        /// IF ANYTHING FAILS, THE MENU IS STILL A MENU. A backdrop is not worth
+        /// a broken boot, so the whole thing is inside a try and a failure only
+        /// costs the picture.
+        /// </summary>
+        private void ShowMenuScene()
+        {
+            if (View == null) return;
+            try
+            {
+                ContentSet content = ContentSetLoader.Load(_src, MenuCuisine);
+                TimingConfig timing = content.SlotDurationsBp != null
+                    ? TimingConfig.Default()
+                        .WithSlotDurations(content.SlotDurationsBp)
+                        .WithEatMs(content.EatMs)
+                    : TimingConfig.Default();
+
+                // A FIXED SEED. The menu should look the same every time it is
+                // opened; a different crowd on every boot would read as the
+                // screen being rebuilt rather than as a place.
+                Simulation sim = new Simulation(Economy, content, timing, 20260917UL);
+                sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+                for (int i = 0; i < 900; i++) sim.Tick();
+
+                View.PreviewCuisine = MenuCuisine;
+                View.PreviewContent = content;
+                View.Preview = sim;
+                View.Rebuild();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("the menu backdrop could not be built: " + e.Message);
+            }
+        }
+
+        /// <summary>The cuisine the menu backdrop shows.</summary>
+        private const string MenuCuisine = "fastfood";
+
+        /// <summary>
+        /// Puts the menu backdrop away. Called when a campaign takes over the
+        /// view, so that the preview simulation is not left ticking behind a
+        /// real one.
+        /// </summary>
+        private void ClearMenuScene()
+        {
+            if (View != null) View.Preview = null;
         }
 
         // =====================================================================
@@ -273,6 +345,9 @@ namespace Lokanta.Game
 
         private void AfterSimChanged()
         {
+            // The campaign owns the view from here; the menu's preview would
+            // otherwise sit underneath it as a second Source candidate.
+            ClearMenuScene();
             Paused = true;
             _accumulator = 0f;
             _lastDay = Sim.Day;
