@@ -52,6 +52,7 @@ UI = {
     "ui.hud.satisfaction": "Satisfaction",
     "ui.morning.checklist": "Opening checks",
     "ui.morning.open_sub": "Day {0} begins",
+    "ui.service.close_warn": "{0} tables still have guests. Press again to close and send them away.",
     "ui.service.close_sub": "Service is over",
     "ui.service.running_sub": "Service running",
     "ui.service.combo_on": "Combo on",

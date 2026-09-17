@@ -1139,6 +1139,13 @@ namespace Lokanta.Game.Ui
         private bool _openConfirmed;
 
         /// <summary>
+        /// The second press that really closes the day. It is a field on the
+        /// screen rather than a dialog because the game has no modal layer
+        /// and docs/16 allows only three things to stop the flow.
+        /// </summary>
+        private bool _closeConfirmed;
+
+        /// <summary>
         /// How many tables are on the crisis strip right now. So the tour
         /// can ask.
         ///
@@ -1398,6 +1405,31 @@ namespace Lokanta.Game.Ui
                                  : Loc.T("ui.service.running_sub"),
                             () =>
             {
+                // IT ASKS FIRST WHEN THERE ARE STILL GUESTS IN THE HALL.
+                //
+                // `Kit.Cta` never calls SetEnabled - `ready` changes the face
+                // colour, the arrow and the title and nothing else, and the
+                // handler is wired unconditionally (Kit.cs:385). So through
+                // the whole of service this button was LIVE while wearing the
+                // game's own disabled treatment, and one press ran
+                // Simulation.CloseDay, which walks the hall and sends every
+                // seated party away angry. Revenue lost, reputation hit, no
+                // undo, no question asked.
+                //
+                // The morning CTA already guards itself this way when
+                // something is short, and its comment carries the rule that
+                // matters: ask only when there IS something to ask about, or
+                // the confirmation becomes a reflex nobody reads. A finished
+                // service asks nothing.
+                int seated = App.Sim.OccupiedTables;
+                if (seated > 0 && !_closeConfirmed)
+                {
+                    _closeConfirmed = true;
+                    Toast(Loc.T("ui.service.close_warn", seated), rejected: true);
+                    Sfx.Cancel();
+                    return;
+                }
+                _closeConfirmed = false;
                 App.CloseDay();
                 BuildBottom();
                 BuildCards();
@@ -1813,8 +1845,16 @@ namespace Lokanta.Game.Ui
                 // At the ceiling the colour reports a DIRECTION rather than
                 // a STATE: this is not a bad place, it is a place you cannot
                 // get past without growing.
+                // PLATE INKS, NOT PANEL INKS. The pill's background is
+                // Theme.Plate; the four colours ReputationColor returns were
+                // all chosen for the dark panel and every one of them is under
+                // 2.3:1 on cream. Kit.CountRow already learnt this lesson and
+                // its comment states the rule - "as long as the colour choice
+                // is left to the caller this class of bug reopens". This is
+                // the caller it reopened in.
                 _rep.style.color = atCap
-                    ? Theme.Warn : Theme.ReputationColor(sim.ReputationCenti);
+                    ? Theme.WarnDeep
+                    : Theme.ReputationPlateColor(sim.ReputationCenti);
             }
             int toRent = sim.DaysToRent;
             if (toRent != _shownRentDays)
@@ -1962,10 +2002,29 @@ namespace Lokanta.Game.Ui
                     _revenue.text = Loc.Money(sim.Revenue);
                     if (_satisfaction != null)
                     {
+                        // NOBODY SERVED YET IS NOT A BAD SCORE.
+                        //
+                        // This read the average straight out and painted it
+                        // red below 5000 - so at the instant service opens,
+                        // with nothing having happened, the card showed a red
+                        // "0,0". That is exactly the false alarm
+                        // Theme.ReputationColor was rewritten to prevent
+                        // (Theme.cs:466-477), reopened three lines away by a
+                        // second hand-written threshold table.
+                        //
+                        // An em dash until there is something to average, and
+                        // the shared bands after that.
                         int m = sim.AverageSatisfactionCenti;
-                        _satisfaction.text = Loc.Reputation(m);
-                        _satisfaction.style.color = m >= 7000 ? Theme.Good
-                            : (m >= 5000 ? Theme.Warn : Theme.Bad);
+                        if (sim.ServedParties <= 0)
+                        {
+                            _satisfaction.text = "\u2014";
+                            _satisfaction.style.color = Theme.InkDim;
+                        }
+                        else
+                        {
+                            _satisfaction.text = Loc.Reputation(m);
+                            _satisfaction.style.color = Theme.ReputationColor(m);
+                        }
                     }
                 }
             }

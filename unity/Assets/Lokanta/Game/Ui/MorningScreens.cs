@@ -24,7 +24,21 @@ namespace Lokanta.Game.Ui
         {
             VisualElement outer = new VisualElement();
             outer.style.flexGrow = 1;
-            outer.style.backgroundColor = new Color(Theme.Bg.r, Theme.Bg.g, Theme.Bg.b, 0.97f);
+            // OPAQUE. This was Bg at alpha 0.97 - the only colour in this
+            // file with no comment on it, which is the signature of a value
+            // typed while testing and never taken out.
+            //
+            // Three per cent of a lit 3D scene is not nothing when the panel
+            // is near-black: the scroll body measured (26,26,29) against a
+            // head band of (22,24,28), so the ghost of the kitchen was
+            // brighter than the panel it showed through, and the list rows -
+            // already only 1.19:1 against their background - lost most of
+            // what separated them. It read as an unfinished screen.
+            //
+            // ErrorScreen.Backdrop (MenuScreens.cs) has always used opaque
+            // Bg. Two backdrops in one codebase disagreeing is the proof that
+            // 0.97 was never a decision.
+            outer.style.backgroundColor = Theme.Bg;
             outer.style.alignItems = Align.Center;
 
             // The readable width limit. On a phone 1280 wide, in a row that
@@ -538,8 +552,23 @@ namespace Lokanta.Game.Ui
             row.style.paddingRight = Theme.Pad;
             row.style.paddingTop = 5;
             row.style.paddingBottom = 5;
+            // 44 dp WAS UNDER THE FLOOR, on the most-tapped row in the game.
+            //
+            // The row is built with `new Button(...)` rather than Theme.Btn,
+            // so it never received `minHeight = Theme.Touch` and came out at
+            // 5 + 17 + 5 = 44 dp. The comment above justified that with "the
+            // touch target GROWS - a strip 873 dp wide", and that is the wrong
+            // shape of argument: the 48 dp floor is a floor on BOTH axes, and
+            // width does not buy height. With marginBottom at 2 the centres of
+            // two rows were 46 dp apart, so a finger aiming at one dish opened
+            // its neighbour - the very failure Theme.Level's comment records
+            // being caught for the volume steps, and missed here.
+            //
+            // The menu has 32 dishes. Three rows per screen becomes four at
+            // 52 dp, which is the honest cost.
+            row.style.minHeight = Theme.Touch;
+            row.style.marginBottom = Theme.Gap - 6;
             row.style.marginTop = 0;
-            row.style.marginBottom = 2;
             row.style.marginLeft = 0;
             row.style.marginRight = 0;
             row.style.backgroundColor = Theme.Panel;

@@ -291,6 +291,7 @@ UI = {
     # --- service ----------------------------------------------------------
     "ui.service.attention": "照应",
     "ui.service.close": "收工",
+    "ui.service.close_warn": "还有 {0} 桌有客人。再按一次即可关门并请他们离开。",
     "ui.service.close_sub": "营业结束",
     "ui.service.combo_off": "套餐已关",
     "ui.service.combo_on": "套餐已开",

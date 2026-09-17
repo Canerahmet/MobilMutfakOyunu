@@ -68,6 +68,7 @@ UI = {
     "ui.hud.satisfaction": "Memnuniyet",
     "ui.morning.checklist": "Açılış hazırlığı",
     "ui.morning.open_sub": "{0}. gün başlıyor",
+    "ui.service.close_warn": "{0} masada hâlâ misafir var. Kapatıp göndermek için tekrar bas.",
     "ui.service.close_sub": "Servis bitti",
     "ui.service.running_sub": "Servis sürüyor",
     "ui.service.combo_on": "Kombo açık",

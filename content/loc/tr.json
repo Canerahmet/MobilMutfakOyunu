@@ -568,6 +568,7 @@
   "ui.service.attention": "İlgi",
   "ui.service.close": "Günü kapat",
   "ui.service.close_sub": "Servis bitti",
+  "ui.service.close_warn": "{0} masada hâlâ misafir var. Kapatıp göndermek için tekrar bas.",
   "ui.service.combo_off": "Kombo kapalı",
   "ui.service.combo_on": "Kombo açık",
   "ui.service.credit": "Veresiye",

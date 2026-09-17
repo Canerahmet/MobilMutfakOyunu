@@ -244,11 +244,36 @@ namespace Lokanta.Game
             // first and even the daytime read as night. Now it is a pale blue
             // in the morning, a light blue at midday, warm in the afternoon
             // and really dark in the evening.
+            // THE GROUND MUST SIT BELOW THE SUBJECT, and by day it did not.
+            //
+            // Measured off the shipped store frames (median luminance):
+            //
+            //     evening     interior 51   background 34   subject 1.5x brighter
+            //     midday      interior 62   background 132  GROUND 2.1x brighter
+            //
+            // That is a figure/ground inversion, and it is the whole reason
+            // the night frame looks like a game and the day frames look like
+            // a plan. In daylight the restaurant - the subject, the thing the
+            // player is asked to watch - was the DARKEST region of the frame,
+            // wrapped on three sides by a field twice its brightness. The eye
+            // goes to the bright field and slides off the building.
+            //
+            // The midday stop was (0.38, 0.51, 0.65) - a LIGHT blue, brighter
+            // than anything inside a room lit only by ambient. These stops are
+            // pulled down and toward neutral so the background reads as air
+            // BEHIND the building rather than as a lit surface in front of it.
+            //
+            // They are not made dark. Night is 0.04 and stays there; the point
+            // is not to turn the day into evening but to stop the sky
+            // outshining the hall. The remaining separation comes from hue -
+            // the sky stays cool, the interior stays warm - which is what the
+            // cuisine tint was always for and could never show while the
+            // value was this high.
             if (Cam != null)
                 Cam.backgroundColor = Mix(t,
-                    Tint(new Color(0.30f, 0.38f, 0.48f)),
-                    Tint(new Color(0.38f, 0.51f, 0.65f)),
-                    Tint(new Color(0.44f, 0.34f, 0.31f)),
+                    Tint(new Color(0.17f, 0.21f, 0.27f)),
+                    Tint(new Color(0.21f, 0.28f, 0.36f)),
+                    Tint(new Color(0.26f, 0.19f, 0.17f)),
                     new Color(0.04f, 0.05f, 0.09f));   // night: NO tint
 
             // THE WARM FILL INSIDE: the hall's own light. The outside going

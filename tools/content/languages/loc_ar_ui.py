@@ -297,6 +297,7 @@ UI = {
     # --- service ----------------------------------------------------------
     "ui.service.attention": "اهتمام",
     "ui.service.close": "أغلق اليوم",
+    "ui.service.close_warn": "لا يزال هناك ضيوف على {0} طاولات. اضغط مرة أخرى للإغلاق وصرفهم.",
     "ui.service.close_sub": "انتهى الدوام",
     "ui.service.combo_off": "الوجبة المجمّعة مغلقة",
     "ui.service.combo_on": "الوجبة المجمّعة مفتوحة",

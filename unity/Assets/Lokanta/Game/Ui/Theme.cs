@@ -483,6 +483,39 @@ namespace Lokanta.Game.Ui
             return Bad;
         }
 
+        /// <summary>
+        /// The same four bands, in inks that READ ON THE CREAM PLATE.
+        ///
+        /// `ReputationColor` above returns Good / Warn / InkDim / Bad, and
+        /// every one of those was picked for the DARK panel. The reputation
+        /// pill is on `Theme.Plate`, and the caller was painting the dark
+        /// colours onto it: measured against the plate, InkDim gives 1.84:1,
+        /// Good 2.00, Warn 1.52 and Bad 2.22. THERE IS NO VALUE OF REPUTATION
+        /// AT WHICH THAT NUMBER IS LEGIBLE - the WCAG floor for text is 4.5.
+        ///
+        /// It looked like a disabled control, which is worse than merely
+        /// faint: the player reads "you cannot use this" from a number that
+        /// is one of the two things the whole top strip exists to show.
+        ///
+        /// The bands are deliberately the SAME bands. `ReputationColor`'s
+        /// comment argues them at length - 30.0 is where a campaign starts,
+        /// so the starting band has to be quiet or the first thing the player
+        /// learns is a false alarm. Only the inks change.
+        /// </summary>
+        public static Color ReputationPlateColor(int centi)
+        {
+            if (centi >= 7000) return Kit.GoDeep;    // 5.0:1 on the plate
+            if (centi >= 4500) return WarnDeep;      // 4.6:1
+            if (centi >= 2500) return PlateInk;      // the starting band: quiet
+            return Kit.BadDeep;                      // 5.4:1
+        }
+
+        /// <summary>
+        /// The dark amber that reads on the plate. `Warn` is 1.52:1 there.
+        /// The amber counterpart of `Kit.GoDeep` and `Kit.BadDeep`.
+        /// </summary>
+        public static readonly Color WarnDeep = new Color(0.502f, 0.333f, 0.055f);
+
         /// <summary>Till colour: negative is red.</summary>
         public static Color CashColor(long centi)
         {

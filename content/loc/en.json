@@ -568,6 +568,7 @@
   "ui.service.attention": "Attention",
   "ui.service.close": "Close the day",
   "ui.service.close_sub": "Service is over",
+  "ui.service.close_warn": "{0} tables still have guests. Press again to close and send them away.",
   "ui.service.combo_off": "Combo off",
   "ui.service.combo_on": "Combo on",
   "ui.service.credit": "Tab",
