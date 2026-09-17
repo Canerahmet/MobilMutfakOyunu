@@ -221,102 +221,102 @@ STORAGE = {"soguk_hava": "Cold Store"}
 # - they stay, and the occupation line says who the person is.
 # ---------------------------------------------------------------------------
 REGULARS = {
-    "hasan_usta": ("Hasan Usta", "Machinist across the street", [
+    "hasan_usta": ("Old Harry", "Machinist across the street", [
         "Looks straight at the kitchen on the way in. “Any bean stew?”",
         "Doesn't order any more. He sits down; you know.",
         "“My son's back from the army. I'll bring him tonight.”",
     ]),
-    "nazife_teyze": ("Nazife Teyze", "Neighbour from upstairs", [
+    "nazife_teyze": ("Auntie Pat", "Neighbour from upstairs", [
         "Tastes the soup, says nothing. She'll be back tomorrow.",
         "“Mine used to taste like this. Years ago.”",
         "Pauses at the door: “This place is the face of the street now.”",
     ]),
-    "selim_bey": ("Selim Bey", "Clerk at the tax office", [
+    "selim_bey": ("Mr Talbot", "Clerk at the tax office", [
         "Same table, same hour. Never a minute off.",
         "“Forty minutes for lunch. I'm out of here by thirty-five.”",
         "Talks about retiring. “Then I'll come more often.”",
     ]),
-    "rasim_amca": ("Rasim Amca", "Site foreman", [
+    "rasim_amca": ("Uncle Ray", "Site foreman", [
         "Hands dusty with lime. Shakes out his jacket before sitting.",
         "“Told the lads too — lunch is here from now on.”",
         "The site is finishing. “I'll still drop by, don't worry.”",
     ]),
-    "guler_hanim": ("Güler Hanım", "Hairdresser on the corner", [
+    "guler_hanim": ("Mrs Gale", "Hairdresser on the corner", [
         "In and out on her feet, takes the pilaf away with her.",
         "“I tell my clients to go across the road to you.”",
         "Expanding her shop. “We grew together, you and I.”",
     ]),
-    "okan": ("Okan", "University student", [
+    "okan": ("Owen", "University student", [
         "Asks what the cheapest thing on the menu is.",
         "“Grant came through.” Today he orders dessert too.",
         "Starting an internship. “First paycheque, I'm buying here.”",
     ]),
-    "nurten_abla": ("Nurten Abla", "Foreman at a textile workshop", [
+    "nurten_abla": ("Nora", "Foreman at a textile workshop", [
         "Short break. Always takes the cacık with her.",
         "“Three more coming from the workshop — keep us a table.”",
         "The workshop is closing. “New place is far, but I'll come.”",
     ]),
-    "ismail_sofor": ("İsmail Şoför", "Long-haul lorry driver", [
+    "ismail_sofor": ("Big Mal", "Long-haul lorry driver", [
         "Parks the lorry on the corner, eats fast, leaves.",
         "“Coming back from Ankara, I always stop here now.”",
         "Said it on the radio: “Two more drivers will ask for you.”",
     ]),
-    "perihan_hanim": ("Perihan Hanım", "Retired teacher", [
+    "perihan_hanim": ("Mrs Perry", "Retired teacher", [
         "Holds the fork up to the light. Says nothing, but looks.",
         "“The tablecloth is clean today. I noticed.”",
         "“I'm not easy to please. I like this place.”",
     ]),
-    "mehmet_dede": ("Mehmet Dede", "Regular from the old restaurant", [
+    "mehmet_dede": ("Grandad Mick", "Regular from the old restaurant", [
         "Hesitates at the door. “This used to be somebody else's.”",
         "“The chickpeas were like this back then. Exactly.”",
         "He comes every day now. Everyone knows which chair is his.",
     ]),
-    "deniz": ("Deniz", "Secondary school student", [
+    "deniz": ("Danny", "Secondary school student", [
         "Straight after school, backpack on one shoulder, in a hurry.",
         "“This is where we all meet up now.”",
         "Passed the exam. “Celebration's here. Six of us.”",
     ]),
-    "burak": ("Burak", "Software developer", [
+    "burak": ("Ben", "Software developer", [
         "Opens his laptop, orders without making you wait.",
         "“We moved the team lunch here.”",
         "“I'll be remote now, but this is basically my office.”",
     ]),
-    "elif": ("Elif", "Shop assistant", [
+    "elif": ("Ellie", "Shop assistant", [
         "Arrives with shopping bags, has fifteen minutes.",
         "“Saw it through the window — you've added something new.”",
         "“Told the girls at the shop. We order from you now.”",
     ]),
-    "kaan_hoca": ("Kaan Hoca", "Gym trainer", [
+    "kaan_hoca": ("Coach Kane", "Gym trainer", [
         "Straight after training, asking about protein.",
         "“I tell my clients to eat here.”",
         "“Pinned your address to the gym board. Hope that's alright.”",
     ]),
-    "sevda": ("Sevda", "Dietitian", [
+    "sevda": ("Sadie", "Dietitian", [
         "Asks about the salad: “Can I get the dressing on the side?”",
         "“I recommend this place to the people I see.”",
         "“Your menu is on the clinic wall now.”",
     ]),
-    "tolga": ("Tolga", "Night-shift security guard", [
+    "tolga": ("Terry", "Night-shift security guard", [
         "Comes at midnight. Surprised the door is open.",
         "“You're the only place open at this hour.”",
         "“The other guards started coming too. Did you notice?”",
     ]),
-    "melis": ("Melis", "Freelance accountant", [
+    "melis": ("Melissa", "Freelance accountant", [
         "Reads the price list from top to bottom.",
         "“I'll keep the books, you make the food.”",
         "“I'm curious about your margins. Not joking.”",
     ]),
-    "ozan": ("Ozan", "Amateur footballer", [
+    "ozan": ("Ollie", "Amateur footballer", [
         "After the match, with the whole team, loud.",
         "“We come here when we win. You're our lucky charm.”",
         "“We took the cup. Shall we put your name on the shirt?”",
     ]),
-    "yagmur": ("Yağmur", "Evening class teacher", [
+    "yagmur": ("Yvonne", "Evening class teacher", [
         "Late, tired. Asks about dessert.",
         "“This is the one good moment of my day.”",
         "“Course is over. But it's a habit now — I'll be back.”",
     ]),
-    "cem_abi": ("Cem Abi", "Motorbike courier", [
+    "cem_abi": ("Jamie", "Motorbike courier", [
         "Bike out front, helmet in hand.",
         "“Put you in the couriers' group chat.”",
         "“Opening my own place. Learned the trade from you.”",
@@ -330,3 +330,30 @@ REGULARS = {
 # comes from where.
 # ---------------------------------------------------------------------------
 from loc_en_ui import UI    # noqa: E402
+
+# ---------------------------------------------------------------- staff
+# NINETY-SIX NAMES, INDEX-ALIGNED WITH content/names.json.
+#
+# The core stores a staff member's name as an INDEX into that list and
+# the save carries the index, so a row here is the same PERSON in every
+# language - switching language renames the cook rather than replacing
+# them. Any list of a different length would break that silently, so
+# tools/content/gen_loc.py checks the length.
+#
+# The Turkish list alternates female and male and spans three
+# generations, so a crew of twelve reads as a neighbourhood and not as a
+# spreadsheet. This one keeps that shape.
+STAFF = [
+    "Norma", "Harold", "Alice", "Martin", "Fay", "Stuart", "Emma", "Adam",
+    "Hattie", "Alan", "Jenny", "Hugh", "Sheila", "Ian", "Ellie", "Oscar",
+    "Ava", "Joseph", "Sally", "Ronald", "Mary", "Keith", "Gill", "Harvey",
+    "Dawn", "Nigel", "Sandra", "Neil", "Paula", "Sean", "Rita", "Duncan",
+    "Bridget", "Colin", "Wendy", "Trevor", "Maureen", "Gordon", "Janet", "Clive",
+    "Lorraine", "Roy", "Denise", "Malcolm", "Tracey", "Barry", "Julie", "Graham",
+    "Karen", "Derek", "Sharon", "Leonard", "Carol", "Vincent", "Gina", "Frank",
+    "Hazel", "Sidney", "Nadine", "Miles", "Robin", "Warren", "Lydia", "Curtis",
+    "Marcy", "Elliot", "Bonnie", "Grant", "Tessa", "Reuben", "Della", "Cyril",
+    "Nina", "Errol", "Sonia", "Gareth", "Flora", "Dennis", "Wanda", "Bruce",
+    "Ruth", "Lester", "Bella", "Angus", "Cleo", "Otis", "Marnie", "Ralph",
+    "Esme", "Douglas", "Greta", "Wesley", "Ivy", "Rex", "Opal", "Felix",
+]

@@ -245,7 +245,7 @@ namespace Lokanta.Game
         {
             if (sim != null)
             {
-                string name = Loc.PersonName(sim.StaffName(pool, index));
+                string name = Loc.StaffName(sim.StaffNameIndex(pool, index));
                 if (!string.IsNullOrEmpty(name)) return name;
             }
             return Role(pool);

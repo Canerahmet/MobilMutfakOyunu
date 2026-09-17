@@ -224,7 +224,7 @@ namespace Lokanta.Game
             // in another.
             int targetRoom = RoomAt(target);
             int sourceRoom = RoomAt(from);
-            if (targetRoom == sourceRoom) return;
+            if (targetRoom == sourceRoom) { InRoom(into, from, target, targetRoom); return; }
 
             Vector3 exit;
             if (BackDoor(sourceRoom, out exit))
@@ -254,6 +254,68 @@ namespace Lokanta.Game
         }
 
         /// <summary>The room this point is in. -1: outside the plot.</summary>
+        /// <summary>
+        /// A path WITHIN one room, around the table block instead of through
+        /// it.
+        ///
+        /// THE BUG THIS FIXES. `Lane` used to return immediately when the two
+        /// ends were in the same room, so a waiter crossing a dining room or a
+        /// guest walking to a back table went in a straight line - through
+        /// every table and chair on the way.
+        ///
+        /// THERE IS NO GAP TO WALK BETWEEN TABLES, and that is measured, not
+        /// assumed. A chair sits `SeatRadius` 0.58 m from the table's centre
+        /// and is about 0.40 m deep, so a table set is roughly 1.56 m across.
+        /// The grid cell is 1.85 x 1.70, which leaves 0.29 m between sets in x
+        /// and 0.14 m in z - and a figure is about 0.45 m wide. Routing
+        /// "between the tables" is not available at this table density.
+        ///
+        /// WHAT IS AVAILABLE IS THE PERIMETER. `RoomPlan.TableSpots` centres
+        /// the grid in the room, so a border is left on all four sides: in the
+        /// first hall that is 0.65 m at the left and right and 0.50 m front
+        /// and back. Every table in a 2x2 or 3-table room touches that border,
+        /// so every table can be reached from it.
+        ///
+        /// So the route is: out to the nearest side lane, along it to the
+        /// target's own row, and in. Three waypoints and no pathfinding -
+        /// which is the rule this layer was built on ("no pathfinding, there
+        /// is a lane"), applied inside the room as well as between rooms.
+        /// </summary>
+        private static void InRoom(List<Vector3> into, Vector3 from, Vector3 target,
+                                   int room)
+        {
+            if (room < 0) return;
+            RoomPlan.Room r = RoomPlan.Rooms[room];
+            if (!r.IsDining) return;
+
+            // Already alongside: a step of this size does not cross anything.
+            if ((from - target).sqrMagnitude < 1.2f * 1.2f) return;
+
+            // The side lanes, half the border in from each wall.
+            float leftLane = r.X0 + SideLane;
+            float rightLane = r.X0 + r.W - SideLane;
+
+            // Leave by the side the figure is already nearer, and come in on
+            // the side the TARGET is nearer: crossing the room along a wall
+            // is what a person does, and it keeps the walk out of the middle.
+            float outLane = from.x - r.X0 < r.W * 0.5f ? leftLane : rightLane;
+            float inLane = target.x - r.X0 < r.W * 0.5f ? leftLane : rightLane;
+
+            into.Add(new Vector3(outLane, 0f, from.z));
+            if (Mathf.Abs(outLane - inLane) > 0.01f)
+                into.Add(new Vector3(inLane, 0f, from.z));
+            into.Add(new Vector3(inLane, 0f, target.z));
+        }
+
+        /// <summary>
+        /// How far into the room the side lane runs.
+        ///
+        /// The border left by the centred grid is 0.50-0.65 m depending on the
+        /// room, so half of 0.55 keeps the lane inside the narrowest of them
+        /// and still clear of the wall.
+        /// </summary>
+        private const float SideLane = 0.28f;
+
         public static int RoomAt(Vector3 p)
         {
             for (int i = 0; i < RoomPlan.Rooms.Length; i++)

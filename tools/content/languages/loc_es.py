@@ -212,103 +212,103 @@ STORAGE = {"soguk_hava": "Cámara Frigorífica"}
 # ---------------------------------------------------------------------------
 REGULARS = {
     # --- turk ---
-    "hasan_usta": ("Hasan Usta", "Tornero de la calle de enfrente", [
+    "hasan_usta": ("Don Rafael", "Tornero de la calle de enfrente", [
         "Nada más entrar mira a la cocina. “¿Hay guiso de frijoles?”",
         "Ya no pide nada. Se sienta, y tú lo sabes.",
         "“Mi hijo volvió del servicio militar. Esta noche lo traigo.”",
     ]),
-    "nazife_teyze": ("Nazife Teyze", "Vecina del piso de arriba", [
+    "nazife_teyze": ("Doña Pilar", "Vecina del piso de arriba", [
         "Prueba la sopa y no dice nada. Mañana vuelve.",
         "“La mía sabía así. Hace años.”",
         "Se detiene en la puerta: “Este lugar ahora es la cara de la calle.”",
     ]),
-    "selim_bey": ("Selim Bey", "Funcionario de la oficina de impuestos", [
+    "selim_bey": ("Don Sergio", "Funcionario de la oficina de impuestos", [
         "La misma mesa, la misma hora. No se pasa ni un minuto.",
         "“Cuarenta minutos para comer. Acá salgo a los treinta y cinco.”",
         "Habla de jubilarse. “Entonces voy a venir más seguido.”",
     ]),
-    "rasim_amca": ("Rasim Amca", "Maestro de obra", [
+    "rasim_amca": ("Don Ramón", "Maestro de obra", [
         "Las manos llenas de cal. Se sacude la chaqueta antes de sentarse.",
         "“A los muchachos también les dije: de ahora en adelante, el almuerzo acá.”",
         "La obra está por terminar. “Igual me voy a seguir pasando, no te preocupes.”",
     ]),
-    "guler_hanim": ("Güler Hanım", "Peluquera de la esquina", [
+    "guler_hanim": ("Doña Gloria", "Peluquera de la esquina", [
         "Entra y sale de pie, se lleva el arroz consigo.",
         "“A mis clientas les digo que crucen la calle y vayan contigo.”",
         "Está ampliando su local. “Crecimos juntos, tú y yo.”",
     ]),
-    "okan": ("Okan", "Estudiante universitario", [
+    "okan": ("Óscar", "Estudiante universitario", [
         "Pregunta qué es lo más barato del menú.",
         "“Me salió la beca.” Hoy también pide postre.",
         "Empieza sus prácticas. “Con el primer sueldo, invito yo acá.”",
     ]),
-    "nurten_abla": ("Nurten Abla", "Encargada de un taller textil", [
+    "nurten_abla": ("Nuria", "Encargada de un taller textil", [
         "Descanso corto. Siempre se lleva el cacık.",
         "“Vienen tres más del taller — guárdanos una mesa.”",
         "El taller cierra. “El lugar nuevo queda lejos, pero voy a venir.”",
     ]),
-    "ismail_sofor": ("İsmail Şoför", "Camionero de larga distancia", [
+    "ismail_sofor": ("Don Ismael", "Camionero de larga distancia", [
         "Estaciona el camión en la esquina, come rápido y se va.",
         "“Volviendo de Ankara, ahora siempre paro acá.”",
         "Lo dijo por la radio: “Otros dos choferes van a preguntar por ti.”",
     ]),
-    "perihan_hanim": ("Perihan Hanım", "Maestra jubilada", [
+    "perihan_hanim": ("Doña Pepa", "Maestra jubilada", [
         "Levanta el tenedor a contraluz. No dice nada, pero mira.",
         "“Hoy el mantel está limpio. Me di cuenta.”",
         "“No soy fácil de contentar. Este lugar me gusta.”",
     ]),
-    "mehmet_dede": ("Mehmet Dede", "Cliente del restaurante de antes", [
+    "mehmet_dede": ("Abuelo Manolo", "Cliente del restaurante de antes", [
         "Duda en la puerta. “Esto antes era de otro.”",
         "“Los garbanzos sabían así en aquel entonces. Idénticos.”",
         "Ahora viene todos los días. Todos saben cuál es su silla.",
     ]),
     # --- fastfood ---
-    "deniz": ("Deniz", "Estudiante de secundaria", [
+    "deniz": ("Dani", "Estudiante de secundaria", [
         "Recién salido de clase, la mochila en un hombro, apurado.",
         "“Ahora nos juntamos todos acá.”",
         "Pasó el examen. “El festejo es acá. Somos seis.”",
     ]),
-    "burak": ("Burak", "Programador", [
+    "burak": ("Bruno", "Programador", [
         "Abre la laptop y pide sin hacerte esperar.",
         "“Mudamos el almuerzo del equipo para acá.”",
         "“Ahora trabajo a distancia, pero esta es prácticamente mi oficina.”",
     ]),
-    "elif": ("Elif", "Asesora de tienda", [
+    "elif": ("Elena", "Asesora de tienda", [
         "Llega con las bolsas de las compras, tiene quince minutos.",
         "“Lo vi por la vitrina: pusieron algo nuevo.”",
         "“Les conté a las chicas de la tienda. Ahora te pedimos a ti.”",
     ]),
-    "cem_abi": ("Cem Abi", "Mensajero en moto", [
+    "cem_abi": ("Chema", "Mensajero en moto", [
         "La moto en la puerta, el casco en la mano.",
         "“Te puse en el grupo de los mensajeros.”",
         "“Voy a abrir mi propio local. El oficio lo aprendí de ti.”",
     ]),
-    "melis": ("Melis", "Contadora independiente", [
+    "melis": ("Marisa", "Contadora independiente", [
         "Lee la lista de precios de arriba abajo.",
         "“Yo llevo las cuentas, tú haces la comida.”",
         "“Me da curiosidad tu margen. No es broma.”",
     ]),
-    "ozan": ("Ozan", "Futbolista aficionado", [
+    "ozan": ("Óliver", "Futbolista aficionado", [
         "Después del partido, con todo el equipo, a los gritos.",
         "“Venimos acá cuando ganamos. Nos das suerte.”",
         "“Nos llevamos la copa. ¿Ponemos tu nombre en la camiseta?”",
     ]),
-    "sevda": ("Sevda", "Nutricionista", [
+    "sevda": ("Sonia", "Nutricionista", [
         "Pregunta por la ensalada: “¿Me pones el aderezo aparte?”",
         "“A la gente que atiendo le recomiendo este lugar.”",
         "“Tu menú ya está en la pared de la clínica.”",
     ]),
-    "tolga": ("Tolga", "Guardia del turno de noche", [
+    "tolga": ("Tomás", "Guardia del turno de noche", [
         "Llega a medianoche. Le sorprende encontrar la puerta abierta.",
         "“Son el único lugar abierto a esta hora.”",
         "“Los otros guardias también empezaron a venir. ¿Te diste cuenta?”",
     ]),
-    "kaan_hoca": ("Kaan Hoca", "Entrenador del gimnasio", [
+    "kaan_hoca": ("Profe Carlos", "Entrenador del gimnasio", [
         "Recién salido del entrenamiento, preguntando por la proteína.",
         "“A los que entreno les digo que coman acá.”",
         "“Puse tu dirección en el tablero del gimnasio. Ojalá no te moleste.”",
     ]),
-    "yagmur": ("Yağmur", "Profesora de clases nocturnas", [
+    "yagmur": ("Yolanda", "Profesora de clases nocturnas", [
         "Tarde y cansada. Pregunta por el postre.",
         "“Este es el único rato bueno de mi día.”",
         "“Se terminó el curso. Pero ya es costumbre: voy a volver.”",
@@ -317,3 +317,30 @@ REGULARS = {
 
 # Interface text lives in a SEPARATE FILE (loc_es_ui.py): the sources differ.
 from loc_es_ui import UI    # noqa: E402
+
+# ---------------------------------------------------------------- staff
+# NINETY-SIX NAMES, INDEX-ALIGNED WITH content/names.json.
+#
+# The core stores a staff member's name as an INDEX into that list and
+# the save carries the index, so a row here is the same PERSON in every
+# language - switching language renames the cook rather than replacing
+# them. Any list of a different length would break that silently, so
+# tools/content/gen_loc.py checks the length.
+#
+# The Turkish list alternates female and male and spans three
+# generations, so a crew of twelve reads as a neighbourhood and not as a
+# spreadsheet. This one keeps that shape.
+STAFF = [
+    "Nieves", "Hilario", "Ana", "Manuel", "Flora", "Mateo", "Emilia", "Andrés",
+    "Herminia", "Álvaro", "Zaira", "Hugo", "Soledad", "Ismael", "Elena", "Óscar",
+    "Eva", "Julián", "Susana", "Ramón", "María", "Carmelo", "Gloria", "Hernán",
+    "Dolores", "Nicolás", "Sandra", "Nacho", "Paloma", "Sergio", "Rosa", "Damián",
+    "Begoña", "Cosme", "Amparo", "Tomás", "Milagros", "Gonzalo", "Juana", "Clemente",
+    "Lourdes", "Rodrigo", "Delia", "Marcial", "Trini", "Bruno", "Julia", "Gabriel",
+    "Karina", "Diego", "Sonia", "Leandro", "Charo", "Vicente", "Gemma", "Fermín",
+    "Azucena", "Simón", "Nuria", "Miguel", "Rocío", "Wenceslao", "Lidia", "Cristóbal",
+    "Marisol", "Eliseo", "Berta", "Godofredo", "Teresa", "Rubén", "Adela", "Cirilo",
+    "Noelia", "Ernesto", "Sofía", "Guillermo", "Fátima", "Desiderio", "Vanesa", "Bernardo",
+    "Rut", "Lisardo", "Belén", "Ángel", "Clara", "Otilio", "Marta", "Rafael",
+    "Estrella", "Domingo", "Greta", "Wilfredo", "Irene", "Remigio", "Olga", "Félix",
+]

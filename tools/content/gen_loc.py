@@ -115,9 +115,17 @@ def SCREEN_KEY(k):
     ".voice": same reason, different job. ".desc" describes the
     mechanic, ".voice" the person. Both are text the code asks for - the
     content files ask for neither.
+
+    "name.staff.": the ninety-six staff names. The content does not name
+    a staff member - the core picks an INDEX into content/names.json and
+    the save carries that index, so the content has no id to ask for.
+    Their count is checked against STAFF_COUNT instead, which is the
+    guarantee that actually matters here: a list of the wrong length
+    would leave the last few names untranslated without a word.
     """
     return (k.startswith("ui.") or k.startswith("notice.")
             or k.startswith("score.") or k.startswith("badge.")
+            or k.startswith("name.staff.")
             or k.endswith(".desc") or k.endswith(".voice"))
 
 
@@ -302,6 +310,10 @@ def write(path, table):
         json.dumps(table, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
+# The canonical number of staff names, from content/names.json.
+STAFF_COUNT = 96
+
+
 def build_from(mod):
     """Builds a table FROM A LANGUAGE MODULE.
 
@@ -335,6 +347,23 @@ def build_from(mod):
         table["cuisine." + k] = v
     for k, v in mod.STORAGE.items():
         table["storage." + k] = v
+    # THE STAFF NAMES ARE KEYS, not content.
+    #
+    # The core stores a staff member as an INDEX into content/names.json and
+    # the save carries that index - so the name is PRESENTATION, and the view
+    # resolves it per language. A row is the same person in all five: changing
+    # language renames the cook rather than replacing them.
+    #
+    # The length is checked here because getting it wrong fails SILENTLY: a
+    # short list would simply leave the last few names untranslated, and a
+    # long one would add keys no index ever reaches.
+    if len(mod.STAFF) != STAFF_COUNT:
+        raise SystemExit("%s has %d staff names, expected %d - the index the "
+                         "save carries would stop meaning the same person"
+                         % (mod.__name__, len(mod.STAFF), STAFF_COUNT))
+    for i, name in enumerate(mod.STAFF):
+        table["name.staff." + str(i)] = name
+
     for rid, (name, job, beats) in mod.REGULARS.items():
         table["regular." + rid + ".name"] = name
         table["regular." + rid + ".job"] = job

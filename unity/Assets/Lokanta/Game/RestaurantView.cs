@@ -3396,6 +3396,63 @@ namespace Lokanta.Game
         /// itself was spoiling the frame time it was measuring. All the
         /// figures to be counted are already in hand.
         /// </summary>
+        /// <summary>
+        /// THE WORST DISTANCE A WALKING FIGURE GETS INSIDE A TABLE SET, in
+        /// metres. Zero means nobody walked through the furniture.
+        ///
+        /// This exists because the fix needed a measurement. `Paths.Lane`
+        /// returned immediately when both ends of a walk were in the same
+        /// room, so inside a dining room figures went in a straight line -
+        /// through the tables and chairs. It now routes round the table block
+        /// by the room's side lanes, and without a number that claim is just
+        /// a claim.
+        ///
+        /// A TABLE SET IS A CIRCLE, not the table top: a chair sits
+        /// `SeatRadius` from the centre and is about 0.2 m deep, so the set's
+        /// radius is about 0.78 m. Half a figure's width is added, because a
+        /// figure whose CENTRE clears the chairs but whose shoulder does not
+        /// is still walking through them.
+        ///
+        /// Only MOVING figures count. A guest sitting at a table is inside
+        /// the set by definition, and so is the waiter standing beside it to
+        /// serve - both are the point.
+        /// </summary>
+        public float WorstFurnitureOverlap
+        {
+            get
+            {
+                float worst = 0f;
+                for (int i = 0; i < _staff.Count; i++) worst = Mathf.Max(worst, Intruding(_staff[i]));
+                foreach (KeyValuePair<int, GameObject> kv in _seated)
+                    worst = Mathf.Max(worst, Intruding(kv.Value));
+                for (int i = 0; i < _leaving.Count; i++) worst = Mathf.Max(worst, Intruding(_leaving[i]));
+                return worst;
+            }
+        }
+
+        /// <summary>How far this figure is inside a table set, if it is walking.</summary>
+        private float Intruding(GameObject go)
+        {
+            if (go == null || Moving(go) == 0) return 0f;
+            Vector3 p = go.transform.localPosition;
+
+            // The set's radius plus half a body. SeatRadius is the chair's
+            // CENTRE, so the chair's outer edge is about 0.2 m beyond it.
+            const float setRadius = SeatRadius + 0.20f;
+            const float halfBody = 0.22f;
+
+            float worst = 0f;
+            for (int i = 0; i < _tables.Count; i++)
+            {
+                Vector3 t = _tables[i].localPosition;
+                float dx = p.x - t.x, dz = p.z - t.z;
+                float d = Mathf.Sqrt(dx * dx + dz * dz);
+                float into = setRadius + halfBody - d;
+                if (into > worst) worst = into;
+            }
+            return worst;
+        }
+
         public int MovingCount
         {
             get

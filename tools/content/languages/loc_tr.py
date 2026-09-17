@@ -339,3 +339,24 @@ REGULARS = {
 # are written by hand - keeping them apart makes it obvious which is which.
 # ---------------------------------------------------------------------------
 from loc_tr_ui import UI    # noqa: E402
+
+# ---------------------------------------------------------------- staff
+# THE CANONICAL LIST, generated into content/names.json by
+# tools/content/gen_names.py and repeated here so that every language
+# has a STAFF list of the same length. The core stores an INDEX into
+# it and the save carries that index, so a row is the same PERSON in
+# all five languages.
+STAFF = [
+    "Nurten", "Hasan", "Ayşe", "Mehmet", "Fatma", "Mustafa", "Emine", "Ahmet",
+    "Hatice", "Ali", "Zeynep", "Hüseyin", "Şerife", "İbrahim", "Elif", "Osman",
+    "Havva", "Yusuf", "Sultan", "Ramazan", "Meryem", "Kemal", "Gülsüm", "Halil",
+    "Deniz", "Berk", "Ece", "Emre", "Selin", "Kaan", "Melis", "Arda",
+    "Bade", "Onur", "Ceren", "Baran", "Yağmur", "Tolga", "Pınar", "Serkan",
+    "Damla", "Umut", "Sıla", "Mert", "Gizem", "Batuhan", "Ayça", "Doruk",
+    "Recep", "Sevim", "Şaban", "Hanife", "Bekir", "Nuray", "Cemal", "Hülya",
+    "Rıza", "Sevgi", "Turgut", "Nazan", "Kadir", "Şükran", "Vedat", "Perihan",
+    "Nuri", "Gülay", "Sabri", "Necla", "Hakkı", "Muazzez", "Zeki", "Türkan",
+    "Ferhat", "Bilge", "Okan", "Nehir", "Cenk", "Duygu", "Bora", "Esra",
+    "Volkan", "Aslı", "Tarık", "Şevval", "Ozan", "Buse", "Sinan", "Dilek",
+    "Uğur", "Merve", "Barış", "Özge", "Koray", "Nilay", "Alper", "Tuğçe",
+]

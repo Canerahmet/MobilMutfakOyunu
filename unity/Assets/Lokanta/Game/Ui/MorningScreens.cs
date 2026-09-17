@@ -991,7 +991,7 @@ namespace Lokanta.Game.Ui
             // The sentence "Cook 2 has resigned" is the same thing as
             // "capacity -28"; "Nurten Abla has left" is not. The whole
             // emotional weight of the staff system is in that one line.
-            string name = Loc.PersonName(sim.StaffName(pool, index));
+            string name = Loc.StaffName(sim.StaffNameIndex(pool, index));
             head.Add(Theme.Text(
                 string.IsNullOrEmpty(name)
                     ? Loc.T(pool == 0 ? "role.asci" : HallRoleKey()) + " " + (index + 1)

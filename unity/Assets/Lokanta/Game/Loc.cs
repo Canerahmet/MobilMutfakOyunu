@@ -234,6 +234,24 @@ namespace Lokanta.Game
         /// In the other four languages the text comes back AS IT IS - Rubik
         /// carries every one of these letters.
         /// </remarks>
+        /// <summary>
+        /// A staff member's name, in the language that is on.
+        ///
+        /// The core hands out an INDEX (Simulation.StaffNameIndex) and the
+        /// table carries `name.staff.N` in all five languages, index-aligned
+        /// with content/names.json - so the row is the same PERSON everywhere
+        /// and switching language renames the cook rather than replacing them.
+        /// A save stores the index, so it keeps meaning across the change.
+        ///
+        /// A negative index means "no such staff member", which is a real
+        /// answer and not an error - the crew shrinks.
+        /// </summary>
+        public static string StaffName(int index)
+        {
+            if (index < 0) return null;
+            return PersonName(T("name.staff." + index));
+        }
+
         public static string PersonName(string name)
         {
             if (string.IsNullOrEmpty(name) || LanguageCode != "zh") return name;

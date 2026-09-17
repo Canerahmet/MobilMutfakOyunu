@@ -556,6 +556,8 @@ namespace Lokanta.Game
             wait = 0f;
             int cleanLeast = int.MaxValue;
             int working = 0;
+            // How far a WALKING figure ever gets inside a table set.
+            float intruding = 0f;
             int processed = 0;
             int busyCooks = 0;
             int simTasks = 0;
@@ -696,6 +698,7 @@ namespace Lokanta.Game
                 cleanLeast = Mathf.Min(cleanLeast, _app.Sim.PlatesClean);
                 washing = Mathf.Max(washing, cv.WashingCount);
                 wait = Mathf.Max(wait, cv.WalkSlipWorst);
+                intruding = Mathf.Max(intruding, cv.WorstFurnitureOverlap);
                 GameScreen gameScreen = ((_app.Ui != null) ? (_app.Ui.Top as GameScreen) : null);
                 if (gameScreen != null)
                 {
@@ -736,6 +739,21 @@ namespace Lokanta.Game
             Note(dayStart < 3500, "The liveliness window started early in the day (" + dayStart / 100 + "%)");
             Note(_occupiedMost > 0, "Service produces occupied tables (at most " + _occupiedMost + ")");
             Note(j > 0, "There is movement in the hall (" + j + " figures on their way)");
+
+            // NOBODY WALKS THROUGH THE FURNITURE.
+            //
+            // `Paths.Lane` used to return immediately when both ends of a walk
+            // were in the same room, so inside a dining room a figure went in a
+            // straight line - through every table and chair between it and its
+            // target. It routes round the block by the room's side lanes now,
+            // and this is the number that says so.
+            //
+            // The tolerance is 0.10 m rather than zero: the walk is sampled
+            // per frame at up to x4 speed, and a figure turning into the gap
+            // beside a table clips the set's circle by a few centimetres for a
+            // frame. Zero would make this a check that goes red on timing.
+            Note(intruding < 0.10f, "Nobody walks through the furniture (worst "
+                 + intruding.ToString("0.00") + " m inside a table set)");
             Note(cv != null && cv.WallCount >= 8, "The room walls were built (" + ((cv != null) ? cv.WallCount : 0) + " slabs)");
             Note(cv != null && cv.WallsClear, "The walls are transparent and have no colliders");
             Note(cv != null && cv.DoorCount == 2, "Only the entrance and the kitchen have a swinging door (" + ((cv != null) ? cv.DoorCount : 0) + ")");
@@ -1564,8 +1582,16 @@ namespace Lokanta.Game
                         int people = pool == 0 ? _app.Sim.Cooks : _app.Sim.HallStaff;
                         for (int k = 0; k < people && !tenureMomentSeen; k++)
                         {
+                            // THE SAME PATH THE NOTICE TAKES. Notices.cs
+                            // resolves the name through Loc.StaffName(index)
+                            // now that names are localised; building the
+                            // expected string from Sim.StaffName would compare
+                            // a Turkish name against a translated one and this
+                            // check would go quietly UNMEASURED - which is the
+                            // lesson the comment above already records.
                             string wait = Loc.T(key,
-                                                 _app.Sim.StaffName(pool, k),
+                                                 Loc.StaffName(
+                                                     _app.Sim.StaffNameIndex(pool, k)),
                                                  Simulation.TenureDays);
                             for (int n = 0; n < _app.NoticeCount; n++)
                             {

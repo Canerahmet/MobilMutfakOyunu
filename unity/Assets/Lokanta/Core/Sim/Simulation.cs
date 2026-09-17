@@ -2967,6 +2967,25 @@ namespace Lokanta.Core.Sim
                 ? _content.StaffNames[n] : null;
         }
 
+        /// <summary>
+        /// WHICH name, rather than the name itself.
+        ///
+        /// A staff member's identity is an INDEX into the content's name list
+        /// and the save carries that index, so the string is PRESENTATION and
+        /// belongs to the view: `Loc.StaffName` turns this into a name in the
+        /// player's own language. The core has no business knowing which
+        /// language is on.
+        ///
+        /// `StaffName` above is kept because the balance harness and the tests
+        /// run without a Loc table and only need to tell two colleagues apart.
+        /// </summary>
+        public int StaffNameIndex(int pool, int index)
+        {
+            int count = pool == 0 ? _cooks : _hall;
+            if (index < 0 || index >= count || index >= MaxServers) return -1;
+            return (pool == 0 ? _cookName : _hallName)[index];
+        }
+
         /// <summary>Is there at least one dish that uses this station.</summary>
         public bool IsStationUsed(int station)
         {

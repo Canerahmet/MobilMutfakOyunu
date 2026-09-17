@@ -192,6 +192,28 @@ namespace Lokanta.EditorTools
                     continue;
                 }
 
+                // THE MERGED DECOR GROUP IS NOT AN OBJECT, AND COMPARING
+                // AGAINST IT MADE THIS WHOLE AUDIT USELESS.
+                //
+                // `Modeler.Build` merges the back wall, the wainscot, the
+                // seams, the counter, the floor pattern, the planters, the
+                // hood and the skyline into ONE mesh per colour. Each of
+                // those meshes therefore has an axis-aligned box covering
+                // most of the building - so everything in the scene
+                // "overlaps" it.
+                //
+                // Measured on 17 September: 93 clashing pairs, and every
+                // single one of them was against Decor. Not one real
+                // object-to-object overlap. A list where every line is noise
+                // is a list nobody reads, and the one real clash it was built
+                // to catch would have been invisible in it.
+                //
+                // Skipping it does lose the ability to catch "a chair inside
+                // the back wall" - but that was never available: an AABB over
+                // a merged mesh cannot answer it either way. Better to
+                // measure the pairs that CAN be measured and say so.
+                if (t.name == "Decor" || t.name == "DecorGlow") continue;
+
                 Bounds? b = PosedBounds(t);
                 if (b != null) all.Add(new Item { Name = t.name, Box = b.Value });
             }

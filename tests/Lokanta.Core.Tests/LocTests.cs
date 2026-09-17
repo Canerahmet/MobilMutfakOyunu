@@ -99,6 +99,12 @@ namespace Lokanta.Core.Tests
                             && !k.StartsWith("notice.")
                             && !k.StartsWith("score.")
                             && !k.StartsWith("badge.")
+                            // The ninety-six staff names. The content never
+                            // names a staff member: the core picks an INDEX
+                            // into names.json and the save carries it, so
+                            // there is no content id to ask for. gen_loc.py
+                            // checks their COUNT against STAFF_COUNT instead.
+                            && !k.StartsWith("name.staff.")
                             && !k.EndsWith(".desc")
                             && !k.EndsWith(".voice")
                             && !needed.Contains(k))
