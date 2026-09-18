@@ -80,6 +80,12 @@ namespace Lokanta.Game
 
             /// <summary>The tint of the outside; it is mixed into the background sky.</summary>
             public Color Sky;
+
+            /// <summary>The splashback tile behind the kitchen line.</summary>
+            public Color Splash;
+
+            /// <summary>Its joints.</summary>
+            public Color SplashJoint;
         }
 
         /// <summary>
@@ -188,6 +194,10 @@ namespace Lokanta.Game
                     SeamStep = 0.85f,
                     // The outside is warm too: a neighbourhood, dusty midday light.
                     Sky = new Color(0.86f, 0.74f, 0.56f),
+                    // A warm cream tile with a sandy joint: the glazed tile of
+                    // a neighbourhood kitchen, not a laboratory.
+                    Splash = new Color(0.871f, 0.824f, 0.741f),
+                    SplashJoint = new Color(0.678f, 0.616f, 0.518f),
                 };
             }
 
@@ -283,6 +293,11 @@ namespace Lokanta.Game
                 SeamStep = 1.15f,
                 // The outside is cold and urban: a main road, tarmac, glass.
                 Sky = new Color(0.66f, 0.75f, 0.88f),
+                // A cool white tile with a grey joint. This is the wipe-clean
+                // surface the fast food identity is built on, and it is the
+                // one place the room may be colder than its wall.
+                Splash = new Color(0.878f, 0.886f, 0.882f),
+                SplashJoint = new Color(0.639f, 0.659f, 0.667f),
             };
         }
 
@@ -506,6 +521,7 @@ namespace Lokanta.Game
             Backdrop(m, p, left, right, back);
             SkyBands(left, right, back);
             Planters(m, p, left, right);
+            Splashback(m, p, tables);
             KitchenHood(m, p, tables);
             ServiceCounter(m, glow, p, tables);
             TrayStation(m, glow, p, tables);
@@ -875,6 +891,81 @@ namespace Lokanta.Game
                     Quaternion.identity, p.Plant);
             m.Prism(5, 0.12f, 0.03f, 0.22f, new Vector3(x + 0.11f, 0.33f, z - 0.05f),
                     Quaternion.identity, p.Plant);
+        }
+
+        /// <summary>
+        /// THE TILED WALL BEHIND THE KITCHEN LINE.
+        ///
+        /// docs/60 finished with the kitchen still the most monochrome room
+        /// in the building, and named its own cheapest next step: the
+        /// equipment is stainless in every restaurant, so the thing that can
+        /// separate the two kitchens is what stands BEHIND it.
+        ///
+        /// It is also the answer to the defect that document ended on. The
+        /// Turkish kitchen read beautifully and the fast food one came back
+        /// washed out with identical equipment, because a cool grey appliance
+        /// in front of a cool grey wall is one surface. A tiled splashback
+        /// gives the steel an edge in both rooms, and it is the surface every
+        /// real kitchen has for exactly the reason this one needs it: the
+        /// wall behind a cooking line is not the wall of the room.
+        ///
+        /// It costs about 300 triangles for both rooms and no new renderer -
+        /// the Modeler merges it into the Decor mesh by colour - because the
+        /// joints are LINES rather than tiles. At 34 degrees from twenty
+        /// metres a grid of thin strips and a grid of separate squares are
+        /// the same picture, and one of them is a hundred and sixty boxes.
+        ///
+        /// It stops under the hood mouth (1.44 m, KitchenHood) so the two
+        /// never argue about the same band of wall.
+        ///
+        /// THE KITCHEN ONLY, AND THE FIRST VERSION DID THE WASH ROOM TOO.
+        ///
+        /// It came back floating in mid-air over the sinks, and the reason is
+        /// a number in this file: the interior walls are 1.15 m (WallHeight),
+        /// because a full-height wall would hide the front row from a 34
+        /// degree camera. The kitchen's back wall is the BUILDING's, at
+        /// z = PlotD, and it is tall; the wash room's is the partition it
+        /// shares with the kitchen - 1.15 m, with the doorway the user asked
+        /// for cut through it. A tiled band from 0.90 to 1.62 on that wall is
+        /// half a metre of tiles with nothing behind them and a doorway
+        /// running under them.
+        ///
+        /// Tiling it properly would mean capping at 1.15 and breaking around
+        /// the door, for a strip 25 cm tall that is mostly hidden behind the
+        /// sinks. The sinks read perfectly well against the plain partition.
+        /// </summary>
+        private void Splashback(Modeler m, Palette p, int tables)
+        {
+            for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+            {
+                RoomPlan.Room r = RoomPlan.Rooms[i];
+                if (r.Name != "Kitchen") continue;
+                if (!RoomPlan.RoomOpen(in r, tables)) continue;
+
+                float z = r.Z0 + r.D - 0.035f;
+                float w = r.W - 0.30f;
+                if (w < 0.8f) continue;
+
+                // From just above a 0.92 m worktop to just under whatever is
+                // above it.
+                const float y0 = 0.90f;
+                const float y1 = 1.42f;
+                const float h = y1 - y0;
+
+                m.Box(new Vector3(r.CenterX, y0 + h * 0.5f, z),
+                      new Vector3(w, h, 0.04f), p.Splash);
+
+                int rows = Mathf.Max(2, Mathf.RoundToInt(h / 0.26f));
+                for (int k = 1; k < rows; k++)
+                    m.Box(new Vector3(r.CenterX, y0 + h * k / rows, z - 0.012f),
+                          new Vector3(w, 0.014f, 0.02f), p.SplashJoint);
+
+                int cols = Mathf.Max(3, Mathf.RoundToInt(w / 0.52f));
+                for (int k = 1; k < cols; k++)
+                    m.Box(new Vector3(r.CenterX - w * 0.5f + w * k / cols,
+                                      y0 + h * 0.5f, z - 0.012f),
+                          new Vector3(0.014f, h, 0.02f), p.SplashJoint);
+            }
         }
 
         /// THE EXTRACTOR HOOD: above the row of stoves.

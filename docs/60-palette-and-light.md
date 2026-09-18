@@ -193,8 +193,40 @@ reasoning written next to it announces when its reasoning expires.
   The kick strip and the four materials help; a Turkish kitchen that is visibly
   a different SHAPE from a fast food one would help more.
 - The room badges read as floating progress bars in a wide shot.
-- **The kitchen is still the most monochrome room in the building.** Four
-  materials and a painted kick strip are an improvement on one grey, and it is
-  legible now where it was dim before - but stainless is stainless, and the
-  thing that would really separate the two kitchens is a different SHAPE, not
-  more paint. A tiled splashback behind the line is the cheapest next step.
+- **The two kitchens still hold the same shapes.** A tiled splashback (below)
+  and four materials are an improvement on one grey, but stainless is
+  stainless: what would really separate them is a different SHAPE, and that is
+  a modelling job rather than a palette one.
+
+## 7. The splashback, which was the next step and is now done
+
+The kitchen ended section 6 as the most monochrome room in the building, with
+its own cheapest next step named: the equipment is stainless in every
+restaurant, so what can separate the two kitchens is what stands BEHIND it.
+
+It also answers the defect this document ended on. The Turkish kitchen read
+beautifully and the fast food one came back washed out **with identical
+equipment**, because a cool grey appliance in front of a cool grey wall is one
+surface. A tiled band behind the line gives the steel an edge in both rooms,
+and the two cuisines now differ behind the counter as well as on it: a cool
+white tile with a grey joint against a warm cream one with a sandy joint.
+
+**It cost two renderers and 316 triangles**, because the joints are LINES
+rather than tiles. At 34 degrees from twenty metres a grid of thin strips and a
+grid of a hundred and sixty separate squares are the same picture, and one of
+them is a hundred and sixty boxes.
+
+### And the first version floated in mid-air over the sinks
+
+It was drawn in the wash room too, and came back as a band of tiles hanging
+over the sinks with nothing behind them. The reason is a number in the view:
+**the interior walls are 1.15 m** (`WallHeight`), because a full-height wall
+would hide the front row from a 34 degree camera. The kitchen's back wall is
+the BUILDING's, at `z = PlotD`, and it is tall. The wash room's is the
+partition it shares with the kitchen - 1.15 m, with the doorway the user asked
+for cut through it. A band from 0.90 to 1.62 on that wall is half a metre of
+tiles over nothing, with a door running underneath.
+
+Tiling it properly would mean capping at 1.15 and breaking around the door for
+a strip 25 cm tall that the sinks hide anyway. The splashback is the kitchen's,
+where there is a wall to tile.
