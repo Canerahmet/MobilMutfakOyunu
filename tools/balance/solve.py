@@ -29,7 +29,37 @@ WEEKEND_DAYS = 2
 XP_WAGE_GROWTH = 0.022
 START_CASH = 8000
 
-BASE_CAP = dict(cook=30, waiter=26, dishwasher=48, cashier=70)
+# THE COOK CAPACITY IS DERIVED, NOT DECLARED - AND IT HAS NOW BEEN GOT WRONG
+# IN BOTH DIRECTIONS, WHICH IS WHY IT IS WORTH THE SIX LINES.
+#
+# It used to read `cook=30`. model.py had been corrected to 28, because the
+# cook time the DISHES imply is 17,127 ms per guest and the day is 480,000:
+# at 30 the model claims a cook serves more guests than the menu allows, and
+# timing.py's C2 reports the contradiction. calibrate.py writes model.py's
+# CAP_* from this dict, so every sweep quietly copied the stale 30 back over
+# the 28 - including a whole candidate table measured that way.
+#
+# The obvious repair - read it from model.py - is WORSE, and was tried on
+# 18 September. calibrate.py WRITES model.py, scaled by the staffing factor
+# it searches, so reading it back closes a loop: 28 -> x0.95 -> 27 -> x0.95
+# -> 26, drifting one notch per sweep. The old copy was stale but stable;
+# that version was fresh and unstable, which is harder to notice.
+#
+# So it is taken from the derivation itself, which nothing in the sweep
+# writes: the dish mix, the attend fractions and the busy time. That is the
+# only reading of this number that is neither a copy nor a loop.
+import importlib.util as _ilu
+import os as _os
+
+_spec = _ilu.spec_from_file_location(
+    "_lokanta_timing",
+    _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "timing.py"))
+_timing = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_timing)
+
+DERIVED_CAP_COOK = int(round(_timing.SERVICE_DAY_MS / _timing.kitchen_ms_achieved()))
+
+BASE_CAP = dict(cook=DERIVED_CAP_COOK, waiter=26, dishwasher=48, cashier=70)
 WAGE = dict(cook=140, waiter=110, dishwasher=90, cashier=100)
 BASE_UPGRADE = {4: 0, 7: 2500, 10: 4500, 14: 8000}
 # The margin BEFORE CAPITAL EXPENDITURE: equipment is NOT in this ledger (the

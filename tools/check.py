@@ -144,6 +144,23 @@ def main():
     unity = "--unity" in sys.argv
 
     checks = [
+        # THE TIMING CONSISTENCY SUITE. Fifty-two checks, a correct exit
+        # code, and until 18 September NOTHING RAN IT.
+        #
+        # It is the toolchain's own version of the bug this project keeps
+        # finding in the game: complete in the code, reachable from nowhere.
+        # The cost was not theoretical. C2 asserts that the cook time the
+        # DISHES imply agrees with the capacity the model declares, and it
+        # would have gone red the moment calibrate.py copied a stale cook=30
+        # over the corrected 28 - which it did on every sweep, silently, for
+        # a week. Fifty-two green checks nobody ran are worth nothing.
+        #
+        # It goes FIRST because everything after it is derived from these
+        # numbers: if the day, the capacities and the prep times disagree
+        # with each other, a red dish table is a symptom and this is the
+        # cause.
+        ("timing consistency",
+         [PY, os.path.join("tools", "balance", "timing.py"), "--check"]),
         ("content generation",
          [PY, os.path.join("tools", "balance", "export.py")]),
         ("dish balance",

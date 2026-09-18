@@ -196,6 +196,20 @@ check was wrong, which is the good way round.
   food player 20% of a hand through their busiest 106 seconds and costs a
   Turkish player nothing. That asymmetry may be worth keeping, but it is
   currently an accident of two independent constants and nothing measures it.
+- **Two readings of the tail, and they are not the same size.**
+  `ServiceDayLengthTests` opens the game and plays day one: fast food overruns
+  its window by **40.1 s carrying 7.3%** of the day, and Turkish overruns by
+  **nothing at all** - its room is empty on the stroke of the window, because
+  its last slot runs at 0.82 against fast food's 1.51. The 27% above was
+  measured across 60-day campaigns at fourteen tables. Both can be true; what
+  is NOT established is the sentence "closing early was never right, on any
+  day, in either cuisine", which was written from the campaign figure alone.
+  On an opening Turkish day there is no tail to protect.
+- **The fast food slot intensity is quoted as 1.60 here and derives as 1.505**
+  from the archetype weights. Turkish agrees to three places. The likely
+  reason is that this document's figure came from the arrival plan, after the
+  day of the week, the season and the regulars are applied - but that is a
+  guess and nothing measures the two against each other.
 - **Mise en place** - banking kitchen work during the trough - is the one
   proposal from the rhythm study not built. It is the only mechanic that
   attacks the dead stretch with an ANTICIPATORY decision, and it is also the

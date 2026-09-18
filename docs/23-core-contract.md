@@ -70,8 +70,28 @@ void Update()
 |---|---|---|
 | One tick | 1 | 100 ms |
 | One customer service | ~1,200 | 120 s, [12-economy.md](12-economy.md) §5.2 |
-| One service day | 4,800 | 8 minutes at 1x speed |
+| One service day's **arrival window** | 4,800 | 8 minutes at 1x speed |
+| One service day, **end to end** | 4,800-5,200 | the window plus the drain, below |
 | A sixty-day season | 288,000 | The balance tool finishes it in 15 seconds at 50 µs/tick |
+
+**A service day is not 4,800 ticks long; its DOOR is open for 4,800 ticks.**
+`ServiceComplete` needs `_serviceTick >= ServiceTicks` **and**
+`_partyCount == 0`, so the people who arrived in the last minute stay to eat
+and pay, and the day runs on until the room empties.
+
+The size of that drain is a property of the cuisine's arrival curve, not of
+the engine. Measured on the opening day
+(`ServiceDayLengthTests`): fast food runs **401 ticks past** the window and
+**7.3%** of its revenue lands there, because its last slot runs at 1.5x;
+Turkish finishes **on the stroke** of the window, because its last slot runs
+at 0.8x and the room emptied an hour earlier. Over a 60-day campaign at
+fourteen tables the fast food tail grows to about a quarter of the day
+([62-service-agency.md](62-service-agency.md)).
+
+This is why `CloseDay` - which sends everybody seated away angry - is the
+wrong button in fast food and why `LastOrders` exists. Any change that ends
+the day on the clock deletes that revenue, and `ServiceDayLengthTests` is the
+check that would notice.
 
 The patience values ([12-economy.md](12-economy.md) §5.2) are written in seconds; in the core they are held as ms, 8 s = 8,000 ms = 80 ticks.
 
@@ -676,6 +696,6 @@ The last item is Phase 0 itself: this file makes it possible, it does not replac
 
 ## Details awaiting a decision
 
-1. Is a 4,800-tick service day (8 minutes at 1x) the right length; playability testing will say
+1. Is a 4,800-tick arrival window (8 minutes at 1x) the right length; playability testing will say. Note that the day the player sits through is the window **plus the drain** - in fast food about 40 seconds more (§1.3), so session arithmetic built on 8 minutes is optimistic
 2. Is `MaxTicksPerFrame = 5` enough on a low-end device; device testing will say
 3. Is the Roslyn analyzer a Phase 1 job, or earlier

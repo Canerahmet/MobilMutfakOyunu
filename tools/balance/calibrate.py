@@ -40,7 +40,14 @@ sys.path.insert(0, HERE)
 
 # The realisation rates to try. The lower bound is the old measurement, the
 # upper bound the new one.
-CANDIDATES = [6500, 7000, 7500, 8000, 8500, 9000, 9335]
+# EXTENDED DOWNWARDS ON 18 SEPTEMBER, BECAUSE THE WINNER SAT ON THE EDGE.
+#
+# The sweep of that morning picked 6500 - the lowest value in the list. An
+# optimum at the boundary of the search is not an optimum, it is the search
+# telling you the bracket is wrong: nothing below was ever tried, so nothing
+# below was ever ruled out. 5500 and 6000 are here to find out whether the
+# penalty turns round or keeps falling.
+CANDIDATES = [5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9335]
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +133,18 @@ def apply_to_model(bp, s, o, e, rents):
 
     patch(MODEL, [
         (r"^REALISATION_BP = \d+$", "REALISATION_BP = %d" % bp),
-        (r"^CAP_COOK = \d+$", "CAP_COOK = %d" % caps["cook"]),
+        # CAP_COOK IS NOT WRITTEN HERE, AND THAT IS THE POINT.
+        #
+        # The other three capacities are balance knobs: how much of a hall
+        # role's day one guest costs is a design choice. The cook's is not.
+        # It falls out of the menu - the dish mix, the attend fractions and
+        # the busy time give 17,127 ms a guest, which is 28 - so scaling it
+        # by the staffing factor does not tune the game, it asserts something
+        # about the dishes that the dishes do not say. timing.py's C2 fails
+        # when it is scaled, and since 18 September C2 actually runs.
+        #
+        # This line used to write it anyway. Left in, every sweep ended with
+        # a red check suite or, worse, the value it happened to land on.
         (r"^CAP_WAITER = \d+$", "CAP_WAITER = %d" % caps["waiter"]),
         (r"^CAP_DISHWASHER = \d+$", "CAP_DISHWASHER = %d" % caps["dishwasher"]),
         (r"^CAP_CASHIER = \d+$", "CAP_CASHIER = %d" % caps["cashier"]),
@@ -529,15 +547,35 @@ def _snapshot():
     unchosen economy green.
     """
     keep = {}
-    for rel in ("tools/balance/model.py", "tools/balance/solve.py"):
-        path = os.path.join(ROOT, rel)
+
+    # THE FIRST VERSION OF THIS LIST WAS THE LIST I COULD THINK OF, AND IT WAS
+    # SHORT BY FOUR FILES. It covered model.py, solve.py and content/, because
+    # those are what calibrate itself writes - and missed that every candidate
+    # runs export.py, which ends in render_docs() and splices the tables into
+    # three documents, and writes the weekly golden on the way. So a crash
+    # restored the economy and left the DOCUMENTS standing on the last
+    # candidate tried. That is worse than the bug it was written for: the
+    # numbers and the prose describing them would disagree, and nothing
+    # compares them.
+    #
+    # The list is therefore derived from what the writers name, not from
+    # memory: export.py:773-777 and render.py:281-284.
+    for rel in ("tools/balance/model.py", "tools/balance/solve.py",
+                "docs/12-economy.md", "docs/14-staff-system.md",
+                "docs/32-equipment-and-rebalance.md"):
+        # NORMALISED, because the explicit entries are written with forward
+        # slashes and os.walk yields the platform separator: on Windows the
+        # same file could be held under two spellings, and then which copy
+        # _restore writes back would depend on dictionary order.
+        path = os.path.normpath(os.path.join(ROOT, rel))
         keep[path] = io.open(path, "rb").read()
-    content = os.path.join(ROOT, "content")
-    for base, _dirs, files in os.walk(content):
-        for f in files:
-            if f.endswith(".json"):
-                path = os.path.join(base, f)
-                keep[path] = io.open(path, "rb").read()
+    for folder in (os.path.join(ROOT, "content"),
+                   os.path.join(ROOT, "tests", "golden")):
+        for base, _dirs, files in os.walk(folder):
+            for f in files:
+                if f.endswith(".json"):
+                    path = os.path.normpath(os.path.join(base, f))
+                    keep[path] = io.open(path, "rb").read()
     return keep
 
 
