@@ -269,18 +269,29 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void The_owners_intervention_is_limited_per_day()
+        public void The_owners_intervention_is_a_limited_resource()
         {
             // docs/02 59: "you have a limited number of owner interventions (3-5
             // per day)". interventionsPerDay was written in the content and NOTHING
             // enforced it: every angry customer could be rescued for free, so crisis
             // management was not a resource but an unlimited button.
+            //
+            // THE RESOURCE IS NOW A CAPPED POOL THAT REFILLS, not a day budget,
+            // and this test follows it rather than being deleted. The question
+            // it asks is unchanged and is still the one that matters: can the
+            // player spend more than they hold? What changed is the ceiling -
+            // it is the CAP, because a burst of spending happens inside a few
+            // ticks and nothing regenerates in that time.
+            //
+            // Why the budget went: measured over 24 seeds x 60 days, an eager
+            // player's whole day budget was gone at 0:45 of an eight-minute
+            // day. See InterventionTests for the refill and the cap.
             Simulation sim = NewSim(cooks: 2, hall: 2);
             EconomyConfig eco = Economy();
 
-            Assert.Equal(eco.InterventionsPerDay, sim.InterventionsLeft);
-
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
+            Assert.Equal(eco.InterventionStart, sim.InterventionsLeft);
+
             for (int t = 0; t < 2000; t++) sim.Tick();
 
             // THE SAME table is intervened on over and over. MostImpatientParty
@@ -291,8 +302,9 @@ namespace Lokanta.Core.Tests
             int party = sim.MostImpatientParty();
             Assert.True(party >= 0, "there is no customer to measure");
 
+            int held = sim.InterventionsLeft;
             int used = 0;
-            for (int i = 0; i < eco.InterventionsPerDay + 3; i++)
+            for (int i = 0; i < sim.InterventionCapToday + 3; i++)
             {
                 int before = sim.InterventionsLeft;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Intervene,
@@ -300,10 +312,12 @@ namespace Lokanta.Core.Tests
                 if (sim.InterventionsLeft < before) used++;
             }
 
-            _out.WriteLine($"budget {eco.InterventionsPerDay}, used {used}, " +
-                           $"left {sim.InterventionsLeft}");
-            Assert.True(used <= eco.InterventionsPerDay,
-                $"{used} interventions went through against a budget of {eco.InterventionsPerDay} a day");
+            _out.WriteLine($"held {held} of a cap of {sim.InterventionCapToday}, " +
+                           $"used {used}, left {sim.InterventionsLeft}");
+            // No tick runs inside that loop, so nothing regenerates: what was
+            // in hand is the whole of what could be spent.
+            Assert.True(used <= held,
+                $"{used} interventions went through while only {held} were held");
             Assert.Equal(0, sim.InterventionsLeft);
         }
 

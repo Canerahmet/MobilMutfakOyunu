@@ -939,6 +939,74 @@ namespace Lokanta.Game
                 NoteIf(workingFrames > 0, Click(Loc.T("ui.service.tea")), "Tea to the hall (" + workingFrames + " waiting tables)");
                 yield return Settle();
                 NoteIf(workingFrames > 0, _app.Sim.InterventionsLeft < dayStart, "The intervention allowance went down");
+
+                // THE POOL COMES BACK, AND THAT IS THE HALF A SPENDING CHECK
+                // CANNOT SEE.
+                //
+                // The allowance is no longer a day budget: it starts at two,
+                // refills on a timer and is capped. A check that only watches
+                // the count go DOWN passes on a pool that never refills - and
+                // the refilling is the whole mechanic.
+                //
+                // TWO THINGS THIS CHECK HAD TO LEARN THE HARD WAY.
+                //
+                // The first version ran here with the game PAUSED - the block
+                // above sets _app.Paused = true to hold the selection still -
+                // so nothing ticked, nothing regenerated, and the check went
+                // red on a mechanic that works. The tour was right and the
+                // check was wrong, which is the good way round.
+                //
+                // The second is what it watches. A whole regeneration period
+                // is 120 seconds of SIM time; waiting for a full charge would
+                // hold the tour for minutes at normal speed. So it watches
+                // the ACCUMULATOR, which is public for this reason: if the
+                // banked milliseconds rise, the regeneration path is running
+                // in the real build. That a full period produces a charge,
+                // and that the cap holds, are asserted deterministically in
+                // InterventionTests - this is the half that can only be seen
+                // in the game.
+                bool heldPaused = _app.Paused;
+                _app.Paused = false;
+                int bankedBefore = _app.Sim.InterventionRegenMs;
+                int poolBefore = _app.Sim.InterventionsLeft;
+                float watched = 0f;
+                while (_app.Sim.InterventionRegenMs <= bankedBefore
+                       && _app.Sim.InterventionsLeft <= poolBefore
+                       && watched < 6f)
+                {
+                    watched += Time.deltaTime;
+                    yield return null;
+                }
+                bool refilling = _app.Sim.InterventionRegenMs > bankedBefore
+                                 || _app.Sim.InterventionsLeft > poolBefore;
+                Note(refilling,
+                     "The owner's attention is coming back (banked "
+                     + bankedBefore + " -> " + _app.Sim.InterventionRegenMs
+                     + " ms of " + _app.Sim.InterventionRegenPeriodMs
+                     + ", pool " + _app.Sim.InterventionsLeft + " of a cap of "
+                     + _app.Sim.InterventionCapToday + ")");
+                _app.Paused = heldPaused;
+
+                // THE SINK BUTTON SENDS ITS COMMAND.
+                //
+                // docs/49 2 is explicit that an existence check cannot see
+                // "the button is there but the command does not go" - it has
+                // been a real bug in this repository twice. So the assertion
+                // is that Dishwashers CHANGED, not that a control was found.
+                int sinkBefore = _app.Sim.Dishwashers;
+                bool sinkPressed = Click(Loc.T("ui.staff.sink_add"));
+                yield return Settle();
+                NoteIf(sinkPressed && _app.Sim.HallStaff > sinkBefore,
+                       _app.Sim.Dishwashers > sinkBefore,
+                       "The sink call reaches the simulation during service ("
+                       + sinkBefore + " -> " + _app.Sim.Dishwashers + ")");
+                if (_app.Sim.Dishwashers > sinkBefore)
+                {
+                    Click(Loc.T("ui.staff.sink_remove"));
+                    yield return Settle();
+                    Note(_app.Sim.Dishwashers == sinkBefore,
+                         "And it goes back (" + _app.Sim.Dishwashers + ")");
+                }
                 _app.SelectedTable = _app.Sim.TableCount + 5;
                 Note(_app.ValidSelection() < 0, "An invalid selection is dropped");
                 _app.SelectedTable = -1;

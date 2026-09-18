@@ -68,7 +68,24 @@
         /// the same result too.
         /// </summary>
         OrderRecommended = 20,
-        Count = 22
+
+        /// <summary>
+        /// LAST ORDERS: no more parties come in, and nobody already inside is
+        /// disturbed.
+        ///
+        /// CloseDay (2) ends the day by sending every seated party away
+        /// angry, which measured out as a move that is never right on any day
+        /// in either cuisine - the tail after the arrival window carries 27%
+        /// of a fast food day's revenue. So the game shipped a button that is
+        /// always wrong to press, with a confirmation toast standing in for a
+        /// design decision.
+        ///
+        /// This is the decision that button was pretending to be. Plates
+        /// gone, one hand short, ninety seconds of arrivals still to come:
+        /// give up the revenue, keep the reputation and the plate cycle.
+        /// </summary>
+        LastOrders = 22,
+        Count = 23
     }
 
     /// <summary>The owner's intervention at a table. docs/12 5.4.</summary>

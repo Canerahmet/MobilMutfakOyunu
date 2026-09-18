@@ -614,9 +614,28 @@ namespace Lokanta.Game.Ui
             // them), they just take up no room on the screen.
             _cash = Theme.Text("", Theme.FontBody);
             VisualElement till = Kit.Pill(Icons.Coin(22f), _cash);
-            if (App.Sim.HasLoan || App.Sim.Cash < App.Sim.WeeklyFixedCost() * 2)
-                till.Add(Kit.PillAction(() => Ui.Push(new LoanScreen()),
-                                        Loc.T("ui.morning.loan")));
+
+            // THE LOAN BUTTON WAS DECIDED ONCE PER SESSION.
+            //
+            // TopBar runs from Build, and GameScreen is built exactly once:
+            // Ui.Replace(new GameScreen()) at the start, and Pop does not
+            // rebuild what is underneath. Tick only refreshes the cards and
+            // the bottom strip. So this condition was evaluated at the moment
+            // the player entered the game and, apart from a crisis-chip tap
+            // that happens to call Refresh, never again.
+            //
+            // A player who loaded a healthy save and went broke on day thirty
+            // HAD NO LOAN BUTTON for the rest of the session - the one screen
+            // that exists to rescue them, gone because the strip had made up
+            // its mind an hour earlier. It is the same shape as the four in
+            // docs/49: the code is complete and the screen decides once.
+            //
+            // The button is built always and its visibility is written every
+            // tick, next to the cash it sits beside.
+            _loan = Kit.PillAction(() => Ui.Push(new LoanScreen()),
+                                   Loc.T("ui.morning.loan"));
+            till.Add(_loan);
+            ShowLoan();
             row.Add(till);
 
             _rep = Theme.Text("", Theme.FontBody);
@@ -752,6 +771,56 @@ namespace Lokanta.Game.Ui
                                       Loc.T("ui.evening.turned_away"), _turnedValue));
                 body.Add(Kit.CountRow(Theme.Dot(Theme.Accent, 8f),
                                       Loc.T("ui.hud.tables"), _occupiedValue));
+
+                // THE PLATE CYCLE AND THE SINK, DURING SERVICE.
+                //
+                // SetDishwashers has never had a phase guard - the core
+                // accepts it at any moment and DispatchHall re-reads it every
+                // tick - and it was only reachable from the morning crew
+                // screen. So the one crew decision the simulation will take
+                // live was a number set before the doors opened, which is
+                // docs/49's pattern exactly: complete in the code, absent
+                // from the game.
+                //
+                // As a morning commitment the dedicated washer is close to
+                // dominated, because `_dishwashers > 0` REPLACES the hall's
+                // own crisis washing rather than adding to it. As a sixty
+                // second loan it is the trade that was missing: you get the
+                // specialist's faster wash only while you are paying for it
+                // in floor capacity.
+                //
+                // ON THE CARD, NOT IN THE STRIP. The bottom strip has been
+                // measured asking for 1,103 dp of an 873 dp screen and
+                // "Attention" has already broken mid-word; the card column is
+                // the free space, and it is where the player is already
+                // reading the day's numbers.
+                _platesValue = Theme.Text("", Theme.FontSmall, Theme.PlateInk);
+                body.Add(Kit.CountRow(Theme.Dot(Theme.InkDim, 8f),
+                                      Loc.T("ui.hud.plates"), _platesValue));
+
+                VisualElement sinkRow = Theme.Row(Theme.Gap);
+                _sinkValue = Theme.Text("", Theme.FontSmall, Theme.PlateInk);
+                _sinkLess = Theme.Btn(Loc.T("ui.staff.sink_remove"), () =>
+                {
+                    App.Send(CommandKind.SetDishwashers, App.Sim.Dishwashers - 1);
+                    ShowSink();
+                });
+                _sinkMore = Theme.Btn(Loc.T("ui.staff.sink_add"), () =>
+                {
+                    App.Send(CommandKind.SetDishwashers, App.Sim.Dishwashers + 1);
+                    ShowSink();
+                });
+                sinkRow.Add(_sinkLess);
+                sinkRow.Add(_sinkValue);
+                sinkRow.Add(_sinkMore);
+                // A PLAIN LABEL, because Kit.CountRow dereferences its value
+                // without a guard - the count lives in the stepper row below
+                // and passing null here would be a crash, not a blank.
+                body.Add(Theme.Text(Loc.T("ui.staff.sink"),
+                                    Theme.FontSmall, Theme.PlateDim));
+                body.Add(sinkRow);
+                ShowSink();
+
                 _cards.Add(card);
             }
 
@@ -1288,7 +1357,23 @@ namespace Lokanta.Game.Ui
             // overflow on an 873 dp screen.
             Button rush = Theme.Btn(Loc.T("ui.service.rush"), () =>
             {
-                int st = App.Sim.BusiestStation();
+                // THE PLAYER'S SELECTION AIMS THIS VERB TOO.
+                //
+                // Tea and Attention have honoured a selected table since the
+                // note above Target() was written - "the game answered the
+                // WHO, and the whole mechanic of being the owner had come
+                // down to a timing button". This one still answered it: the
+                // busiest station, chosen for the player, every time.
+                //
+                // The fix could not be a label (see the note above: the
+                // station's name took the strip to 1,103 dp on an 873 dp
+                // screen), so it is the selection that is already there. Tap
+                // the table that is waiting and the kitchen work hurried is
+                // the work THAT table is waiting on - which is not always the
+                // busiest station, and that is the whole point. Select
+                // nothing and the old behaviour stands.
+                int st = App.Sim.StationOfParty(Target());
+                if (st < 0) st = App.Sim.BusiestStation();
                 if (st < 0) { Toast(Loc.T("ui.service.none_station"), rejected: true); Sfx.Cancel(); return; }
                 int before = App.Sim.InterventionsLeft;
                 App.Send(CommandKind.Intervene, st, (int)InterventionKind.RushStation);
@@ -1882,7 +1967,51 @@ namespace Lokanta.Game.Ui
 
         // The flow row's COMPONENTS are held separately: comparing the
         // joined-up string required PRODUCING it first.
+        private VisualElement _loan;
+        private bool _shownLoan;
+
+        /// <summary>
+        /// Shows the loan button when the till is thin or a loan is running.
+        ///
+        /// Written every tick rather than at build: see the note in TopBar.
+        /// The thresholds are the ones that were there - a loan outstanding,
+        /// or less than two weeks of fixed costs in hand.
+        /// </summary>
+        private void ShowLoan()
+        {
+            if (_loan == null) return;
+            bool want = App.Sim.HasLoan
+                        || App.Sim.Cash < App.Sim.WeeklyFixedCost() * 2;
+            _shownLoan = want;
+            _loan.style.display = want ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
         private int _shownServed = -1, _shownAngry = -1, _shownOccupied = -1;
+        private Label _platesValue, _sinkValue;
+        private Button _sinkLess, _sinkMore;
+        private int _shownPlates = -1, _shownSink = -1;
+
+        /// <summary>
+        /// Writes the sink count and enables the two steppers.
+        ///
+        /// It is called from the buttons as well as from the tick, because
+        /// pressing one has to answer immediately: the command reaches the
+        /// simulation on the next Send and the count would otherwise lag a
+        /// frame behind the press. A control that looks like it ignored you
+        /// gets pressed twice.
+        /// </summary>
+        private void ShowSink()
+        {
+            if (_sinkValue == null) return;
+            int n = App.Sim.Dishwashers;
+            _sinkValue.text = n.ToString(Loc.Culture);
+            if (_sinkLess != null) _sinkLess.SetEnabled(n > 0);
+            // The WHOLE hall cannot go to the sink - somebody has to serve -
+            // and the core clamps at the same place. A disabled button is
+            // better than a tap that is rejected.
+            if (_sinkMore != null) _sinkMore.SetEnabled(n < App.Sim.HallStaff);
+            _shownSink = n;
+        }
         private DayPhase _shownPhase = (DayPhase)(-1);
 
         /// <summary>Was the strip built in the ServiceComplete state.</summary>
@@ -2071,6 +2200,8 @@ namespace Lokanta.Game.Ui
             }
             else if (_builtCrisis != -1) _builtCrisis = -1;
 
+            ShowLoan();
+
             if (service)
             {
                 int served = sim.ServedParties;
@@ -2108,6 +2239,25 @@ namespace Lokanta.Game.Ui
                             ? Kit.BadDeep : Theme.PlateInk;
                     }
                 }
+
+                // THE PLATES MOVE ON THEIR OWN CLOCK, not with the served
+                // count, so they are refreshed outside that block. Tying them
+                // to it would freeze the number for whole stretches of the
+                // day - and the moment it matters is exactly the moment when
+                // nothing is being served.
+                int clean = sim.PlatesClean;
+                if (clean != _shownPlates && _platesValue != null)
+                {
+                    _shownPlates = clean;
+                    _platesValue.text = clean.ToString(Loc.Culture)
+                                        + " / " + sim.PlatesTotal;
+                    // A quarter left is where WashNeeded starts pulling
+                    // people to the sink on its own; that is the moment the
+                    // player would want to have decided already.
+                    _platesValue.style.color = clean * 4 <= sim.PlatesTotal
+                        ? Kit.BadDeep : Theme.PlateInk;
+                }
+                if (sim.Dishwashers != _shownSink) ShowSink();
             }
             // Outside service only the STAMP is refreshed: the block above
             // works off the "_shownPhase == Service" comparison, so if the

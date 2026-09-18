@@ -66,7 +66,16 @@ namespace Lokanta.Core.Sim
         // MIGRATION: `fritoz` did not exist in a version 22 save, so its tier
         // is 0 and every station after the hob moves up one slot. That is a
         // derivation, not a guess, which is why 22 stays readable.
-        public const int SaveVersion = 23;
+        // VERSION 24: the owner's attention REGENERATES instead of being a
+        // day budget, and the door can be shut without ending the day. Two
+        // new fields, `interventionMs` (milliseconds banked toward the next
+        // charge) and `doorsClosed`.
+        //
+        // A version 23 file has neither, and both have a correct answer
+        // rather than a guessed one: a save is taken between days, so the
+        // service has not started - nothing is banked and the door is open.
+        // That is a derivation, which is why 20 through 23 stay readable.
+        public const int SaveVersion = 24;
 
         /// <summary>
         /// Where the fryer was inserted into the closed station list.
@@ -160,6 +169,14 @@ namespace Lokanta.Core.Sim
             w.Int("badgesToday", _badgesToday);
             w.Bool("creditEverOpened", _creditEverOpened);
             w.Int("weekReportDay", _weekReportDay);
+            // IN "restaurant" AND NOT NEXT TO interventionsLeft, WHICH IS IN
+            // "stations". These two are day state, not station state, and the
+            // migration test walks the restaurant block looking for the
+            // fields FieldsAddedIn names - the fryer's version 23 needed a
+            // special branch because ITS arrays live under "stations", and
+            // there is no reason to make a second one.
+            w.Int("interventionMs", _interventionMs);
+            w.Int("doorsClosed", _doorsClosed ? 1 : 0);
             w.IntArray("weekAxis", _weekAxis, SeasonScore.AxisCount);
             w.IntArray("weekAxisPrev", _weekAxisPrev, SeasonScore.AxisCount);
             w.Long("cash", _cash);
@@ -416,6 +433,20 @@ namespace Lokanta.Core.Sim
                 _badgesToday = r.Int("badgesToday");
                 _creditEverOpened = r.Bool("creditEverOpened");
                 _weekReportDay = r.Int("weekReportDay");
+            if (version >= 24)
+            {
+                _interventionMs = r.Int("interventionMs");
+                _doorsClosed = r.Int("doorsClosed") != 0;
+            }
+            else
+            {
+                // A save is written between days, so service has not begun:
+                // nothing is banked and the door is open. Both are what
+                // OpenService sets anyway, so this is a derivation rather
+                // than a default.
+                _interventionMs = 0;
+                _doorsClosed = false;
+            }
                 r.IntArray("weekAxis", _weekAxis, SeasonScore.AxisCount);
                 r.IntArray("weekAxisPrev", _weekAxisPrev, SeasonScore.AxisCount);
             }

@@ -135,6 +135,10 @@ namespace Lokanta.Core.Tests
                 // closed list. The migration test still needs a row so it can
                 // build a version 22 save; there is simply nothing to strip.
                 { 23, new string[0] },
+                // 24: the attention pool REGENERATES instead of being handed
+                // out at the door, and the door can be shut without ending
+                // the day.
+                { 24, new[] { "interventionMs", "doorsClosed" } },
             };
 
         /// <summary>

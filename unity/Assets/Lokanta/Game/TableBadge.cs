@@ -150,6 +150,8 @@ namespace Lokanta.Game
         /// the opposite.
         /// </summary>
         private Transform _mark;
+        private Transform _ask;
+        private bool _shownAsking;
         private bool _shownSelected;
 
         // =====================================================================
@@ -258,8 +260,29 @@ namespace Lokanta.Game
             mark.transform.localPosition = new Vector3(0f, 0f, 0.006f);
             mark.SetActive(false);
 
+            // THE TABLE THAT IS ASKING FOR A TAB.
+            //
+            // Simulation.AsksForCredit has been public since the mechanic was
+            // written, and its own summary says "the UI will mark it". It had
+            // ZERO call sites: not the interface, not the tour, not the
+            // tests. So the player pressed the tab button and learned who had
+            // asked only from the toast afterwards - the game chose the
+            // person and told them later, which is the shape this project
+            // fixed for the other verbs when Target() was written.
+            //
+            // A copper pip at the badge's left end, in the accent this venue
+            // already uses for the tab. It is small because it is a mark, not
+            // a meter - the badge's own length is still the patience.
+            GameObject ask = Quad("Asking", material, new Color(0.85f, 0.62f, 0.32f));
+            ask.transform.localScale =
+                new Vector3(_thickness * 1.6f, _thickness * 1.6f, _thickness);
+            ask.transform.localPosition =
+                new Vector3(-(_width * 0.5f) - _thickness * 1.2f, 0f, 0.008f);
+            ask.SetActive(false);
+
             _fill = pivot.transform;
             _mark = mark.transform;
+            _ask = ask.transform;
             _fillRenderer = fill.GetComponent<Renderer>();
             _block = new MaterialPropertyBlock();
         }
@@ -309,7 +332,8 @@ namespace Lokanta.Game
         }
 
         /// <summary>Reflects the table's state. On an empty table the badge is hidden.</summary>
-        public void Show(CustomerStage stage, int patienceBp, bool selected = false)
+        public void Show(CustomerStage stage, int patienceBp, bool selected = false,
+                         bool asking = false)
         {
             // LEAVING ANGRY IS THE ONE MOMENT THIS BADGE EXISTS FOR, and it
             // was the one moment the badge switched itself off.
@@ -333,6 +357,12 @@ namespace Lokanta.Game
             {
                 _shownSelected = selected;
                 if (_mark != null) _mark.gameObject.SetActive(selected);
+            }
+
+            if (asking != _shownAsking)
+            {
+                _shownAsking = asking;
+                if (_ask != null) _ask.gameObject.SetActive(asking);
             }
 
             // Written only ON CHANGE: writing a property block every frame

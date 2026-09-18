@@ -164,6 +164,37 @@ namespace Lokanta.Core.Economy
         public int InterventionsPerDay { get; private set; }
 
         /// <summary>
+        /// How many charges the owner opens service with.
+        ///
+        /// THE ALLOWANCE IS NO LONGER A DAY BUDGET, AND THE REASON IS A
+        /// MEASUREMENT. An eager player's whole day budget was gone at 0:45
+        /// on average (24 seeds x 60 days, one waiter short) - before the
+        /// lunch crest at 2:00 and two crests before the evening one at 6:14.
+        /// The rest of an eight-minute day had nothing in it.
+        ///
+        /// Spreading the same resource beats enlarging it, and the margin is
+        /// not close. Measured, fast food, one hand short:
+        ///
+        ///     pool                    charges/day   lost at the table
+        ///     day budget 6, patient       5.18            59
+        ///     regen cap 3, patient        3.08            53
+        ///
+        /// FEWER CHARGES, BETTER DAY. So the knob is not "how many a day" any
+        /// more; it is "how fast do they come back, and how many may be
+        /// held". The cap is what keeps the decision alive: hoarding through
+        /// a quiet stretch throws away everything that would have
+        /// regenerated, and entering a 2.1x crest empty is the other way to
+        /// lose.
+        /// </summary>
+        public int InterventionStart { get; private set; }
+
+        /// <summary>Milliseconds of service per regenerated charge.</summary>
+        public int InterventionRegenMs { get; private set; }
+
+        /// <summary>The most charges that may be held at once, at the base tier.</summary>
+        public int InterventionCap { get; private set; }
+
+        /// <summary>
         /// The cost of the complimentary tea PER HEAD, in centi-coins.
         /// docs/12 3: "2 in cost per portion, given away free".
         /// </summary>
@@ -585,7 +616,15 @@ namespace Lokanta.Core.Economy
             int overpriceCeilingBp = 25000,
             int priceElasticityBp = 9000,
             int demandVarianceBp = 0,
-            int attendWorkCutBp = 0)
+            int attendWorkCutBp = 0,
+            // AT THE END, AND THAT IS NOT TIDINESS. ContentLoader passes this
+            // constructor POSITIONALLY (ContentLoader.cs:135-180), so a new
+            // parameter inserted in the middle silently shifts every argument
+            // after it - the first version of this change put them after
+            // treatCost and PriceVolatilityBp would have landed in
+            // interventionStart. Optional parameters go on the end.
+            int interventionStart = 2, int interventionRegenMs = 120_000,
+            int interventionCap = 3)
         {
             if (tiers == null || tiers.Length == 0)
                 throw new ArgumentException("At least one tier is required", nameof(tiers));
@@ -602,6 +641,10 @@ namespace Lokanta.Core.Economy
             SeasonDays = seasonDays > 0 ? seasonDays : 15;
             ServiceMs = serviceMs > 0 ? serviceMs : 480_000;
             InterventionsPerDay = interventionsPerDay > 0 ? interventionsPerDay : 4;
+            InterventionStart = interventionStart > 0 ? interventionStart : 2;
+            InterventionRegenMs =
+                interventionRegenMs > 0 ? interventionRegenMs : 120_000;
+            InterventionCap = interventionCap > 0 ? interventionCap : 3;
             TreatCost = treatCost > 0 ? treatCost : 200;
             PriceVolatilityBp = priceVolatilityBp >= 0 ? priceVolatilityBp : 2500;
             RentDayInterval = rentDayInterval > 0 ? rentDayInterval : 7;

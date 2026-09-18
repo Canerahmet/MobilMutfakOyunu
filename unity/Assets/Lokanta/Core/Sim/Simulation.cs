@@ -827,7 +827,7 @@ namespace Lokanta.Core.Sim
             // somebody it had never met. It would be silent.
             for (int i = 0; i < MaxTabs; i++) _tabRegular[i] = -1;
 
-            _interventionsLeft = economy.InterventionsPerDay;   // at construction the table count is the base
+            _interventionsLeft = economy.InterventionStart;   // OpenService sets it properly
 
             // THE CREW YOU INHERIT: ONE COOK, ONE WAITER.
             //
@@ -1776,6 +1776,7 @@ namespace Lokanta.Core.Sim
                 case CommandKind.TakeLoan: TakeLoan(c.A); break;
                 case CommandKind.Intervene: Intervene(c.A, (InterventionKind)c.B); break;
                 case CommandKind.Expand: Expand(c.A); break;
+                case CommandKind.LastOrders: LastOrders(); break;
                 default:
                     Emit(SimEventKind.CommandRejected, (int)c.Kind, 1);
                     break;
@@ -1791,8 +1792,41 @@ namespace Lokanta.Core.Sim
             }
             _phase = DayPhase.Service;
             _serviceTick = 0;
+            // THE POOL IS SET WHERE SERVICE BEGINS, not where the day turns.
+            //
+            // The day-turn is the wrong place and the first version used it:
+            // on day one nothing has turned over yet, so the pool still held
+            // whatever the constructor left and the opening day ran on the
+            // old day-budget number. The tour would not have caught it - it
+            // plays day one like any other - and the harness would have
+            // measured the new mechanic with the old one's first day in it.
+            _interventionsLeft = _economy.InterventionStart;
+            _interventionMs = 0;
+            _doorsClosed = false;
             BuildArrivalPlan();
             Emit(SimEventKind.ServiceOpened, _day);
+        }
+
+        /// <summary>
+        /// Shuts the door. Nobody inside is touched and the day ends when the
+        /// room empties, as it always did.
+        /// </summary>
+        private void LastOrders()
+        {
+            if (_phase != DayPhase.Service)
+            {
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.LastOrders, 2);
+                return;
+            }
+            if (_doorsClosed)
+            {
+                // Pressing it twice is not a second decision, and it must not
+                // read as one.
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.LastOrders, 10);
+                return;
+            }
+            _doorsClosed = true;
+            Emit(SimEventKind.LastOrders, _arrCount - _arrNext, _serviceTick);
         }
 
         private void CloseDay()
@@ -2550,7 +2584,6 @@ namespace Lokanta.Core.Sim
             }
             for (int i = 0; i < MaxParties; i++) _pJobsLeft[i] = 0;
             for (int i = 0; i < MaxParties; i++) _pAskedDish[i] = -1;
-            _interventionsLeft = InterventionsToday;
             for (int i = 0; i < MaxParties; i++)
             {
                 _pCredit[i] = false;
@@ -4825,6 +4858,35 @@ namespace Lokanta.Core.Sim
         /// The owner DOES NOT COOK (docs/14 forbids it); they change the
         /// priority. The effect is a third of the job's remaining wall clock.
         /// </summary>
+        /// <summary>
+        /// The station a party's food is cooking on, or -1 if nothing of
+        /// theirs is in the kitchen.
+        ///
+        /// IT EXISTS SO THAT "HURRY THE KITCHEN" CAN HAVE A TARGET. The
+        /// button picked BusiestStation() for the player - the only one of
+        /// the three verbs where the game still answered the WHO - and the
+        /// note beside it records why the fix could not be a label: the
+        /// station's name made that one button 319 dp and the strip 1,103 dp
+        /// on an 873 dp screen.
+        ///
+        /// So the target comes from the selection the player has already
+        /// made. Tapping a table already aims the tea and the owner's
+        /// attention; now it aims the kitchen too, at the station THAT table
+        /// is waiting on. With nothing selected the old behaviour stands, so
+        /// a player who never zooms in loses nothing.
+        /// </summary>
+        public int StationOfParty(int party)
+        {
+            if (party < 0) return -1;
+            for (int j = 0; j < _jobStation.Length; j++)
+            {
+                if (_jobState[j] == 0) continue;
+                if (j / MaxJobsPerParty != party) continue;
+                return _jobStation[j];
+            }
+            return -1;
+        }
+
         private void HurryPartyJob(int party)
         {
             // THERE WERE TWO BUGS AT ONCE.
@@ -4983,6 +5045,11 @@ namespace Lokanta.Core.Sim
 
         public int InterventionsLeft { get { return _interventionsLeft; } }
 
+        /// <summary>Has the player called last orders? No new parties arrive.</summary>
+        public bool DoorsClosed { get { return _doorsClosed; } }
+
+        private bool _doorsClosed;
+
         /// <summary>
         /// How many parties currently in the hall have been offered tea.
         ///
@@ -5065,6 +5132,7 @@ namespace Lokanta.Core.Sim
 
         private void TickService()
         {
+            RegenerateInterventions();
             SpawnArrivals();
             AdvancePatience();
             SeatWaitingParties();
@@ -5076,9 +5144,88 @@ namespace Lokanta.Core.Sim
             _serviceTick++;
         }
 
+        /// <summary>
+        /// THE OWNER'S ATTENTION COMES BACK, IT IS NOT HANDED OUT AT THE DOOR.
+        ///
+        /// Measured, 24 seeds x 60 days, fast food one waiter short: an eager
+        /// player's whole day budget was spent by 0:45 - before the lunch
+        /// crest at 2:00 and two crests before the evening one. The rest of
+        /// an eight-minute day had nothing in it, which is the complaint this
+        /// change answers.
+        ///
+        /// And spreading beats enlarging, which is the part that is not
+        /// obvious: a six-charge day budget spends 5.18 charges and loses 59
+        /// parties, a three-charge regenerating pool spends 3.08 and loses
+        /// 53. FEWER CHARGES, BETTER DAY.
+        ///
+        /// The cap is the cost. Hoarding through a quiet stretch throws away
+        /// everything that would have regenerated; entering a 2.1x crest
+        /// empty is the other way to lose. So "now or at the crest" survives
+        /// as a question - measured, it still separates eager from patient
+        /// play by 11 parties.
+        ///
+        /// INTEGER MILLISECONDS OFF THE TICK, never a wall clock: the
+        /// campaign has to replay identically from a seed (CLAUDE.md rule 3).
+        /// </summary>
+        private void RegenerateInterventions()
+        {
+            if (_interventionsLeft >= InterventionCapToday) return;
+
+            _interventionMs += TimingConfig.TickMs;
+            if (_interventionMs < _economy.InterventionRegenMs) return;
+
+            _interventionMs -= _economy.InterventionRegenMs;
+            _interventionsLeft++;
+            Emit(SimEventKind.InterventionRegained, _interventionsLeft, 0);
+        }
+
+        /// <summary>
+        /// How many charges may be held at once.
+        ///
+        /// It grows with the table count for the reason InterventionsToday
+        /// used to: "growing was not increasing the player's agency but
+        /// dissolving it". The CAP is what grows now rather than a budget -
+        /// a bigger purse measured worse than a better-spread one.
+        /// </summary>
+        public int InterventionCapToday
+        {
+            get
+            {
+                int extra = (_tableCount - _economy.TierAt(0).Tables) / 8;
+                if (extra < 0) extra = 0;
+                return _economy.InterventionCap + extra;
+            }
+        }
+
+        /// <summary>Milliseconds banked toward the next charge. For the meter.</summary>
+        public int InterventionRegenMs { get { return _interventionMs; } }
+
+        /// <summary>The period, so the view can draw a fraction.</summary>
+        public int InterventionRegenPeriodMs
+        {
+            get { return _economy.InterventionRegenMs; }
+        }
+
+        private int _interventionMs;
+
         // ---- 1. arrivals -----------------------------------------------------
         private void SpawnArrivals()
         {
+            // THE DOOR CAN BE SHUT WITHOUT THROWING ANYBODY OUT.
+            //
+            // CloseDay ends the day by sending every seated party away angry,
+            // so closing early was never right on any day in either cuisine -
+            // measured, the tail after the arrival window carries 27% of a
+            // fast food day's revenue. A button that is never right to press
+            // is not a decision, it is a hazard with a guard rail on it.
+            //
+            // Last orders is the decision that button was pretending to be:
+            // the arrivals stop, everybody already inside is served, and the
+            // day ends when the room empties. Plates gone, one hand short,
+            // ninety seconds of arrivals left - give up the revenue, keep the
+            // reputation.
+            if (_doorsClosed) return;
+
             while (_arrNext < _arrCount && _arrTick[_arrNext] <= _serviceTick)
             {
                 int slot = FindFreeParty();

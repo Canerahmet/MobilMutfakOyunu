@@ -213,6 +213,28 @@ def harness(cuisine="fastfood", seeds=None):
     # way for the calibration to treat all candidates as equal.
     extra = ["--seeds", str(seeds)] if seeds else []
     out = ""
+
+    # THE PROJECT ALREADY HAS THE SMART APP CONTROL WORKAROUND AND THIS FILE
+    # WAS NOT USING IT.
+    #
+    # tools/dotnet_retry.py is the documented way to invoke dotnet in this
+    # repository (CLAUDE.md rule 5) and it makes SIX attempts, changing the
+    # module hash between each. The loop below makes three, and on 18
+    # September that difference cost two whole calibration runs: SAC blocked
+    # the harness, three attempts ran out, and calibrate died AFTER it had
+    # already written a candidate's numbers into model.py and content/. The
+    # working tree was left standing on a setting nobody had chosen, and
+    # nothing said so.
+    #
+    # The loop underneath stays as the second line of defence; the first
+    # attempt now goes through the tool that knows about this.
+    out = run([sys.executable,
+               os.path.join(ROOT, "tools", "dotnet_retry.py"),
+               "run", "--project", "src/Lokanta.Harness", "--",
+               "--cuisine", cuisine] + extra, check=False)
+    if ROW.search(out):
+        return _parse(out), out
+
     # First the normal way, then BY CHANGING THE HASH and REBUILDING.
     #
     # Both are needed, and this was written wrongly twice:
@@ -242,6 +264,19 @@ def harness(cuisine="fastfood", seeds=None):
         if ROW.search(out):
             break
 
+    rows = _parse(out)
+    if not rows:
+        # If not even a single row could be read then the problem is not in
+        # the balance but in the run. Applying a penalty and carrying on is
+        # wrong: all the candidates come out equal and calibrate writes down
+        # one of them at random as "the best".
+        sys.stderr.write(out[-2000:] + chr(10))
+        raise RuntimeError("harness output is empty: " + cuisine)
+    return rows, out
+
+
+def _parse(out):
+    """The strategy table, as {name: row}. Empty if the run produced none."""
     rows = {}
     for m in ROW.finditer(out):
         name = m.group(1)
@@ -259,14 +294,7 @@ def harness(cuisine="fastfood", seeds=None):
             debt=m.group(10),
             trivial=m.group(11),
         )
-    if not rows:
-        # If not even a single row could be read then the problem is not in
-        # the balance but in the run. Applying a penalty and carrying on is
-        # wrong: all the candidates come out equal and calibrate writes down
-        # one of them at random as "the best".
-        sys.stderr.write(out[-2000:] + chr(10))
-        raise RuntimeError("harness output is empty: " + cuisine)
-    return rows, out
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -486,9 +514,57 @@ def evaluate(rows):
     return pen, notes
 
 
+def _snapshot():
+    """The files this tool rewrites, so a crash can be undone.
+
+    IT WRITES BEFORE IT KNOWS. The search has to run the harness against real
+    content, so every candidate is applied to model.py, solve.py and content/
+    in turn; only at the end is the winner re-applied. That is the right
+    shape for the search and the wrong shape for a crash: on 18 September the
+    harness was blocked by Smart App Control twice, calibrate died mid-sweep,
+    and the working tree was left standing on REALISATION_BP 9335 - the last
+    candidate tried, not the best one, and verified by nobody.
+
+    Nothing announced it. The next verification run would have called an
+    unchosen economy green.
+    """
+    keep = {}
+    for rel in ("tools/balance/model.py", "tools/balance/solve.py"):
+        path = os.path.join(ROOT, rel)
+        keep[path] = io.open(path, "rb").read()
+    content = os.path.join(ROOT, "content")
+    for base, _dirs, files in os.walk(content):
+        for f in files:
+            if f.endswith(".json"):
+                path = os.path.join(base, f)
+                keep[path] = io.open(path, "rb").read()
+    return keep
+
+
+def _restore(keep):
+    for path, blob in keep.items():
+        if io.open(path, "rb").read() != blob:
+            io.open(path, "wb").write(blob)
+
+
 def main():
     only = [int(sys.argv[1])] if len(sys.argv) > 1 else CANDIDATES
     results = []
+    keep = _snapshot()
+    try:
+        _search(only, results)
+    except BaseException:
+        # A HALF-APPLIED SETTING IS WORSE THAN NO SETTING, because it looks
+        # like a decision. Put the tree back and say so, then re-raise: the
+        # failure is still a failure.
+        _restore(keep)
+        sys.stderr.write(chr(10) + "calibrate failed; the working tree has "
+                         + "been put back as it was." + chr(10))
+        raise
+    _report(results)
+
+
+def _search(only, results):
     for bp in only:
         best = solve_for(bp)
         if best is None:
@@ -511,6 +587,7 @@ def main():
             bp, s, o, e, [rents[t] for t in (4, 7, 10, 14)], pen, got,
             "; ".join(notes) if notes else "BOTH CUISINES CLEAN"))
 
+def _report(results):
     if not results:
         return
     # Penalty first. On a tie, the HIGHEST rate, which means the highest rent.

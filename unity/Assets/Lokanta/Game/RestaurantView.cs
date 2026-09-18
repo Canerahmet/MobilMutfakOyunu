@@ -4205,7 +4205,8 @@ namespace Lokanta.Game
                 {
                     if (overview) _badges[t].Hide();
                     else _badges[t].Show(sim.TableStage(t), sim.TablePatienceBp(t),
-                                         App != null && App.SelectedTable == t);
+                                         App != null && App.SelectedTable == t,
+                                         sim.AsksForCredit(sim.PartyAtTable(t)));
                 }
 
                 int guests = Mathf.Min(sim.TableGuests(t), VisibleGuests);

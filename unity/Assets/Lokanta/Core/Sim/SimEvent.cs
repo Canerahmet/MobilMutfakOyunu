@@ -94,7 +94,21 @@
         /// me a rise".
         /// </summary>
         StaffTenure = 37,
-        Count = 38
+
+        /// <summary>
+        /// A charge of the owner's attention came back. A is how many are in
+        /// hand now.
+        ///
+        /// It exists so the tour can assert the REGENERATION rather than the
+        /// button: spend a pip, run 130 sim-seconds, the count must go UP.
+        /// A check that only watched the count go down would pass on a pool
+        /// that never refills.
+        /// </summary>
+        InterventionRegained = 38,
+
+        /// <summary>Last orders: the door is shut, nobody is thrown out.</summary>
+        LastOrders = 39,
+        Count = 40
     }
 
     public readonly struct SimEvent
