@@ -172,6 +172,43 @@ the scale becomes.
 **Adding a scale breaks every measurement that does not account for it, and
 the breakage looks green.**
 
+## 5. And the half of the building nobody had looked at
+
+At the opening tier the CLOSED rooms are nearly half the plot, so they are a
+large part of the first frame anybody ever sees - and they were one flat slab
+at 0.255, which after docs/60 lifted every other surface read as a hole in the
+floor plan rather than as a room.
+
+`BuildShell`'s own note says why the room is drawn at all:
+
+> *Building the closed room as a bare, unfinished slab fills the rectangle AND
+> shows the player the space they can expand into - and expansion is the
+> campaign's main progression path, which until now had no before and after on
+> screen.*
+
+A flat rectangle does not show anybody anything. Three things fix it:
+
+- **The concrete is pale**, 0.255 → 0.435. "No identity yet" is not the same as
+  "unlit": bare concrete is a dusty grey, and what separates it from a finished
+  floor is that it is FLAT and cold, not that it is dark. docs/60 missed it
+  because nothing in the hall is made of it.
+- **Screed bay joints**, about two metres apart - which is both how concrete is
+  actually poured and close enough to a table set that the room reads as "this
+  many tables would fit". The same argument `FloorPattern` makes for the
+  finished floors and `Paving` for the street.
+- **A stack of crates**, because an empty room in a working restaurant is where
+  the spare chairs live. Three of them say "not in use yet" where an empty
+  floor says "nothing here".
+
+**The crates went in the far corner first, and stood in the street.** The
+closed rooms sit to the right and the backdrop wall spans only the OPEN bounds,
+so a stack in the back corner had no wall behind it. Against the corner nearest
+the working part of the building they read as stock pushed out of the way,
+which is what they are.
+
+Three renderers and about 1,000 triangles at the opening tier, where there is
+the most headroom of any tier.
+
 ## 4. Still open
 
 - **The figures are still chibi against realistic proportions.** Scaling the

@@ -519,6 +519,7 @@ namespace Lokanta.Game
 
             FloorPattern(m, p, tables);
             Paving(m);
+            ShellDetail(m, p, tables);
             Backdrop(m, p, left, right, back);
             SkyBands(left, right, back);
             Planters(m, p, left, right);
@@ -1315,6 +1316,80 @@ namespace Lokanta.Game
                       new Vector3(0.52f, 0.68f, 0.05f), p.Wood);
                 m.Box(new Vector3(x, 1.72f, back - 0.06f),
                       new Vector3(0.40f, 0.54f, 0.02f), p.Accent);
+            }
+        }
+
+        /// <summary>
+        /// WHAT AN UNOPENED ROOM LOOKS LIKE.
+        ///
+        /// At the opening tier the closed rooms are nearly half the building,
+        /// so this is a large part of the first frame anybody ever sees - and
+        /// it was one flat slab. BuildShell's own note explains why the room
+        /// is drawn at all ("it shows the player the space they can expand
+        /// into, and expansion is the campaign's main progression path"), and
+        /// a flat rectangle does not show anybody anything. It reads as a
+        /// hole in the floor plan.
+        ///
+        /// Two cheap things make it a ROOM instead:
+        ///
+        ///   the screed joints  bare concrete is poured in bays, and the bay
+        ///                      lines give the rectangle a size the eye can
+        ///                      read - the same argument FloorPattern makes
+        ///                      for the finished floors and Paving for the
+        ///                      street.
+        ///   the crates        an empty room in a working restaurant is where
+        ///                      the spare chairs live. Three stacks say
+        ///                      "not in use yet" where an empty floor says
+        ///                      "nothing here".
+        ///
+        /// About 90 triangles a room, in the merged Decor mesh.
+        /// </summary>
+        private void ShellDetail(Modeler m, Palette p, int tables)
+        {
+            Color joint = ShellColor * 0.84f;
+            Color crate = Color.Lerp(p.Wood, ShellColor, 0.45f);
+
+            for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+            {
+                RoomPlan.Room r = RoomPlan.Rooms[i];
+                if (RoomPlan.RoomOpen(in r, tables)) continue;
+
+                float w = r.W - 0.30f, d = r.D - 0.30f;
+                if (w < 0.8f || d < 0.8f) continue;
+
+                // The bays: about two metres, which is the size a screed is
+                // actually poured in and close enough to a table set that the
+                // room reads as "this many tables would fit".
+                int cols = Mathf.Max(2, Mathf.RoundToInt(w / 2.0f));
+                int rows = Mathf.Max(2, Mathf.RoundToInt(d / 2.0f));
+                for (int k = 1; k < cols; k++)
+                    m.Box(new Vector3(r.X0 + 0.15f + w * k / cols, 0.012f, r.CenterZ),
+                          new Vector3(0.022f, 0.02f, d), joint);
+                for (int k = 1; k < rows; k++)
+                    m.Box(new Vector3(r.CenterX, 0.012f, r.Z0 + 0.15f + d * k / rows),
+                          new Vector3(w, 0.02f, 0.022f), joint);
+
+                // THE CORNER NEAREST THE PART OF THE BUILDING THAT IS OPEN.
+                //
+                // The back corner was the obvious choice and it was the wrong
+                // one: the closed rooms sit to the right and the backdrop
+                // wall spans only the OPEN bounds, so a stack in the far
+                // corner stood on a slab with no wall behind it and read as
+                // crates left out in the street. Against the near corner they
+                // read as stock pushed out of the working area, which is what
+                // they are.
+                float cx = (r.CenterX > RoomPlan.PlotW * 0.5f)
+                           ? r.X0 + 0.62f : r.X0 + r.W - 0.62f;
+                float cz = r.Z0 + r.D - 0.62f;
+                float[] sz = { 0.44f, 0.38f, 0.34f };
+                float y = 0f;
+                for (int k = 0; k < sz.Length; k++)
+                {
+                    m.BoxAt(new Vector3(cx + (k == 1 ? 0.05f : 0f), y + sz[k] * 0.5f, cz),
+                            new Vector3(sz[k], sz[k], sz[k] * 0.86f),
+                            Quaternion.Euler(0f, k * 11f - 8f, 0f), crate);
+                    y += sz[k];
+                }
             }
         }
 

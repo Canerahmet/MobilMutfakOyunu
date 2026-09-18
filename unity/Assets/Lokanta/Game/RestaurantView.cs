@@ -779,8 +779,17 @@ namespace Lokanta.Game
         /// <summary>
         /// Unfinished concrete. It is the same in both cuisines on purpose:
         /// an empty shell has no identity yet - that is what buying it is for.
+        ///
+        /// 0.255 -> 0.435. At the opening tier the closed rooms are nearly
+        /// HALF the building, and the first frame of the game showed them as
+        /// a dark hole rather than as a room. "No identity yet" is not the
+        /// same as "unlit": bare concrete is a pale, dusty grey, and the
+        /// difference between it and a finished floor is that it is FLAT and
+        /// cold, not that it is dark. docs/60 lifted every other surface out
+        /// of the bottom third of the value range and this one was missed
+        /// because nothing in the hall is made of it.
         /// </summary>
-        private static readonly Color ShellColor = new Color(0.255f, 0.243f, 0.231f);
+        public static readonly Color ShellColor = new Color(0.435f, 0.420f, 0.404f);
 
         /// <summary>
         /// THE TRANSPARENT WALLS AND DOORS THAT SEPARATE THE ROOMS.
