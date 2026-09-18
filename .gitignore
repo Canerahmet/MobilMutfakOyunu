@@ -38,6 +38,17 @@ render/*
 # that no longer exists. The store images - the ones the comment above calls
 # a release asset - simply stopped being committed, silently, because an
 # ignore rule fails by doing nothing.
+# THE README'S OWN PICTURES.
+#
+# Everything else under render/ is regenerated on every run and rightly
+# ignored, but the README is the first page anybody sees and its images have
+# to be IN the repository or they are broken links on GitHub. These are
+# copies, taken by hand from the generated set when the README is updated -
+# which is the point: they change when somebody decides the front page should
+# change, not when a verification run happens to fire.
+!render/readme/
+!render/readme/*.png
+
 # THE EVIDENCE CROPS ARE NOT OUTPUT, THEY ARE THE RECORD.
 #
 # render/ is regenerated on every run and rightly ignored. render/zoom/ is

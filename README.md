@@ -8,8 +8,12 @@ URP, built by one person.
 
 ![Day forty](render/store/turk/en/20-store-service.png)
 
-*Day forty, fast food: the lit menu board above the counter, the hot line in the
-middle, tills at the ends — no waiter, the guest carries their own tray.*
+*Day forty in the Turkish restaurant, fourteen tables, rent due in two days.
+The kitchen line runs along the back wall, the terrace sits behind its railing
+and the passers-by walk outside it. The notice across the middle is the game
+being itself: somebody asked for the stew and it is not on today's menu — a
+narrow menu wastes less and turns people away. The **Tab** at the bottom is
+this cuisine's signature; fast food has **Combo** there instead.*
 
 ---
 
@@ -48,6 +52,23 @@ tonight. A narrow menu wastes less; a wide one draws more.
 **The crew.** Wages are paid every day, the peak comes two days a week. A full
 crew serves everyone but eats the cash; running one short earns more, and pays
 for it with guests who get up from the table angry.
+
+![The Turkish kitchen line](render/readme/kitchen-turk.png)
+
+*The Turkish line: the doner spit turning in front of its radiant panel, the
+hob with a flame under the pot, the grill, the oven, the cold counter — and
+the extractor hood above them, which is the part that says "kitchen".*
+
+**The kitchen.** Each station — hob, fryer, grill, oven, cold counter, drinks,
+desserts — has a ladder, and a step either adds a slot (another plate at once)
+or frees the cook earlier. It never shortens the cooking time: the cooking is
+physics, the upgrade buys parallelism. **And you can see what you bought.**
+Every station is its own object in the room and its tier is in the geometry,
+so a second burner ring, a second oven door or a fourth oil well appears in the
+kitchen the morning you pay for it. On top of the shared ladder sits equipment
+that belongs to one cuisine and unlocks dishes — a stone oven, a doner grill
+and a pide oven in the Turkish restaurant, a milkshake machine and a waffle
+iron in fast food ([docs/59](docs/59-kitchen-equipment-and-models.md)).
 
 ### Service — this is where you are
 
@@ -106,8 +127,8 @@ crowd — and trays piling up on the tables.
 
 ![A story beat](render/store/turk/en/15-story.png)
 
-Each of twenty named customers has a three-scene story. A customer who comes
-often and leaves happy opens their scenes:
+**Ten named customers per cuisine**, twenty in all, each with a three-scene
+story. A customer who comes often and leaves happy opens their scenes:
 
 > *"Artık siparişini söylemiyor. Oturuyor, sen biliyorsun."*
 >
@@ -156,20 +177,26 @@ same seed produces the same campaign on every machine. Platform work sits behind
 a port.
 
 **The balance tool.** `src/Lokanta.Harness` runs more than twenty bot strategies
-over 24 seeds × 60 days and prints the table: the passive player, the reasonable
+over 60-day campaigns and prints the table: the passive player, the reasonable
 player, the price-cutter, the one who runs short-staffed, the one who plays the
 signature mechanic… A design question is not counted as answered until it has
 been measured.
 
 **The automated tour.** `tools/unity/tour.ps1` makes the game play itself **in a
-real Windows build**: from the menu to the end of the campaign, with more than
-170 checks. It is the only way to see the interface — and it produces every
-screenshot in this repository.
+real Windows build**: from the menu to the end of the campaign, with about
+200 checks. It is the only way to see the interface — and it produces every
+screenshot on this page that has the interface in it. The ones without (the
+kitchen line above) come from `Editor/GameShot`, which photographs the scene at
+the game's own camera angle and fails the run if the renderer or triangle
+ceiling is passed.
 
-**Verification.** `python tools/check.py` runs the checks in one command:
+**Verification.** `python tools/check.py` runs eighteen checks in one command:
 content generation, balance rules, the string table, font coverage, store texts,
-document links, the licence ledger, URP settings, whether the repository is
-written in English, and the core tests.
+document links, the licence ledger, URP settings, the colour grade, whether the
+repository is written in English, and the core tests. `--unity` adds six more
+that need the engine — the material diagnosis, the placement audit, the room
+layout, a scene screenshot against the renderer and triangle ceilings, and a
+tour of each cuisine.
 
 **Content is generated.** Everything under `content/` comes out of the
 generators in `tools/` — it is never hand-edited. The balance numbers are solved
@@ -182,7 +209,7 @@ src/              The .NET side. NOTE: the core's SOURCE IS NOT HERE.
   Lokanta.Core/     A csproj that compiles unity/Assets/Lokanta/Core by link
   Lokanta.Content/  The same, for unity/Assets/Lokanta/Content
   Lokanta.Harness/  The balance tool: bot strategies x 60 days (real source)
-tests/            The core's tests (245 of them)
+tests/            The core's tests (251 of them)
 
 unity/            The source of everything, plus view and platform.
   Assets/Lokanta/Core/     Simulation, economy, saves - no Unity, no float
@@ -201,8 +228,10 @@ tools/            The scripts that generate and verify everything.
   audit_content.py  The content-code contract: does the code read every field
   check_licenses.py Licences and the attribution ledger
   check_urp.py      The two copies of the URP settings must not diverge
+  check_grade.py    The colour grade is wired, and still the light one
   check_docs.py     Every document link resolves, every document is indexed
   dotnet_retry.py   For dotnet calls that Smart App Control blocks
+  store/compose.py  Pads the store frames to Play's 2:1 rule (run by the tour)
   content/          Content generators (gen_*.py) and the store-text checker
     languages/        The five string tables - two files per language
   balance/          The balance model, solver and export
@@ -213,10 +242,13 @@ tools/            The scripts that generate and verify everything.
 docs/             A numbered log. Each number is the record of one piece of
                   work; the index is in docs/README.md.
 vendor/           Third-party source files, with their licences
-render/           Generated screenshots; the store images in
-                  render/store/<cuisine>[/<language>]/ - the pictures
-                  below are the English set, which is what the default
-                  Play listing wants
+render/           Generated screenshots, ignored by git except three
+                  folders that are not output: render/store/<cuisine>/
+                  [<language>]/ is the Play listing (the pictures above
+                  are its English set), render/readme/ is this page's own
+                  images, and render/zoom/ holds crops of frames that
+                  showed a defect, because the comments citing them have
+                  to point at something a reader can open
 ```
 
 The rule: **one direction, once.** `src/` does not know Unity, `unity/` does not
@@ -237,5 +269,27 @@ is under `docs/`.
 
 ## Status
 
-Playable and runs end to end. What remains before release is in
+Playable and runs end to end: `python tools/check.py --unity` is twenty-four
+checks and 251 core tests, and both cuisines play themselves from the menu to
+day sixty.
+
+**What is not finished is not the feature list, it is the gates.** Two numbers
+the project set for itself are not met, and they are written here rather than
+in a corner of `docs/`:
+
+- **The growth multiplier is 1.60 against a target band of 1.8-4.0.** The
+  player who never expands earns too much next to the one who does
+  ([docs/12](docs/12-economy.md)). `tools/balance/calibrate.py` exists to
+  search for the fix; it has not been run against this.
+- **The smallest room is 40 dp on screen against Google's 48.** A known price,
+  argued in [docs/41](docs/41-ui-and-venue.md) - what falls below is not a
+  button but the short edge of a room whose long edge is twice it - but the
+  margin is gone ([docs/31](docs/31-rooms-and-camera.md)).
+
+And one thing is unmeasured rather than failing: the frame cost of the colour
+grade **on a device**. Post-processing sends the camera through an
+intermediate target and that is bandwidth on a tiler; no desktop run can see
+it.
+
+The rest of what remains before release is in
 [docs/21](docs/21-business-and-release.md).
