@@ -518,6 +518,7 @@ namespace Lokanta.Game
             Modeler glow = new Modeler();
 
             FloorPattern(m, p, tables);
+            Paving(m);
             Backdrop(m, p, left, right, back);
             SkyBands(left, right, back);
             Planters(m, p, left, right);
@@ -1180,6 +1181,71 @@ namespace Lokanta.Game
                       new Vector3(0.52f, 0.68f, 0.05f), p.Wood);
                 m.Box(new Vector3(x, 1.72f, back - 0.06f),
                       new Vector3(0.40f, 0.54f, 0.02f), p.Accent);
+            }
+        }
+
+        /// <summary>
+        /// THE PAVEMENT'S SLAB JOINTS.
+        ///
+        /// The pavement is the last large flat surface in the frame. It runs
+        /// the full width of the plot and two metres deep, it fills the bottom
+        /// third of the picture, and it was a single unbroken colour - which
+        /// the floors inside stopped being a long time ago, for the reason
+        /// FloorPattern gives: at 34 degrees a flat colour reads as an EMPTY
+        /// AREA, and a pattern also gives SCALE, because an eye that knows the
+        /// size of a slab knows the size of the street.
+        ///
+        /// Joints, not slabs - the same trick as the kitchen splashback. A
+        /// grid of thin lines and a grid of separate rectangles are the same
+        /// picture at this distance, and this one is 23 boxes instead of 66.
+        ///
+        /// It is NOT in the palette: the pavement is municipal, the same
+        /// outside both restaurants, and the cuisine stops at the door. The
+        /// street's own colours live in BuildStreet for the same reason.
+        /// </summary>
+        private void Paving(Modeler m)
+        {
+            // The slab is where BuildStreet puts it. These two numbers are
+            // the pavement's own edges and they are written down twice, which
+            // this project knows the price of - but the alternative is
+            // publishing a field from the street builder for a decoration,
+            // and the street builder runs AFTER the decor.
+            const float z0 = -0.02f, z1 = -2.02f;
+            float x0 = -1.2f, x1 = RoomPlan.PlotW + 1.2f;
+
+            // A municipal slab, and the joint a shade darker than the stone
+            // rather than black: a dark line at this scale reads as a CRACK.
+            //
+            // AND BOTH OF THESE WERE TOO STRONG ON THE FIRST TRY. 0.92 m
+            // slabs with a 2 cm joint at 0.53 came back as graph paper: at
+            // this camera the columns are dense enough to read as a wire grid
+            // rather than as stone, and the eye goes to the grid instead of
+            // to the restaurant standing on it. A pavement is a SURFACE that
+            // happens to have joints, not a drawing of joints.
+            //
+            // 1.36 m slabs, two courses, a 1.6 cm joint one shade off the
+            // stone. The purpose is to stop the area reading as empty, and
+            // that is all it has to do.
+            Color joint = new Color(0.565f, 0.545f, 0.514f);
+            const float width = 0.016f;
+
+            // Across: two courses over two metres.
+            const int rows = 2;
+            for (int k = 1; k < rows; k++)
+            {
+                float z = z0 + (z1 - z0) * k / rows;
+                m.Box(new Vector3((x0 + x1) * 0.5f, 0.008f, z),
+                      new Vector3(x1 - x0, 0.016f, width), joint);
+            }
+
+            // Along: a slab wider than a person, which is what makes a
+            // 1.10 m figure read as somebody walking on paving.
+            int cols = Mathf.Max(4, Mathf.RoundToInt((x1 - x0) / 1.36f));
+            for (int k = 1; k < cols; k++)
+            {
+                float x = x0 + (x1 - x0) * k / cols;
+                m.Box(new Vector3(x, 0.008f, (z0 + z1) * 0.5f),
+                      new Vector3(width, 0.016f, z1 - z0), joint);
             }
         }
 

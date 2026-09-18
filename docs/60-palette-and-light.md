@@ -230,3 +230,26 @@ tiles over nothing, with a door running underneath.
 Tiling it properly would mean capping at 1.15 and breaking around the door for
 a strip 25 cm tall that the sinks hide anyway. The splashback is the kitchen's,
 where there is a wall to tile.
+
+## 8. And the pavement, which was the last flat surface in the frame
+
+It runs the full width of the plot, two metres deep, and fills the bottom third
+of the picture - and it was a single unbroken colour. The floors inside stopped
+being that a long time ago, and `FloorPattern` already carries the reason: at
+34 degrees a flat colour reads as an EMPTY AREA, and a pattern gives SCALE,
+because an eye that knows the size of a slab knows the size of the street.
+
+Joints rather than slabs again: 23 boxes instead of 66, and the same picture.
+**It is deliberately not in the palette** - the pavement is municipal, the same
+outside both restaurants, and the cuisine stops at the door.
+
+**The first try was graph paper.** 0.92 m slabs with a 2 cm joint one full
+shade darker came back as a wire grid: at this camera the columns are dense
+enough to read as a drawing of joints rather than as stone, and the eye went to
+the grid instead of to the restaurant standing on it. 1.36 m slabs, two courses
+instead of three, a 1.6 cm joint one shade off the stone. **A pavement is a
+surface that happens to have joints.** The job is to stop the area reading as
+empty, and that is the whole of it.
+
+Total for both the splashback and the paving: **three renderers and about 600
+triangles**, at 306 and 60,918 against ceilings of 360 and 70,000.
