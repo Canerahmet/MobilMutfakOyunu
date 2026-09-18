@@ -114,21 +114,49 @@ namespace Lokanta.EditorTools
                 { "table", WideTall(0.82f, 0.58f) },
                 { "tableCloth", Tall(0.76f) },
                 { "tableCrossCloth", Tall(0.76f) },
-                { "stoolBar", Tall(0.75f) },
+                { "stoolBar", Tall(0.56f) },
                 { "rugRectangle", Wide(3.00f) },
                 { "rugRounded", Wide(2.40f) },
-                { "pottedPlant", Tall(0.85f) },
+                { "pottedPlant", Tall(0.64f) },
                 { "lampSquareCeiling", Tall(0.40f) },
 
                 // --- kitchen ---
-                { "kitchenFridgeLarge", Tall(1.80f) },
-                { "kitchenFridge", Tall(1.40f) },
-                { "kitchenCabinetUpper", Tall(0.70f) },
-                { "kitchenCoffeeMachine", Tall(0.45f) },
-                { "kitchenMicrowave", Tall(0.32f) },
-                { "kitchenBar", Tall(1.10f) },
-                { "kitchenBarEnd", Tall(1.10f) },
-                { "bookcaseClosedDoors", Tall(1.80f) },
+                //
+                // THE HALL WAS SCALED TO THE FIGURE AND THE KITCHEN WAS NOT,
+                // and that half-finished job is why the dishwasher could not
+                // reach into the sink.
+                //
+                // The two notes above record the hall's side of it: a 0.74 m
+                // table came up to a seated figure's chin, so it went to 0.58,
+                // and the chairs came down with it. Everything through this
+                // door kept its real-world height - a 0.92 m counter, a 1.80 m
+                // fridge - so the same room contained furniture drawn to two
+                // different scales. The visible result was a cook standing at
+                // a worktop level with their shoulders and a washer holding a
+                // plate at chest height because the basin was above their
+                // reach.
+                //
+                // THE RATIO IS THE ONE THIS FILE ALREADY USES, not a new one.
+                // The door note states the method: take the real size, divide
+                // by a real person, multiply by ours - and then leave a margin
+                // so the object still reads as itself. The hall lands at about
+                // 0.75 of real (a 0.74 table at 0.58, a 0.88 chair at 0.68).
+                // Every number below is its real size times 0.75, which puts
+                // the kitchen and the hall on one scale for the first time.
+                //
+                // A 0.69 m worktop against a 1.00 m figure is 69% of its
+                // height. That is still taller than life (a real counter is
+                // 54% of a real person) and it is EXACTLY the hall's own
+                // exaggeration, which was measured and kept on purpose: at
+                // this camera, furniture drawn dead to scale reads as too low.
+                { "kitchenFridgeLarge", Tall(1.35f) },
+                { "kitchenFridge", Tall(1.05f) },
+                { "kitchenCabinetUpper", Tall(0.52f) },
+                { "kitchenCoffeeMachine", Tall(0.34f) },
+                { "kitchenMicrowave", Tall(0.24f) },
+                { "kitchenBar", Tall(0.82f) },
+                { "kitchenBarEnd", Tall(0.82f) },
+                { "bookcaseClosedDoors", Tall(1.35f) },
 
                 // --- structure ---
                 // THE DOOR, SIZED AGAINST THE CHARACTER.
@@ -180,7 +208,10 @@ namespace Lokanta.EditorTools
                 // "Mobilya", "Karakter" and "Yemek"; a key left behind by that
                 // rename matches no folder and every model falls back to a
                 // scale of 1.
-                { "Furniture", Tall(0.92f) },
+                // 0.92 -> 0.69: the folder default is a WORKTOP, and it is
+                // what the sink and every unnamed unit in the kitchen took.
+                // See the kitchen block in Targets for why it moved.
+                { "Furniture", Tall(0.69f) },
                 // 1.28 m, NOT a real 1.70 m.
                 //
                 // Measured: even at 1.55 m the figures looked enormous next to

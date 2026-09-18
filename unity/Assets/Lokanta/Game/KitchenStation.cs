@@ -40,6 +40,20 @@ namespace Lokanta.Game
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
+        /// <summary>
+        /// What the kitchen's own models are multiplied by to sit on the same
+        /// scale as the hall furniture.
+        ///
+        /// 0.75 is not chosen here - it is READ OFF the hall, where a 0.74 m
+        /// table was taken to 0.58 and a 0.88 m chair to 0.68 after measuring
+        /// a seated figure against them. Editor/ArtPrefabs carries the
+        /// reasoning and now applies the same 0.75 to the Kenney kitchen
+        /// prefabs; this is the same number for the models built in code, so
+        /// that a worktop and a sink standing side by side are the same
+        /// height whichever of the two made them.
+        /// </summary>
+        public const float FurnitureScale = 0.75f;
+
         // --- the shared palette of a commercial kitchen ----------------------
         //
         // STAINLESS, NOT THE CUISINE'S METAL. The palette's Metal is brass in
@@ -173,6 +187,22 @@ namespace Lokanta.Game
             root.transform.SetParent(parent, false);
             root.transform.localPosition = at;
             root.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            // ONE SCALE ON THE ROOT, AND EVERYTHING ELSE FOLLOWS FROM IT.
+            //
+            // These models were drawn at real-world sizes - a 0.86 m worktop,
+            // a 1.14 m spit - while the hall furniture had already been taken
+            // down to the figure's scale (Editor/ArtPrefabs). So the kitchen
+            // and the dining room held furniture drawn at two different
+            // scales, and a cook stood at a counter level with their
+            // shoulders.
+            //
+            // Scaling here rather than editing forty numbers is not laziness,
+            // it is the only version that cannot drift: Width is MEASURED off
+            // the built bounds after this line, so the wall packing adapts on
+            // its own; PotSpots are children, so the pans follow; the plinth
+            // under a bench appliance follows; and a model added next year
+            // inherits it without being told.
+            root.transform.localScale = Vector3.one * FurnitureScale;
 
             KitchenStation s = root.AddComponent<KitchenStation>();
             s.Id = id;

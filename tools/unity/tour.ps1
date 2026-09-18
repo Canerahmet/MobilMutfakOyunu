@@ -153,6 +153,26 @@ for ($i = 1; $i -le $Runs; $i++) {
         $crash++
     }
 
+    # KEEP THE LOG OF A RUN THAT WENT WRONG.
+    #
+    # Player.log is overwritten by the next run, and check.py prints only the
+    # last line of this script's output - so an intermittent failure used to
+    # leave NOTHING to look at. It happened twice on 18 September: one run
+    # reported a check failing and one crashed, and by the time either was
+    # noticed the evidence had been overwritten by the re-run that passed.
+    #
+    # A flaky failure with no evidence is the worst kind, because the only way
+    # to study it is to reproduce it - and reproducing it is the part that
+    # does not work. The log costs a copy.
+    $bad = $false
+    if (-not (Test-Path $summary)) { $bad = $true }
+    elseif ((Select-String -Path $summary -Pattern "^failed=[1-9]").Count -gt 0) { $bad = $true }
+    if ($bad -and (Test-Path $log)) {
+        $kept = Join-Path $env:TEMP ("lokanta_tour_fail_{0}_{1}.log" -f $Cuisine, $i)
+        Copy-Item $log $kept -Force
+        Write-Output ("  -> the log of that run is kept at {0}" -f $kept)
+    }
+
     # If the tour finished but the process did not close cleanly, report that
     # too: the summary file exists, so the checks did run - but something
     # crashed on shutdown, and the player sees that as well ("Save and quit").

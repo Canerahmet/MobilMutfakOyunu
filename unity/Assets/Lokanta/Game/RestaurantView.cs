@@ -1441,12 +1441,13 @@ namespace Lokanta.Game
             // the outer lane's outside shoulder (-2.00).
             Street("Pavement", -2.02f, -0.02f, new Color(0.62f, 0.60f, 0.57f));
             // The kerb: light - the line that separates the pavement from the
-            // road. It is 0.32 m wide because the lamp post's base plate
-            // (radius 0.185) has to sit ON it rather than overhang it.
-            Street("Kerb", -2.34f, -2.02f, new Color(0.78f, 0.76f, 0.72f));
+            // road. It is 0.44 m wide because the lamp post's base plate
+            // (radius 0.185) has to sit ON it rather than overhang it, and
+            // the post moved out to clear the walking lane properly.
+            Street("Kerb", -2.46f, -2.02f, new Color(0.78f, 0.76f, 0.72f));
             // The tarmac. 0.32 m of it comes into the frame - the least that
             // will say "this is a road".
-            Street("Asphalt", -3.05f, -2.34f, new Color(0.26f, 0.26f, 0.28f));
+            Street("Asphalt", -3.05f, -2.46f, new Color(0.26f, 0.26f, 0.28f));
 
             // THE STREET LAMPS: AT THE START, IN THE MIDDLE AND AT THE END.
             //
@@ -1600,14 +1601,24 @@ namespace Lokanta.Game
             // standing in the middle of the road. A real street lamp sits on
             // the kerb.
             //
-            // -1.52 -> -2.16 with the rest of the street. The gap to the
-            // outer walking lane is what sets it: the lane is at -1.67 and
-            // the push radius is StreetLife.PostClear (0.48 = the post's
-            // 0.19 plus a body's 0.29), so the post cannot come closer than
-            // -2.15. The old pair (-1.52 against a lane at -1.07) was 0.45
-            // apart against a radius of 0.40, which is why the tour caught a
-            // pedestrian inside a post now and then and never twice in the
-            // same place.
+            // -1.52 -> -2.26 with the rest of the street, and the second
+            // number is the one that matters. The gap to the outer walking
+            // lane sets it: the lane is at -1.67 and the push radius is
+            // StreetLife.PostClear (0.48 = the post's 0.19 plus a body's
+            // 0.29), so the post cannot come closer than -2.15.
+            //
+            // IT WAS PUT AT -2.16, WHICH IS ONE CENTIMETRE OF MARGIN, AND
+            // THAT IS NOT MARGIN. The tour caught it once in three runs:
+            // "the pedestrians do not walk into a lamp post (at worst 1
+            // people)". A pedestrian on that lane sits exactly on the push
+            // boundary, so anything that nudges them - the speed variation,
+            // the mutual push when two of them meet - puts them inside for a
+            // frame, and the measurement samples the frame that was DRAWN.
+            //
+            // A limit computed to the centimetre and then met to the
+            // centimetre is a limit that will be crossed. -2.26 leaves 0.11,
+            // and the kerb widens to -2.46 so the post's base plate still
+            // sits on stone rather than overhanging the road.
             root.transform.localPosition = new Vector3(x, 0f, LampPostZ);
 
             if (_lampMetalMesh == null) BuildLampMeshes();
@@ -2208,7 +2219,7 @@ namespace Lokanta.Game
         /// pedestrian in the outer lane would be pushed inwards constantly and
         /// the lane would be useless.
         /// </summary>
-        public const float LampPostZ = -2.16f;
+        public const float LampPostZ = -2.26f;
 
         /// <summary>
         /// The local positions of the FIXED obstacles on the street - the
@@ -2748,6 +2759,24 @@ namespace Lokanta.Game
             return free;
         }
 
+        /// <summary>
+        /// How wide a prefab actually is, measured rather than written down.
+        ///
+        /// The fallback is only for the case where the prefab is missing; a
+        /// number in this file that claims to be a furniture width is a copy
+        /// of one that lives in Editor/ArtPrefabs, and copies drift - which is
+        /// exactly what happened to the wash room's spacing.
+        /// </summary>
+        private static float UnitWidth(GameObject prefab, float fallback)
+        {
+            if (prefab == null) return fallback;
+            Renderer[] rs = prefab.GetComponentsInChildren<Renderer>(true);
+            if (rs.Length == 0) return fallback;
+            Bounds b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            return b.size.x > 0.05f ? b.size.x : fallback;
+        }
+
         /// <summary>Builds a station at the origin; the layout moves it afterwards.</summary>
         private KitchenStation MakeStation(int station, Simulation sim)
         {
@@ -2933,14 +2962,27 @@ namespace Lokanta.Game
             // left".
             //
             // Paths.BackDoorClear is the far jamb of that gap; the first unit
-            // stands half its own width beyond it. What is left is 2.87 m
-            // between the first and last centres for four units 0.84 m wide,
-            // so they sit 0.96 m apart with 0.12 m of air between neighbours.
-            float from = r.X0 + Paths.BackDoorClear + 0.45f;
-            float to = r.X0 + r.W - 0.48f;
+            // stands half its own width beyond it.
+            //
+            // THE PITCH COMES FROM THE UNIT, NOT FROM THE ROOM. It used to
+            // spread the four evenly between the doorway and the far wall,
+            // which was right for units 0.84 m wide and wrong the moment they
+            // were not: when the kitchen furniture came down to the figure's
+            // scale (Editor/ArtPrefabs) the units shrank to 0.63 and the row
+            // opened into four islands with a third of a metre of daylight
+            // between each. A run of units is a RUN - they touch.
+            //
+            // 0.10 m of air, which is what a line of cabinets has.
+            float unitW = UnitWidth(SinkPrefab, 0.63f);
+            float pitch = unitW + 0.10f;
+            float from = r.X0 + Paths.BackDoorClear + unitW * 0.5f;
+            // If the row would run past the far wall, close the gaps until it
+            // fits rather than letting the last unit through the wall.
+            float room = (r.X0 + r.W - 0.12f - unitW * 0.5f) - from;
+            if (pitch * 3f > room && room > 0f) pitch = room / 3f;
             float[] xs = new float[4];
             for (int i = 0; i < 4; i++)
-                xs[i] = from + (to - from) * (i / 3f);
+                xs[i] = from + pitch * i;
 
             // BY THE FLOW: dirty on the RIGHT, clean on the LEFT.
             //
@@ -2979,7 +3021,11 @@ namespace Lokanta.Game
                 // once and held (see _washPost) - not recomputed per frame,
                 // because two figures swapping posts every frame is worse to
                 // look at than two figures sharing one.
-                _washSpots.Add(new Vector3(sink, 0f, sinkZ - 0.75f));
+                // 0.75 -> 0.60. The unit is three quarters of the depth it
+                // used to be (KitchenStation.FurnitureScale, and the sink
+                // prefab with it), so a figure standing where it used to
+                // stand would be a step back from the basin.
+                _washSpots.Add(new Vector3(sink, 0f, sinkZ - 0.60f));
                 _sinkUnit.Add(UnitTopArea(unit));
                 _sinkWater.Add(TapWater(sink, sinkTop, sinkZ));
                 _sinkFill.Add(Basin(unit, sink, sinkTop, sinkZ));
@@ -2987,7 +3033,7 @@ namespace Lokanta.Game
             }
 
             // WHERE THE COOK PICKS UP A PLATE: in front of the clean stack.
-            _plateSpot = new Vector3(leftX, 0f, stackZ - 0.75f);
+            _plateSpot = new Vector3(leftX, 0f, stackZ - 0.60f);
         }
 
         /// <summary>
@@ -4594,8 +4640,18 @@ namespace Lokanta.Game
                 KitchenStation st = _stations[i];
                 if (st == null || !st.gameObject.activeSelf) continue;
 
-                Vector3 local = st.transform.InverseTransformPoint(
-                    transform.TransformPoint(p));
+                // ROTATION ONLY, NOT THE FULL INVERSE TRANSFORM.
+                //
+                // InverseTransformPoint divides by the station's localScale,
+                // and the stations carry one now
+                // (KitchenStation.FurnitureScale). Width and Depth are
+                // MEASURED off world bounds, so they are in world metres;
+                // comparing them against a local-space offset made the box
+                // 1/0.75 too small and the check quietly stopped seeing a
+                // third of what it was built for. Un-rotating by hand keeps
+                // both sides in world units whatever the scale becomes.
+                Vector3 d = transform.TransformPoint(p) - st.transform.position;
+                Vector3 local = Quaternion.Inverse(st.transform.rotation) * d;
                 float ex = st.Width * 0.5f + halfBody - Mathf.Abs(local.x);
                 float ez = st.Depth * 0.5f + halfBody - Mathf.Abs(local.z);
                 if (ex <= 0f || ez <= 0f) continue;

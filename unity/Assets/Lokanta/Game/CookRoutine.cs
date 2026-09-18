@@ -172,7 +172,7 @@ namespace Lokanta.Game
                     // remembered coordinate.
                     if (_cold == null) { Go(Stage.Take); break; }
                     if (Walk(_cold.localPosition
-                             + _cold.localRotation * new Vector3(0f, 0f, -0.95f),
+                             + _cold.localRotation * new Vector3(0f, 0f, -0.95f * KitchenStation.FurnitureScale),
                              _cold.localPosition)) Go(Stage.Take);
                     break;
 
@@ -342,7 +342,7 @@ namespace Lokanta.Game
         {
             if (_stove == null) return Paths.KitchenPost(_station, _posts);
             return _stove.localPosition
-                   + _stove.localRotation * new Vector3(0f, 0f, -0.95f);
+                   + _stove.localRotation * new Vector3(0f, 0f, -0.95f * KitchenStation.FurnitureScale);
         }
 
         private GameObject Ingredient()

@@ -523,6 +523,7 @@ namespace Lokanta.Game
             SkyBands(left, right, back);
             Planters(m, p, left, right);
             Splashback(m, p, tables);
+            OverTheLine(m, glow, p, tables);
             KitchenHood(m, p, tables);
             ServiceCounter(m, glow, p, tables);
             TrayStation(m, glow, p, tables);
@@ -895,6 +896,122 @@ namespace Lokanta.Game
         }
 
         /// <summary>
+        /// THE ONE THING ABOVE THE LINE THAT IS NOT THE SAME IN BOTH KITCHENS.
+        ///
+        /// The two kitchens held the same shapes. They differ in WHICH
+        /// stations they own - a domed stone oven and a turning spit against a
+        /// shake machine and a waffle press - but those stand down the SIDE
+        /// walls, because the back wall is the hot line and the shared
+        /// stations land there in content order (BuildKitchen). So the wall
+        /// the camera looks straight at was a row of stainless boxes under a
+        /// stainless hood in both, and the splashback and the kick strip
+        /// changed its COLOUR without changing its outline.
+        ///
+        /// This is the outline. It sits in the band between the worktop and
+        /// the hood - which is the strip of wall a 34 degree camera sees most
+        /// of - and it is a different object in each cuisine, not the same
+        /// object painted twice:
+        ///
+        ///   fast food  A HEAT-LAMP PASS. A steel shelf on two brackets with
+        ///              a row of orange lamps under it, where the burgers wait
+        ///              to be carried out. Every burger bar has one and it is
+        ///              the only warm light in that room; a lokanta has none.
+        ///
+        ///   turkish    A HANGING POT RAIL. A rail on two drops with copper
+        ///              pans of three different sizes on it. It is the hook
+        ///              rail of a tradesman's kitchen, and its silhouette is
+        ///              round against the line's rectangles.
+        ///
+        /// The lamps go into the GLOW modeler, like every other emissive
+        /// thing here: a lit material draws a lamp as a dark panel, which this
+        /// project learned on the oven.
+        /// </summary>
+        private void OverTheLine(Modeler m, Modeler glow, Palette p, int tables)
+        {
+            if (HoodTo - HoodFrom < 0.5f) return;
+
+            const float S = KitchenStation.FurnitureScale;
+            for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+            {
+                RoomPlan.Room r = RoomPlan.Rooms[i];
+                if (r.Name != "Kitchen") continue;
+                if (!RoomPlan.RoomOpen(in r, tables)) return;
+
+                // Centred on the run that was actually laid, not on the room -
+                // the same measurement the hood is sized from.
+                float x = (HoodFrom + HoodTo) * 0.5f;
+                float w = Mathf.Min(HoodTo - HoodFrom, r.W - 1.6f) * 0.72f;
+                if (w < 0.6f) return;
+                float z = r.Z0 + r.D - 0.36f;
+                float y = 1.06f * S;
+
+                if (SelfService)
+                {
+                    // The shelf, its two brackets, and the lamps under it.
+                    m.Box(new Vector3(x, y, z), new Vector3(w, 0.035f * S, 0.34f * S),
+                          p.Metal);
+                    for (int k = 0; k < 2; k++)
+                        m.Box(new Vector3(x + (k == 0 ? -1f : 1f) * (w * 0.5f - 0.05f),
+                                          y + 0.11f * S, z),
+                              new Vector3(0.035f * S, 0.22f * S, 0.035f * S), p.Metal);
+                    m.Box(new Vector3(x, y + 0.22f * S, z),
+                          new Vector3(w, 0.03f * S, 0.30f * S), p.Metal);
+
+                    // ON THE FRONT EDGE, NOT UNDERNEATH.
+                    //
+                    // A heat lamp hangs under the shelf, and the first version
+                    // put them there - where a camera looking DOWN at 34
+                    // degrees cannot see them. The shelf appeared and the
+                    // light did not, which is this project's oldest failure
+                    // shape: the thing was built, it was the right colour, and
+                    // it was facing away from the only viewpoint there is.
+                    //
+                    // The lamps read off the shelf's front face, which is the
+                    // face the room sees.
+                    int lamps = Mathf.Max(3, Mathf.RoundToInt(w / 0.62f));
+                    float dx = w / lamps;
+                    for (int k = 0; k < lamps; k++)
+                        glow.Box(new Vector3(x - w * 0.5f + dx * (k + 0.5f),
+                                             y + 0.01f * S, z - 0.17f * S),
+                                 new Vector3(dx * 0.68f, 0.055f * S, 0.02f * S),
+                                 // AMBER, NOT THE SIGN'S COLOUR. A heat lamp
+                                 // is an infrared bulb and it is orange; the
+                                 // sign is the identity's coral, which after
+                                 // docs/60 softened it does not read as heat
+                                 // at midday. It is also a hue this room does
+                                 // not otherwise contain, which is half of
+                                 // what the object is here to do.
+                                 new Color(1.000f, 0.616f, 0.259f));
+                }
+                else
+                {
+                    // The rail, its two drops, and the pans hanging off it.
+                    m.Box(new Vector3(x, y + 0.20f * S, z),
+                          new Vector3(w, 0.03f * S, 0.03f * S), p.Metal);
+                    for (int k = 0; k < 2; k++)
+                        m.Box(new Vector3(x + (k == 0 ? -1f : 1f) * (w * 0.5f),
+                                          y + 0.28f * S, z),
+                              new Vector3(0.03f * S, 0.20f * S, 0.03f * S), p.Metal);
+
+                    int pans = Mathf.Max(3, Mathf.RoundToInt(w / 0.52f));
+                    float px = w / pans;
+                    for (int k = 0; k < pans; k++)
+                    {
+                        // Three sizes in rotation: a rail of identical pans
+                        // reads as a fence.
+                        float rad = (k % 3 == 0) ? 0.17f : ((k % 3 == 1) ? 0.13f : 0.20f);
+                        float cx = x - w * 0.5f + px * (k + 0.5f);
+                        m.Box(new Vector3(cx, y + 0.13f * S, z),
+                              new Vector3(0.02f * S, 0.14f * S, 0.02f * S), p.Metal);
+                        m.Prism(10, rad * S, rad * 0.92f * S, 0.11f * S,
+                                new Vector3(cx, y - 0.02f * S, z),
+                                Quaternion.Euler(90f, 0f, 0f), p.Accent);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// THE TILED WALL BEHIND THE KITCHEN LINE.
         ///
         /// docs/60 finished with the kitchen still the most monochrome room
@@ -949,8 +1066,12 @@ namespace Lokanta.Game
 
                 // From just above a 0.92 m worktop to just under whatever is
                 // above it.
-                const float y0 = 0.90f;
-                const float y1 = 1.42f;
+                // OFF THE FURNITURE SCALE, not off two more written numbers.
+                // The band has to start at the worktop and stop under the
+                // hood, and both of those now move with one constant.
+                const float S = KitchenStation.FurnitureScale;
+                const float y0 = 0.90f * S;
+                const float y1 = 1.46f * S;
                 const float h = y1 - y0;
 
                 m.Box(new Vector3(r.CenterX, y0 + h * 0.5f, z),
@@ -995,7 +1116,20 @@ namespace Lokanta.Game
                 // to sit at 1.44 m and an oven is 1.52 - the hood was cutting
                 // through the oven's top. A real extraction hood clears the
                 // equipment by about a hand's width.
-                float mouth = Mathf.Max(1.44f, HoodTop + 0.12f);
+                // THE HOOD IS SIZED OFF THE LINE, IN BOTH DIRECTIONS.
+                //
+                // The floor used to be a written number (1.44, then 1.10) and
+                // the box a set of written numbers (0.32 deep, 0.78 across).
+                // When the line came down to the figure's scale the hood did
+                // not, so a 0.66 m run of equipment stood under a canopy from
+                // a full-sized kitchen - the one object in the room still
+                // drawn at the old scale, and the biggest.
+                //
+                // HoodTop is MEASURED off the built line. The clearance and
+                // the canopy now scale with the furniture, so a hood is a
+                // hood at any scale and this cannot come apart again.
+                const float S = KitchenStation.FurnitureScale;
+                float mouth = Mathf.Max(1.10f * S, HoodTop + 0.12f * S);
 
                 // The body: a funnel widening downwards.
                 // THE HOOD IS STEEL IN EVERY CUISINE.
@@ -1004,12 +1138,12 @@ namespace Lokanta.Game
                 // stood in the Turkish kitchen as a GOLD box. A hood is not
                 // decoration but equipment; it is stainless in every restaurant.
                 Color steel = new Color(0.576f, 0.612f, 0.659f);
-                m.Box(new Vector3(x, mouth + 0.19f, z), new Vector3(w, 0.32f, 0.78f),
+                m.Box(new Vector3(x, mouth + 0.19f * S, z), new Vector3(w, 0.32f * S, 0.78f * S),
                       steel);
-                m.Box(new Vector3(x, mouth + 0.42f, z),
+                m.Box(new Vector3(x, mouth + 0.42f * S, z),
                       new Vector3(w * 0.45f, 0.26f, 0.44f), steel);
                 // The lower mouth: a dark strip, the mouth of the funnel.
-                m.Box(new Vector3(x, mouth, z), new Vector3(w - 0.12f, 0.06f, 0.70f),
+                m.Box(new Vector3(x, mouth, z), new Vector3(w - 0.12f, 0.06f * S, 0.70f * S),
                       p.WallTrim);
                 return;
             }
@@ -1358,6 +1492,20 @@ namespace Lokanta.Game
 
         private void ServiceCounter(Modeler m, Modeler glow, Palette p, int tables)
         {
+            // THE VERTICAL DIMENSIONS ARE ON THE FURNITURE SCALE.
+            //
+            // This counter is built in code and was drawn at real-world
+            // heights - a 0.84 m body, a 1.68 m drinks machine - like the
+            // kitchen prefabs were before Editor/ArtPrefabs brought them down
+            // to the figure's scale. Once the sinks and the stations shrank,
+            // it stood over them by a third.
+            //
+            // ONLY THE VERTICAL. The counter's LENGTH comes from the room
+            // (r.W - 1.5) and the queue stands at its depth; shrinking those
+            // would move the layout, not the proportion. What was wrong was
+            // its height against a figure, and that is what S corrects.
+            const float S = KitchenStation.FurnitureScale;
+
             for (int i = 0; i < RoomPlan.Rooms.Length; i++)
             {
                 RoomPlan.Room r = RoomPlan.Rooms[i];
@@ -1373,8 +1521,8 @@ namespace Lokanta.Game
                 Color steel = new Color(0.588f, 0.624f, 0.671f);
 
                 // The body and the counter top.
-                m.Box(new Vector3(x, 0.42f, z), new Vector3(w, 0.84f, 0.62f), p.Wood);
-                m.Box(new Vector3(x, 0.86f, z), new Vector3(w + 0.08f, 0.06f, 0.70f),
+                m.Box(new Vector3(x, 0.42f * S, z), new Vector3(w, 0.84f * S, 0.62f), p.Wood);
+                m.Box(new Vector3(x, 0.86f * S, z), new Vector3(w + 0.08f, 0.06f * S, 0.70f),
                       steel);
 
                 // The hot trays: in a row on the counter.
@@ -1383,13 +1531,13 @@ namespace Lokanta.Game
                 for (int k = 0; k < pans; k++)
                 {
                     float kx = x - w * 0.5f + dx * (k + 0.5f);
-                    m.Box(new Vector3(kx, 0.91f, z), new Vector3(dx - 0.07f, 0.05f, 0.44f),
+                    m.Box(new Vector3(kx, 0.91f * S, z), new Vector3(dx - 0.07f, 0.05f * S, 0.44f),
                           steel);
                     // The food in them: in the identity's accent colour. There is
                     // no need to model the dishes one by one - from a distance a
                     // display counter reads as a row of colours anyway.
-                    m.Box(new Vector3(kx, 0.945f, z),
-                          new Vector3(dx - 0.13f, 0.03f, 0.36f),
+                    m.Box(new Vector3(kx, 0.945f * S, z),
+                          new Vector3(dx - 0.13f, 0.03f * S, 0.36f),
                           k % 2 == 0 ? p.Accent : p.Sign);
                 }
 
@@ -1407,10 +1555,10 @@ namespace Lokanta.Game
                 float sw = SelfService ? w * 0.60f : w;
                 for (int k = 0; k < 2; k++)
                     m.Box(new Vector3(x + (k == 0 ? -1f : 1f) * (sw * 0.5f - 0.05f),
-                                      1.12f, z - 0.24f),
-                          new Vector3(0.05f, 0.46f, 0.05f), steel);
-                m.Box(new Vector3(x, 1.34f, z - 0.10f),
-                      new Vector3(sw, 0.05f, 0.34f), steel);
+                                      1.12f * S, z - 0.24f),
+                          new Vector3(0.05f, 0.46f * S, 0.05f), steel);
+                m.Box(new Vector3(x, 1.34f * S, z - 0.10f),
+                      new Vector3(sw, 0.05f * S, 0.34f), steel);
 
                 // --- THE SELF-SERVICE COUNTER -------------------------
                 //
@@ -1434,14 +1582,14 @@ namespace Lokanta.Game
                         float kx = x + (k == 0 ? -1f : 1f) * (w * 0.5f - 0.40f);
                         // The body stands on the counter, facing THE GUEST'S SIDE
                         // (small z = towards the hall).
-                        m.Box(new Vector3(kx, 1.01f, z - 0.06f),
-                              new Vector3(0.36f, 0.24f, 0.30f), p.WallTrim);
+                        m.Box(new Vector3(kx, 1.01f * S, z - 0.06f),
+                              new Vector3(0.36f, 0.24f * S, 0.30f), p.WallTrim);
                         // The screen: the thing that makes a till a till. Not tilted
                         // slightly back - upright reads better with this camera.
-                        m.Box(new Vector3(kx, 1.30f, z + 0.02f),
-                              new Vector3(0.30f, 0.34f, 0.05f), p.WallTrim);
-                        glow.Box(new Vector3(kx, 1.31f, z - 0.02f),
-                                 new Vector3(0.24f, 0.26f, 0.02f), p.Lamp);
+                        m.Box(new Vector3(kx, 1.30f * S, z + 0.02f),
+                              new Vector3(0.30f, 0.34f * S, 0.05f), p.WallTrim);
+                        glow.Box(new Vector3(kx, 1.31f * S, z - 0.02f),
+                                 new Vector3(0.24f, 0.26f * S, 0.02f), p.Lamp);
                     }
 
                     // The drinks machine: at the end of the counter, a full-height
@@ -1451,17 +1599,17 @@ namespace Lokanta.Game
                     // disappears against a dark floor - in the first frame the
                     // machine read as "a red plate floating in the air").
                     float mx = x + w * 0.5f + 0.34f;
-                    m.Box(new Vector3(mx, 0.84f, z), new Vector3(0.52f, 1.68f, 0.56f),
+                    m.Box(new Vector3(mx, 0.84f * S, z), new Vector3(0.52f, 1.68f * S, 0.56f),
                           steel);
-                    m.Box(new Vector3(mx, 1.30f, z - 0.29f),
-                          new Vector3(0.44f, 0.66f, 0.03f), p.Accent);
+                    m.Box(new Vector3(mx, 1.30f * S, z - 0.29f),
+                          new Vector3(0.44f, 0.66f * S, 0.03f), p.Accent);
                     // The taps: three small projections.
                     for (int k = 0; k < 3; k++)
-                        m.Box(new Vector3(mx - 0.16f + 0.16f * k, 0.90f, z - 0.31f),
-                              new Vector3(0.05f, 0.09f, 0.07f), p.WallTrim);
+                        m.Box(new Vector3(mx - 0.16f + 0.16f * k, 0.90f * S, z - 0.31f),
+                              new Vector3(0.05f, 0.09f * S, 0.07f), p.WallTrim);
                     // The cup recess: a dark hollow.
-                    m.Box(new Vector3(mx, 0.68f, z - 0.30f),
-                          new Vector3(0.30f, 0.34f, 0.05f), p.Wall);
+                    m.Box(new Vector3(mx, 0.68f * S, z - 0.30f),
+                          new Vector3(0.30f, 0.34f * S, 0.05f), p.Wall);
                 }
                 return;
             }
@@ -1488,6 +1636,20 @@ namespace Lokanta.Game
         /// </summary>
         private void TrayStation(Modeler m, Modeler glow, Palette p, int tables)
         {
+            // THE VERTICAL DIMENSIONS ARE ON THE FURNITURE SCALE.
+            //
+            // This counter is built in code and was drawn at real-world
+            // heights - a 0.84 m body, a 1.68 m drinks machine - like the
+            // kitchen prefabs were before Editor/ArtPrefabs brought them down
+            // to the figure's scale. Once the sinks and the stations shrank,
+            // it stood over them by a third.
+            //
+            // ONLY THE VERTICAL. The counter's LENGTH comes from the room
+            // (r.W - 1.5) and the queue stands at its depth; shrinking those
+            // would move the layout, not the proportion. What was wrong was
+            // its height against a figure, and that is what S corrects.
+            const float S = KitchenStation.FurnitureScale;
+
             if (!SelfService) return;
 
             for (int i = 0; i < RoomPlan.Rooms.Length; i++)
@@ -1500,26 +1662,26 @@ namespace Lokanta.Game
                 float z = r.Z0 + 1.90f;
 
                 // The body and the top.
-                m.Box(new Vector3(x, 0.44f, z), new Vector3(0.62f, 0.88f, 1.20f),
+                m.Box(new Vector3(x, 0.44f * S, z), new Vector3(0.62f, 0.88f * S, 1.20f),
                       p.WallTrim);
-                m.Box(new Vector3(x, 0.90f, z), new Vector3(0.68f, 0.06f, 1.26f),
+                m.Box(new Vector3(x, 0.90f * S, z), new Vector3(0.68f, 0.06f * S, 1.26f),
                       p.Metal);
 
                 // The waste mouth: a dark hollow facing forwards. It is the
                 // only thing that tells the station apart from a cabinet.
-                m.Box(new Vector3(x + 0.30f, 0.60f, z),
-                      new Vector3(0.06f, 0.34f, 0.74f), p.Wall);
+                m.Box(new Vector3(x + 0.30f, 0.60f * S, z),
+                      new Vector3(0.06f, 0.34f * S, 0.74f), p.Wall);
 
                 // A stack of trays on top: three thin slabs, slightly offset.
                 for (int k = 0; k < 3; k++)
-                    m.Box(new Vector3(x - 0.02f * k, 0.95f + 0.045f * k, z - 0.34f),
-                          new Vector3(0.46f, 0.035f, 0.40f), p.Accent);
+                    m.Box(new Vector3(x - 0.02f * k, (0.95f + 0.045f * k) * S, z - 0.34f),
+                          new Vector3(0.46f, 0.035f * S, 0.40f), p.Accent);
 
                 // A small glowing plate: "leave your tray here".
-                m.Box(new Vector3(x, 1.42f, z), new Vector3(0.08f, 0.98f, 0.08f),
+                m.Box(new Vector3(x, 1.42f * S, z), new Vector3(0.08f, 0.98f * S, 0.08f),
                       p.WallTrim);
-                glow.Box(new Vector3(x - 0.04f, 1.78f, z),
-                         new Vector3(0.03f, 0.30f, 0.56f), p.Sign);
+                glow.Box(new Vector3(x - 0.04f, 1.78f * S, z),
+                         new Vector3(0.03f, 0.30f * S, 0.56f), p.Sign);
                 return;
             }
         }
@@ -1544,7 +1706,9 @@ namespace Lokanta.Game
 
                 for (int k = 0; k < 2; k++)
                 {
-                    float y = 1.16f + k * 0.44f;
+                    // The wall shelves hang over the counter, so they come
+                    // down with it rather than with a number of their own.
+                    float y = (1.16f + k * 0.44f) * KitchenStation.FurnitureScale;
                     m.Box(new Vector3(r.CenterX, y, z),
                           new Vector3(w, 0.05f, 0.30f), p.Wood);
 

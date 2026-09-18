@@ -185,18 +185,20 @@ reasoning written next to it announces when its reasoning expires.
 
 ## 6. Still open
 
-- **The scale.** The figures are about a metre and the furniture is at adult
-  scale, so the dishwasher cannot put their hands in the basin and the plate is
-  held at chest height. It is a chosen style, not a defect, but it caps how
-  convincing the working animations can be.
+- ~~**The scale.**~~ **Done** in [61](61-scale-and-silhouette.md), and it was
+  not the chosen style after all: the HALL furniture had already been brought
+  down to the figure's size and the kitchen had not, so one building held
+  furniture drawn to two scales. The characters stay as they are, which was the
+  user's call.
 - **The two cuisines still differ mainly by temperature**, not by silhouette.
   The kick strip and the four materials help; a Turkish kitchen that is visibly
   a different SHAPE from a fast food one would help more.
 - The room badges read as floating progress bars in a wide shot.
-- **The two kitchens still hold the same shapes.** A tiled splashback (below)
-  and four materials are an improvement on one grey, but stainless is
-  stainless: what would really separate them is a different SHAPE, and that is
-  a modelling job rather than a palette one.
+- ~~**The two kitchens still hold the same shapes.**~~ **Done** in
+  [61](61-scale-and-silhouette.md): the band between the worktop and the hood
+  carries a different OBJECT in each cuisine - a heat-lamp pass against a
+  hanging copper pot rail - which is the outline the splashback and the kick
+  strip could only recolour.
 
 ## 7. The splashback, which was the next step and is now done
 
