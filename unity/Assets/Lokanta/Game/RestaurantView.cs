@@ -318,8 +318,20 @@ namespace Lokanta.Game
         // (CameraFit.OpenBounds), and an expansion is now really an OPENING:
         // the room appears where there was none. The touch collider went too -
         // touching a closed room took the camera to an empty slab.
-        public Color RoomKitchen = new Color(0.22f, 0.24f, 0.27f);
-        public Color RoomService = new Color(0.25f, 0.25f, 0.24f);
+        // THE BACK OF HOUSE IS COOLER AND PLAINER THAN THE HALL - NOT
+        // DARKER BY A THIRD.
+        //
+        // 0.22 and 0.25 are near-black, and RoomColor mixed 65% of them into
+        // the floor, so the kitchen and the wash room came out at half the
+        // value of the room next door whatever the palette said. That is the
+        // distinction being made with the one channel that also decides
+        // whether a surface is comfortable to look at.
+        //
+        // The distinction survives at these values - a cool neutral against a
+        // warm plank floor still says "this is the working side" - and it is
+        // now made with HUE, which costs the eye nothing.
+        public Color RoomKitchen = new Color(0.478f, 0.498f, 0.529f);
+        public Color RoomService = new Color(0.498f, 0.494f, 0.475f);
 
         private readonly List<Transform> _tables = new List<Transform>();
         private readonly List<TableBadge> _badges = new List<TableBadge>();
@@ -2466,8 +2478,8 @@ namespace Lokanta.Game
             // than the dimmest.
             if (r.IsDining) return p.Floor;
             if (r.Name == "Kitchen" || r.Name == "Sink")
-                return Color.Lerp(p.FloorDark, RoomKitchen, 0.65f);
-            return Color.Lerp(p.FloorDark, RoomService, 0.65f);
+                return Color.Lerp(p.FloorDark, RoomKitchen, 0.5f);
+            return Color.Lerp(p.FloorDark, RoomService, 0.5f);
         }
 
         /// The furnishings of the service rooms. The kitchen has stoves and a
@@ -2739,9 +2751,26 @@ namespace Lokanta.Game
         /// <summary>Builds a station at the origin; the layout moves it afterwards.</summary>
         private KitchenStation MakeStation(int station, Simulation sim)
         {
+            // THE KICK STRIP IS THE CUISINE'S ONE BRUSHSTROKE ON THE
+            // EQUIPMENT, and it is deliberately the least important part.
+            //
+            // The appliances are stainless in every restaurant and the project
+            // has already learned what happens when the palette's metal goes
+            // to all of them ("the kitchen turned GOLD"). But a line built
+            // from one grey reads as one object however many shapes are in it,
+            // and the two kitchens then differ only by which machines they
+            // contain. A 10 cm strip at floor level, running under the whole
+            // row, does what a skirting board does for a room: it grounds the
+            // run and carries the temperature of the place. Turkish gets a
+            // warm brown from its wainscot, fast food a cool slate from its
+            // panels - each of them a colour already in that cuisine's room.
+            Palette pal = Pal(CuisineId);
+            Color kick = Color.Lerp(pal.WainscotColor,
+                                    new Color(0.255f, 0.243f, 0.251f), 0.45f);
+
             KitchenStation s = KitchenStation.Build(
                 transform, sim.StationId(station), sim.StationTier(station),
-                Vector3.zero, 0f, _floorMat, _badgeMat, _block);
+                Vector3.zero, 0f, _floorMat, _badgeMat, _block, kick);
             if (s == null) return null;
             _stations.Add(s);
             _stationOf.Add(station);

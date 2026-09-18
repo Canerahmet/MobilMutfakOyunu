@@ -183,7 +183,7 @@ namespace Lokanta.Game
                     new Color(1.00f, 0.97f, 0.93f),
                     new Color(1.00f, 0.85f, 0.66f),
                     new Color(0.62f, 0.55f, 0.72f));
-                Sun.intensity = Curve(t, 1.05f, 1.55f, 1.25f, 0.32f);
+                Sun.intensity = Curve(t, 1.15f, 1.70f, 1.38f, 0.32f);
             }
 
             // THE FILL LIGHT = AN IMITATION OF BOUNCE.
@@ -212,13 +212,48 @@ namespace Lokanta.Game
                     new Color(0.74f, 0.80f, 0.94f),
                     new Color(0.86f, 0.76f, 0.72f),
                     new Color(0.94f, 0.78f, 0.60f));
-                Fill.intensity = Curve(t, 0.50f, 0.58f, 0.52f, 0.75f);
+                // THE INSIDE WAS RECEIVING 40% OF THE LIGHT THE OUTSIDE GETS,
+                // AND THAT IS WHY THE FLOOR LOOKED TIRING.
+                //
+                // Measured off the noon frames: the pavement reads 43% value
+                // and every indoor surface 17-23%, in both cuisines, whatever
+                // colour it is authored. The building has walls on three
+                // sides and no ceiling, so the key light rakes across it and
+                // the rooms sit in their own shadow - and no palette change
+                // can lift a surface the light does not reach. Lightening the
+                // floor from 0.40 to 0.60 moved it from 14% to 17%.
+                //
+                // The fill is the shadowless counter-light and it is the one
+                // control that reaches into a roofless room. 0.58 -> 0.82 at
+                // midday, lifted across the day but NOT at night, where the
+                // darkness is the point and the lamps do the work.
+                //
+                // This also improves the figure/ground ratio docs/58 measured
+                // rather than spending it: the subject gets brighter while the
+                // background stays where that work put it.
+                // AND THEN PULLED BACK FROM 1.00, BECAUSE A SHADOWLESS FILL
+                // AT FULL STRENGTH IS A FLAT ROOM.
+                //
+                // At 1.00 the interior stopped being dark and started being
+                // BLEACHED: the kitchen line came back from the render as a
+                // pale grey mass with no form in it, because the one light
+                // that reaches into a roofless room is also the one that
+                // casts nothing. Lifting a room and modelling it are two
+                // jobs and the fill only does the first.
+                //
+                // 0.85 for the lift, and the key light takes the rest
+                // (1.55 -> 1.70 at midday): the sun casts, so it is what
+                // gives an object its sides back.
+                Fill.intensity = Curve(t, 0.70f, 0.85f, 0.76f, 0.75f);
             }
 
+            // Raised with the fill, and for the same reason: with no global
+            // illumination and no baked light map, the ambient is the only
+            // bounce a roofless room has.
             RenderSettings.ambientLight = Mix(t,
-                new Color(0.30f, 0.32f, 0.39f),
-                new Color(0.38f, 0.39f, 0.43f),
-                new Color(0.35f, 0.31f, 0.31f),
+                new Color(0.38f, 0.40f, 0.46f),
+                new Color(0.47f, 0.48f, 0.52f),
+                new Color(0.44f, 0.40f, 0.39f),
                 // The night ambient does NOT go fully dark: the player has to
                 // be able to see which table is occupied. A dark atmosphere
                 // must not come at the price of a hall that cannot be read.

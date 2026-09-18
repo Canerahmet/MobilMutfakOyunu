@@ -89,9 +89,53 @@ namespace Lokanta.Game
         /// frame of the reference is exactly this - a red sign, a stainless
         /// counter, a black-and-red floor.
         ///
-        /// Turkish: warm brick and wood on the wall, COPPER light, a rug on
-        /// the floor. The second frame of the reference: brass lanterns, a
+        /// Turkish: warm plaster and wood on the wall, COPPER light, a rug
+        /// on the floor. The second frame of the reference: brass lanterns, a
         /// kilim, wooden lattice.
+        ///
+        /// ---------------------------------------------------------------
+        /// BOTH PALETTES WERE LIFTED AND SOFTENED, AND IT WAS MEASURED FIRST.
+        ///
+        /// The user's words: "the floor colour and the back wall colour are a
+        /// bit tiring to the eye", and "one colour may be what makes the game
+        /// boring - we could widen the palette a little, and softer colours
+        /// would be kinder to the eye".
+        ///
+        /// Sampling the noon renders rather than judging by eye
+        /// (render/hall_*_noon.png, 12 x 12 px patches) said the same thing
+        /// in numbers - the whole picture lived in the bottom third of the
+        /// value range:
+        ///
+        ///     surface        fast food     Turkish
+        ///     hall floor       29%           14%
+        ///     back wall        16%           19%
+        ///     table top        24%           32%
+        ///     pavement         43%           43%
+        ///     sky              28%           27%
+        ///
+        /// Nothing indoors reached 35%. The brightest thing in the frame was
+        /// a flat pavement, and the sky was DARKER than the ground it stood
+        /// over. A picture with no mid-tones has nothing for the eye to rest
+        /// on, and it has to be read by squinting - which is the tiring part.
+        ///
+        /// THE TWO BIGGEST SURFACES CARRY MOST OF IT, so the floor and the
+        /// wall move the furthest. Everything else follows one rule, applied
+        /// to every colour in both palettes:
+        ///
+        ///   LIFT THE VALUE, DROP THE CHROMA, KEEP THE HUE.
+        ///
+        /// The hue is the identity and it does not move: the Turkish room
+        /// stays warm and coppery, the fast food room stays cool with a red.
+        /// What changes is that they stop being dark and stop being pure. A
+        /// signal red (0.85/0.24/0.20) is a colour for a warning light, not
+        /// for a wall a player looks at for sixty days; the same red at
+        /// 0.81/0.40/0.33 still reads as the identity and stops shouting.
+        ///
+        /// AND EACH CUISINE GAINS A THIRD HUE, because two colours plus grey
+        /// is what "boring" looks like from the inside. Turkish had warm
+        /// brown and copper: the greenery and the plaster now make a third
+        /// and a fourth note. Fast food had slate and red: the laminate is
+        /// warm cream now, so its cool room has something warm in it.
         /// </summary>
         public static Palette Pal(string cuisine)
         {
@@ -99,18 +143,35 @@ namespace Lokanta.Game
             {
                 return new Palette
                 {
-                    Wall = new Color(0.290f, 0.196f, 0.137f),
-                    WallTrim = new Color(0.176f, 0.118f, 0.082f),
-                    Wood = new Color(0.424f, 0.282f, 0.173f),
-                    Metal = new Color(0.706f, 0.545f, 0.267f),
-                    Accent = new Color(0.804f, 0.561f, 0.239f),
-                    Sign = new Color(1.000f, 0.729f, 0.322f),
-                    Lamp = new Color(1.000f, 0.843f, 0.596f),
-                    Seat = new Color(0.451f, 0.192f, 0.176f),
-                    Plant = new Color(0.267f, 0.427f, 0.243f),
-                    Rug = new Color(0.478f, 0.161f, 0.133f),
-                    Floor = new Color(0.404f, 0.290f, 0.196f),
-                    FloorDark = new Color(0.341f, 0.239f, 0.161f),
+                    // THE WALL ABOVE THE WAINSCOT IS PLASTER, AND PLASTER IS
+                    // PALE. It was 0.29/0.20/0.14 - a dark brown that made the
+                    // room read as a cellar. A traditional lokanta has timber
+                    // to chair height and light plaster above it; that is the
+                    // contrast the wainscot exists for, and a dark wall threw
+                    // it away.
+                    Wall = new Color(0.616f, 0.529f, 0.443f),
+                    WallTrim = new Color(0.420f, 0.337f, 0.267f),
+                    Wood = new Color(0.561f, 0.416f, 0.286f),
+                    Metal = new Color(0.745f, 0.616f, 0.400f),
+                    Accent = new Color(0.816f, 0.639f, 0.404f),
+                    Sign = new Color(1.000f, 0.780f, 0.447f),
+                    Lamp = new Color(1.000f, 0.867f, 0.651f),
+                    // Burgundy -> terracotta. The old seat was nearly black at
+                    // this light level and every chair in the hall is one.
+                    Seat = new Color(0.580f, 0.345f, 0.325f),
+                    Plant = new Color(0.404f, 0.549f, 0.392f),
+                    // A FADED KILIM, NOT A NEW ONE. The rug covers almost the
+                    // whole of every dining room, so it IS the hall floor -
+                    // and a saturated red-brown over that much of the frame is
+                    // the single heaviest thing in the picture.
+                    Rug = new Color(0.741f, 0.569f, 0.494f),
+                    // THE FLOOR, WHICH IS THE BIGGEST SURFACE IN THE FRAME.
+                    // 0.40/0.29/0.20 measured 14% on screen - a dark red-brown
+                    // that swallowed the furniture standing on it. A pale oak
+                    // plank with most of the red taken out: the warmth is in
+                    // the hue, not in the darkness.
+                    Floor = new Color(0.604f, 0.518f, 0.427f),
+                    FloorDark = new Color(0.541f, 0.451f, 0.365f),
                     HasRug = true,
                     Planks = true,
 
@@ -122,18 +183,37 @@ namespace Lokanta.Game
                     // person's back: in real life a wainscot is there to protect
                     // against chair height, not as decoration.
                     Wainscot = 1.05f,
-                    WainscotColor = new Color(0.361f, 0.235f, 0.141f),
-                    WainscotCap = new Color(0.706f, 0.545f, 0.267f),
+                    WainscotColor = new Color(0.486f, 0.361f, 0.251f),
+                    WainscotCap = new Color(0.745f, 0.600f, 0.376f),
                     SeamStep = 0.85f,
                     // The outside is warm too: a neighbourhood, dusty midday light.
-                    Sky = new Color(0.82f, 0.68f, 0.48f),
+                    Sky = new Color(0.86f, 0.74f, 0.56f),
                 };
             }
 
             return new Palette
             {
-                Wall = new Color(0.173f, 0.184f, 0.212f),
-                WallTrim = new Color(0.106f, 0.114f, 0.133f),
+                // 0.17/0.18/0.21 measured 16% on screen: not a dark wall,
+                // a BLACK one. The identity here is "wipe-clean and cool",
+                // which a soft blue-grey says as well as a near-black does -
+                // and a near-black says it by removing the room.
+                // WARM, AND THAT IS WHAT MAKES THE STAINLESS READ.
+                //
+                // The first lift took this to a light COOL grey and the fast
+                // food kitchen came back from the render washed out, while
+                // the Turkish one - identical equipment - read perfectly.
+                // The difference was behind the line, not in it: steel is a
+                // cool grey, and a cool grey wall behind a cool grey
+                // appliance is one surface. The Turkish kitchen works because
+                // its plaster and timber give the metal something to sit
+                // against.
+                //
+                // So the fast food wall keeps its lightness and turns warm.
+                // The room is still the cool one - that lives in the floor,
+                // the steel band and the tables, against a coral accent - and
+                // now its equipment has an edge.
+                Wall = new Color(0.561f, 0.541f, 0.514f),
+                WallTrim = new Color(0.361f, 0.349f, 0.329f),
                 // THE FURNITURE: LAMINATE, NOT WOOD.
                 //
                 // Putting the two halls SIDE BY SIDE (render/salon_*_oda.png)
@@ -146,10 +226,17 @@ namespace Lokanta.Game
                 // cold beige. A dark floor + a light top + a red cushion is the
                 // arrangement in all three of the frames the user brought. The
                 // Turkish side STAYS brown wood.
-                Wood = new Color(0.686f, 0.612f, 0.510f),
-                Metal = new Color(0.616f, 0.651f, 0.702f),
-                Accent = new Color(0.847f, 0.239f, 0.196f),
-                Sign = new Color(1.000f, 0.314f, 0.251f),
+                // Warmer as well as lighter: this is the cool room's THIRD
+                // NOTE, the one thing in it that is not slate or red.
+                Wood = new Color(0.792f, 0.725f, 0.627f),
+                Metal = new Color(0.694f, 0.722f, 0.765f),
+                // A SIGNAL RED IS FOR A WARNING LIGHT. 0.85/0.24/0.20 is as
+                // saturated as the colour gets, and it is on the sign, the
+                // counter, the cushions and the boards - every one of them in
+                // shot at once, for sixty days. The same hue at a third less
+                // chroma still reads as the identity from across the room.
+                Accent = new Color(0.816f, 0.400f, 0.337f),
+                Sign = new Color(1.000f, 0.482f, 0.404f),
                 // THE LAMP'S LIGHT IS SEPARATE FROM THE SIGN'S.
                 //
                 // In the first attempt the mouths of the pendants glowed in the
@@ -160,17 +247,28 @@ namespace Lokanta.Game
                 // The fast food chair is RED: in the first frame of the
                 // reference it is what gives the hall its colour. On the Turkish
                 // side it is dark burgundy - the same family, a different tone.
-                Seat = new Color(0.729f, 0.220f, 0.192f),
-                Plant = new Color(0.286f, 0.478f, 0.290f),
-                Rug = new Color(0.216f, 0.231f, 0.267f),
+                Seat = new Color(0.792f, 0.408f, 0.353f),
+                Plant = new Color(0.424f, 0.576f, 0.416f),
+                Rug = new Color(0.478f, 0.506f, 0.545f),
                 // THE FLOOR WAS LIGHTENED: 0.32/0.24 -> 0.42/0.33.
                 //
                 // The dark tile looked "shot at night" close up and swallowed
                 // the dark furniture standing on it. In the reference's fast
                 // food frame the floor is a MID tone; what gives the identity is
                 // not the darkness of the floor but the neon red and the steel.
-                Floor = new Color(0.420f, 0.435f, 0.467f),
-                FloorDark = new Color(0.325f, 0.341f, 0.373f),
+                // AND LIGHTENED AGAIN, for the same reason and with a
+                // measurement this time: 0.42/0.44/0.47 came out at 29% on
+                // screen, because what is authored is not what is lit. It is
+                // also warmed slightly - a cold grey floor under a cold grey
+                // wall was two thirds of the frame in one hue.
+                // AND ONCE MORE, WARMER. At 0.62 the tiles still came back
+                // from the render as night tarmac: the ambient in this
+                // pipeline is slightly blue, so a neutral floor under it is a
+                // blue floor, and blue plus dark is the one combination that
+                // reads as "outdoors, at night". A light warm grey is also
+                // the honest colour for a wipe-clean tile.
+                Floor = new Color(0.745f, 0.737f, 0.718f),
+                FloorDark = new Color(0.663f, 0.655f, 0.635f),
                 HasRug = false,
                 Planks = false,
 
@@ -180,11 +278,11 @@ namespace Lokanta.Game
                 // laminate panel joints and a stainless strip at counter height.
                 // NO wainscot - that is the language of a different place.
                 Wainscot = 1.15f,
-                WainscotColor = new Color(0.137f, 0.145f, 0.169f),
-                WainscotCap = new Color(0.616f, 0.651f, 0.702f),
+                WainscotColor = new Color(0.443f, 0.427f, 0.404f),
+                WainscotCap = new Color(0.706f, 0.733f, 0.776f),
                 SeamStep = 1.15f,
                 // The outside is cold and urban: a main road, tarmac, glass.
-                Sky = new Color(0.58f, 0.68f, 0.82f),
+                Sky = new Color(0.66f, 0.75f, 0.88f),
             };
         }
 
@@ -256,7 +354,13 @@ namespace Lokanta.Game
             Color? tint = null;
 
             if (srcName.Contains("carpet")) tint = p.Seat;
-            else if (srcName.Contains("wooddark")) tint = p.Wood * 0.72f;
+            // 0.72 -> 0.82. The dark wood is the chair frame, and there are
+            // four chairs to every table: once the floor and the wall had
+            // been lifted, the chairs were the heaviest dark mass left in the
+            // room. The two woods still read as two woods at 0.82 - the point
+            // of the darker one is that the frame is not the table top, not
+            // that it is nearly black.
+            else if (srcName.Contains("wooddark")) tint = p.Wood * 0.82f;
             else if (srcName.Contains("wood")) tint = p.Wood;
             // THE METAL IS NOT PAINTED.
             //
@@ -508,8 +612,19 @@ namespace Lokanta.Game
             _skyBands.Clear();
             if (_badgeMat == null) return;
 
+            // THE GRADIENT'S BRIGHT END WAS BEHIND THE BUILDING.
+            //
+            // The stack started at y = -1.5 and the bright band is the bottom
+            // one, so the only part of the gradient the camera could ever see
+            // was its DARK half - which is why a frame sampled at noon found
+            // 44% of its pixels in one bucket at 25% value. The sky was not
+            // flat because it had no gradient; it was flat because the half
+            // with the gradient in it was hidden behind a roof.
+            //
+            // It starts at the roof line now. Same eight bands, same cost.
             const int Bands = 8;
-            const float Height = 26f;
+            const float Height = 22f;
+            const float Base = 3.0f;
             const float Width = 90f;
 
             float cx = (left + right) * 0.5f;
@@ -525,7 +640,7 @@ namespace Lokanta.Game
                 band.name = "SkyBand" + i;
                 band.transform.SetParent(root.transform, false);
                 band.transform.localPosition =
-                    new Vector3(cx, (i + 0.5f) * (Height / Bands) - 1.5f, z);
+                    new Vector3(cx, Base + (i + 0.5f) * (Height / Bands), z);
                 band.transform.localScale =
                     new Vector3(Width, Height / Bands + 0.02f, 0.2f);
 
@@ -564,8 +679,25 @@ namespace Lokanta.Game
             for (int i = 0; i < _skyBands.Count; i++)
             {
                 if (_skyBands[i] == null) continue;
+                // A WIDER GRADIENT, BECAUSE THE BACKGROUND IS 40% OF THE
+                // FRAME AND IT WAS FLAT.
+                //
+                // Sampling a noon frame: 44% of every pixel fell in ONE
+                // colour bucket at 25% value - the field around the building.
+                // docs/58 darkened that field on purpose, and rightly: a
+                // bright sky outshone the subject and the eye slid off the
+                // building. But dark and FLAT are different problems, and
+                // only the first one was solved. 1.30 -> 0.66 is a range of
+                // half a stop over the whole sky; at these values that is
+                // eight bands nobody can tell apart.
+                //
+                // 1.85 -> 0.50 keeps the same average - so the figure/ground
+                // measurement docs/58 took is not spent - and gives the eye
+                // somewhere to travel: bright at the horizon behind the roof
+                // line, deep at the top of the frame, which is what a sky
+                // actually does.
                 float t = _skyBands.Count == 1 ? 0f : i / (float)(_skyBands.Count - 1);
-                float k = Mathf.Lerp(1.30f, 0.66f, t);
+                float k = Mathf.Lerp(1.85f, 0.50f, t);
                 _skyBands[i].GetPropertyBlock(_block);
                 _block.SetColor(BaseColorId,
                                 new Color(sky.r * k, sky.g * k, sky.b * k, 1f));

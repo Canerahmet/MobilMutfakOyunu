@@ -21,20 +21,30 @@ not image processing at all: it is picking rectangles. The four skin swatches
 and the hair/shoe darks are left BYTE-IDENTICAL, and this tool asserts that
 rather than trusting it.
 
-THE TWO CROWDS, and the reason is figure/ground, not decoration:
+THE TWO CROWDS, and the reason is figure/ground, not decoration. Which
+means THE NUMBERS BELOW DEPEND ON THE ROOM, and when the room moved they had
+to move with it - see docs/60, where both palettes were lifted and softened.
 
-  fast food  the room is cold and dark (wall 0.173, 0.184, 0.212). A crowd
-             that is louder and brighter than the room reads off it, and
-             "loud" is what a burger bar's crowd is anyway: chroma up, a
-             small warm rotation.
+  fast food  the room WAS cold and dark (wall 0.173, 0.184, 0.212) and the
+             crowd answered it with chroma x1.30 - as loud as the swatches
+             go. The wall is 0.522, 0.549, 0.588 now: still cool, no longer
+             a hole. A crowd that was correct against a black room is the
+             most saturated thing in the frame against a mid one, so the
+             chroma comes back to x1.12. Still louder than the Turkish
+             crowd, still warm, no longer the loudest object on screen.
 
-  turkish    the room is warm brown wood with copper (wall 0.290, 0.196,
-             0.137). Saturated warm clothes would DISAPPEAR into it - the
-             same trap the daytime sky fell into (docs/58): a warm subject
-             on a warm ground. So the crowd goes washed and lighter and
-             turns very slightly cool: separation by VALUE, which survives
-             at the 32 dp a figure occupies in the overview, where a hue
-             difference does not.
+  turkish    the room WAS warm brown wood (wall 0.290, 0.196, 0.137), so the
+             crowd went washed and LIGHTER to separate by value - saturated
+             warm clothes would have disappeared into it.
+             That reasoning inverted when the wall became pale plaster
+             (0.616, 0.529, 0.443). Washed and lighter against a light warm
+             wall is the very trap the old note warns about, the other way
+             round: a pale subject on a pale ground. So the Turkish crowd
+             goes the other way now - a little deeper than the room and a
+             little more colour in it, still cool of the wall's hue.
+             Separation is still by VALUE, which survives at the 32 dp a
+             figure occupies in the overview where a hue difference does
+             not; only the SIGN of the difference has changed.
 
 Neither transform touches the hue ORDER, so twelve characters stay twelve
 different people in both.
@@ -101,8 +111,8 @@ SWATCHES = [
 # (chroma, value, hue rotation in degrees) per cuisine, applied to the "dress"
 # swatches only.
 CUISINE = {
-    "fastfood": (1.30, 1.06, +10.0),
-    "turk":     (0.62, 1.02, -12.0),
+    "fastfood": (1.12, 1.00, +10.0),
+    "turk":     (0.80, 0.92, -12.0),
 }
 
 

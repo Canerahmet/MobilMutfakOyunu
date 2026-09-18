@@ -49,17 +49,54 @@ namespace Lokanta.Game
         // restaurant; the cuisine shows up in the STATIONS THAT EXIST - a
         // stone oven and a doner spit against a fryer and a waffle iron - not
         // in the paint.
-        private static readonly Color Steel = new Color(0.588f, 0.624f, 0.671f);
-        private static readonly Color SteelDark = new Color(0.365f, 0.392f, 0.435f);
-        private static readonly Color Graphite = new Color(0.125f, 0.135f, 0.157f);
-        private static readonly Color Rubber = new Color(0.086f, 0.094f, 0.110f);
-        private static readonly Color Brick = new Color(0.475f, 0.318f, 0.255f);
-        private static readonly Color Plaster = new Color(0.792f, 0.757f, 0.706f);
-        private static readonly Color Oil = new Color(0.596f, 0.451f, 0.153f);
-        private static readonly Color Meat = new Color(0.639f, 0.349f, 0.243f);
-        private static readonly Color MeatCrust = new Color(0.506f, 0.267f, 0.180f);
-        private static readonly Color Chip = new Color(0.898f, 0.741f, 0.310f);
-        private static readonly Color Wood = new Color(0.565f, 0.424f, 0.267f);
+        //
+        // BUT "STAINLESS" WAS BEING READ AS "ONE COLOUR", AND IT IS NOT ONE.
+        //
+        // Twelve models were built and the line still came out as a grey band
+        // with two warm dots in it, because three greys of the same hue is a
+        // monochrome however many shapes are cut from it. A real kitchen line
+        // is stainless AND a worktop AND a dark plinth AND a painted carcass -
+        // four materials, not one, and they are what give a row of boxes its
+        // rhythm.
+        //
+        // So the family is now four hues rather than one, and every value is
+        // lifted: Graphite was 0.13, which at this light level is black, and
+        // it is on every door panel in the room.
+        //
+        //   Steel     the appliance skin, a light neutral with a little warmth
+        //   Worktop   the top surface: warm composite, the lightest thing here
+        //   Carcass   the body below it, a soft slate - NEW, and the biggest
+        //             single area in the line
+        //   Graphite  the dark panels: warm charcoal, not blue-black
+        // The spread between them matters as much as where they sit: at
+        // 0.68 / 0.82 / 0.48 the line read as one pale mass, because three
+        // light colours under a strong fill are one light colour. The
+        // carcass drops to 0.40 so the worktop has something to sit on.
+        private static readonly Color Steel = new Color(0.647f, 0.667f, 0.686f);
+        private static readonly Color Worktop = new Color(0.804f, 0.776f, 0.729f);
+        private static readonly Color SteelDark = new Color(0.404f, 0.427f, 0.463f);
+        private static readonly Color Graphite = new Color(0.255f, 0.243f, 0.251f);
+        private static readonly Color Rubber = new Color(0.169f, 0.161f, 0.169f);
+        private static readonly Color Brick = new Color(0.596f, 0.443f, 0.365f);
+        private static readonly Color Plaster = new Color(0.839f, 0.808f, 0.761f);
+        private static readonly Color Oil = new Color(0.647f, 0.514f, 0.251f);
+        private static readonly Color Meat = new Color(0.694f, 0.435f, 0.333f);
+        private static readonly Color MeatCrust = new Color(0.569f, 0.337f, 0.251f);
+        private static readonly Color Chip = new Color(0.902f, 0.780f, 0.424f);
+        private static readonly Color Wood = new Color(0.647f, 0.514f, 0.384f);
+
+        /// <summary>
+        /// The kick strip's colour, which is the ONE part of the equipment the
+        /// cuisine paints.
+        ///
+        /// The gold-kitchen failure is the reason this is a single named part
+        /// and not a parameter threaded through every box: it is a 10 cm strip
+        /// at floor level, under the whole run, and it does for a kitchen what
+        /// a skirting board does for a room - it grounds it and it carries the
+        /// temperature of the place without being the place. The appliances
+        /// stay stainless.
+        /// </summary>
+        private Color _kick = new Color(0.255f, 0.243f, 0.251f);
 
         // --- what the lights mean -------------------------------------------
         //
@@ -127,7 +164,8 @@ namespace Lokanta.Game
         public static KitchenStation Build(Transform parent, string id, int tier,
                                            Vector3 at, float yaw,
                                            Material lit, Material unlit,
-                                           MaterialPropertyBlock block)
+                                           MaterialPropertyBlock block,
+                                           Color kick)
         {
             if (lit == null || unlit == null) return null;
 
@@ -140,6 +178,7 @@ namespace Lokanta.Game
             s.Id = id;
             s.Tier = tier;
             s._block = block ?? new MaterialPropertyBlock();
+            s._kick = kick;
 
             // EVERYTHING STANDS ON THE FLOOR, and the small ones stand on a
             // stand.
@@ -328,9 +367,9 @@ namespace Lokanta.Game
         {
             m.Box(new Vector3(0f, h * 0.5f, 0f), new Vector3(w, h, d), SteelDark);
             m.Box(new Vector3(0f, h - 0.02f, 0f), new Vector3(w + 0.04f, 0.04f, d + 0.04f),
-                  Steel);
+                  Worktop);
             m.Box(new Vector3(0f, 0.05f, 0f), new Vector3(w - 0.10f, 0.10f, d - 0.06f),
-                  Graphite);
+                  _kick);
             // A shelf inside, because an open stand with nothing in it reads
             // as a hole.
             m.Box(new Vector3(0f, h * 0.42f, 0f), new Vector3(w - 0.12f, 0.03f, d - 0.10f),
@@ -342,12 +381,16 @@ namespace Lokanta.Game
         {
             Width = w + 0.04f;
             m.Box(new Vector3(0f, h * 0.5f, 0f), new Vector3(w, h, d), SteelDark);
-            // The top, a touch proud of the body: a worktop has a lip.
+            // The top, a touch proud of the body: a worktop has a lip. And it
+            // is a WORKTOP colour now, not more steel - the top surface is the
+            // one the 34 degree camera sees most of, so it is where a second
+            // material buys the most.
             m.Box(new Vector3(0f, h + 0.02f, 0f), new Vector3(w + 0.05f, 0.04f, d + 0.05f),
-                  Steel);
-            // The kick strip, so it does not read as a box sitting on the floor.
+                  Worktop);
+            // The kick strip, so it does not read as a box sitting on the
+            // floor - and it is the cuisine's one painted part. See _kick.
             m.Box(new Vector3(0f, 0.05f, 0f), new Vector3(w - 0.10f, 0.10f, d - 0.06f),
-                  Graphite);
+                  _kick);
             // Feet.
             for (int i = 0; i < 4; i++)
             {
