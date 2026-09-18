@@ -440,7 +440,7 @@ namespace Lokanta.Core.Content
         public StationTier[] Tiers { get; }
 
         /// <summary>
-        /// Is this one of the six shared stations. If false it is equipment
+        /// Is this one of the seven shared stations. If false it is equipment
         /// named SPECIFICALLY for the cuisine (tas_firin, doner_ocagi, ...):
         /// it is not there at the start, it never becomes COMPULSORY because
         /// of the table count, and it only opens menu.

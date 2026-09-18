@@ -130,7 +130,30 @@ namespace Lokanta.Core.Tests
                 { 21, new[] { "badges", "badgesToday", "creditEverOpened",
                               "weekReportDay", "weekAxis", "weekAxisPrev" } },
                 { 22, new[] { "cookTenure", "salonTenure" } },
+                // 23 added no FIELD - it changed the SHAPE of two existing
+                // arrays, because a station was inserted in the middle of the
+                // closed list. The migration test still needs a row so it can
+                // build a version 22 save; there is simply nothing to strip.
+                { 23, new string[0] },
             };
+
+        /// <summary>
+        /// The save migration's copy of the fryer's index matches the loader's.
+        ///
+        /// Simulation.FryerIndex has to exist because the core cannot see the
+        /// content loader, and a number written in two places is a number that
+        /// will disagree with itself - this project has been bitten by that
+        /// five times. If these two drift, every pre-23 save is silently
+        /// shifted onto the wrong stations and opens looking fine.
+        /// </summary>
+        [Fact]
+        public void The_migration_and_the_loader_agree_on_where_the_fryer_went()
+        {
+            int loader = System.Array.IndexOf(
+                Lokanta.Content.ContentSetLoader.StationIds, "fritoz");
+            Assert.True(loader >= 0, "the closed station list has no 'fritoz'");
+            Assert.Equal(loader, Simulation.FryerIndex);
+        }
 
         /// <summary>Every version the gate claims to read, oldest first.</summary>
         public static IEnumerable<object[]> ReadableVersions()
@@ -219,6 +242,39 @@ namespace Lokanta.Core.Tests
                     restaurant.Remove(field);
                     removed++;
                 }
+
+            // VERSION 23 CHANGED A SHAPE, NOT A FIELD.
+            //
+            // A station (`fritoz`) was inserted in the middle of the closed
+            // list, so a pre-23 save's `tier` array is one SHORTER and every
+            // entry from the fryer's index onwards means a different station.
+            // Removing a field cannot express that; the synthetic old save has
+            // to be shortened the same way a real one is, or the migration is
+            // handed a current-shaped array and never exercised.
+            if (version < 23)
+            {
+                // The arrays live in the "stations" section, not in
+                // "restaurant" - the writer opens a Begin("stations") for the
+                // equipment and the cooking jobs.
+                Newtonsoft.Json.Linq.JObject stations =
+                    (Newtonsoft.Json.Linq.JObject)root["stations"];
+                Assert.NotNull(stations);
+
+                Newtonsoft.Json.Linq.JArray tier =
+                    (Newtonsoft.Json.Linq.JArray)stations["tier"];
+                Assert.NotNull(tier);
+                tier.RemoveAt(Simulation.FryerIndex);
+                removed++;
+
+                Newtonsoft.Json.Linq.JArray jobs =
+                    (Newtonsoft.Json.Linq.JArray)stations["jobStation"];
+                Assert.NotNull(jobs);
+                for (int j = 0; j < jobs.Count; j++)
+                {
+                    int st = (int)jobs[j];
+                    if (st >= Simulation.FryerIndex) jobs[j] = st - 1;
+                }
+            }
 
             // WITHOUT THIS LINE the arm for version SaveVersion - 0 would hand
             // Restore an untouched CURRENT save and pass without the gate ever

@@ -326,7 +326,7 @@ The chain is readable: the unit cost falls -> the reputation collapses -> the cu
 
 [09-content-inventory.md](09-content-inventory.md) had already planned this: **10 special cooking stations per cuisine**. It had not been done; §3's "station tier ≥ N" rule was its pale stand-in.
 
-`equipment.json` now carries `cuisineStations`: cuisine-specific, **named** equipment added **after** the six shared stations.
+`equipment.json` now carries `cuisineStations`: cuisine-specific, **named** equipment added **after** the seven shared stations.
 
 | cuisine | equipment | price | what it opens |
 |---|---|---:|---|

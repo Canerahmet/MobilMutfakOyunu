@@ -52,7 +52,17 @@ ATTRIBUTION = os.path.join(ART, "ATTRIBUTION.md")
 AUDIO_README = os.path.join(AUDIO, "README.md")
 SFX = os.path.join(ROOT, "unity", "Assets", "Lokanta", "Game", "Sfx.cs")
 
-# Folders that carry NO assets: generated, or the project's own output.
+# Folders this project WRITES rather than downloads. They are exempt from
+# needing a License.txt of their own - and from nothing else.
+#
+# THEY USED TO BE SKIPPED ENTIRELY, AND TWO OF THEM ARE NOT OURS. `Mesh/`
+# holds character body meshes extracted from the Kenney FBX files and
+# `Prefab/` wraps those same models: the container is the project's, the
+# GEOMETRY IS SOMEBODY ELSE'S. Kenney's packs are CC0, so nothing here was
+# ever a legal risk - but "skip the folder" is not a judgement about the
+# licence, it is the absence of one, and the next pack to arrive this way
+# might not be CC0. Every folder needs a row that says where its contents
+# came from; only the licence FILE is excused.
 GENERATED = {"Materials", "Prefab", "Animator", "Mesh"}
 
 # Licences we know to be open to commercial use. If one of these marks
@@ -70,11 +80,40 @@ RECOGNISED = [
 AUDIO_SUFFIXES = (".ogg", ".wav", ".mp3", ".aiff", ".aif")
 
 
+def _ascii(text):
+    """Lowercased, with the two Turkish letters the old ledger used folded."""
+    return text.replace("ü", "u").replace("ı", "i").lower()
+
+
+def _row_for(attribution, name):
+    """The folder's own line in the mapping table, or None.
+
+    A row is `| Folder | Package | Licence |`; the folder is the first cell.
+    Matching the CELL rather than the line keeps `Characters` from matching
+    the derived-texture row underneath it.
+    """
+    for line in attribution.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if cells and cells[0] == name:
+            return line
+    return None
+
+
 def read(path):
     try:
         return io.open(path, encoding="utf-8", errors="replace").read()
     except IOError:
         return ""
+
+
+def _summary(row):
+    """The package and licence columns of a ledger row, as one line."""
+    cells = [c.strip() for c in row.strip().strip("|").split("|")]
+    if len(cells) >= 3:
+        return "%s (%s)" % (cells[1], cells[2])
+    return row.strip()
 
 
 def main():
@@ -93,7 +132,21 @@ def main():
     # --- 1-2. asset folders ----------------------------------------------
     for name in sorted(os.listdir(ART)):
         path = os.path.join(ART, name)
-        if not os.path.isdir(path) or name in GENERATED:
+        if not os.path.isdir(path):
+            continue
+
+        if name in GENERATED:
+            # No licence file, but still a row: the row is what records
+            # whether the bytes in here are ours or derived from a package,
+            # and it is the only place anybody could find that out later.
+            row = _row_for(attribution, name)
+            if row is None:
+                problems.append("Art/%s: no row in the folder table of "
+                                "ATTRIBUTION.md - say whether it is the "
+                                "project's own work or derived from a "
+                                "package, and under which licence" % name)
+            else:
+                rows.append("  %-10s %s" % (name, _summary(row)))
             continue
 
         # No third-party licence is looked for in a folder the project
@@ -102,8 +155,19 @@ def main():
         # looked for is "own work", not the old Turkish one. The Turkish
         # letter normalisation stays - it is harmless, and it works
         # again if the ledger ever carries those letters.
-        own_work = ("| " + name + " |") in attribution and "own work" in \
-            attribution.replace("ü", "u").replace("ı", "i").lower()
+        # THE ESCAPE HATCH WAS PERMANENTLY OPEN.
+        #
+        # The second half of this test searched the WHOLE ledger for "own
+        # work", and the ledger has a heading called "Our own work". So it was
+        # true for every folder, forever, and the check collapsed to "does
+        # this folder have a row": delete a real CC0 License.txt and the run
+        # still printed "the project's own work" and exited 0. That is the
+        # commercial-release risk CLAUDE.md rule 6 exists for, defended by a
+        # substring search over the wrong string.
+        #
+        # It asks the folder's OWN ROW now.
+        row = _row_for(attribution, name)
+        own_work = row is not None and "own work" in _ascii(row)
 
         licence = os.path.join(path, "License.txt")
         if not os.path.isfile(licence):

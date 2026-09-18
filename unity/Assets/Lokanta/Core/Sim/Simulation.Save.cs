@@ -50,7 +50,33 @@ namespace Lokanta.Core.Sim
         // the patch everyone's tenure starts being counted from zero. That
         // is the right answer: making one up (deriving it from XP, say)
         // would bring back the very lie being fixed, in another disguise.
-        public const int SaveVersion = 22;
+        // 22 -> 23: A STATION WAS INSERTED IN THE MIDDLE OF THE CLOSED LIST.
+        //
+        // `tier` and `_jobStation` are written as ARRAYS INDEXED BY STATION,
+        // and on 18 September the fryer went in between the hob and the grill
+        // (ContentSetLoader.StationIds). Every shared station after the hob
+        // shifted by one and the array grew by one.
+        //
+        // WITHOUT THIS BUMP a version 22 save does not merely load the wrong
+        // tiers - it throws on the length check, falls through to the backup,
+        // which is also version 22 and also throws, and leaves the simulation
+        // HALF RESTORED. And the slot card would still have shown a healthy
+        // campaign, because the card checks the version: the player presses
+        // Continue and the game dies.
+        // MIGRATION: `fritoz` did not exist in a version 22 save, so its tier
+        // is 0 and every station after the hob moves up one slot. That is a
+        // derivation, not a guess, which is why 22 stays readable.
+        public const int SaveVersion = 23;
+
+        /// <summary>
+        /// Where the fryer was inserted into the closed station list.
+        ///
+        /// Written here as well as in ContentSetLoader because the SAVE
+        /// migration has to know it and the core cannot see the content
+        /// loader. If the two ever disagree an old save is silently shifted
+        /// to the wrong stations, so SaveTests asserts they match.
+        /// </summary>
+        public const int FryerIndex = 1;
 
         /// <summary>
         /// The OLDEST save version that can be read.
@@ -550,8 +576,35 @@ namespace Lokanta.Core.Sim
             r.IntArray("market", _marketBp, _marketBp.Length);
             r.IntArray("stockQuality", _stockQualityCenti, _stockQualityCenti.Length);
             r.IntArray("stockAge", _stockAgeDays, _stockAgeDays.Length);
-            r.IntArray("tier", _stationTier, _stationTier.Length);
-            r.IntArray("jobStation", _jobStation, _jobStation.Length);
+            // THE STATION LIST GREW IN THE MIDDLE, SO OLD ARRAYS ARE SHIFTED.
+            //
+            // `fritoz` went in at index 1 on 18 September
+            // (ContentSetLoader.StationIds), so a version 22 save's arrays are
+            // one short and everything from the old index 1 onwards means a
+            // different station now.
+            //
+            // The migration is exact rather than a guess: the fryer did not
+            // exist, so its tier is 0 in every old save, and every other
+            // station keeps its tier and moves up one slot. The same shift
+            // applies to the job array, which stores station indices.
+            if (version < 23)
+            {
+                int[] oldTier = new int[_stationTier.Length - 1];
+                r.IntArray("tier", oldTier, oldTier.Length);
+                _stationTier[0] = oldTier.Length > 0 ? oldTier[0] : 0;
+                _stationTier[FryerIndex] = 0;
+                for (int i = 1; i < oldTier.Length; i++)
+                    _stationTier[i + 1] = oldTier[i];
+
+                r.IntArray("jobStation", _jobStation, _jobStation.Length);
+                for (int j = 0; j < _jobStation.Length; j++)
+                    if (_jobStation[j] >= FryerIndex) _jobStation[j]++;
+            }
+            else
+            {
+                r.IntArray("tier", _stationTier, _stationTier.Length);
+                r.IntArray("jobStation", _jobStation, _jobStation.Length);
+            }
             r.IntArray("jobMs", _jobMs, _jobMs.Length);
             r.IntArray("jobPlates", _jobPlates, _jobPlates.Length);
             r.IntArray("jobSlots", _jobSlots, _jobSlots.Length);

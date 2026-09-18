@@ -201,8 +201,18 @@ prepMs     = the dish's wall-clock duration    the number the player sees
 | Cold (`soguk`) | 10000 | Chopping, entirely by hand |
 | Dessert (`tatli`) | 8000 | Plating and decorating |
 | Grill (`izgara`) | 5600 | Put it on, turn it, take it off; there are gaps in between |
-| Stove (`ocak`) | 3500 | They lower the basket and leave it |
+| Fryer (`fritoz`) | 3500 | They lower the basket and leave it |
+| Stove (`ocak`) | 3500 | A pot on the heat: stirred now and then, not watched |
 | Oven (`firin`) | 2000 | They put it in, close it, walk away |
+
+**The fryer row used to be the stove's, and the justification gave it away.**
+"They lower the basket and leave it" describes a deep fryer, and it was
+written under the stove because all eight of fast food's "stove" dishes are
+deep fried — chips, nuggets, onion rings, wings, mozzarella sticks, fried
+chicken, wings, the fish patty. That is what `fritoz` corrects
+([59](59-kitchen-equipment-and-models.md) §2). The two share a number, but for
+different reasons, and the Turkish hob now carries its own: thirteen soups,
+stews and pilafs, stirred occasionally.
 
 ### 3.3 The consequences
 
@@ -222,15 +232,31 @@ A dish's cooking time is physics; the upgrade buys parallelism, not time. This s
 | Station | Concurrent plates | Slots needed |
 |---|---|---|
 | Grill (`izgara`) | 3.23 | 4 |
+| Fryer (`fritoz`) | 3.33 | 4 |
 | Stove (`ocak`) | 3.33 | 4 |
 | Oven (`firin`) | 1.13 | 2 |
 | Drinks (`icecek`) | 0.68 | 1 |
 | Cold (`soguk`) | 0.20 | 1 |
 | Dessert (`tatli`) | 0.08 | 1 |
 
-8.66 concurrent plates in total, with 4 cooks. So each cook carries 2.2 plates on average; that is the visible counterpart of concurrency. The total busy time is 4.15 cook-units, matching the slot utilisation of 103.9% exactly.
+**This table is solved PER CUISINE, and the column of numbers is fast food's.**
+It was derived from `content/dishes/fastfood.json` (§4.1), where the 3.33 now
+belongs to the fryer and the hob carries nothing at all; the hob's row is the
+Turkish menu's, which lands on the same figure. Read down a single cuisine and
+the sum is unchanged either way — **8.65 for fast food, 7.52 for Turkish**. The
+sum of the whole column, 11.98, is not a number any kitchen ever faces, and
+nothing in the model computes with it: `slots_needed` is strictly per station
+(`conc × tables / 14`).
 
-**Decision D: one cook runs more than one station concurrently. `prepMs` is the wall clock, the cook's busy time is `prepMs × attendBp / 10000`. The `station` field carries `attendBp` and the slot count. An equipment upgrade adds a slot or lowers `attendBp`, it does not touch `prepMs`. At tier 4 the grill and the stove each want 4 slots, the oven 2, the rest 1 each.**
+Within one cuisine, then: 8.66 concurrent plates with 4 cooks, so each cook carries 2.2 plates on average; that is the visible counterpart of concurrency. The total busy time is 4.15 cook-units, matching the slot utilisation of 103.9% exactly.
+
+**Decision D: one cook runs more than one station concurrently. `prepMs` is the wall clock, the cook's busy time is `prepMs × attendBp / 10000`. The `station` field carries `attendBp` and the slot count. An equipment upgrade adds a slot or lowers `attendBp`, it does not touch `prepMs`. At tier 4 the grill, the fryer and the stove each want 4 slots, the oven 2, the rest 1 each.**
+
+`EquipmentTests.The_docs27_peak_slot_table_holds` holds the content to this
+paragraph, and it checks the closed list of shared stations FIRST: a station
+the table does not name is now the test's failure, not its exemption. It used
+to skip what it did not recognise, which is how `fritoz` reached the content
+with no row here and nothing said a word.
 
 ---
 

@@ -91,7 +91,9 @@ Select-String -Path $LogPath -Pattern $Grep |
 
 # "PROBLEMS" is what Editor/*.cs prints now; "SORUNLAR" is what Game/*.cs still
 # prints. Both have to be here or the gate stops finding anything.
-$fatal = Select-String -Path $LogPath -Pattern "PROBLEMS|SORUNLAR|Fatal Error"
+# "SORUNLAR" no longer exists anywhere in the repository - see the same note
+# in run.ps1. "FAIL : " is what a red check is written as now.
+$fatal = Select-String -Path $LogPath -Pattern "PROBLEMS|FAIL : |Fatal Error"
 if ($fatal.Count -gt 0) { exit 2 }
 
 Write-Output "OK"

@@ -20,19 +20,49 @@ namespace Lokanta.EditorTools
     /// </summary>
     public static class ArtCheck
     {
+        /// <summary>
+        /// How many things are wrong. IT USED TO HAVE NO FAILURE PATH AT ALL.
+        ///
+        /// This tool was written as a diagnosis - print everything, let a
+        /// human read it - and then it was wired into tools/check.py as a
+        /// check called "art check". A diagnosis that prints is not a check:
+        /// every line here could have said NULL and the run would still have
+        /// ended OK, which is CLAUDE.md rule 4 word for word. The printing
+        /// stays, because that is what makes a failure diagnosable; what is
+        /// added is the part that says no.
+        /// </summary>
+        private static int _problems;
+
+        private static void Problem(string what)
+        {
+            _problems++;
+            Debug.LogError("PROBLEMS: " + what);
+        }
+
         [MenuItem("Lokanta/Material diagnosis")]
         public static void Run()
         {
             Debug.Log("=== Lokanta material diagnosis ===");
+            _problems = 0;
 
             RenderPipelineAsset cur = GraphicsSettings.currentRenderPipeline;
             Debug.Log("  pipeline   : " + (cur == null ? "NONE (built-in)" : cur.name));
+            if (cur == null)
+            {
+                // Without the URP asset every material falls back to the
+                // built-in pipeline's error shader - which is the pink this
+                // whole file was written to diagnose.
+                Problem("there is no render pipeline asset - the project is "
+                        + "drawing with the built-in pipeline");
+            }
 
             UniversalRenderPipelineAssetInfo();
 
             Shader lit = Shader.Find("Universal Render Pipeline/Lit");
             Debug.Log("  URP/Lit    : "
                       + (lit == null ? "NULL" : "supported=" + lit.isSupported));
+            if (lit == null) Problem("URP/Lit is not in the build at all");
+            else if (!lit.isSupported) Problem("URP/Lit reports isSupported=false");
 
             Report("Assets/Lokanta/Art/Materials/Furniture_wood.mat");
             Report("Assets/Lokanta/Art/Materials/Furniture_metal.mat");
@@ -44,6 +74,9 @@ namespace Lokanta.EditorTools
             Bench(lit);
 
             Debug.Log("=== diagnosis done ===");
+            if (_problems > 0)
+                Debug.LogError("PROBLEMS: the art diagnosis found " + _problems
+                               + " thing(s) wrong");
         }
 
         /// <summary>
@@ -58,7 +91,12 @@ namespace Lokanta.EditorTools
         {
             GameObject p = AssetDatabase.LoadAssetAtPath<GameObject>(
                 "Assets/Lokanta/Art/Prefab/Characters/character-male-a.prefab");
-            if (p == null) { Debug.LogWarning("  sitting: no prefab"); return; }
+            if (p == null)
+            {
+                Problem("there is no character-male-a prefab - the sitting "
+                        + "pose cannot be measured and nothing can be spawned");
+                return;
+            }
 
             foreach (Figure.Pose pose in new[] { Figure.Pose.Idle, Figure.Pose.Sit })
             {
@@ -66,7 +104,14 @@ namespace Lokanta.EditorTools
                 inst.transform.position = Vector3.zero;
 
                 Figure f = inst.GetComponentInChildren<Figure>();
-                if (f == null) { Debug.LogWarning("  sitting: no Figure"); Object.DestroyImmediate(inst); return; }
+                if (f == null)
+                {
+                    Problem("the character prefab carries no Figure component "
+                            + "- poses are set through it, so nothing would "
+                            + "sit, walk or work");
+                    Object.DestroyImmediate(inst);
+                    return;
+                }
                 f.Sample(pose, 0.4f);
 
                 Renderer[] rs = inst.GetComponentsInChildren<Renderer>(true);
@@ -93,7 +138,7 @@ namespace Lokanta.EditorTools
         private static void Rig(string path)
         {
             GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (model == null) { Debug.LogWarning("  no model: " + path); return; }
+            if (model == null) { Problem("no model at " + path); return; }
 
             ModelImporter im = AssetImporter.GetAtPath(path) as ModelImporter;
             Debug.Log("  rig type     : "
@@ -104,6 +149,20 @@ namespace Lokanta.EditorTools
             Animator an = model.GetComponentInChildren<Animator>();
             Debug.Log("  animator     : " + (an == null ? "none" : "present, humanoid="
                       + an.isHuman));
+            // NEITHER OF THESE IS ASSERTED, AND THE FIRST ATTEMPT ASSERTED
+            // BOTH.
+            //
+            // It demanded an Animator on the FBX and a humanoid rig, and the
+            // truth is "Generic, 32 clips, no Animator" - correct on both
+            // counts. The clips ship inside this same model, so there is
+            // nothing to retarget and Generic is the cheaper right answer;
+            // the Animator belongs to the PREFAB that ArtPrefabs builds, not
+            // to the imported model. What matters is that the clips are THERE
+            // - a model that lost them plays nothing, and the failure looks
+            // like figures standing still rather than like an error.
+            if (im != null && im.defaultClipAnimations.Length == 0)
+                Problem(path + " imported with no animation clips - the "
+                        + "figures would stand still and nothing would say so");
 
             if (im != null)
                 foreach (ModelImporterClipAnimation c in im.defaultClipAnimations)
@@ -147,7 +206,7 @@ namespace Lokanta.EditorTools
             {
                 GameObject p = AssetDatabase.LoadAssetAtPath<GameObject>(
                     "Assets/Lokanta/Art/Prefab/" + n + ".prefab");
-                if (p == null) { Debug.LogWarning("  no prefab: " + n); continue; }
+                if (p == null) { Problem("no prefab: " + n); continue; }
 
                 GameObject inst = Object.Instantiate(p);
                 inst.transform.position = Vector3.zero;
@@ -160,6 +219,44 @@ namespace Lokanta.EditorTools
                     "  final size {0,-32} {1:0.00} x {2:0.00} x {3:0.00} m   base y={4:0.00}"
                     + "   renderers={5}",
                     n, b.size.x, b.size.y, b.size.z, b.min.y, rs.Length));
+
+                // THE SCALE COMES FROM THE PREFABS, so the prefabs are where
+                // it has to be checked. Every distance in this project - the
+                // pedestrian lanes, the seat radius, the door width - was
+                // measured against a figure 1.10 m tall. An import setting
+                // that changed that would move all of them at once while
+                // every other check went on passing, because they all measure
+                // against the same moved figure.
+                // HEIGHT ONLY, AND THE WIDTH IS DELIBERATELY NOT CHECKED.
+                //
+                // Every distance in this project - the pedestrian lanes, the
+                // seat radius, the door width - was measured against a figure
+                // about a metre tall, and an import scale that changed that
+                // would move all of them at once while every other check went
+                // on passing, because they all measure against the same moved
+                // figure. So the height is asserted.
+                //
+                // The WIDTH was asserted too, for one run, and it was wrong:
+                // it reported 1.14 m across for a 1.00 m figure and called it
+                // a T pose. A SkinnedMeshRenderer's bounds come from the ROOT
+                // BONE and do not follow the animation unless
+                // updateWhenOffscreen is set, so this box is the BIND pose
+                // whatever pose is sampled - which is exactly what
+                // ArtPrefabs' own note says. The measurement is right for
+                // SCALE, which the bind pose carries, and meaningless for
+                // POSE, which it does not. A guard that cannot tell the
+                // difference between "the arms are out" and "the bounds do
+                // not animate" is not a guard.
+                if (n.StartsWith("Characters/")
+                    && (b.size.y < 0.85f || b.size.y > 1.30f))
+                    Problem(n + " is " + b.size.y.ToString("0.00")
+                            + " m tall in its bind pose; the figures are about "
+                            + "a metre and every distance in the game is "
+                            + "measured against that");
+                if (b.min.y < -0.02f || b.min.y > 0.02f)
+                    Problem(n + " has its base at y=" + b.min.y.ToString("0.00")
+                            + "; a prefab that is not zeroed floats or sinks "
+                            + "wherever it is placed");
                 Object.DestroyImmediate(inst);
             }
         }
@@ -225,6 +322,11 @@ namespace Lokanta.EditorTools
         {
             Material m = AssetDatabase.LoadAssetAtPath<Material>(path);
             Debug.Log("  " + path.Substring(path.LastIndexOf('/') + 1) + " : " + Describe(m));
+            if (m == null) Problem("the material " + path + " does not load");
+            else if (m.shader == null) Problem(path + " has no shader");
+            else if (!m.shader.isSupported)
+                Problem(path + " uses " + m.shader.name
+                        + ", which reports isSupported=false - this is the pink");
         }
 
         private static string Describe(Material m)

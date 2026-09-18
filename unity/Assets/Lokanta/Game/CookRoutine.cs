@@ -44,6 +44,7 @@ namespace Lokanta.Game
 
         private GameObject _held;   // the ingredient/plate in its hand
         private GameObject _pan;    // the pan on the stove
+        private Transform _cold;
         private Transform _stove;   // the stove the pan goes on
 
         private GameObject[] _ingredients;
@@ -61,8 +62,19 @@ namespace Lokanta.Game
         // =====================================================================
         public void Init(Walker walk, Figure fig, int post, int posts,
                          GameObject[] ingredients, GameObject platePrefab,
-                         Vector3 plateSpot)
+                         Vector3 plateSpot, Transform cold)
         {
+            // WHERE THE COLD STORE ACTUALLY IS, handed in rather than derived.
+            //
+            // Paths.Fridge and Paths.FridgeFace still point at
+            // `X0 + W - 0.55`, which is where FridgePrefab stood before the
+            // kitchen was rebuilt from the station list (docs/59). That prefab
+            // is gone; the cold counter is the `soguk` station and the layout
+            // decides where it stands. The cook was walking to a fixed point
+            // that now lands INSIDE whatever station the packer put on the
+            // back wall, playing "pick up" against a steel side for a second,
+            // once per plate.
+            _cold = cold;
             _walk = walk;
             _fig = fig;
             _post = post;
@@ -153,11 +165,15 @@ namespace Lokanta.Game
                     break;
 
                 case Stage.ToFridge:
-                    // The fridge is on the right wall and faces into the room (-X)
-                    // (RestaurantView.BuildRoomProps); the cook has to stand facing
-                    // it. The look target had been written as +Z, so the cook played
-                    // "pick up" while standing 90 degrees SIDE-ON to the cupboard.
-                    if (Walk(Paths.Fridge, Paths.FridgeFace)) Go(Stage.Take);
+                    // The cook stands in front of the cold counter and faces
+                    // it - the station's own local -Z is its working face, the
+                    // same rule Post() uses. With no cold station in this
+                    // cuisine the stage is skipped rather than walked to a
+                    // remembered coordinate.
+                    if (_cold == null) { Go(Stage.Take); break; }
+                    if (Walk(_cold.localPosition
+                             + _cold.localRotation * new Vector3(0f, 0f, -0.95f),
+                             _cold.localPosition)) Go(Stage.Take);
                     break;
 
                 case Stage.Take:
@@ -166,8 +182,12 @@ namespace Lokanta.Game
                     break;
 
                 case Stage.ToCounter:
-                    if (Walk(Paths.PrepPost(_post, _posts),
-                             Paths.PrepCounter(_post, _posts))) Go(Stage.Wash);
+                    // THE PREP COUNTERS ARE GONE TOO. The kitchen rebuild
+                    // replaced the left-wall prep run with stations; the cook
+                    // now washes and chops at its OWN station, which is where
+                    // it is going to cook anyway. Paths.PrepPost still derives
+                    // from a `LineUp back:false` that no longer exists.
+                    if (Walk(Post(), StovePos())) Go(Stage.Wash);
                     break;
 
                 case Stage.Wash:

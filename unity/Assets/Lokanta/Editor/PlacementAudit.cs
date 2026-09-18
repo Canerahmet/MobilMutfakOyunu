@@ -140,6 +140,11 @@ namespace Lokanta.EditorTools
             Debug.Log(string.Format(
                 "  ROOMS {0}: {1} props out through a wall, worst {2:0.00} m [{3}]",
                 cuisine, outside, worst, Short(worstName)));
+
+            if (outside > 0)
+                Debug.LogError(string.Format(
+                    "PROBLEMS: {0}: {1} prop(s) out through a wall, worst {2:0.00} m [{3}]",
+                    cuisine, outside, worst, Short(worstName)));
         }
 
         private struct Item
@@ -281,8 +286,15 @@ namespace Lokanta.EditorTools
                 // ninety metres wide. Measuring them against the furniture
                 // would report every prop in the game as clashing with the
                 // sky.
+                // "StoveTop" is the pans, and a pan is SUPPOSED to occupy the
+                // same patch of floor as the hob it stands on - that is what
+                // standing on something means. It is one merged mesh for every
+                // pan in the kitchen, so it cannot be grouped with its station
+                // the way a chair is grouped with its table; its position comes
+                // from the burner markers the stations publish, which is the
+                // relationship this pass would otherwise be re-litigating.
                 if (t.name == "Decor" || t.name == "DecorGlow"
-                    || t.name == "Sky") continue;
+                    || t.name == "Sky" || t.name == "StoveTop") continue;
 
                 Bounds? b = PosedBounds(t);
                 if (b != null) all.Add(new Item { Name = t.name, Box = b.Value });
@@ -329,6 +341,19 @@ namespace Lokanta.EditorTools
             Debug.Log(string.Format(
                 "  RESULT {0}: {1} objects, {2} clashing pairs ({3} with a figure), largest {4:0.00} m [{5}]",
                 cuisine, all.Count, clashes, figureClashes, largest, Short(largestName)));
+
+            // IT CAN GO RED NOW.
+            //
+            // For its whole life this audit was Debug.Log only: run.ps1 exits
+            // non-zero on "PROBLEMS:" and nothing here ever wrote one, so
+            // check.py printed "placement check OK" whether the run found
+            // 0 clashing pairs or 93. Six measurements and no threshold - the
+            // number was decorative, and this file's own history is a list of
+            // bugs it measured and reported to nobody.
+            if (clashes > 0)
+                Debug.LogError(string.Format(
+                    "PROBLEMS: {0}: {1} clashing pair(s), largest {2:0.00} m [{3}]",
+                    cuisine, clashes, largest, Short(largestName)));
 
             Contained(cuisine, all);
 

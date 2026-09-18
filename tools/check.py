@@ -227,12 +227,32 @@ def main():
          ["powershell", "-NoProfile", "-File",
           os.path.join("tools", "unity", "run.ps1"),
           "-Method", "Lokanta.EditorTools.RoomLayout.Capture"]),
+        # THE CEILING GATE, AND IT HAS NEVER RUN.
+        #
+        # This step used to call shot.ps1 with NO -Method, and shot.ps1
+        # defaults to SceneShot.Capture - a plain screenshot tool. The
+        # assertions live in GameShot.Capture: renderers under 360, triangles
+        # under 70k, objects outside SRP batching under 220, all measured at
+        # 99 tables with every room open, which nothing else in the project
+        # ever builds. docs/19 calls those the ceiling gate and this file's
+        # own docstring named GameShot in the list of Unity checks it runs.
+        # It did not run it. A guard argued for in a comment and never
+        # executed is not a guard.
         ("scene screenshot",
          ["powershell", "-NoProfile", "-File",
-          os.path.join("tools", "unity", "shot.ps1")]),
-        ("smoke tour",
+          os.path.join("tools", "unity", "shot.ps1"),
+          "-Method", "Lokanta.EditorTools.GameShot.Capture"]),
+        # BOTH CUISINES. tour.ps1 defaults to turk, so fast food - its
+        # self-service hall, its cleaner instead of a waiter, its tray station
+        # and its combo - was never toured by this file at all.
+        ("smoke tour (turk)",
          ["powershell", "-NoProfile", "-File",
-          os.path.join("tools", "unity", "tour.ps1")]),
+          os.path.join("tools", "unity", "tour.ps1"),
+          "-Cuisine", "turk"]),
+        ("smoke tour (fastfood)",
+         ["powershell", "-NoProfile", "-File",
+          os.path.join("tools", "unity", "tour.ps1"),
+          "-Cuisine", "fastfood", "-SkipBuild"]),
     ]
 
     if unity:

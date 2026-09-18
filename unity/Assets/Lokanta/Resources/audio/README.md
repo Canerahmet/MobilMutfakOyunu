@@ -1,17 +1,24 @@
 # Audio files go here
 
-`Sfx.Init` looks in this folder **first**: if `tik.ogg` is here it plays that,
+`Sfx.Init` looks in this folder **first**: if `click.ogg` is here it plays that,
 otherwise it falls back to the synthesised tone in `Sfx.cs`. So adding a file
 requires no code change, and while the folder is empty the game runs complete.
 
-The file **name** matters, not the extension. The thirteen expected names
-(Turkish, because they are the literal strings `Sfx.cs` looks for):
+The file **name** matters, not the extension. The thirteen expected names are
+the literal strings `Sfx.cs` looks for:
 
 ```text
-tik  onay  iptal  para  kapi-zili
-cizirti  dokme  kizgin  seviye  gun-donumu
-uyari  bitti  kombo
+click  confirm  cancel  coin  door-bell
+sizzle  pour  upset  level-up  day-turn
+alarm  empty  combo
 ```
+
+They were Turkish until 18 September, and both lists said so out loud - "the
+names stay Turkish because they are the literal strings `Sfx.cs` looks for",
+which is a reason for them to MATCH, not a reason for them to be Turkish.
+CLAUDE.md rule 1 has no exception for a key nobody translates. The rename cost
+nothing because this folder is empty; it would have cost thirteen files and a
+round of renaming a month from now.
 
 `tools/check_licenses.py` reads those names out of `Sfx.cs` and fails if this
 list or the ledger table has fallen behind - the first two of the three above

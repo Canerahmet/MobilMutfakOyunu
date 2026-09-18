@@ -132,17 +132,69 @@ At the narrower aspect ratio (16:9) the floor is **81-89 dp**; so the worst case
 > |---|---|---|---|
 > | none (0.00 m) | 71 dp | — | the first measurement, before the street |
 > | 1.10 m | ~64 dp | — | the street was added, **not re-measured** |
-> | **1.94 m** | **59 dp** | **74 dp** | two pedestrian lanes, measured |
+> | 1.94 m | ~~59 dp~~ **43 dp** | ~~74 dp~~ **54 dp** | two pedestrian lanes — **the 59 was wrong, see below** |
+> | **2.66 m** | **41 dp** | **51 dp** | the terrace moved off the walking lanes, 18 September 2026 |
+>
+> Those are the four-table readings. **The floor falls as the restaurant
+> grows**, so one tier is not the answer — every tier, same build, one
+> constant changed:
+>
+> | tables | 4 | 7 | 10 | 14 |
+> |---|---|---|---|---|
+> | 1.94 m | 43 | 43 | 42 | 42 |
+> | **2.66 m** | **41** | **41** | **40** | **40** |
+>
+> Two dp, flat. (2.50 m was measured too and reads the same 41/40, so the
+> extra 0.16 m goes on the tarmac strip rather than into the budget: at 0.16 m
+> of road in frame the street stops reading as a street.)
 >
 > The reason for the 1.10 → 1.94 widening is that the pavement needs
 > **two pedestrian lanes**: figures walking in opposite directions were passing
 > through each other. The lane spacing comes from the figure's measured widest
-> body band (the head, 0.67 m — the `PlacementAudit` PROFILE lines). 59 dp is
-> **23% above** Google's 48 dp minimum.
+> body band (the head, 0.67 m — the `PlacementAudit` PROFILE lines). The reason
+> for 1.94 → 2.66 is that the terrace — the rail, the planters and the cafe
+> tables — stood **on those lanes**, so passers-by walked through the railing
+> along the whole front of the building ([59](59-kitchen-equipment-and-models.md) §8).
+>
+> ### And it happened again, to the row above
+>
+> **The 59 dp was stale in exactly the way the 71 was.** Re-measured on 18
+> September with the same build and one constant changed, the floor at 1.94 m
+> is **43 dp**, not 59. The sentence this table used to end with — "59 dp is
+> 23% above Google's 48 dp minimum" — was never true of the build it was
+> written in.
+>
+> **This is not a gate that was secretly failing.** [41](41-ui-and-venue.md)
+> §"10 degrees was chosen" re-measured the same line on 13 September, got
+> **42–43 dp**, and argued the price: what falls below 48 is not a button but
+> the SHORT edge on screen of a room whose long edge is more than twice that,
+> and the player can zoom in with two fingers. That argument stands, and this
+> document simply had not been told. Two documents holding the same number, one
+> of them updated.
+>
+> **What the street change cost is 2 dp**, and what it bought is in
+> [59](59-kitchen-equipment-and-models.md) §8. What it also cost is **all of
+> the margin**: `RoomLayout` goes red below 40, the worst tier was 42, and it
+> is now 40.
+>
+> **It is still the right trade, and it is one constant to reverse.** The two
+> dp buy a defect that is in every frame along the whole front of the building,
+> permanently — passers-by walking through the terrace railing and standing
+> inside the cafe tables. They cost two dp on a number whose subject is a ROOM,
+> not a button. Anybody who disagrees sets `CameraFit.StreetInFrame` back and
+> re-runs `RoomLayout.Capture`.
+>
+> **Buying the margin back is a LAYOUT change.** At this pitch no lens setting
+> widens a 3.2 m room; `Store` is the floor at every tier. That is open.
+>
+> The floor is the short edge of the **narrowest open room**, `Store` at 3.2 m.
+> Widening the margin again is a LAYOUT change and not a camera one: at this
+> pitch no lens setting widens a 3.2 m room.
 >
 > The lesson is not that 71 was wrong, it is that it **was left standing while it
-> was right and never asked again**. A change that adds a metre to the frame has
-> to run the measurement too.
+> was right and never asked again** — and then 59 did the same thing, in a
+> paragraph written to warn about it. A number that is cheap to re-take and is
+> not re-taken is a number nobody knows.
 
 ### The room view — the camera has moved in on one hall
 

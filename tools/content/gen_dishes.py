@@ -646,8 +646,16 @@ REP_PER_DAY_CENTI = 90
 # exist: three fast food desserts asked for "oven tier 2" while the oven
 # ladder ends at tier 1 - so those three dishes COULD NOT OPEN for sixty
 # days and no validation caught it.
+#
+# AND A STATION LEFT OUT OF IT FALLS THROUGH TO 2, SILENTLY. `fritoz` was
+# added to the content with the hob's full four-tier ladder and not added
+# here, so max_tier("fritoz") came back 1 and unlock_gates would have clamped
+# any fryer dish asking for tier 2 or 3. It did not bite only because none of
+# the eight ranked that high - which is luck, not a guarantee, and exactly the
+# failure the paragraph above records, one station later.
 STATION_TIERS = {
     "ocak": 4,
+    "fritoz": 4,
     "izgara": 4,
     "firin": 2,
     "soguk": 2,

@@ -325,8 +325,53 @@ namespace Lokanta.Game
         /// and look at the BASE line - the framing depends on the depth, and
         /// every metre added at the front makes the restaurant smaller on
         /// screen.
+        ///
+        /// 1.94 -> 2.66, AND THIS TIME IT WAS THE TERRACE.
+        ///
+        /// The pavement was one lane too narrow to hold a terrace as well,
+        /// so the near lane was inside the rail and the passers-by walked
+        /// through it. The full arithmetic is in Paths.PavementZ. What
+        /// arrives here is the consequence: the outer lane moved from -1.07
+        /// to -1.67 and the kerb and the tarmac moved with it.
+        ///
+        /// THE PRICE WAS MEASURED AT EVERY TIER, same build, one constant
+        /// changed, because the floor falls as the restaurant grows and a
+        /// reading from one tier is not the answer:
+        ///
+        ///     tables        4     7    10    14
+        ///     1.94 m       43    43    42    42   dp, 20:9
+        ///     2.66 m       41    41    40    40
+        ///
+        /// Two dp, flat. 2.50 was tried as well and measures the same 41/40,
+        /// so the extra 0.16 m is spent on the tarmac strip rather than
+        /// saved: at 0.16 m of road in frame the street stops reading as a
+        /// street.
+        ///
+        /// AND THE NUMBER WRITTEN ABOVE - 59 dp - WAS STALE, by the same
+        /// mechanism the paragraph above it describes happening to docs/31's
+        /// 71. The floor at 1.94 m is 43, not 59, and always was.
+        ///
+        /// That is a bookkeeping failure and not a design one: docs/41
+        /// re-measured this line on 13 September, got 42-43, and argued the
+        /// price - what falls under 48 is not a button but the short edge of
+        /// a room whose long edge is twice it, with two-finger zoom
+        /// available. THIS comment simply had not been told.
+        ///
+        /// What it does cost is MARGIN, and all of it. RoomLayout goes red
+        /// below 40; the worst tier was 42 and is now 40. So this change
+        /// spends the whole gap between the accepted price and the red line.
+        ///
+        /// IT IS STILL THE RIGHT TRADE, and the case is worth writing down
+        /// because it is one constant to reverse. What the two dp buy is a
+        /// defect that is in EVERY frame, along the whole front of the
+        /// building, permanently: passers-by walking through the terrace
+        /// railing and standing inside the cafe tables. What they cost is
+        /// two dp on a number whose subject is a ROOM - long edge twice the
+        /// short one, two-finger zoom available - which docs/41 argued as an
+        /// accepted price at 42-43 and which is met at 40. Anybody who
+        /// disagrees changes this one number back and re-runs RoomLayout.
         /// </summary>
-        public const float StreetInFrame = 1.94f;
+        public const float StreetInFrame = 2.66f;
 
         public static Bounds OpenBounds(int tableCount)
         {

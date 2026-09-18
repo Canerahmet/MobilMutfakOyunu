@@ -143,9 +143,22 @@ MARGIN_TARGETS = {4: 0.05, 7: 0.09, 10: 0.14, 14: 0.20}
 # So the dishes move to a station of their own, with the SAME numbers as the
 # hob they came from: same conc, same attend, same ladder, therefore the same
 # prices and the same pressure at the same table counts. This is a naming and
-# a MODEL correction, not a balance change, and the campaign run says so - the
-# numbers do not move because nothing about the work changed, only what the
-# thing is called and what it looks like.
+# a MODEL correction, not a balance change.
+#
+# IT WAS CLAIMED HERE THAT "THE CAMPAIGN RUN SAYS SO", AND THE CAMPAIGN RUN
+# HAD NOT BEEN RUN. check.py was cited as the evidence and check.py has no
+# campaign step at all - it validates the content and runs the core tests.
+# The content really was neutral; the CAMPAIGN was not, and by a lot: the
+# fast-food report moved on 252 lines and docs/12's growth multiplier fell
+# from 1.60 to 1.14.
+#
+# The cause was not in this file. Adding a seventh shared station makes one
+# station DEAD in each cuisine, and `Simulation.NextEquipmentPrice` went on
+# quoting a price for a purchase `BuyEquipment` refuses - so the harness bot
+# spent its one purchase a day on a command the simulation threw away, every
+# day, from the moment `fritoz` pushed the dead `ocak` to index 0. One line
+# in the core closed it and both cuisines returned to their old numbers
+# exactly. See docs/59 8.
 #
 # Turkish keeps the hob (thirteen dishes) and never sees the fryer:
 # Simulation.IsStationUsed is per cuisine, so an unused station is never
@@ -238,7 +251,7 @@ def storage():
 
 
 # Cuisine-SPECIFIC, NAMED equipment. docs/09: 10 special cooking stations per
-# cuisine. What sets these apart from the six shared stations is that they are
+# cuisine. What sets these apart from the seven shared stations is that they are
 # NOT THERE AT THE START: until they are bought, the dishes attached to them
 # are locked.
 #

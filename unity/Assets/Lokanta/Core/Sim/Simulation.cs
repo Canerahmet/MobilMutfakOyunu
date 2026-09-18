@@ -2923,7 +2923,7 @@ namespace Lokanta.Core.Sim
 
         /// <summary>
         /// Is this station a piece of equipment named SPECIFICALLY for the
-        /// cuisine (tas_firin, doner_ocagi, ...) or one of the six shared
+        /// cuisine (tas_firin, doner_ocagi, ...) or one of the seven shared
         /// stations. A named one never becomes COMPULSORY because of the
         /// table count; it only opens menu.
         /// </summary>
@@ -3051,6 +3051,27 @@ namespace Lokanta.Core.Sim
         public long NextEquipmentPrice(int station)
         {
             if (station < 0 || station >= _stationTier.Length) return -1;
+
+            // A STATION THIS CUISINE DOES NOT COOK ON IS NOT FOR SALE, and
+            // -1 is how this method already says "there is nothing to buy".
+            //
+            // BuyEquipment learned to refuse it (reason 4, the six thousand
+            // coin oven no Turkish order would ever reach) and this method
+            // was left quoting a price for the same purchase. Everything
+            // that asks "what does the next tier cost" therefore believed
+            // there was one: the equipment screen drew a live Upgrade button
+            // for it, and the harness bot spent its one purchase a day on a
+            // command the simulation threw away.
+            //
+            // MEASURED, and it is not small. Inserting `fritoz` made `ocak`
+            // dead for fast food and put it at index 0 - the first thing the
+            // bot's optional loop tries - so from that commit the fast-food
+            // bots never bought another optional upgrade. The campaign report
+            // moved on 252 lines and docs/12's growth multiplier fell from
+            // 1.60 to 1.14. The content change really was neutral; this was
+            // the leak, and it had been open since the oven.
+            if (!IsStationUsed(station)) return -1;
+
             StationDef def = _content.Stations[station];
             int next = _stationTier[station] + 1;
             return next > def.MaxTier ? -1 : def.Tiers[next].Price;

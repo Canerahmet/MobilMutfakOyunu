@@ -49,9 +49,29 @@ GRADE = [
     ("WhiteBalance", "temperature", "6"),
 ]
 
+# Every override the profile is allowed to contain. A CLOSED list, because
+# the failure this file exists to prevent is a silent one: an effect that
+# nobody decided about costs exactly as much as one somebody turned on.
+# Anything listed here and nowhere else is on-tile and left at its default;
+# anything NOT here at all fails and has to be classified by hand.
+KNOWN = set([
+    "PaniniProjection", "Vignette", "DepthOfField", "LiftGammaGain",
+    "FilmGrain", "ColorLookup", "ColorCurves", "LensDistortion",
+    "ProbeVolumesOptions", "SplitToning", "MotionBlur", "Bloom",
+    "ColorAdjustments", "WhiteBalance", "Tonemapping",
+    "ShadowsMidtonesHighlights", "ScreenSpaceLensFlare", "ChannelMixer",
+    "ChromaticAberration",
+])
+
 # The effects that do not run on-tile, with the value that means "off" and
 # why each one is refused.
 EXPENSIVE = [
+    ("Tonemapping", "mode", "0",
+     "ACES (2) is a fitted curve evaluated per pixel; the grade was authored "
+     "against None and Neutral is the only other value that may be chosen"),
+    ("ColorLookup", "contribution", "0",
+     "a third texture read per pixel, and the grade is already three numbers "
+     "the uber pass folds in for nothing"),
     ("Bloom", "intensity", "0",
      "resolves to memory; 25 ms -> 60.5 ms in the Android benchmark in docs/58"),
     ("DepthOfField", "mode", "0",
@@ -90,10 +110,32 @@ def blocks(text):
     return out
 
 
+def is_active(body):
+    """Is the override itself switched on?
+
+    A block with `active: 0` is in the file, has every value written into it,
+    and does NOTHING. Reading only m_Value cannot tell the two apart - which
+    is the bug this function exists for: the check was green either way.
+    """
+    m = re.search(r"^  active: (\d+)\s*$", body, re.M)
+    return m is not None and m.group(1) == "1"
+
+
 def value_of(body, field):
-    m = re.search(r"^  %s:\n    m_OverrideState: \d+\n    m_Value: (.+)$"
+    """(overridden?, value) for one field, or (False, None) if it is absent.
+
+    m_OverrideState is the second switch. A value with the state at 0 is a
+    number sitting in an asset that the volume system steps straight over, so
+    "contrast: 8" can be written, committed and read back and still not reach
+    a single pixel. Both switches are returned; the caller decides what each
+    one means, because they mean OPPOSITE things for the grade (it must be
+    on) and for the expensive effects (off is a fine way of being off).
+    """
+    m = re.search(r"^  %s:\n    m_OverrideState: (\d+)\n    m_Value: (.+)$"
                   % re.escape(field), body, re.M)
-    return m.group(1).strip() if m else None
+    if m is None:
+        return False, None
+    return m.group(1) == "1", m.group(2).strip()
 
 
 def main():
@@ -108,7 +150,15 @@ def main():
         if body is None:
             bad.append("%s is not in the profile at all" % name)
             continue
-        got = value_of(body, field)
+        if not is_active(body):
+            bad.append("%s has active: 0 - every value in it is written and "
+                       "none of it reaches a pixel" % name)
+            continue
+        overridden, got = value_of(body, field)
+        if not overridden:
+            bad.append("%s.%s has m_OverrideState: 0 - the value is %s and "
+                       "the volume system steps over it" % (name, field, got))
+            continue
         if got != want:
             bad.append("%s.%s is %s, expected %s - the grade docs/19 allowed "
                        "has drifted" % (name, field, got, want))
@@ -117,10 +167,26 @@ def main():
         body = found.get(name)
         if body is None:
             continue                      # absent is off
-        got = value_of(body, field)
+        if not is_active(body):
+            continue                      # switched off at the block
+        overridden, got = value_of(body, field)
+        if not overridden:
+            continue                      # written but not applied
         if got != off:
             bad.append("%s.%s is %s and has to be %s: %s"
                        % (name, field, got, off, why))
+
+    # THE CLOSED LIST. Every other check in this file asks about an effect BY
+    # NAME, so an effect nobody has named is invisible to all of them: URP
+    # gaining one more override would add a cost this file would go on
+    # reporting as clean.
+    for name in sorted(found):
+        if name == "DefaultVolumeProfile":
+            continue                      # the asset's own object
+        if name not in KNOWN:
+            bad.append("%s is in the profile and nothing here classifies it - "
+                       "decide whether it resolves on-tile, then add it to "
+                       "KNOWN, EXPENSIVE or GRADE" % name)
 
     # The pass has to be wired at both ends: the renderer needs the data asset
     # and the camera has to ask for it. Either one missing and the profile
@@ -142,6 +208,7 @@ def main():
     print("grade       : contrast %s, saturation %s, white balance %s"
           % (GRADE[0][2], GRADE[1][2], GRADE[2][2]))
     print("off-tile    : %d effects checked and refused" % len(EXPENSIVE))
+    print("closed list : %d overrides classified" % len(KNOWN))
     if not bad:
         print("result      : the colour grade is wired and still the light one")
         return 0

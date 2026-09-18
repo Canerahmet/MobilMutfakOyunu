@@ -1418,15 +1418,23 @@ namespace Lokanta.Game
             // completely outside it, so the "street" turned into a strip of
             // pavement with no tarmac.
             //
-            // The pavement is 1.40 m: two pedestrian lanes (0.70 apart) plus half
-            // a body on each side.
-            Street("Pavement", -1.42f, -0.02f, new Color(0.62f, 0.60f, 0.57f));
-            // The kerb: thin and light - the line that separates the pavement
-            // from the road.
-            Street("Kerb", -1.54f, -1.42f, new Color(0.78f, 0.76f, 0.72f));
-            // The tarmac. 0.42 m of it comes into the frame - the least that
+            // THE PAVEMENT NOW CARRIES THE TERRACE AS WELL.
+            //
+            // 1.40 -> 2.00 m. The old width was exactly two pedestrian lanes
+            // and half a body on each side, with nothing left for the rail
+            // and the planters - which stand on it all the same, out to
+            // -0.65. So the near lane ran INSIDE the terrace and the
+            // passers-by walked through the rail. Paths.PavementZ carries the
+            // arithmetic; here it is just the slab that has to reach under
+            // the outer lane's outside shoulder (-2.00).
+            Street("Pavement", -2.02f, -0.02f, new Color(0.62f, 0.60f, 0.57f));
+            // The kerb: light - the line that separates the pavement from the
+            // road. It is 0.32 m wide because the lamp post's base plate
+            // (radius 0.185) has to sit ON it rather than overhang it.
+            Street("Kerb", -2.34f, -2.02f, new Color(0.78f, 0.76f, 0.72f));
+            // The tarmac. 0.32 m of it comes into the frame - the least that
             // will say "this is a road".
-            Street("Asphalt", -2.20f, -1.54f, new Color(0.26f, 0.26f, 0.28f));
+            Street("Asphalt", -3.05f, -2.34f, new Color(0.26f, 0.26f, 0.28f));
 
             // THE STREET LAMPS: AT THE START, IN THE MIDDLE AND AT THE END.
             //
@@ -1579,6 +1587,15 @@ namespace Lokanta.Game
             // The post stands ON THE KERB. -1.30 was inside the tarmac: a post
             // standing in the middle of the road. A real street lamp sits on
             // the kerb.
+            //
+            // -1.52 -> -2.16 with the rest of the street. The gap to the
+            // outer walking lane is what sets it: the lane is at -1.67 and
+            // the push radius is StreetLife.PostClear (0.48 = the post's
+            // 0.19 plus a body's 0.29), so the post cannot come closer than
+            // -2.15. The old pair (-1.52 against a lane at -1.07) was 0.45
+            // apart against a radius of 0.40, which is why the tour caught a
+            // pedestrian inside a post now and then and never twice in the
+            // same place.
             root.transform.localPosition = new Vector3(x, 0f, LampPostZ);
 
             if (_lampMetalMesh == null) BuildLampMeshes();
@@ -1803,14 +1820,11 @@ namespace Lokanta.Game
             GameObject pool = GameObject.CreatePrimitive(PrimitiveType.Quad);
             pool.name = "LightPool";
             pool.transform.SetParent(root, false);
-            // The pool falls in the MIDDLE of the pavement (the post at -1.52,
-            // the pool at +0.80 => z = -0.72 = Paths.PavementZ): the light has
-            // to light the place that is walked on, not the road.
             // The pool sits UNDER the lantern (the post's axis). The post is on
-            // the kerb but the pool is 2.9 m deep: the pavement's walking lane
-            // (Paths.PavementZ +- 0.35, that is between -1.07 and -0.37) stays
-            // inside the pool - the light has to light THE PLACE THAT IS WALKED
-            // ON.
+            // the kerb at -2.16 but the pool is 2.9 m deep, so it reaches from
+            // -0.71 to -3.61: both walking lanes (Paths.PavementZ +- 0.35,
+            // that is -0.97 and -1.67) stay inside it - the light has to light
+            // THE PLACE THAT IS WALKED ON, not the road.
             pool.transform.localPosition = new Vector3(0f, 0.012f, LampHeadZ);
             pool.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             // LONG ALONG THE STREET. A circular patch read as "a circle lying
@@ -1864,9 +1878,9 @@ namespace Lokanta.Game
             // completely. An invisible arm made the lantern look "stuck into
             // the post"; a lantern on top is a lantern from every angle.
             //
-            // The light moved with the lamp (z = 0): the pool is 2.8 m deep
-            // and the post is on the kerb - so the pavement's walking lane
-            // (Paths.PavementZ +- 0.35) stays INSIDE the pool.
+            // The light moved with the lamp (z = 0): the pool is 2.9 m deep
+            // and the post is on the kerb - so both of the pavement's walking
+            // lanes (Paths.PavementZ +- 0.35) stay INSIDE the pool.
             float z = LampHeadZ;
             // THE LANTERN GREW (the radii x1.25).
             //
@@ -2182,7 +2196,7 @@ namespace Lokanta.Game
         /// pedestrian in the outer lane would be pushed inwards constantly and
         /// the lane would be useless.
         /// </summary>
-        public const float LampPostZ = -1.52f;
+        public const float LampPostZ = -2.16f;
 
         /// <summary>
         /// The local positions of the FIXED obstacles on the street - the
@@ -2201,13 +2215,15 @@ namespace Lokanta.Game
             for (int i = 0; i < _lampX.Count; i++)
                 into.Add(new Vector3(_lampX[i], 0f, LampPostZ));
 
-            // THE TERRACE TABLES ARE OBSTACLES TOO.
+            // THE TERRACE IS NO LONGER IN THIS LIST, and that is the point.
             //
-            // Two tables were put on the pavement (decoration) and the pavement
-            // is also where the pedestrians walk: if they were not recorded, the
-            // passers-by would walk THROUGH the table. Putting something in the
-            // scene means making it part of the path.
-            for (int i = 0; i < _patio.Count; i++) into.Add(_patio[i]);
+            // Two cafe tables used to stand on the pavement and were declared
+            // obstacles so that the passers-by would walk round them. They did
+            // not: one push radius for every obstacle was 0.40 m, and a table
+            // 0.36 m across plus a body 0.29 m across needs 0.65. The seating
+            // is behind the rail now (Decor.TerraceSeats), where nobody walks,
+            // so there is nothing to push against - which is a better answer
+            // than a bigger number would have been.
         }
 
         private void Street(string name, float z0, float z1, Color c)
@@ -2750,6 +2766,26 @@ namespace Lokanta.Game
         public float HoodTo { get; private set; }
         public float HoodTop { get; private set; }
 
+        /// <summary>
+        /// The cold counter's object, if this cuisine has one.
+        ///
+        /// The cook walks here to fetch an ingredient. It used to be
+        /// Paths.Fridge, a fixed coordinate left over from the FridgePrefab
+        /// the kitchen rebuild removed - the cook was walking into whatever
+        /// station the packer put on the back wall.
+        /// </summary>
+        public Transform ColdStation
+        {
+            get
+            {
+                for (int i = 0; i < _stations.Count; i++)
+                    if (_stations[i] != null && _stations[i].Id == "soguk"
+                        && _stations[i].gameObject.activeSelf)
+                        return _stations[i].transform;
+                return null;
+            }
+        }
+
         /// <summary>The station objects, and which station index each one is.</summary>
         private readonly List<KitchenStation> _stations = new List<KitchenStation>();
         private readonly List<int> _stationOf = new List<int>();
@@ -2775,7 +2811,19 @@ namespace Lokanta.Game
                 for (int i = 0; i < sim.StationCount; i++)
                 {
                     if (!sim.IsStationUsed(i)) continue;
-                    if (!_stationOf.Contains(i)) missing++;
+
+                    // VISIBLE, NOT MERELY REGISTERED.
+                    //
+                    // This used to ask `_stationOf.Contains(i)`, which is a
+                    // question about a list rather than about the kitchen. A
+                    // station with nowhere to stand is SetActive(false) and
+                    // stays in that list, so the guard read 0 while the player
+                    // could not see the thing they bought - the exact failure
+                    // it was written to catch.
+                    int at = _stationOf.IndexOf(i);
+                    if (at < 0 || at >= _stations.Count
+                        || _stations[at] == null
+                        || !_stations[at].gameObject.activeSelf) missing++;
                 }
                 return missing;
             }
@@ -2823,6 +2871,7 @@ namespace Lokanta.Game
             _washSpots.Clear();
             _sinkWater.Clear();
             _sinkFill.Clear();
+            _sinkUnit.Clear();
             _foam.Clear();
 
             const float Inset = 0.6f;
@@ -2902,9 +2951,10 @@ namespace Lokanta.Game
                 // because two figures swapping posts every frame is worse to
                 // look at than two figures sharing one.
                 _washSpots.Add(new Vector3(sink, 0f, sinkZ - 0.75f));
+                _sinkUnit.Add(UnitTopArea(unit));
                 _sinkWater.Add(TapWater(sink, sinkTop, sinkZ));
-                _sinkFill.Add(Basin(sink, sinkTop, sinkZ));
-                _foam.Add(Suds(sink, sinkTop, sinkZ));
+                _sinkFill.Add(Basin(unit, sink, sinkTop, sinkZ));
+                _foam.Add(Suds(_sinkFill[_sinkFill.Count - 1], sink, sinkTop, sinkZ));
             }
 
             // WHERE THE COOK PICKS UP A PLATE: in front of the clean stack.
@@ -2953,13 +3003,53 @@ namespace Lokanta.Game
         /// Its height comes from MEASURING the sink, like everything else that
         /// sits on a surface in this file.
         /// </summary>
-        private GameObject Basin(float x, float sinkTop, float z)
+        /// <summary>The unit's footprint, so the water can be measured against it.</summary>
+        private static float UnitTopArea(GameObject unit)
         {
+            if (unit == null) return 0f;
+            Renderer[] rs = unit.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return 0f;
+            Bounds b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            return b.size.x * b.size.z;
+        }
+
+        private GameObject Basin(GameObject unit, float x, float sinkTop, float z)
+        {
+            // THE FIRST VERSION WAS TOO SMALL AND TOO DEEP TO SEE.
+            //
+            // 0.42 x 0.30 at 7.5 cm down, written by hand against a sink
+            // nobody had measured. The render showed the result exactly:
+            // the well stayed a dark rectangle and the foam went on floating
+            // in a hole, with a few pixels of pale blue between the clumps
+            // (render/zoom/before-empty-basin.png). It was not that the water was absent
+            // - it was there, active, the right colour, and a third of the
+            // size of the thing it was meant to fill.
+            //
+            // So it is measured off the unit, like the plate stacks above it,
+            // and the fractions are read off the model: the Kenney sink's
+            // well is about 0.62 of the unit across and 0.52 of it deep. The
+            // surface sits 3.5 cm under the rim - enough for the rim to still
+            // read as a rim, shallow enough for the basin to read as FULL,
+            // which is the word the request used.
+            float w = 0.52f, d = 0.32f;
+            if (unit != null)
+            {
+                Renderer[] rs = unit.GetComponentsInChildren<Renderer>();
+                if (rs.Length > 0)
+                {
+                    Bounds b = rs[0].bounds;
+                    for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+                    w = b.size.x * 0.62f;
+                    d = b.size.z * 0.52f;
+                }
+            }
+
             GameObject water = GameObject.CreatePrimitive(PrimitiveType.Cube);
             water.name = "BasinWater";
             water.transform.SetParent(transform, false);
-            water.transform.localPosition = new Vector3(x, sinkTop - 0.075f, z - 0.05f);
-            water.transform.localScale = new Vector3(0.42f, 0.02f, 0.30f);
+            water.transform.localPosition = new Vector3(x, sinkTop - 0.035f, z - 0.02f);
+            water.transform.localScale = new Vector3(w, 0.02f, d);
 
             Collider col = water.GetComponent<Collider>();
             if (col != null)
@@ -2996,11 +3086,33 @@ namespace Lokanta.Game
         /// spacing read as tiling rather than as foam. Five overlapping pieces
         /// of different sizes give a mass.
         /// </summary>
-        private List<GameObject> Suds(float x, float sinkTop, float z)
+        private List<GameObject> Suds(GameObject water, float x, float sinkTop, float z)
         {
-            float[] fx = { -0.07f, 0.00f, 0.06f, -0.03f, 0.03f };
-            float[] fz = { -0.02f, 0.03f, -0.01f, 0.05f, -0.04f };
-            float[] fy = { 0.000f, 0.014f, 0.004f, 0.020f, 0.008f };
+            // IT FLOATS ON THE WATER, so it is placed against the water and
+            // not against the sink.
+            //
+            // Both were written against the sink and separately: the foam sat
+            // 6.2 cm down and the surface 7.5 cm down, so the clumps were
+            // BELOW the water they were supposed to be floating on - which
+            // did not show, because the surface was too small to reach them
+            // anyway. Two numbers measured from the same third thing will
+            // disagree with each other; one measured from the other cannot.
+            float surface = sinkTop - 0.035f + 0.010f;   // the slab's own top
+            float spanX = 0.30f, spanZ = 0.20f, cz = z - 0.02f;
+            if (water != null)
+            {
+                Vector3 sc = water.transform.localScale;
+                surface = water.transform.localPosition.y + sc.y * 0.5f;
+                spanX = sc.x * 0.56f;
+                spanZ = sc.z * 0.56f;
+                cz = water.transform.localPosition.z;
+            }
+
+            // Fractions of the basin, not metres: the cluster has to grow
+            // with the sink it sits in.
+            float[] fx = { -0.42f, 0.00f, 0.36f, -0.18f, 0.20f };
+            float[] fz = { -0.12f, 0.18f, -0.06f, 0.30f, -0.24f };
+            float[] fy = { 0.000f, 0.010f, 0.003f, 0.014f, 0.006f };
             float[] fw = { 0.085f, 0.070f, 0.078f, 0.055f, 0.062f };
 
             List<GameObject> suds = new List<GameObject>(fx.Length);
@@ -3010,7 +3122,8 @@ namespace Lokanta.Game
                 k.name = "Foam";
                 k.transform.SetParent(transform, false);
                 k.transform.localPosition = new Vector3(
-                    x + fx[i], sinkTop - 0.062f + fy[i], z - 0.05f + fz[i]);
+                    x + fx[i] * spanX, surface + 0.015f + fy[i],
+                    cz + fz[i] * spanZ);
                 k.transform.localScale = new Vector3(fw[i], 0.030f, fw[i] * 0.85f);
                 k.transform.localRotation = Quaternion.Euler(0f, i * 17f, 0f);
 
@@ -3400,6 +3513,17 @@ namespace Lokanta.Game
         /// </summary>
         private void UpdateScrub()
         {
+            // A PAUSED WORLD DOES NOT SCRUB. CookRoutine and StreetLife both
+            // carry this guard by name - "in a paused world the cook went on
+            // chopping at quarter speed. The pause screen covers a large part
+            // of the game" - and the dishwasher was left out of that fix.
+            if (Walker.GameSpeed <= 0.001f) return;
+
+            // AND IT DOES NO WORK WHEN NOBODY IS WASHING. The loop below does
+            // a string Find per staff member per frame; this is the low-end
+            // Adreno the floors were moved out of per-frame work for.
+            if (WashingCount == 0) return;
+
             for (int i = 0; i < _staff.Count; i++)
             {
                 if (_staff[i] == null) continue;
@@ -3513,18 +3637,29 @@ namespace Lokanta.Game
                 Transform t = _potSpots[i];
                 if (t == null) continue;
 
-                // The stove's top surface: from the renderers' world box.
-                float top = 0.9f;
-                bool first = true;
-                Bounds b = new Bounds();
-                foreach (Renderer r in t.GetComponentsInChildren<Renderer>())
-                {
-                    if (first) { b = r.bounds; first = false; }
-                    else b.Encapsulate(r.bounds);
-                }
-                if (!first) top = b.max.y - transform.position.y;
+                // THE MARKER IS TWO LEVELS DOWN NOW, SO ITS LOCAL POSITION IS
+                // NOT A POSITION IN THIS SPACE.
+                //
+                // This used to read `t.localPosition` and that was right while
+                // `_potSpots` held direct children of the view. It now holds
+                // KitchenStation.PotSpots - empty markers parented to the
+                // station's rig - so the local position is something like
+                // (-0.20, 0.92, -0.14) RELATIVE TO THE STATION, and the
+                // station's own position and 90/180/270 degree yaw were never
+                // added. Every pan in the game was being drawn a metre in the
+                // air off the front-left corner of the plot.
+                //
+                // Worse, the guard could not see it: `_potCount` counts
+                // MARKERS, not pans on stoves, so "There is a pan on top of
+                // the stoves" stayed green - a proxy measuring itself.
+                Vector3 spot = transform.InverseTransformPoint(t.position);
 
-                Vector3 spot = t.localPosition;
+                // THE HOB SURFACE IS THE MARKER'S OWN HEIGHT. The old code
+                // measured the renderers under the marker; a marker has none,
+                // so `top` silently fell back to a written-down 0.9 for every
+                // pan. KitchenStation.PanSpot puts the marker ON the burner,
+                // which is the surface a pan stands on.
+                float top = spot.y;
 
                 if (i % 2 == 0)
                 {
@@ -4071,8 +4206,33 @@ namespace Lokanta.Game
                         // of walking in through the door can be watched.
                         w.Appear(Paths.Street(t), 0f);
 
+                        // IT SITS DOWN ONTO THE CHAIR, NOT THROUGH IT.
+                        //
+                        // `seat` carries SitLift (0.41 m) - the amount the
+                        // sitting clip lowers the body inside itself, measured
+                        // once because "the thighs passed 9.4 cm through" the
+                        // cushion without it. Walker THROWS THAT AWAY: every
+                        // step does `delta.y = 0f` and arrival writes
+                        // `new Vector3(target.x, here.y, target.z)`, so a guest
+                        // that WALKS to its chair lands at y = 0 and sits 0.41 m
+                        // low.
+                        //
+                        // The editor's screenshot tool could never show it: the
+                        // preview branch below uses Appear, which writes the
+                        // position directly, SitLift and all. So every render
+                        // this project has ever judged seating from was the one
+                        // path where the bug does not happen.
+                        //
+                        // The lift is applied on arrival, where the figure stops
+                        // walking and starts sitting.
+                        GameObject sitBody = figure;
+                        Vector3 sitAt = seat;
                         Paths.FromStreet(_path, seat);
-                        w.GoTo(_path, yaw, () => Pose(f, Figure.Pose.Sit));
+                        w.GoTo(_path, yaw, () =>
+                        {
+                            if (sitBody != null) sitBody.transform.localPosition = sitAt;
+                            Pose(f, Figure.Pose.Sit);
+                        });
 
                         // In the preview (the editor screenshot) there is NO walking:
                         // because a single frame is sampled, everyone would stand at
@@ -4205,7 +4365,11 @@ namespace Lokanta.Game
             Walker w = WalkerOf(figure);
             Vector3 here = figure.transform.localPosition;
             here.y = 0f;
-            w.Warp(here, figure.transform.localEulerAngles.y);
+            // Appear, not Warp: this puts the figure where it ALREADY IS, with
+            // its y dropped to the floor because it is standing up. Counting
+            // that as a teleport would make the guard red for the one motion it
+            // is meant to allow - and it is 0.41 m, exactly the sitting lift.
+            w.Appear(here, figure.transform.localEulerAngles.y);
 
             Paths.ToStreet(_path, here, _leaving.Count);
             GameObject captured = figure;
@@ -4252,8 +4416,9 @@ namespace Lokanta.Game
         /// figures to be counted are already in hand.
         /// </summary>
         /// <summary>
-        /// THE WORST DISTANCE A WALKING FIGURE GETS INSIDE A TABLE SET, in
-        /// metres. Zero means nobody walked through the furniture.
+        /// THE WORST DISTANCE A WALKING FIGURE GETS INSIDE A TABLE SET OR A
+        /// KITCHEN STATION, in metres. Zero means nobody walked through the
+        /// furniture.
         ///
         /// This exists because the fix needed a measurement. `Paths.Lane`
         /// returned immediately when both ends of a walk were in the same
@@ -4357,7 +4522,7 @@ namespace Lokanta.Game
             {
                 Vector3 t = _tables[i].localPosition;
                 if (i == ownTable) continue;
-                if (Own(dest, t, setRadius) || Own(origin, t, setRadius)) continue;
+                if (Own(dest, t, OwnRadius) || Own(origin, t, OwnRadius)) continue;
 
                 float dx = p.x - t.x, dz = p.z - t.z;
                 float d = Mathf.Sqrt(dx * dx + dz * dz);
@@ -4374,8 +4539,74 @@ namespace Lokanta.Game
                                  + dest.x.ToString("0.0") + ", "
                                  + dest.z.ToString("0.0") + ")";
             }
+
+            // THE KITCHEN IS FURNITURE TOO, and it was not in this number.
+            //
+            // Everything above measures TABLE SETS, so the whole equipment
+            // line - a stone oven 1.16 m wide, a fryer, a cold counter -
+            // was invisible to the one check that asks whether anybody walks
+            // through the scenery. A cook crossing the kitchen from the hob
+            // to the fridge could go straight through the grill and the tour
+            // would report 0.00 m.
+            //
+            // A STATION IS A BOX, NOT A CIRCLE. Its width and depth are
+            // MEASURED off the built geometry (KitchenStation.Width/Depth),
+            // it is rotated to face into the room, and a circle round a
+            // 1.16 x 0.70 m oven is either too big at the ends or too small
+            // across the front. The figure's position goes into the
+            // station's own space and the overlap is the smaller of the two
+            // axes - which is what "how far inside" means for a rectangle.
+            //
+            // Nothing is excused. A cook works 0.95 m in front of its own
+            // station (CookRoutine.Post) and the deepest station is 0.72 m,
+            // so a working cook is 0.37 m clear without needing a rule.
+            for (int i = 0; i < _stations.Count; i++)
+            {
+                KitchenStation st = _stations[i];
+                if (st == null || !st.gameObject.activeSelf) continue;
+
+                Vector3 local = st.transform.InverseTransformPoint(
+                    transform.TransformPoint(p));
+                float ex = st.Width * 0.5f + halfBody - Mathf.Abs(local.x);
+                float ez = st.Depth * 0.5f + halfBody - Mathf.Abs(local.z);
+                if (ex <= 0f || ez <= 0f) continue;
+
+                float into = Mathf.Min(ex, ez);
+                if (into <= worst) continue;
+                worst = into;
+                Vector3 sp = st.transform.localPosition;
+                _worstIntruder = go.name
+                                 + " at (" + p.x.ToString("0.0") + ", "
+                                 + p.z.ToString("0.0") + ") is inside station "
+                                 + st.Id + " at (" + sp.x.ToString("0.0")
+                                 + ", " + sp.z.ToString("0.0") + "), from ("
+                                 + origin.x.ToString("0.0") + ", "
+                                 + origin.z.ToString("0.0") + ") heading for ("
+                                 + dest.x.ToString("0.0") + ", "
+                                 + dest.z.ToString("0.0") + ")";
+            }
             return worst;
         }
+
+        /// <summary>
+        /// How close an end of a walk has to be for the table to count as
+        /// "yours".
+        ///
+        /// 0.78 (setRadius) WAS EXCUSING THE NEIGHBOUR BY ACCIDENT. The
+        /// serving stance is Paths.BesideTable = table.z - 0.95 and the row
+        /// pitch is CellZ 1.70, so a figure standing to serve a BACK-row table
+        /// is 0.75 m from the FRONT row's centre - inside 0.78 by three
+        /// centimetres. The front table was therefore excused as "the table it
+        /// came from", and a walk that ploughed through two sets reported
+        /// 0.05 m and passed.
+        ///
+        /// 0.68 = SeatRadius + 0.10 is the chair ring plus a hand. A guest at
+        /// its own seat is 0.50 m out and still excused; a waiter at its own
+        /// table is 0.95 m out and does not need excusing, because 1.00 - 0.95
+        /// is under the check's own threshold. The neighbour at 0.75 is not
+        /// excused any more, which is the whole point.
+        /// </summary>
+        private const float OwnRadius = SeatRadius + 0.10f;
 
         /// <summary>Is this point inside that table's own set?</summary>
         private static bool Own(Vector3 p, Vector3 table, float setRadius)
@@ -4383,6 +4614,107 @@ namespace Lokanta.Game
             float dx = p.x - table.x, dz = p.z - table.z;
             return dx * dx + dz * dz < setRadius * setRadius;
         }
+
+        /// <summary>
+        /// How far the worst SEATED guest is from the height of its chair.
+        ///
+        /// THE GUARD FOR A BUG NO SCREENSHOT COULD SHOW. `seat` carries
+        /// SitLift, and Walker discards the y of every waypoint - so a guest
+        /// that walked to its chair sat 0.41 m low, in the game, for months.
+        /// The editor's preview places figures with Appear, which writes the
+        /// position directly, so every render the project judged seating from
+        /// was the one path where it does not happen.
+        ///
+        /// Measured against the constant the seat is BUILT from, so the two
+        /// cannot drift apart, and only for figures that have finished walking
+        /// and are in the sitting pose.
+        /// </summary>
+        public float WorstSeatDrop
+        {
+            get
+            {
+                float worst = 0f;
+                foreach (KeyValuePair<int, GameObject> kv in _seated)
+                {
+                    GameObject go = kv.Value;
+                    if (go == null || !go.activeSelf) continue;
+                    if (Moving(go) != 0) continue;
+                    Figure f = FigureOf(go);
+                    if (f == null || f.Current != Figure.Pose.Sit) continue;
+                    worst = Mathf.Max(worst,
+                        Mathf.Abs(go.transform.localPosition.y - SitLift));
+                }
+                return worst;
+            }
+        }
+
+        /// <summary>
+        /// THE SMALLEST SHARE OF A SINK'S OPENING THAT ITS WATER COVERS, as a
+        /// fraction of the unit's own top area. 1 means "as wide as the
+        /// whole unit", which no basin is; under about 0.2 the surface is a
+        /// puddle at the bottom of a dark box.
+        ///
+        /// WHY A FRACTION AND NOT "IS THE WATER THERE". Because the water WAS
+        /// there. It was built, switched on with the right flag, painted the
+        /// right colour, and it covered a third of the basin seven and a half
+        /// centimetres down, so the frame showed a dark well with foam
+        /// floating in it and a few pixels of blue between the clumps
+        /// (render/zoom/before-empty-basin.png). Every boolean in the code said yes. The
+        /// request was "the basin FULL of water", and full is a size.
+        /// </summary>
+        public float BasinCover
+        {
+            get
+            {
+                float worst = 1f;
+                for (int k = 0; k < _sinkFill.Count; k++)
+                {
+                    GameObject w = _sinkFill[k];
+                    if (w == null) continue;
+                    Vector3 sc = w.transform.localScale;
+                    float unit = k < _sinkUnit.Count ? _sinkUnit[k] : 0f;
+                    if (unit <= 0.01f) continue;
+                    worst = Mathf.Min(worst, (sc.x * sc.z) / unit);
+                }
+                return _sinkFill.Count == 0 ? 0f : worst;
+            }
+        }
+
+        /// <summary>
+        /// HOW FAR THE FOAM IS FROM THE SURFACE IT FLOATS ON, in metres.
+        ///
+        /// The two were written against the sink separately - the foam 6.2 cm
+        /// down, the water 7.5 - so the clumps sat UNDER the water. Nothing
+        /// showed it, because the surface was too small to reach them. Two
+        /// numbers measured from the same third thing drift; this measures
+        /// one against the other.
+        /// </summary>
+        public float FoamOffWater
+        {
+            get
+            {
+                float worst = 0f;
+                for (int k = 0; k < _foam.Count && k < _sinkFill.Count; k++)
+                {
+                    GameObject w = _sinkFill[k];
+                    if (w == null) continue;
+                    float surface = w.transform.localPosition.y
+                                    + w.transform.localScale.y * 0.5f;
+                    List<GameObject> suds = _foam[k];
+                    for (int i = 0; i < suds.Count; i++)
+                    {
+                        if (suds[i] == null) continue;
+                        float bottom = suds[i].transform.localPosition.y
+                                       - suds[i].transform.localScale.y * 0.5f;
+                        worst = Mathf.Max(worst, Mathf.Abs(bottom - surface));
+                    }
+                }
+                return worst;
+            }
+        }
+
+        /// <summary>The top area of each sink unit, for BasinCover.</summary>
+        private readonly List<float> _sinkUnit = new List<float>();
 
         public int MovingCount
         {
@@ -4632,7 +4964,7 @@ namespace Lokanta.Game
                         if (cr == null) cr = _staff[i].AddComponent<CookRoutine>();
                         cr.Init(WalkerOf(_staff[i]), _staffFigure[i],
                                 i, KitchenPosts, IngredientPrefabs, PlatePrefab,
-                                _plateSpot);
+                                _plateSpot, ColdStation);
                         _cookRoutine[i] = cr;
                     }
                     else
@@ -4688,6 +5020,20 @@ namespace Lokanta.Game
                     }
                     _staffTask[i] = int.MinValue;
                     if (i < _washHold.Count) _washHold[i] = 0f;
+
+                    // THE SINK IS LET GO TOO.
+                    //
+                    // Roles are POSITIONAL - cooks are [0, Cooks) and the
+                    // dishwashers are counted from the end - and the release
+                    // lives in the hall loop, which never visits a cook. Hire
+                    // a cook and index 1 stops being a dishwasher while
+                    // _washPost[1] keeps sink 0 forever: the next washer finds
+                    // both posts "taken" by a ghost, doubles up, and two
+                    // figures stand inside each other at one basin with the
+                    // other tap off. That is the bug the second sink and the
+                    // whole room swap were built to fix.
+                    if (i < _washPost.Count) _washPost[i] = -1;
+                    ShowSponge(_staff[i], false);
                 }
 
                 _staffBuilt = stamp;
@@ -4942,8 +5288,16 @@ namespace Lokanta.Game
         private Transform StoveOf(int station)
         {
             for (int i = 0; i < _stationOf.Count && i < _stations.Count; i++)
-                if (_stationOf[i] == station)
-                    return _stations[i] != null ? _stations[i].transform : null;
+            {
+                if (_stationOf[i] != station) continue;
+                // A DISABLED STATION IS NOT A PLACE TO WORK. It is still at the
+                // origin, off the plot; handing it back sent the cook to
+                // (0, 0, -0.95) and parked a visible pan there, and every job
+                // at that station then burned the 18 s stage timeout.
+                if (_stations[i] == null || !_stations[i].gameObject.activeSelf)
+                    return null;
+                return _stations[i].transform;
+            }
             return null;
         }
 

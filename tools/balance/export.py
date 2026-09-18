@@ -677,7 +677,7 @@ def equipment():
         assert storage_tiers[i]["keepBp"] > storage_tiers[i - 1]["keepBp"]
         assert storage_tiers[i]["price"] > storage_tiers[i - 1]["price"]
 
-    # Cuisine-SPECIFIC named equipment. What sets it apart from the six shared
+    # Cuisine-SPECIFIC named equipment. What sets it apart from the seven shared
     # stations: it is NOT THERE at the start, and until it is bought the
     # dishes attached to it are locked.
     cuisine_stations = {}

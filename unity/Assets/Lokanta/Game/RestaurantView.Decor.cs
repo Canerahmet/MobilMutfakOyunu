@@ -398,7 +398,6 @@ namespace Lokanta.Game
             Modeler m = new Modeler();
             Modeler glow = new Modeler();
 
-
             FloorPattern(m, p, tables);
             Backdrop(m, p, left, right, back);
             SkyBands(left, right, back);
@@ -412,14 +411,13 @@ namespace Lokanta.Game
             Rugs(m, p, tables);
             Terrace(m, p, left, right);
             Storefront(m, p, left, right);
-            PatioSeats(m, p, left, right);
+            TerraceSeats(m, p, left, right);
 
             // receive: true - THE FLOOR IS IN HERE. `FloorPattern` is part of this
             // group and it is what the player sees underfoot; with shadows
             // refused, the guests and the staff stood on a flat colour and
             // nothing in the building was attached to the ground.
             _decor = m.Build(transform, "Decor", _floorMat, _block, receive: true);
-
 
             // THE GLOWING PARTS ARE ON A SEPARATE MATERIAL: while the emission
             // keyword is off the shader never reads that field, so a colour
@@ -711,6 +709,13 @@ namespace Lokanta.Game
                 if (Mathf.Abs(x - Paths.DoorX) < 1.3f) continue;
                 // Nor standing inside a corner post.
                 if (x - left < 0.45f || right - x < 0.45f) continue;
+                // NOR ON A BENCH. Both stand on the terrace and they overlap
+                // in z; see BenchSpots for why this is one list and not two.
+                bool onSeat = false;
+                List<float> seats = BenchSpots(left, right);
+                for (int k = 0; k < seats.Count && !onSeat; k++)
+                    onSeat = Mathf.Abs(x - seats[k]) < BenchClear;
+                if (onSeat) continue;
                 xs.Add(x);
             }
             return xs;
@@ -1433,64 +1438,91 @@ namespace Lokanta.Game
                       new Vector3(0.13f, 0.90f, 0.14f), p.Accent);
         }
 
-        /// TERRACE SEATING: two small tables on the pavement.
+        /// TERRACE SEATING: two benches, INSIDE the rail.
         ///
         /// In the first and third reference frames there are guests sitting
         /// outside. In ours THE SIMULATION does not serve outside - so the
-        /// tables here are EMPTY and will stay that way: decoration, not game
-        /// state. An empty terrace table still says "this is a restaurant"; a
+        /// seats here are EMPTY and will stay that way: decoration, not game
+        /// state. An empty terrace seat still says "this is a restaurant"; a
         /// full one would be telling a lie.
+        ///
+        /// THEY USED TO BE ROUND CAFE TABLES ON THE PAVEMENT, at z -0.95,
+        /// which is where the pedestrians walk. That was handled by making
+        /// each table an obstacle to push against - and a single 0.40 m push
+        /// radius around the table's CENTRE is smaller than the table (0.36)
+        /// plus a body (0.29), so the passers-by stood inside them anyway
+        /// (render/zoom/before-pedestrians-in-the-terrace.png).
+        ///
+        /// The deeper problem was that the set is 0.72 m deep and the
+        /// pavement is not wide enough for a terrace AND two pedestrian
+        /// lanes: see the arithmetic in Paths.PavementZ. A bench 0.30 m deep
+        /// with its back to the building fits in the 0.42 m the rail
+        /// encloses, costs the pavement nothing, and is a terrace the
+        /// passers-by cannot walk into because it is behind the rail.
         /// </summary>
-        private void PatioSeats(Modeler m, Palette p, float left, float right)
+        private void TerraceSeats(Modeler m, Palette p, float left, float right)
         {
-            _patio.Clear();
+            List<float> xs = BenchSpots(left, right);
+            for (int i = 0; i < xs.Count; i++) TerraceBench(m, p, xs[i], BenchZ);
+        }
+
+        /// <summary>
+        /// Where the terrace benches stand. SHARED with PlanterSpots, which
+        /// drops any pot that would land on one.
+        ///
+        /// This is the third time in this file that two things placed along
+        /// the same front had to be told about each other, and the first two
+        /// were both bugs the user saw before the code did: the rail through
+        /// the planters, and the extractor hood through the oven. A bench is
+        /// 1.46 m across including its arms and a planter 0.46 m, and they
+        /// overlap in z between -0.19 and -0.34, so a pot 3.2 m along the
+        /// front WILL eventually land on one. Two lists drift; one does not.
+        /// </summary>
+        private static List<float> BenchSpots(float left, float right)
+        {
+            List<float> xs = new List<float>();
             float[] spots = { Paths.DoorX - 2.6f, Paths.DoorX + 2.6f };
             foreach (float x in spots)
             {
-                if (x < left + 0.6f || x > right - 0.6f) continue;
-                PatioSet(m, p, x, -0.95f);
-                // So that the pedestrians walk round them: a table is an obstacle
-                // like a post.
-                _patio.Add(new Vector3(x, 0f, -0.95f));
+                if (x < left + 0.9f || x > right - 0.9f) continue;
+                xs.Add(x);
             }
+            return xs;
         }
 
-        /// <summary>Where the terrace tables are. An obstacle for pedestrian movement.</summary>
-        private readonly System.Collections.Generic.List<Vector3> _patio =
-            new System.Collections.Generic.List<Vector3>();
+        /// <summary>Half a bench plus half a planter: the room a pot needs.</summary>
+        private const float BenchClear = 0.94f;
 
-        private void PatioSet(Modeler m, Palette p, float x, float z)
+        /// <summary>The line the terrace benches stand on.</summary>
+        private const float BenchZ = -0.19f;
+
+        /// <summary>
+        /// One bench: back to the building, facing the street.
+        ///
+        /// The front edge is at -0.34 and the rail's inner face at -0.385,
+        /// so it clears the rail by 4.5 cm. A seat that touched the rail
+        /// would read as a rail with a plank stuck to it.
+        /// </summary>
+        private void TerraceBench(Modeler m, Palette p, float x, float z)
         {
-            // The table: a round top, a single leg, a foot.
-            m.Prism(10, 0.36f, 0.36f, 0.05f, new Vector3(x, 0.62f, z),
-                    Quaternion.identity, p.Wood);
-            m.Prism(6, 0.05f, 0.05f, 0.62f, new Vector3(x, 0f, z),
-                    Quaternion.identity, p.WallTrim);
-            m.Prism(8, 0.20f, 0.16f, 0.04f, new Vector3(x, 0f, z),
-                    Quaternion.identity, p.WallTrim);
+            // The seat, and the back panel against the wall.
+            m.Box(new Vector3(x, 0.42f, z), new Vector3(1.40f, 0.06f, 0.30f), p.Wood);
+            m.Box(new Vector3(x, 0.62f, z + 0.13f),
+                  new Vector3(1.40f, 0.34f, 0.05f), p.Wood);
 
-            // Two chairs: opposite each other, facing the table.
-            PatioChair(m, p, x - 0.62f, z, 90f);
-            PatioChair(m, p, x + 0.62f, z, -90f);
-        }
-
-        private void PatioChair(Modeler m, Palette p, float x, float z, float angle)
-        {
-            Quaternion r = Quaternion.Euler(0f, angle, 0f);
-            Vector3 c = new Vector3(x, 0f, z);
-
-            // The seat and the back, in the chair's own axis.
-            m.BoxAt(c + r * new Vector3(0f, 0.40f, 0f),
-                    new Vector3(0.36f, 0.05f, 0.36f), r, p.Accent);
-            m.BoxAt(c + r * new Vector3(0f, 0.60f, -0.16f),
-                    new Vector3(0.36f, 0.36f, 0.05f), r, p.WallTrim);
+            // Four legs, and the arm at each end - the arm is what makes a
+            // plank on legs read as a BENCH at this camera's forty pixels.
             for (int i = 0; i < 4; i++)
             {
-                float ax = (i % 2 == 0) ? -0.14f : 0.14f;
-                float az = (i < 2) ? -0.14f : 0.14f;
-                m.BoxAt(c + r * new Vector3(ax, 0.19f, az),
-                        new Vector3(0.045f, 0.38f, 0.045f), r, p.WallTrim);
+                float lx = x + ((i % 2 == 0) ? -0.62f : 0.62f);
+                float lz = z + ((i < 2) ? -0.11f : 0.11f);
+                m.Box(new Vector3(lx, 0.20f, lz),
+                      new Vector3(0.06f, 0.40f, 0.06f), p.WallTrim);
             }
+            m.Box(new Vector3(x - 0.68f, 0.56f, z),
+                  new Vector3(0.05f, 0.05f, 0.30f), p.WallTrim);
+            m.Box(new Vector3(x + 0.68f, 0.56f, z),
+                  new Vector3(0.05f, 0.05f, 0.30f), p.WallTrim);
         }
 
         /// THE RUG: in the Turkish cuisine only.

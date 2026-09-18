@@ -139,7 +139,15 @@ if ($report) {
 # prints "SORUNLAR:" (Autopilot, RestaurantView, CookRoutine) and the tour's
 # Note() still writes its red checks as "HATA  : ...", so BOTH SPELLINGS STAY.
 # Dropping either one would quietly stop this gate from finding anything.
-$fatal = Select-String -Path $LogPath -Pattern "PROBLEMS:|SORUNLAR:|HATA  :|Fatal Error|Aborting batchmode" |
+# "HATA  :" AND "SORUNLAR:" NO LONGER EXIST ANYWHERE IN THE REPOSITORY.
+# The English rename removed both; Autopilot.Note now writes a red check as
+# "FAIL : ", which was in NEITHER pattern. The comment above insists that
+# dropping either spelling "would quietly stop this gate from finding
+# anything", and that is exactly what happened to the pair it was defending.
+# Reds still surfaced through the aggregate "PROBLEMS:" the tour prints at
+# the end, so this was a dead safety net rather than an open hole - but a
+# dead net is the thing this project keeps finding.
+$fatal = Select-String -Path $LogPath -Pattern "PROBLEMS:|FAIL : |Fatal Error|Aborting batchmode" |
          ForEach-Object { $_.Line.Trim() }
 if ($fatal.Count -gt 0) {
     Write-Output ""

@@ -37,7 +37,7 @@ the credits screen. Skipping a thank-you that costs nothing would be cheap.
 
 ## Audio: no files, synthesis instead — and the slot is ready
 
-Today there are **no audio files at all**; all ten sound effects are synthesised
+Today there are **no audio files at all**; all thirteen sound effects are synthesised
 inside `Sfx.cs`. That is a deliberate start but **not the finished state**:
 simple waveforms sound cheap in a restaurant game, and sounds like a door bell,
 a kitchen sizzle or the murmur of a crowd are not convincing when synthesised.
@@ -49,23 +49,25 @@ it in the folder is enough, and as long as nothing is put there the game runs
 complete.
 
 The files to be added (folder: `unity/Assets/Lokanta/Resources/audio/`). The
-names stay Turkish because they are the literal strings `Sfx.cs` looks for:
+names are the literal strings `Sfx.cs` looks for, so this table and the code
+have to agree - `tools/check_licenses.py` reads both and says so when they do
+not:
 
 | File name | When it plays | What to look for |
 |---|---|---|
-| `tik` | Every button | Very short, soft interface click |
-| `onay` | Opening service, buying | Short positive two-tone |
-| `iptal` | Rejected command | Short negative tone |
-| `para` | Bill paid | Till / coin |
-| `kapi-zili` | Customer came in | Shop door bell |
-| `cizirti` | Work started in the kitchen | Grill sizzle |
-| `dokme` | Drink prepared | Liquid pouring |
-| `kizgin` | Customer left angry | Grumble / negative accent |
-| `seviye` | Staff member levelled up | Short success phrase |
-| `gun-donumu` | Day closed | Soft, low transition |
-| `uyari` | A guest's patience is running out | Short rising warning, NOT a failure tone |
-| `bitti` | A dish was asked for and is not in stock | Dull, short - a shelf coming up empty |
-| `kombo` | A combo was sold | Short bright lift, quieter than `para` |
+| `click` | Every button | Very short, soft interface click |
+| `confirm` | Opening service, buying | Short positive two-tone |
+| `cancel` | Rejected command | Short negative tone |
+| `coin` | Bill paid | Till / coin |
+| `door-bell` | Customer came in | Shop door bell |
+| `sizzle` | Work started in the kitchen | Grill sizzle |
+| `pour` | Drink prepared | Liquid pouring |
+| `upset` | Customer left angry | Grumble / negative accent |
+| `level-up` | Staff member levelled up | Short success phrase |
+| `day-turn` | Day closed | Soft, low transition |
+| `alarm` | A guest's patience is running out | Short rising warning, NOT a failure tone |
+| `empty` | A dish was asked for and is not in stock | Dull, short - a shelf coming up empty |
+| `combo` | A combo was sold | Short bright lift, quieter than `coin` |
 
 Unity reads `.ogg`, `.wav` and `.mp3`; **`.ogg` should be preferred** (smallest
 in the APK). The extension does not matter, the file **name** does.
@@ -144,6 +146,16 @@ reads this table, not the folder.
 have a row here; a folder that has none turns the check red. "Somebody looked at
 it" is true once — when a new folder is added nobody looks again.
 
+**Including the folders this project writes itself.** `Mesh`, `Prefab`,
+`Materials` and `Animator` are produced by `Editor/ArtPrefabs.cs`, so no
+`License.txt` is looked for inside them — but they were skipped ENTIRELY until
+18 September, and two of them are not ours: `Mesh/` holds body meshes extracted
+from the Kenney FBX files and `Prefab/` wraps those same models. The container
+is the project's; the geometry is Kenney's. CC0 permits all of it, which is why
+this was never a legal risk — but skipping a folder is not a judgement about
+its licence, it is the absence of one, and the next pack to arrive this way may
+not be CC0.
+
 | Folder | Package | Licence |
 |---|---|---|
 | Characters | Kenney Mini Characters 1.0 | CC0 1.0 |
@@ -152,3 +164,7 @@ it" is true once — when a new folder is added nobody looks again.
 | Food | Kenney Food Kit 2.0 | CC0 1.0 |
 | Fonts | Rubik (Hubert & Fischer) + Noto Sans SC (Google) | SIL OFL 1.1 (both) |
 | Icons | The project's own work (Editor/IconShot.cs) | — |
+| Mesh | Body meshes extracted from the Kenney Mini Characters FBX files by `Editor/ArtPrefabs.cs` | CC0 1.0 |
+| Prefab | The project's own prefabs, wrapping the Kenney models above | CC0 1.0 |
+| Materials | The project's own work (`Editor/ArtPrefabs.cs`); the character material samples the pack's `colormap.png` | CC0 1.0 |
+| Animator | The project's own work (`Art/Animator/Character.controller`), driving clips from the packs above | CC0 1.0 |

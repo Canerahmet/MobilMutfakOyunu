@@ -90,19 +90,19 @@ namespace Lokanta.Game
             //
             // The names are the same as the list in Art/ATTRIBUTION.md; that
             // table says which file lands where.
-            _click = Prefer("tik", () => Tone("tik", 0.045f, (t, n) =>
+            _click = Prefer("click", () => Tone("click", 0.045f, (t, n) =>
                 Env(t, n, 0.004f, 0.040f) * Sine(t, 880f) * 0.35f));
 
-            _confirm = Prefer("onay", () => Tone("onay", 0.22f, (t, n) =>
+            _confirm = Prefer("confirm", () => Tone("confirm", 0.22f, (t, n) =>
                 Env(t, n, 0.010f, 0.20f) *
                 (Sine(t, 587f) * 0.5f + Sine(t, 880f) * 0.35f) * 0.4f));
 
-            _cancel = Prefer("iptal", () => Tone("iptal", 0.18f, (t, n) =>
+            _cancel = Prefer("cancel", () => Tone("cancel", 0.18f, (t, n) =>
                 Env(t, n, 0.006f, 0.17f) *
                 (Sine(t, 392f) * 0.5f + Sine(t, 294f) * 0.35f) * 0.4f));
 
             // Money: two quick tones, the second one higher. The feel of a "till".
-            _coin = Prefer("para", () => Tone("para", 0.26f, (t, n) =>
+            _coin = Prefer("coin", () => Tone("coin", 0.26f, (t, n) =>
             {
                 float a = Env(t, n, 0.004f, 0.09f) * Sine(t, 1047f);
                 float b = t > 0.07f
@@ -112,27 +112,27 @@ namespace Lokanta.Game
             }));
 
             // Bell: a door chime. Three harmonics, a long release.
-            _bell = Prefer("kapi-zili", () => Tone("zil", 0.85f, (t, n) =>
+            _bell = Prefer("door-bell", () => Tone("bell", 0.85f, (t, n) =>
                 Env(t, n, 0.003f, 0.80f) *
                 (Sine(t, 1319f) * 0.5f + Sine(t, 1976f) * 0.28f
                  + Sine(t, 2637f) * 0.14f) * 0.32f));
 
             // Sizzle: noise, softened for a low-pass feel.
-            _sizzle = Prefer("cizirti", () => Tone("cizirti", 0.55f, (t, n) =>
+            _sizzle = Prefer("sizzle", () => Tone("sizzle", 0.55f, (t, n) =>
                 Env(t, n, 0.05f, 0.45f) * Noise(t) * 0.22f));
 
             // Pouring: noise + a falling tone.
-            _pour = Prefer("dokme", () => Tone("dokme", 0.45f, (t, n) =>
+            _pour = Prefer("pour", () => Tone("pour", 0.45f, (t, n) =>
                 Env(t, n, 0.03f, 0.40f) *
                 (Noise(t) * 0.35f + Sine(t, 320f - 120f * (t / n)) * 0.25f) * 0.3f));
 
             // An angry guest: two falling tones.
-            _upset = Prefer("kizgin", () => Tone("kizgin", 0.35f, (t, n) =>
+            _upset = Prefer("upset", () => Tone("upset", 0.35f, (t, n) =>
                 Env(t, n, 0.006f, 0.32f) *
                 Sine(t, 330f - 90f * (t / n)) * 0.42f));
 
             // Levelling up: a rising triad.
-            _levelUp = Prefer("seviye", () => Tone("seviye", 0.5f, (t, n) =>
+            _levelUp = Prefer("level-up", () => Tone("level-up", 0.5f, (t, n) =>
             {
                 float f = t < 0.14f ? 523f : (t < 0.28f ? 659f : 784f);
                 return Env(t, n, 0.006f, 0.45f) * Sine(t, f) * 0.4f;
@@ -143,7 +143,7 @@ namespace Lokanta.Game
             // borrowed the angry-guest grumble, which is the sound of being
             // TOO LATE. A warning has to be distinguishable from a failure,
             // so this one RISES where `kizgin` falls.
-            _alarm = Prefer("uyari", () => Tone("uyari", 0.30f, (t, n) =>
+            _alarm = Prefer("alarm", () => Tone("alarm", 0.30f, (t, n) =>
             {
                 float f = t < 0.12f ? 740f : 988f;
                 return Env(t, n, 0.004f, 0.26f) * Sine(t, f) * 0.34f;
@@ -153,7 +153,7 @@ namespace Lokanta.Game
             // no sound at all: a guest asking for something the kitchen
             // cannot make was exactly as quiet as one who never asked. Dull
             // and short - a shelf coming up empty, not an error.
-            _empty = Prefer("bitti", () => Tone("bitti", 0.20f, (t, n) =>
+            _empty = Prefer("empty", () => Tone("empty", 0.20f, (t, n) =>
                 Env(t, n, 0.004f, 0.18f) *
                 (Sine(t, 196f) * 0.45f + Noise(t) * 0.12f) * 0.34f));
 
@@ -168,14 +168,14 @@ namespace Lokanta.Game
             // from `para` (the same guest pays a second later) and from
             // `seviye` (three notes, a much bigger event), so it is quieter
             // and shorter than either.
-            _combo = Prefer("kombo", () => Tone("kombo", 0.16f, (t, n) =>
+            _combo = Prefer("combo", () => Tone("combo", 0.16f, (t, n) =>
             {
                 float f = t < 0.07f ? 587f : 784f;
                 return Env(t, n, 0.004f, 0.14f) * Sine(t, f) * 0.26f;
             }));
 
             // The turn of the day: soft, low, two tones.
-            _day = Prefer("gun-donumu", () => Tone("gun", 0.7f, (t, n) =>
+            _day = Prefer("day-turn", () => Tone("day", 0.7f, (t, n) =>
                 Env(t, n, 0.06f, 0.62f) *
                 (Sine(t, 262f) * 0.4f + Sine(t, 349f) * 0.3f) * 0.35f));
 
@@ -189,9 +189,9 @@ namespace Lokanta.Game
         /// </summary>
         public static int FileBackedCount()
         {
-            string[] names = { "tik", "onay", "iptal", "para", "kapi-zili",
-                               "cizirti", "dokme", "kizgin", "seviye",
-                               "gun-donumu" };
+            string[] names = { "click", "confirm", "cancel", "coin", "door-bell",
+                               "sizzle", "pour", "upset", "level-up",
+                               "day-turn" };
             int n = 0;
             for (int i = 0; i < names.Length; i++)
                 if (Resources.Load<AudioClip>("audio/" + names[i]) != null) n++;

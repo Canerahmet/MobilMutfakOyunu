@@ -19,7 +19,7 @@
 ## 1. The thing that already exists, and the thing that does not
 
 **The mechanic is built.** [32](32-equipment-and-rebalance.md) put the whole
-equipment ladder in: six shared stations, cuisine-specific ones on top,
+equipment ladder in: seven shared stations, cuisine-specific ones on top,
 `slots`, `attendBp`, a price derived from the rent of the tier at which the
 item becomes necessary, and `CommandKind.BuyEquipment` to buy it. The
 simulation knows at every instant which station is loaded, how many slots it
@@ -75,9 +75,18 @@ never compulsory and never priced.
 Everything here is generated, so the change goes into `tools/balance/model.py`
 and `tools/content/gen_dishes.py`, never into `content/`.
 
-**Inserting in the middle renumbered every station after it**, which is safe
-only because the closed list in `ContentSetLoader.StationIds` and the generator
-both carry the same order and both are regenerated together. Three tests were
+**Inserting in the middle renumbered every station after it.** The content and
+the loader are safe, because `ContentSetLoader.StationIds` and the generator
+carry the same order and are regenerated together. **The save file is not
+regenerated**, and that is where the renumbering actually bites: a file written
+before the fryer stores tiers and job assignments against the OLD numbering, so
+loading it would have moved every station's tier one place and sent every cook
+to the wrong station. `SaveVersion` goes to 23 and `Restore` migrates a file
+below it - the old array is read at its old length, index 1 is opened up for
+the fryer at tier 0, and every `jobStation` at or above 1 is pushed up one.
+`SaveTests` reads the migrated file back and asserts it against
+`ContentSetLoader.StationIds`, so the migration and the loader cannot drift
+apart silently. Three more tests were
 holding their own copy of that order and said so when it moved — a station
 count written as `6`, a station named by index `0`, and a list of ids typed out
 a second time. All three now ask the loader.
@@ -97,10 +106,10 @@ thing and the thing appeared" is the whole point.
 | station | the object | what a tier adds |
 |---|---|---|
 | `ocak` | steel range, back splash, knobs along the front | **burners**: 1 → 4 rings on the top plate |
-| `izgara` | char grill: slatted bars over an ember bed, drip tray | **bars and width**: the bed grows and the ember row with it |
-| `firin` | oven with a glass door, a lamp behind it, racks | **racks**: 1 → 2, and a second door at tier 2 |
-| `fritoz` | fryer: oil wells with a still amber surface, baskets on a rail | **wells**: 1 → 3 |
-| `soguk` | the cold counter (the existing fridge model) | a second door |
+| `izgara` | char grill: nine slatted bars over an ember bed, drip tray | **embers**: 2 → 5 lit elements. The bed and the bars are a fixed size |
+| `firin` | oven with a glass door and a lamp behind it | **a second chamber**: one door at tier 0, two at tier 1. The ladder has two rungs, so there is no tier 2 |
+| `fritoz` | fryer: oil wells with a still amber surface, baskets of chips on a rail | **wells**: 1 → 4, one per rung of the ladder it inherited from the hob |
+| `soguk` | cold counter: doors, a handle rail, a temperature panel per door | **a second door**, and a second panel with it |
 | `icecek` | drinks tower: three nozzles, a cup rest, a lit panel | a fourth nozzle |
 | `tatli` | dessert case: two glass shelves with cakes on them | a second shelf fills |
 | `milkshake_makinesi` | three spindles over a cup rest | a fourth spindle |
@@ -120,15 +129,24 @@ Everything else is ordinary geometry on the shared lit material.
 fan-out goes. Station *i*'s object shows station *i*'s load against station
 *i*'s slots, which is what the player is deciding about.
 
+**How finely it reads depends on how many lit elements the station has.** A
+four-burner range shows four steps; a stone oven has one fire and therefore
+reads on/off. That is honest for the object - an oven either has something in
+it or it does not - but it is worth saying, because "load against slots"
+suggests a meter everywhere and it is a meter only where there is a row of
+things to light.
+
 ## 4. Where they stand, and every bound is measured
 
 The kitchen is **5.2 × 5.6 m** at (0, 4.0). Three constraints bound every
 placement and none of them is negotiable:
 
-- `Paths.KitchenPost` put working cooks in a fixed row at z = 8.25. **That went
-  too**: a cook works in front of ITS OWN station now (`CookRoutine.Post`),
-  derived from the station's transform, because the stations no longer all
-  stand on the back wall.
+- `Paths.KitchenPost` put working cooks in a fixed row at z = 8.25. A cook
+  works in front of ITS OWN station now (`CookRoutine.Post`), derived from the
+  station's transform, because the stations no longer all stand on the back
+  wall. `KitchenPost` itself **remains as the fallback** for a station with no
+  object, and it still carries the old `station % 3` spread; it is reached only
+  when `StoveOf` returns null.
 - `Paths.CookHome` puts idle cooks in the middle of the room.
 - `Paths.BackDoor` opens the wash-room gap at **x = 0.72** on the front edge,
   and a figure needs 0.44 m of width through it.
@@ -253,12 +271,22 @@ Nothing here is finished because it looks finished.
 | what | how | state |
 |---|---|---|
 | every station the cuisine uses has an object | the tour counts `StationObjectCount` against `StationsMissing` | green |
-| buying changes the picture | `StationsStale` compares each object's built tier with `StationTier` | green |
+| buying changes the picture | `StationsStale` compares each object's built tier with `StationTier` | **green, and worth less than it looks - see below** |
 | the objects fit | the placement audit: 0 clashing pairs, 0 props out through a wall, both cuisines | green |
 | nothing teleports | `Walker.WorstWarp` under 0.30 m, with the offender named | green |
 | a station with nowhere to stand is not silent | it is switched off and logged by name and width | proven by the Turkish pide oven, which was the first thing it caught |
-| the fryer changed nothing it should not | `check.py`: dish balance, content generation and 249 core tests | green |
-| the frame still fits the budget | `MEASURED scene budget` | 296 renderers and 61k triangles at full expansion, against 400 and 80k |
+| an old save still loads | `SaveTests` migrates a version-22 file and asks the loader where the fryer went | green |
+| the fryer changed nothing it should not | `check.py`: dish balance, content generation and 251 core tests | green |
+| the frame still fits the budget | `GameShot` fails the run above 360 renderers / 70k triangles / 220 unbatched | 297 renderers and 61k triangles at full expansion |
+
+**The staleness guard is self-satisfying as it stands.** `StationsStale` is
+recomputed from the same `StationTier` the view rebuilt from, and the tour
+never buys a station, so the guard has never been asked a question it could
+answer wrong. It is left in because it costs nothing and it will catch a
+rebuild that skips a station - but "buying changes the picture" is, today,
+proven by hand and by the tier renders, not by the tour. Making the tour buy
+its way up the ladder and re-count is the honest version and it is not written
+yet.
 
 **What is not measured, and is worth saying.** Whether the equipment READS at
 the game's own camera — whether a player can tell a fryer from a grill at 34° —
@@ -266,3 +294,184 @@ is a judgement, not a number. `render/kitchen_*_line.png` was added for it: the
 room shot is taken at the game's angle, which is the right test for "can the
 player read it" and the wrong one for "is the model correct", where a stone
 oven's dome is forty pixels.
+
+## 8. What four agents found when they were pointed at it
+
+The work above was checked by four independent readers with no stake in it:
+one on the models and the placement, one on the paths and the animation, one on
+the guards themselves, one on the economy. They were asked for defects, not for
+approval. **Every finding in this section was reproduced before it was
+believed and re-measured after it was fixed.**
+
+The ones that were changing what the player sees:
+
+| finding | why it mattered |
+|---|---|
+| the pans were built in station-local space | a pot placed on a station standing on the left wall landed over the pavement; the guard counted the MARKER, which was in the right place, so it was green |
+| guests sat 0.41 m into the chair | `SitLift` was applied to a body the seating code then overwrote. Only in play - the editor preview never runs the walk, so every frame I had judged from was blind to it |
+| `soguk` had no lamp | the one station whose load reads on a light had no light |
+| `fritoz` tiers 2 and 3 were the same object | `Mathf.Clamp(tier + 1, 1, 3)` on a four-rung ladder: the player paid for a tier that changed nothing |
+| `Own` radius excused an intruder by 3 cm | the clash guard used 0.78 m where the chair's outer edge is 0.68 m |
+| the wash post leaked | a washer promoted to cook kept its sink, so the second sink could never be claimed |
+| `UpdateScrub` ran while paused | the sponge kept scrubbing behind the pause menu |
+
+The ones that were about the guards, which are the more expensive kind:
+
+| finding | why it mattered |
+|---|---|
+| `GameShot` was never invoked by `check.py` | the screenshot and the whole scene budget were only ever taken by hand |
+| `PlacementAudit` had **no failure path** | it counted clashes and printed them; nothing read the number. It logs `PROBLEMS:` now, which `run.ps1` treats as fatal |
+| `run.ps1` and `shot.ps1` grepped for `HATA  :` and `SORUNLAR:` | spellings that had not existed since the repository was translated. The fatal-pattern list matched nothing |
+| `check_licenses` searched the whole ledger for "own work" | one row saying it made every asset exempt |
+| `check.py` toured only Turkish | the fryer is fast food's station and fast food was never played |
+
+The last five are all the same defect wearing different clothes, and it is the
+one CLAUDE.md rule 4 exists for: **a check that does not run looks exactly like
+one that passes.** Four of the five had been green for weeks.
+
+### And what was done about them
+
+| finding | what changed |
+|---|---|
+| `Intruding` only knows table sets, so a cook could walk through the stove run | the kitchen stations are in it now, as RECTANGLES from their measured width and depth - a circle round a 1.16 x 0.70 m oven is wrong at both ends |
+| pedestrians walked through the terrace rail, and stood inside the cafe tables | the street was in the wrong physical order. See below |
+| `check_grade.py` read values but not `active:` or `m_OverrideState` | both switches are read, and a CLOSED list refuses an override nobody has classified. Proved by switching `ColorAdjustments` off and watching it go red |
+| the `NoteIf(x, x)` family reported UNMEASURED where it should report RED | the condition is now something other than the answer: `HasCombo`, `HasCredit`, `BadgesEarned > 0` - and the rows that belong to every run are plain `Note` |
+| `tools/store/compose.py` was in no script | `tour.ps1 -Store` runs it straight after copying the frames. Shooting them and making them Play-legal is one action |
+| `ArtCheck` had no failure path | it counts problems and logs `PROBLEMS:`. It also checks the thing it never did: the figures are 1.10 m and every distance in the game is measured against that |
+| `check_licenses` skipped `Mesh/`, `Prefab/`, `Materials/`, `Animator/` as "generated" | two of them are not ours - `Mesh/` holds geometry extracted from the Kenney FBX files. All four have a ledger row now. Kenney is CC0, so nothing was ever at risk; skipping a folder is not a judgement about its licence, it is the absence of one |
+| the thirteen sound keys were Turkish | renamed to English. Both lists said "the names stay Turkish because they are the literal strings `Sfx.cs` looks for" - which is a reason for them to MATCH, not a reason for them to be Turkish |
+
+### The one that mattered: "not a balance change" was not true
+
+Section 2 argues that moving eight dishes to a station with the hob's exact
+numbers cannot change the campaign, and cites `check.py` as the evidence.
+**`check.py` has no campaign step.** It validates the content, generates it and
+runs the core tests; it never plays a sixty-day season. The guard cited for
+neutrality could not see the thing it was cited for - CLAUDE.md rule 4, and
+this time in a document that had just been written.
+
+Run properly - the harness at `3ddab61^` against `3ddab61`, same seeds, same
+machine - the fast-food report **moved on 252 lines**, and two of docs/12's
+design questions changed their ANSWER, not their number: putting somebody on
+the sink went from losing to `planci` to beating it, and the player who never
+expands went from 12,750 to 17,735. The growth multiplier at the project's own
+32-seed verification fell from **1.60 to 1.14**, against a floor of 1.80.
+
+**The content was innocent; the cause was one line and it predates the fryer.**
+`Simulation.BuyEquipment` learned to refuse a station the cuisine does not cook
+on - reason 4, added when the six-thousand-coin oven turned out to be for sale
+to a Turkish player who could never use it. `NextEquipmentPrice` was left
+quoting a price for that same purchase. So everything that asks "what does the
+next tier cost" believed there was one:
+
+- the harness bot's optional-purchase loop spent its one purchase a day on a
+  command the simulation threw away, and `return`ed as though it had bought
+  something;
+- the morning equipment screen drew a live **Upgrade** button with a price on
+  it, and pressing it produced the generic rejection notice, which names no
+  reason and moves no money.
+
+This was dormant while every cuisine used every shared station. Inserting
+`fritoz` at index 1 made `ocak` dead for fast food and put it at **index 0** -
+the first thing the loop tries - so from that commit the fast-food bots never
+bought another optional upgrade at all.
+
+`NextEquipmentPrice` returns -1 for an unused station now, which is how that
+method already says "there is nothing to buy", and the equipment screen filters
+on the same flag the kitchen has always filtered on. Measured after: `makul`
+21,955, `genislemeyen` 12,750, `bulasikci` 24,927 below `planci`'s 26,163 -
+the pre-fryer numbers, to the coin.
+
+**And it uncovered something that was already true.** The growth multiplier was
+**1.60 before any of this**, against docs/12's floor of 1.80. The fryer did not
+break that gate; it was failing, and the campaign had not been run often enough
+for anybody to notice. That is a balance question, not a bug, and it is open.
+
+### Two more the same audit found
+
+- `EquipmentTests.The_docs27_peak_slot_table_holds` skipped any station its
+  table does not name. That is right for the cuisine's own equipment and wrong
+  for a shared one: `fritoz` reached the content with no row in docs/27 and the
+  skip made it invisible - drifting the fryer's top slots from 4 to 5 left the
+  test PASSING, while the same drift on `ocak` failed it. The closed list of
+  shared stations is checked first now, so a station the table has never heard
+  of is the failure rather than the exemption.
+- `gen_dishes.STATION_TIERS` had no `fritoz` row, so `max_tier` fell through to
+  2 and the generator believed the fryer's ladder ended at tier 1. It did not
+  bite only because none of the eight dishes ranked that high - which is luck.
+  The comment above that table records the identical failure one station
+  earlier, with three fast-food desserts locked for sixty days.
+
+### The street was in the wrong order, and that cost frame depth
+
+From the building outwards it ran: **near pedestrian lane (-0.37)**, terrace
+rail (-0.42), planters (out to -0.65), cafe tables (-0.95), far lane (-1.07),
+kerb. The near lane was INSIDE the terrace - 0.37 m from a wall with a rail 5
+cm beyond it - so a pedestrian's torso went through that rail along the whole
+length of the building every time anybody walked left.
+
+The cafe tables were worse and more visible. They stood on the pavement and
+were declared obstacles for the passers-by to push against, with **one push
+radius for every obstacle: 0.40 m**. A table is 0.36 m across and a body 0.29,
+so the push needed 0.65 and the figures stood inside the tables instead
+(`render/zoom/before-pedestrians-in-the-terrace.png`).
+
+The pavement is not wide enough for a terrace AND two pedestrian lanes: a
+0.72 m cafe set plus 1.37 m of lanes plus the kerb comes to 2.5 m and there
+was 1.94. So the terrace moved behind the rail and got shallower - a bench
+0.30 m deep with its back to the building - and the lanes moved outside it:
+
+    wall 0 | bench -0.19 | rail + planters -0.42 (out to -0.65)
+          | lane -0.97 | lane -1.67 | kerb -2.02 | tarmac -2.34
+
+**The price is real and it was measured, not waved through.**
+`CameraFit.StreetInFrame` goes 1.94 -> 2.66, and every metre at the front
+makes the restaurant smaller on screen. The touch-target floor
+(`Editor/RoomLayout`) was re-taken at every tier, same build, one constant
+changed - one tier is not the answer, because the floor falls as the
+restaurant grows:
+
+| tables | 4 | 7 | 10 | 14 |
+|---|---|---|---|---|
+| 1.94 m | 43 | 43 | 42 | 42 |
+| **2.66 m** | **41** | **41** | **40** | **40** |
+
+So the street costs **2 dp, flat**, and the worst tier goes 42 -> 40 against a
+red line at 40. That spends the whole margin, which is why the trade is
+written down rather than waved through: what it buys is in every frame along
+the whole front of the building, what it costs is two dp on a number whose
+subject is a room and not a button, and it is one constant to reverse.
+
+**And re-taking it found a stale number, again.** `CameraFit` said the floor
+was 59 dp; it was 43, and had been since before this work started. docs/41 had
+re-measured the same line on 13 September, got 42-43 and argued the price -
+what falls under Google's 48 is not a button but the SHORT edge of a room whose
+long edge is twice it. That argument stands; two documents held the number and
+one of them was updated. What the street change really costs, then, is not the
+gate but the MARGIN under it: `RoomLayout` went red below 40, so an accepted 43
+had three dp of room and 41 has one. The red line is a ratchet at 41 now.
+
+`StreetLife.PostClear` went 0.40 -> 0.48 with the rest, which is the post's
+0.185 plus a body's 0.29 - the shortfall that made the tour report a pedestrian
+inside a lamp post on some runs and not others.
+
+### Still open, written down rather than quietly dropped
+
+- **The tour never buys a station**, so `StationsStale` has never been asked a
+  question it could answer wrong. See the note under the table in section 7.
+- **The merged decor group is invisible to the placement audit.** `Decor` is
+  one mesh per colour covering the whole building, so its bounding box overlaps
+  everything; the service counter, the shelves, the hood and the tray station
+  are inside it and cannot be measured pair-by-pair. An axis-aligned box over a
+  merged mesh cannot answer the question either way - splitting the group would
+  answer it and would cost renderers the budget does not have.
+- **Turkish string literals in C# are not checked.** `check_english` reads
+  identifiers, file names and prose, not literals, which is why the sound keys
+  survived this long. A blanket rule would fire on the content ids (`ocak`,
+  `izgara`), which are deliberately Turkish, so it needs an allow-list built
+  from the content - worth doing, not done.
+- **The colour grade's cost on a device is still unmeasured.** Post-processing
+  forces the camera through an intermediate target and no desktop run can
+  measure that bandwidth. docs/21 carries it.
+

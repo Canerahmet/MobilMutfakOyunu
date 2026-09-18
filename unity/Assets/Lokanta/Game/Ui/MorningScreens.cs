@@ -1211,7 +1211,21 @@ namespace Lokanta.Game.Ui
 
             list.Add(Theme.Divider());
 
-            for (int st = 0; st < sim.StationCount; st++) list.Add(Station(st));
+            // ONLY THE STATIONS THIS CUISINE COOKS ON.
+            //
+            // This listed all of them, and the simulation refuses to sell the
+            // ones nothing cooks on (BuyEquipment, reason 4). So the Turkish
+            // player was shown an OVEN card and, since the fryer arrived, a
+            // FRYER card as well - each with a live "Upgrade" button and a
+            // price - and pressing it produced the generic rejection notice,
+            // which names no reason, and no money moved. The kitchen was
+            // right all along: RestaurantView filters on the same flag, so
+            // the shop was offering a machine the room does not contain.
+            for (int st = 0; st < sim.StationCount; st++)
+            {
+                if (!sim.IsStationUsed(st)) continue;
+                list.Add(Station(st));
+            }
 
             // Expansion at the very bottom: the most expensive and the least
             // reversible decision.

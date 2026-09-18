@@ -156,7 +156,18 @@ namespace Lokanta.Game
         /// from it; were the threshold Personal, every pedestrian in the
         /// outer lane would be pushed inwards CONSTANTLY, that is, the lane
         /// would be useless.
-        private const float PostClear = 0.40f;
+        /// <summary>
+        /// How far a pedestrian is pushed out of an obstacle's centre.
+        ///
+        /// 0.40 -> 0.48, AND IT IS A SUM, NOT A FEELING: the lamp post's
+        /// widest band is its base plate at radius 0.185, and the figure's
+        /// half-width at torso height is 0.29 (the PROFILE lines of
+        /// Editor/PlacementAudit). 0.40 left them 8 cm short, which is why
+        /// the tour reported "1 people in a lamp post" in some runs and not
+        /// in others - the push was resolving the overlap only when the
+        /// approach happened to be shallow.
+        /// </summary>
+        private const float PostClear = 0.48f;
 
         /// <summary>
         /// The smallest SIDEWAYS share of the pushing.

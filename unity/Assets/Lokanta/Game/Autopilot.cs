@@ -804,8 +804,29 @@ namespace Lokanta.Game
             // The distance separates them: the legitimate warps are
             // zero-distance (a figure placed where it already stands before
             // a path is handed to it) and a teleport is metres.
+            // THE GUESTS SIT ON THE CHAIR, NOT THROUGH IT.
+            //
+            // Walker drops the y of every waypoint, so a guest that WALKS to
+            // its seat used to land 0.41 m low - and the editor screenshots
+            // could not show it, because the preview places figures directly.
+            // Only the running game can measure this one.
+            float seatDrop = ((cv != null) ? cv.WorstSeatDrop : 0f);
+            Note(seatDrop < 0.05f, "The guests sit at chair height (worst " + seatDrop.ToString("0.00") + " m out)");
             Note(Walker.WorstWarp < 0.30f, "Nobody is moved without walking (worst " + Walker.WorstWarp.ToString("0.00") + " m, " + Walker.WorstWarpName + ")");
             Note(stationsOld == 0, "Every station shows the tier that was bought (" + stationsOld + " stale)");
+            // THE BASIN IS FULL, AND THE FOAM IS ON IT.
+            //
+            // "Is the water switched on" was already true when the frame
+            // showed an empty basin: it was built, active and the right
+            // colour, and a third of the size of the hole it was filling.
+            // A boolean cannot measure the word the request used, which was
+            // FULL.
+            float cover = ((cv != null) ? cv.BasinCover : 0f);
+            Note(cover > 0.20f, "The sinks are full of water (the smallest covers "
+                 + (cover * 100f).ToString("0") + "% of its unit)");
+            float foamOff = ((cv != null) ? cv.FoamOffWater : 0f);
+            Note(foamOff < 0.02f, "The foam floats on the water (worst "
+                 + foamOff.ToString("0.000") + " m off the surface)");
             Note(cv != null && cv.PotCount > 0, "There is a pan on top of the stoves (" + ((cv != null) ? cv.PotCount : 0) + " stoves)");
             NoteIf(Wardrobe.Attempted > 0, Wardrobe.Dressed == Wardrobe.Attempted, "All the staff were dressed (" + Wardrobe.Dressed + "/" + Wardrobe.Attempted + ")");
             // THE CROWD: recoloured, or exactly what it looked like before?
@@ -1707,14 +1728,30 @@ namespace Lokanta.Game
             // and a check that does not run looks, from outside, THE SAME as
             // a check that passes. Staying silent would mean believing the
             // feature had been tested.
-            NoteIf(qualityMeasured, qualityMeasured,
-                   "The quality selector was seen at the market");
+            // AND `NoteIf(x, x)` IS THE WRONG SHAPE FOR MOST OF THEM.
+            //
+            // Passing the same flag as both the condition and the result
+            // makes a check that CANNOT be red: if the quality selector
+            // disappeared from the market screen altogether, the flag would
+            // stay false, the row would read UNMEASURED, and the tour would
+            // still pass. That is the very failure the block above is
+            // written against, one level up.
+            //
+            // The condition has to be something OTHER than the answer: the
+            // cuisine has a combo, the campaign earned a badge, the run
+            // reached the day the moment fires. Where there is no such
+            // condition - the market's quality selector, tenure on the
+            // staff screen, a weekly report in sixty days - the row belongs
+            // to every run and a plain Note is right: not seen is RED.
+            Note(qualityMeasured,
+                 "The quality selector was seen at the market");
             // The Turkish cuisine has no combo, so this check has to say NOT
-            // MEASURED there - not red. That is exactly what NoteIf is for.
-            NoteIf(comboToggled, comboToggled,
+            // MEASURED there - not red. That is what NoteIf is for, and
+            // `HasCombo` is the condition it should have been asking about.
+            NoteIf(_app.Sim.HasCombo, comboToggled,
                    "The combo button was pressed during service");
-            NoteIf(tenureMeasured, tenureMeasured,
-                   "Tenure was measured on the staff screen");
+            Note(tenureMeasured,
+                 "Tenure was measured on the staff screen");
 
             // THE TAB BOOK VANISHED FROM THE SUMMARY ENTIRELY.
             //
@@ -1725,9 +1762,9 @@ namespace Lokanta.Game
             // here; these two were the ones that did not, which is the exact
             // shape of "a check that does not run looks, from outside,
             // exactly like one that passes".
-            NoteIf(creditOpened, creditOpened,
+            NoteIf(_app.Sim.HasCredit, creditOpened,
                    "The tab was opened during service");
-            NoteIf(ledgerMeasured, ledgerMeasured,
+            NoteIf(_app.Sim.HasCredit, ledgerMeasured,
                    "The tab book was measured");
 
             // DID THE LONG-TENURE MOMENT REACH THE PLAYER?
@@ -1739,9 +1776,9 @@ namespace Lokanta.Game
             // CollectCredit, the combo button).
             NoteIf(_app.Sim.Day > Simulation.TenureDays, tenureMomentSeen,
                    "The long-tenure moment was seen in the notice strip");
-            NoteIf(reportMeasured, reportMeasured,
-                   "The weekly report card was seen (at least one week in 60 days)");
-            NoteIf(badgeMeasured, badgeMeasured,
+            Note(reportMeasured,
+                 "The weekly report card was seen (at least one week in 60 days)");
+            NoteIf(_app.Sim.BadgesEarned > 0, badgeMeasured,
                    "A badge earned was seen in the evening report");
             Note(_app.Sim.BadgesEarned > 0,
                  "A badge was earned in the campaign (" + _app.Sim.BadgesEarned

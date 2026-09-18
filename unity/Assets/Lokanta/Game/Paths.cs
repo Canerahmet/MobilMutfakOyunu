@@ -96,8 +96,34 @@ namespace Lokanta.Game
         /// 1.10 -> 1.94 m (CameraFit.StreetInFrame) and the touch-target
         /// measurement (the BASE line of Editor/RoomLayout) was run again -
         /// 59 dp, above Google's 48 dp minimum.
+        ///
+        /// -0.72 -> -1.32, AND THE REASON IS THE TERRACE.
+        ///
+        /// The street was laid out in the wrong physical order. From the
+        /// building outwards it ran: the near pedestrian lane (-0.37), the
+        /// terrace rail (-0.42), the planters (out to -0.65), the cafe
+        /// tables (-0.95), the far lane (-1.07), the kerb. So the NEAR LANE
+        /// WAS INSIDE THE TERRACE - 0.37 m from a wall, with a rail 5 cm
+        /// beyond it - and a pedestrian's torso (half-width 0.29 at rail
+        /// height) went through that rail along the whole length of the
+        /// building, every time anybody walked left. The zoomed frame
+        /// (render/zoom/before-pedestrians-in-the-terrace.png) shows the rest of it: passers-by
+        /// standing inside the cafe tables.
+        ///
+        /// The order is now the one a real pavement has:
+        ///
+        ///   wall 0 | terrace seating -0.19 | rail + planters -0.42 (out to
+        ///   -0.65) | lane -0.97 | lane -1.67 | kerb -2.02 | tarmac -2.34
+        ///
+        /// Each gap is the figure's own half-width: the near lane clears the
+        /// planters by 0.29 m and nothing continuous stands on either lane.
+        ///
+        /// THE PRICE, MEASURED NOT GUESSED: CameraFit.StreetInFrame goes
+        /// 1.94 -> 2.66, and every metre at the front makes the restaurant
+        /// smaller on screen. Editor/RoomLayout's BASE line was run again -
+        /// see the number recorded there - against Google's 48 dp minimum.
         /// </summary>
-        public const float PavementZ = -0.72f;
+        public const float PavementZ = -1.32f;
 
         /// <summary>
         /// HALF the distance between the two pedestrian lanes.
@@ -381,8 +407,24 @@ namespace Lokanta.Game
             float inLane = target.x - r.X0 < r.W * 0.5f ? leftLane : rightLane;
 
             into.Add(new Vector3(outLane, 0f, from.z));
+
+            // WHEN THE TWO ENDS ARE ON OPPOSITE SIDES, GO ROUND THE FRONT.
+            //
+            // This used to cross at `from.z` - out to the near lane, then
+            // STRAIGHT ACROSS THE WHOLE ROOM still at the starting row, then
+            // along the far lane. That middle leg is exactly the "through
+            // every table" walk this routine was written to stop: a waiter
+            // moving from table 2 to table 3 in Hall1 passed 0.75 m from two
+            // table centres, a quarter of a metre inside both sets.
+            //
+            // The front margin is clear ground in every hall: the grid is
+            // centred, so the nearest row is 1.07-1.47 m from Z0 + SideLane.
             if (Mathf.Abs(outLane - inLane) > 0.01f)
-                into.Add(new Vector3(inLane, 0f, from.z));
+            {
+                float frontLane = r.Z0 + SideLane;
+                into.Add(new Vector3(outLane, 0f, frontLane));
+                into.Add(new Vector3(inLane, 0f, frontLane));
+            }
             into.Add(new Vector3(inLane, 0f, target.z));
         }
 

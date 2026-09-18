@@ -178,7 +178,7 @@ namespace Lokanta.Core.Tests
         public void Named_equipment_stays_locked_until_it_is_bought(string cuisine)
         {
             // docs/09: 10 SPECIAL cooking stations per cuisine. What sets them
-            // apart from the six shared stations is that they ARE NOT THERE at
+            // apart from the seven shared stations is that they ARE NOT THERE at
             // the start.
             //
             // "Station tier 2 required" is an abstract condition; "buy a stone

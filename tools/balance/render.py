@@ -136,8 +136,9 @@ def t_equipment():
     """
     L = ["| Station | `attendBp` | Tier | Slots | `attendBp` | Price | Needed at tables |",
          "|---|---|---|---|---|---|---|"]
-    names = {"ocak": "Stove", "izgara": "Grill", "firin": "Oven",
-             "soguk": "Cold", "icecek": "Drinks", "tatli": "Desserts"}
+    names = {"ocak": "Stove", "fritoz": "Fryer", "izgara": "Grill",
+             "firin": "Oven", "soguk": "Cold", "icecek": "Drinks",
+             "tatli": "Desserts"}
     total = 0
     for st in model.equipment():
         base = st["tiers"][0]["attend"]
@@ -150,8 +151,56 @@ def t_equipment():
                 fmt(t["price"]) if t["price"] else "—",
                 t["needAt"] if t["needAt"] else "optional"))
     L.append("")
-    L.append("The whole ladder is **{} coins**.".format(fmt(total)))
+
+    # PER CUISINE, BECAUSE NOBODY EVER BUYS THE WHOLE TABLE.
+    #
+    # This line used to print the sum over every shared station - 63,900 -
+    # and the prose two lines below it said 48,080, which is the fast-food
+    # figure the whole design argument rests on. They had disagreed by 15,820
+    # ever since a station arrived that one cuisine does not cook on, and the
+    # GENERATED half was the wrong one: no cuisine uses every station, so the
+    # total is a bill no player can be handed. The fryer widened the gap; it
+    # did not open it. The oven did, and Turkish has never used one.
+    L.append("The whole table is **{} coins**, but nobody pays that: a cuisine "
+             "does not cook on every station. What a player actually faces:"
+             .format(fmt(total)))
+    L.append("")
+    L.append("| Cuisine | The whole ladder | Mandatory (adds a slot) "
+             "| Optional (releases the cook) |")
+    L.append("|---|---:|---:|---:|")
+    for cid in ("fastfood", "turk"):
+        used = _stations_used(cid)
+        allc = mand = opt = 0
+        for st in model.equipment():
+            if st["id"] not in used:
+                continue
+            for t in st["tiers"]:
+                allc += t["price"]
+                if t["needAt"]:
+                    mand += t["price"]
+                else:
+                    opt += t["price"]
+        L.append("| {} | {} | {} | {} |".format(
+            cid, fmt(allc), fmt(mand), fmt(opt)))
     return chr(10).join(L)
+
+
+def _stations_used(cuisine):
+    """The station ids this cuisine's dishes actually cook on.
+
+    Read from the dishes, not from a list, because the dishes are where the
+    answer lives: a station is used exactly when something is cooked on it,
+    which is the same test Simulation.IsStationUsed makes.
+    """
+    import json as _json
+    import os as _os
+    root = _os.path.dirname(_os.path.dirname(_os.path.dirname(
+        _os.path.abspath(__file__))))
+    path = _os.path.join(root, "content", "dishes", cuisine + ".json")
+    rows = _json.load(io.open(path, encoding="utf-8"))
+    if isinstance(rows, dict):
+        rows = rows.get("dishes", [])
+    return set(d["station"] for d in rows if d.get("station"))
 
 
 def t_storage():

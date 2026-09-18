@@ -38,6 +38,17 @@ render/*
 # that no longer exists. The store images - the ones the comment above calls
 # a release asset - simply stopped being committed, silently, because an
 # ignore rule fails by doing nothing.
+# THE EVIDENCE CROPS ARE NOT OUTPUT, THEY ARE THE RECORD.
+#
+# render/ is regenerated on every run and rightly ignored. render/zoom/ is
+# different: these are hand-taken crops of a frame that showed a defect, and
+# the comments that cite them ("the foam went on floating in a hole - see
+# render/zoom/before-empty-basin.png") are pointing at a file a reader has to
+# be able to open. A comment referring to something outside the repository is
+# a comment that will be wrong within a month.
+!render/zoom/
+!render/zoom/*.png
+
 !render/store/
 # The per-cuisine and per-language folders only. A bare render/store/*.png is
 # the OLD flat layout - every store run used to overwrite it, so what sat
@@ -58,3 +69,17 @@ unity/Assets/Resources/PerformanceTestRunInfo.json
 unity/Assets/Resources/PerformanceTestRunInfo.json.meta
 unity/Assets/Resources/PerformanceTestRunSettings.json
 unity/Assets/Resources/PerformanceTestRunSettings.json.meta
+
+# The room-layout captures are DIAGNOSTIC OUTPUT, not source.
+#
+# Editor/RoomLayout.Capture writes sixteen timestamped PNGs per run - one per
+# tier per framing - and every one of them was being committed. 308 of them
+# were in the tree by 18 September, 6.6 MB, and check.py runs the tool, so the
+# repository grew every time anybody verified anything. Nobody has ever opened
+# a capture from three weeks ago: the one that matters is the one on disk now.
+#
+# The ones already committed are left alone - rewriting history to reclaim
+# 6.6 MB is not worth what it costs everybody with a clone - but no new one
+# joins them.
+tools/art/out/unity/floor_*_*.png
+

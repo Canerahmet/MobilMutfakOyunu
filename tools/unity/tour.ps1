@@ -183,6 +183,21 @@ if ($Store) {
     $langNote = ""
     if ($Lang) { $langNote = " / $Lang" }
     Write-Output ("=== store images ({0}{1}): {2} ===" -f $Cuisine, $langNote, $dest)
+
+    # AND THE PLAY-LEGAL COPIES, IN THE SAME BREATH.
+    #
+    # 2183 x 983 is 2.2208 : 1 and Play refuses anything over 2 : 1, so the
+    # frames the tour shoots cannot be uploaded as they are. compose.py pads
+    # them to 2183 x 1120 with their own edge rows. It used to be a step
+    # somebody had to remember, documented in docs/21 - which is to say a
+    # step that gets skipped, and the way it shows up is a rejected upload
+    # weeks later. Shooting the frames and making them legal is one action.
+    & python (Join-Path $Root "tools\store\compose.py")
+    if ($LASTEXITCODE -ne 0) {
+        Write-Output ""
+        Write-Output "=== PROBLEM: the store frames could not be made Play-legal ==="
+        exit 1
+    }
 }
 
 if ($crash -gt 0) {

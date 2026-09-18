@@ -164,19 +164,39 @@ namespace Lokanta.Core.Tests
         [Fact]
         public void The_docs27_peak_slot_table_holds()
         {
-            // docs/27 3.3: at the tier 4 peak the grill and the hob need 4 slots,
-            // the oven 2 and the rest 1. The top of the ladder has to meet that.
+            // docs/27 3.3: at the tier 4 peak the fryer, the grill and the hob
+            // need 4 slots, the oven 2 and the rest 1. The top of the ladder
+            // has to meet that.
             ContentSet c = Content();
             var want = new System.Collections.Generic.Dictionary<string, int>
             {
-                { "ocak", 4 }, { "izgara", 4 }, { "firin", 2 },
+                { "ocak", 4 }, { "fritoz", 4 }, { "izgara", 4 }, { "firin", 2 },
                 { "soguk", 1 }, { "icecek", 1 }, { "tatli", 1 },
             };
+
+            // THE SKIP USED TO HIDE THE OMISSION IT WAS MEANT TO ALLOW.
+            //
+            // The loop walked the content and skipped any station this table
+            // does not name - which is right for the CUISINE's own equipment
+            // (a doner grill is not in docs/27's capacity solution) and quite
+            // wrong for a shared one. `fritoz` was added to the content and
+            // to the Python copy of this table and not to this one, and the
+            // skip made that invisible: drifting the fryer's top slots from 4
+            // to 5 left this test PASSING. The same drift on `ocak` failed it.
+            //
+            // So the table is checked against the closed list of shared
+            // stations FIRST. A shared station this test has never heard of
+            // is now the failure, not the exemption.
+            foreach (string id in ContentSetLoader.StationIds)
+                Assert.True(want.ContainsKey(id),
+                    "the shared station '" + id + "' is not in the docs/27 peak "
+                    + "slot table - add it there and here, or this test will go "
+                    + "on passing whatever its ladder says");
 
             foreach (StationDef st in c.Stations)
             {
                 // The cuisine's own equipment is not in the docs/27 peak table;
-                // that table solves the capacity of the six shared stations.
+                // that table solves the capacity of the SHARED stations.
                 if (!want.ContainsKey(st.Id)) continue;
                 int top = 0;
                 foreach (StationTier t in st.Tiers) if (t.Slots > top) top = t.Slots;

@@ -652,19 +652,46 @@ namespace Lokanta.EditorTools
         ///   - below 40 dp: RED (a clear regression from the accepted 45; at
         ///     that point "you can zoom in and touch it" no longer holds either)
         /// </summary>
+        /// <summary>
+        /// The hard floor, and it is a RATCHET rather than a round number.
+        ///
+        /// 40, AND THE FIRST ATTEMPT AT A RATCHET PUT IT AT 41 AND WAS WRONG.
+        ///
+        /// 41 is the four-table number. This runs at four tiers and the floor
+        /// falls as the restaurant grows, so at fourteen tables it is 40 -
+        /// and a ratchet set from one tier's reading fails the run on a tier
+        /// it never looked at. The right value is the worst one across every
+        /// tier, and that is 40, which is where docs/41 put it.
+        ///
+        /// docs/41 set the red line at 40 when the measured value was 42-43,
+        /// and argued the gap to Google's 48 as an accepted price: what falls
+        /// below it is not a button but the SHORT edge of a room whose long
+        /// edge is twice that, with two-finger zoom available. That argument
+        /// is unchanged. What changed is the room left under it - the street
+        /// widening took 43 to 41, so three dp of margin became one, and a
+        /// red line a single dp below the accepted price is a red line that
+        /// would let the last one go quietly.
+        ///
+        /// Between 41 and 48 this still only WARNS, deliberately: docs/41 is
+        /// right that reporting an accepted price as an error on every run
+        /// buries a real regression in the noise.
+        /// </summary>
+        private const int FloorDp = 40;
+
         private static void Threshold(string dpText, int tables, string aspect)
         {
             if (!int.TryParse(dpText, out int dp)) return;
-            if (dp < 40)
+            if (dp < FloorDp)
             {
-                Debug.LogError("PROBLEMS: touch target " + dp + " dp (< 40), "
+                Debug.LogError("PROBLEMS: touch target " + dp + " dp (< " + FloorDp
+                               + ", the value this game already stands at), "
                                + tables + " tables, " + aspect);
                 return;
             }
             if (dp < 48)
                 Debug.LogWarning("Touch target " + dp + " dp against an industry floor of 48 - "
                                  + tables + " tables, " + aspect
-                                 + " (docs/41: a known and accepted price)");
+                                 + " (docs/31: measured, known, and open)");
         }
 
         /// <summary>

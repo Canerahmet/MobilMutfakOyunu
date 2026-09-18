@@ -6,7 +6,7 @@ namespace Lokanta.Game
     /// <summary>
     /// ONE OBJECT PER STATION, AND YOU CAN SEE WHAT YOU BOUGHT.
     ///
-    /// docs/32 built the whole equipment ladder - six shared stations, more per
+    /// docs/32 built the whole equipment ladder - seven shared stations, more per
     /// cuisine, slots, `attendBp`, a price derived from the rent of the tier at
     /// which the item becomes necessary - and the kitchen drew none of it.
     /// Three copies of one stove prefab stood at the back wall and
@@ -165,7 +165,7 @@ namespace Lokanta.Game
                 case "izgara": s.Grill(m, rig.transform, tier, unlit); break;
                 case "firin": s.Oven(m, rig.transform, tier, lit, unlit); break;
                 case "fritoz": s.Fryer(m, rig.transform, tier, unlit); break;
-                case "soguk": s.ColdCounter(m, tier); break;
+                case "soguk": s.ColdCounter(m, rig.transform, tier, unlit); break;
                 case "icecek": s.DrinksTower(m, rig.transform, tier, unlit); break;
                 case "tatli": s.DessertCase(m, rig.transform, tier, unlit); break;
                 case "milkshake_makinesi": s.Milkshake(m, rig.transform, tier, unlit); break;
@@ -541,7 +541,12 @@ namespace Lokanta.Game
             Carcass(m, w, d, h);
             _warm = true;
 
-            int wells = Mathf.Clamp(tier + 1, 1, 3);
+            // 1..4, NOT 1..3. The fryer was given the hob's four-rung ladder,
+            // and a cap of three made tiers 2 and 3 identical geometry - the
+            // player pays a million for the top rung and, in this file's own
+            // measure, zero pixels of the frame change. That is the bug this
+            // class exists to end, reintroduced by a clamp.
+            int wells = Mathf.Clamp(tier + 1, 1, 4);
             float span = w - 0.22f;
             for (int i = 0; i < wells; i++)
             {
@@ -578,7 +583,7 @@ namespace Lokanta.Game
         }
 
         /// <summary>The cold counter: doors, a handle rail and a temperature panel.</summary>
-        private void ColdCounter(Modeler m, int tier)
+        private void ColdCounter(Modeler m, Transform root, int tier, Material unlit)
         {
             const float w = 0.90f, d = 0.64f, h = 0.88f;
             Carcass(m, w, d, h);
@@ -593,6 +598,20 @@ namespace Lokanta.Game
                       new Vector3(dw, h - 0.26f, 0.04f), Steel);
                 m.Box(new Vector3(x, h * 0.72f, -d * 0.5f - 0.05f),
                       new Vector3(dw - 0.10f, 0.035f, 0.035f), SteelDark);
+
+                // A TEMPERATURE PANEL PER DOOR - and it is not decoration.
+                //
+                // This was the ONE station with no controllable light at all,
+                // so SetLoad looped zero times and the cold counter never
+                // showed its load. It carries two fast-food dishes and three
+                // Turkish ones, and docs/59's claim that "station i's object
+                // shows station i's load" was simply false for it.
+                //
+                // Cold is the one station whose light should NOT be a flame,
+                // so `_warm` stays off and it reads in the blue-amber-red
+                // scale every other readout in this game uses.
+                Lamp(root, new Vector3(x, h * 0.86f, -d * 0.5f - 0.055f),
+                     new Vector3(0.16f, 0.05f, 0.02f), unlit);
             }
         }
 
