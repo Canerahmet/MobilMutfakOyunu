@@ -42,6 +42,10 @@ take = min(the party's plate count, free slots, the plates a cook can attend to 
 |  |  | t1 | 2 | 3500 | 2,340 | 7 |
 |  |  | t2 | 3 | 3500 | 3,480 | 10 |
 |  |  | t3 | 4 | 2800 | 10,000 | 14 |
+| fritoz | 3500 | t0 | 1 | 3500 | — | 4 |
+|  |  | t1 | 2 | 3500 | 2,340 | 7 |
+|  |  | t2 | 3 | 3500 | 3,480 | 10 |
+|  |  | t3 | 4 | 2800 | 10,000 | 14 |
 | Grill | 5600 | t0 | 1 | 5600 | — | 4 |
 |  |  | t1 | 2 | 5600 | 2,340 | 7 |
 |  |  | t2 | 3 | 5600 | 3,480 | 10 |
@@ -55,7 +59,7 @@ take = min(the party's plate count, free slots, the plates a cook can attend to 
 | Desserts | 8000 | t0 | 1 | 8000 | — | 4 |
 |  |  | t1 | 1 | 6000 | 3,480 | optional |
 
-The whole ladder is **48,080 coins**.
+The whole ladder is **63,900 coins**.
 <!-- /GENERATED: equipment -->
 
 The last tier is 10,000 coins — inside the 8,000-12,000 band §7 of [12-economy.md](12-economy.md) asks for. The whole ladder is **48,080 coins**; the reasonable player's sixty-day net is **42,627**. **So they cannot buy everything and have to choose** — and the mandatory ones (the ones that add slots) are 37,640, the optional ones (the ones that release the cook early) 10,440. That was exactly the target.

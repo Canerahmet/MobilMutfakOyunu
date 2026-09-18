@@ -784,6 +784,28 @@ namespace Lokanta.Game
             bool ok = cv != null && cv.AccessOk(out report);
             Note(ok, "Room access rules (" + report + ")");
             Note(cv != null && cv.TrayCount <= cv.StaffCount, "The tray count does not exceed the crew (" + ((cv != null) ? cv.TrayCount : (-1)) + " trays / " + ((cv != null) ? cv.StaffCount : 0) + " staff)");
+            // EVERY STATION THE CUISINE USES HAS AN OBJECT (docs/59).
+            //
+            // The kitchen used to draw three stove prefabs for sixteen
+            // possible stations, so buying a grill changed nothing on screen
+            // and the kitchen looked perfectly normal without it. There is
+            // no symptom to notice, which is why it is counted - and counted
+            // BOTH WAYS: an object that exists but never changes tier is the
+            // same bug wearing a new shape.
+            int stationsSeen = ((cv != null) ? cv.StationObjectCount : 0);
+            int stationsGone = ((cv != null) ? cv.StationsMissing : -1);
+            int stationsOld = ((cv != null) ? cv.StationsStale : -1);
+            Note(stationsGone == 0 && stationsSeen > 0, "Every station the kitchen uses is standing in it (" + stationsSeen + " built, " + stationsGone + " missing)");
+            // NOBODY IS TELEPORTED (docs/59 5).
+            //
+            // Walker.Appear is how a figure that was not on screen is put
+            // down; Walker.Warp is how one that WAS on screen is moved
+            // without walking, and that is the thing the user asked to end.
+            // The distance separates them: the legitimate warps are
+            // zero-distance (a figure placed where it already stands before
+            // a path is handed to it) and a teleport is metres.
+            Note(Walker.WorstWarp < 0.30f, "Nobody is moved without walking (worst " + Walker.WorstWarp.ToString("0.00") + " m, " + Walker.WorstWarpName + ")");
+            Note(stationsOld == 0, "Every station shows the tier that was bought (" + stationsOld + " stale)");
             Note(cv != null && cv.PotCount > 0, "There is a pan on top of the stoves (" + ((cv != null) ? cv.PotCount : 0) + " stoves)");
             NoteIf(Wardrobe.Attempted > 0, Wardrobe.Dressed == Wardrobe.Attempted, "All the staff were dressed (" + Wardrobe.Dressed + "/" + Wardrobe.Attempted + ")");
             // THE CROWD: recoloured, or exactly what it looked like before?

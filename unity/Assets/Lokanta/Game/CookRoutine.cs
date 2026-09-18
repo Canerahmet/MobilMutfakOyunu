@@ -181,7 +181,7 @@ namespace Lokanta.Game
                     break;
 
                 case Stage.ToStove:
-                    if (Walk(Paths.KitchenPost(_station, _posts), StovePos()))
+                    if (Walk(Post(), StovePos()))
                     {
                         Drop();
                         Pan(true);
@@ -300,6 +300,29 @@ namespace Lokanta.Game
         {
             if (_stove != null) return _stove.localPosition;
             return Paths.KitchenPost(_station, _posts) + new Vector3(0f, 0f, 1f);
+        }
+
+        /// <summary>
+        /// Where the cook stands to work: IN FRONT OF ITS OWN STATION.
+        ///
+        /// It used to stand at Paths.KitchenPost, a fixed row along the back
+        /// wall, whatever station the job was at. That was fine while the
+        /// kitchen was three identical stoves in a row; now that every station
+        /// has its own object and they line three walls (docs/59), a cook
+        /// working at the stone oven on the LEFT wall stood at the back of the
+        /// room facing nothing - and the placement audit caught it standing
+        /// 0.07 m inside the oven.
+        ///
+        /// The station's own local -Z is its front: the models are built with
+        /// their working face at -d/2 and the layout turns them to the wall.
+        /// So the post is the station's position pushed a metre out of its
+        /// face, and it follows the station wherever the layout puts it.
+        /// </summary>
+        private Vector3 Post()
+        {
+            if (_stove == null) return Paths.KitchenPost(_station, _posts);
+            return _stove.localPosition
+                   + _stove.localRotation * new Vector3(0f, 0f, -0.95f);
         }
 
         private GameObject Ingredient()

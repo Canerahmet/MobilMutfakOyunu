@@ -186,7 +186,15 @@ namespace Lokanta.Core.Tests
             // name.
             ContentSet c = ContentSetLoader.Load(Paths.Content, cuisine);
 
-            const int Shared = 6;
+            // HOW MANY SHARED STATIONS THERE ARE, asked of the loader.
+            //
+            // It was the literal 6 until the fryer was added between the hob
+            // and the grill (18 September); the constant did not move, so the
+            // seventh shared station was treated as the cuisine's own named
+            // equipment and the test failed with "tatli: no dish is tied to
+            // it". A count written beside the thing it counts is a count that
+            // will disagree with it.
+            int Shared = Lokanta.Content.ContentSetLoader.StationIds.Length;
             if (c.Stations.Length <= Shared) return;    // this cuisine has no special stations
 
             Simulation sim = new Simulation(Economy(), c, Timing(c), Seed);

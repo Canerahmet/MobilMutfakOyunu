@@ -246,8 +246,31 @@ namespace Lokanta.Game
             int sourceRoom = RoomAt(from);
             if (targetRoom == sourceRoom) { InRoom(into, from, target, targetRoom); return; }
 
+            // LEAVING A DINING ROOM IS A WALK ACROSS IT TOO.
+            //
+            // The arrival was fixed first: a waiter coming from the kitchen
+            // used to go straight up the target's own column. The departure
+            // has the same shape and was found the same way - the tour named
+            // it, "at (9,5, 2,1) inside table 0 at (10,0, 1,4), from
+            // (9,5, 3,1) heading for (9,4, -0,4)": a guest getting up from the
+            // BACK row and walking straight down the column to the street,
+            // through the front table on the way.
+            //
+            // So the figure leaves by the side lane first, which is the same
+            // route InRoom gives any walk inside the room. A front-row table
+            // is under the 1.2 m InRoom ignores, so it still walks straight
+            // out - and it only passes its own table doing it.
             Vector3 exit;
-            if (BackDoor(sourceRoom, out exit))
+            bool sourceBack = BackDoor(sourceRoom, out exit);
+            if (!sourceBack && sourceRoom >= 0 && sourceRoom != targetRoom
+                && RoomPlan.Rooms[sourceRoom].IsDining)
+            {
+                int wasCount = into.Count;
+                InRoom(into, from, new Vector3(from.x, 0f, LaneZ), sourceRoom);
+                if (into.Count > wasCount) from = into[into.Count - 1];
+            }
+
+            if (sourceBack)
             {
                 into.Add(new Vector3(exit.x, 0f, exit.z + 0.5f));
                 into.Add(new Vector3(exit.x, 0f, exit.z - 0.5f));
@@ -547,13 +570,38 @@ namespace Lokanta.Game
             }
         }
 
-        /// <summary>Where the cook waits when idle: behind the counter.</summary>
+        /// <summary>
+        /// Where the cook waits when idle: the middle of the room.
+        ///
+        /// THE BAND NARROWED WHEN THE WALLS FILLED UP. It used to run from
+        /// x = 0.9 to 4.1, which was the whole floor when the kitchen was
+        /// three stoves against the back wall. Both side walls now carry
+        /// equipment (docs/59) and a figure is 1.14 m across the arms, so an
+        /// idle cook at 1.4 stood 0.22 m inside the stone oven - the placement
+        /// audit said so by name.
+        ///
+        /// 1.70 to 3.90 clears the left wall's run (which reaches x = 1.05)
+        /// and the right wall's (which starts at 4.25) with a figure's half
+        /// width to spare at both ends.
+        /// </summary>
         public static Vector3 CookHome(int index, int count)
         {
             RoomPlan.Room m = Room("Kitchen");
             if (count < 1) count = 1;
-            float t = (index % count + 0.5f) / count;
-            return new Vector3(m.X0 + 0.9f + (m.W - 2.2f) * t, 0f, m.CenterZ - 0.3f);
+            if (index < 0) index = 0;
+
+            // TWO ROWS, because three abreast does not fit. The clear band is
+            // 3.0 m and a figure is 1.14 m across the arms, so three of them
+            // side by side want 3.42 - the audit caught the middle pair 0.04 m
+            // inside each other, which is arms, but an audit that is allowed
+            // to be a little bit red stops being read.
+            int row = index % 2;
+            int col = index / 2;
+            int cols = Mathf.Max(1, (count + 1) / 2);
+            float t = (col + 0.5f) / cols;
+
+            return new Vector3(m.X0 + 1.15f + 3.00f * t, 0f,
+                               m.CenterZ - 0.3f - row * 0.80f);
         }
 
         /// <summary>

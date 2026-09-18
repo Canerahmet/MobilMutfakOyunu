@@ -16,9 +16,20 @@ namespace Lokanta.Content
         /// docs/23 8.3: the dish stations are a closed list. The order is
         /// binding; a dish's StationIndex value follows this order.
         /// </summary>
+        /// THE FRYER WAS ADDED ON 18 SEPTEMBER, between the hob and the grill,
+        /// and the position is the whole reason this list is here: a dish's
+        /// StationIndex follows this order, so inserting in the middle
+        /// renumbers everything after it. That is safe only because
+        /// content/dishes/*.json is GENERATED from the same order
+        /// (tools/content/gen_dishes.py STATIONS) and both are regenerated
+        /// together; a hand-edited dish file would have moved silently.
+        ///
+        /// Why a fryer at all: every one of fast food's eight hob dishes is
+        /// deep fried, so the cuisine had no hob - it had an unlabelled fryer.
+        /// Turkish never uses it and never pays for it (IsStationUsed).
         public static readonly string[] StationIds =
         {
-            "ocak", "izgara", "firin", "soguk", "icecek", "tatli"
+            "ocak", "fritoz", "izgara", "firin", "soguk", "icecek", "tatli"
         };
 
         // The VALUES are content tokens: the frequency tiers as archetypes/*.json

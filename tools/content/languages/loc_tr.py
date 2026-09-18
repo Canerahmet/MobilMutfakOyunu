@@ -211,6 +211,7 @@ ROLES = {
 }
 
 STATIONS = {
+    "fritoz": "Fritöz",
     "ocak": "Ocak", "izgara": "Izgara", "firin": "Fırın",
     "soguk": "Soğuk Tezgâh", "icecek": "İçecek", "tatli": "Tatlı",
     "milkshake_makinesi": "Milkshake Makinesi",

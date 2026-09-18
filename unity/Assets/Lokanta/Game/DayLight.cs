@@ -282,12 +282,21 @@ namespace Lokanta.Game
             // Guessing at this is what produced the first attempt. The whole
             // point of the ratio is that it can be re-measured on the next
             // build with one command.
-            if (Cam != null)
-                Cam.backgroundColor = Mix(t,
-                    Tint(new Color(0.115f, 0.145f, 0.190f)),
-                    Tint(new Color(0.145f, 0.195f, 0.255f)),
-                    Tint(new Color(0.185f, 0.135f, 0.120f)),
-                    new Color(0.04f, 0.05f, 0.09f));   // night: NO tint
+            Color sky = Mix(t,
+                Tint(new Color(0.115f, 0.145f, 0.190f)),
+                Tint(new Color(0.145f, 0.195f, 0.255f)),
+                Tint(new Color(0.185f, 0.135f, 0.120f)),
+                new Color(0.04f, 0.05f, 0.09f));       // night: NO tint
+            if (Cam != null) Cam.backgroundColor = sky;
+
+            // THE GRADIENT BEHIND THE BUILDING TAKES THE SAME COLOUR.
+            //
+            // It is painted from this value rather than from a curve of its
+            // own, because two curves that are meant to agree are two curves
+            // that will stop agreeing - this project has been bitten by that
+            // five times and there is a check for one of them.
+            if (_view == null) _view = FindFirstObjectByType<RestaurantView>();
+            if (_view != null) _view.TintSky(sky);
 
             // THE WARM FILL INSIDE: the hall's own light. The outside going
             // cold and dark while the inside stays warm is the whole meaning

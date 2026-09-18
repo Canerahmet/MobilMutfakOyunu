@@ -398,23 +398,10 @@ namespace Lokanta.Game
             Modeler m = new Modeler();
             Modeler glow = new Modeler();
 
-            // THE SKYLINE IS ITS OWN MESH, AND THAT IS NOT TIDINESS.
-            //
-            // It used to go into `m`, which is built with `receive: true`
-            // because the FLOOR is in that group. So the row of distant
-            // buildings was receiving the near scene's shadows: bands of dark
-            // fell across blocks nine metres behind the back wall, with
-            // nothing visible to cast them. The user's report was exactly
-            // that - "there are shadows behind the restaurant at the top of
-            // the screen, I do not understand what they are, it looks wrong".
-            //
-            // A backdrop that is meant to read as DISTANCE must not be lit by
-            // what is standing in front of it.
-            Modeler far = new Modeler();
 
             FloorPattern(m, p, tables);
             Backdrop(m, p, left, right, back);
-            Skyline(far, p, left, right, back);
+            SkyBands(left, right, back);
             Planters(m, p, left, right);
             KitchenHood(m, p, tables);
             ServiceCounter(m, glow, p, tables);
@@ -433,21 +420,6 @@ namespace Lokanta.Game
             // nothing in the building was attached to the ground.
             _decor = m.Build(transform, "Decor", _floorMat, _block, receive: true);
 
-            // UNLIT, AND THAT IS THE ACTUAL FIX.
-            //
-            // Taking the skyline out of the shadow-receiving group helped, and
-            // it was still a row of dark slabs, because the lighting was never
-            // the colour's problem: the sun comes from BEHIND the building
-            // (52 degrees, yaw 208), so every face these blocks turn towards
-            // the camera is in shade and lit by ambient alone. No albedo
-            // survives that - the same thing TableBadge learned when a green
-            // badge on a lit material measured 1.47:1 contrast against a floor
-            // it should have had 7.57:1 on.
-            //
-            // On URP/Unlit the authored colour is what is drawn, which is the
-            // whole point of a hazy backdrop: it is meant to be flat.
-            _skyline = far.Build(transform, "Skyline",
-                                 _badgeMat != null ? _badgeMat : _floorMat, _block);
 
             // THE GLOWING PARTS ARE ON A SEPARATE MATERIAL: while the emission
             // keyword is off the shader never reads that field, so a colour
@@ -504,112 +476,102 @@ namespace Lokanta.Game
         /// place a ROOM.
         /// </summary>
         /// <summary>
-        /// THE BLOCK THE RESTAURANT STANDS IN: a row of neighbouring facades
-        /// behind it, and one at each end of the street.
+        /// THE SKY, AND THE THIRD ANSWER TO THE SAME COMPLAINT.
         ///
-        /// WHY. Measured off the store frame: 37% of it was a single flat
-        /// colour - the camera's clear colour standing in for the sky - and
-        /// the building sat in it as a slab with a hard dark edge and nothing
-        /// behind, above or beside it. That is the clearest "this is a level
-        /// editor, not a place" tell in the picture, and at night it is
-        /// forgiven only because darkness is a plausible thing to see.
+        /// There was a row of distant buildings here. The user reported it as
+        /// "shadows behind the restaurant that I do not understand" twice, and
+        /// each time a different cause was found and fixed - first it was
+        /// receiving the near scene's shadows, then it was lit where it should
+        /// have been unlit. The third report settled it: "those shadow-like
+        /// parts at the top of the screen spoil the look, let us remove them or
+        /// make a nicer background".
         ///
-        /// IT COSTS NOTHING IN FRAMING. `CameraFit.OpenBounds` is built from
-        /// the open rooms plus `StreetInFrame` and nothing else - I read it
-        /// before writing this - so geometry placed BEHIND the back wall does
-        /// not move the camera a millimetre and does not shrink the
-        /// restaurant. That is the whole reason this is the cheap fix and
-        /// "pull the camera in" is not: the camera is already bound by the
-        /// touch-target measurement in docs/31.
+        /// Two fixes that each answered a real cause and still left the user
+        /// looking at something they could not name is the signal to stop
+        /// fixing and change the thing.
         ///
-        /// WHAT THEY ARE NOT. They are not buildings you can enter, light or
-        /// expand into; they are a backdrop. So they are deliberately dull:
-        /// darker than the restaurant's own wall, low contrast between
-        /// neighbours, no windows lit by day. A skyline that competes with the
-        /// hall for attention would be worse than the flat colour, which at
-        /// least does not pretend to be interesting.
+        /// Silhouettes are gone. What replaces them is what docs/58 §10
+        /// proposed for the flat backdrop in the first place, and it is a
+        /// better answer than shapes: a GRADIENT, lighter at the horizon and
+        /// deeper above, with nothing in it that can be mistaken for an object.
         ///
-        /// THE HEIGHTS ARE VARIED BUT NOT RANDOM PER FRAME. The pattern is
-        /// derived from the facade's index, so the street looks the same every
-        /// time the scene is built - a skyline that reshuffles on a rebuild
-        /// would be a bug the player sees as flicker.
+        /// IT FOLLOWS THE DAY. The bands are painted from the same colour
+        /// DayLight gives the camera's clear (DayLight.Apply calls TintSky), so
+        /// morning, noon, evening and night carry it without a second curve to
+        /// keep in step - which is the drift this project has been bitten by
+        /// five times.
+        ///
+        /// Eight bands, unlit, no shadow, no collider. It stands at the far
+        /// side of the plot and CameraFit.OpenBounds is built from the open
+        /// rooms and the street only, so it costs nothing in framing.
         /// </summary>
-        private void Skyline(Modeler m, Palette p, float left, float right, float back)
+        private void SkyBands(float left, float right, float back)
         {
-            // FAR BACK. The first attempt put them at back + 2.6 and they
-            // loomed: a dark mass directly behind the roofline, filling the
-            // top of the frame and sitting under the day counter in the HUD.
-            // The measurement improved (37.3% of the frame flat, down to
-            // 26.5%) and the PICTURE got worse, which is the whole argument
-            // for looking at the frame as well as at the number.
-            float z = back + 7.0f;
+            _skyBands.Clear();
+            if (_badgeMat == null) return;
 
-            // Wider than the plot on both sides: the row has to run out of the
-            // frame, not stop inside it. A skyline with visible ends is a
-            // stage set.
-            float from = left - 9f;
-            float to = right + 9f;
+            const int Bands = 8;
+            const float Height = 26f;
+            const float Width = 90f;
 
-            // ATMOSPHERE, NOT DARKNESS.
-            //
-            // The first attempt made them DARKER than the restaurant's wall,
-            // on the reasoning that the building in front should stay the
-            // brightest thing. It does - but a dark block against a mid-grey
-            // sky reads as a heavy near object, not a distant one, and the
-            // row came out as a black wall pressing on the roofline.
-            //
-            // Distance desaturates and lifts towards the sky; it does not
-            // darken. These are the wall colour pulled most of the way to a
-            // cool haze, so they sit BEHIND the sky's own value rather than
-            // in front of it, and the restaurant stays the only saturated
-            // thing in the frame.
-            // MIXED TOWARDS THE CUISINE'S SKY, not towards a fixed grey.
-            //
-            // The colour written here is now the colour drawn (the mesh is
-            // unlit - see BuildDecor), so it has to be judged against the
-            // BACKGROUND rather than against a lighting model. Two neighbours
-            // at 0.38 and 0.46 of the way from the wall to the sky put the row
-            // clearly above the sky's own value without ever reaching the
-            // restaurant's: the building in front stays the brightest and the
-            // only saturated thing in the frame.
-            //
-            // The parapet goes the other way, back towards the wall. A roof
-            // line has to be DARKER than the face below it or a block stops
-            // reading as a block.
-            // The target is the sky DIMMED, not the sky itself. Mixed towards
-            // the raw value the Turkish row came out a bright tan band across
-            // the top of the frame - lighter than the restaurant it is meant
-            // to sit behind. 0.72 pulls the target under the building's own
-            // range in both cuisines while keeping each one's hue.
-            Color far = new Color(p.Sky.r * 0.72f, p.Sky.g * 0.72f, p.Sky.b * 0.72f);
-            Color a = Color.Lerp(p.Wall, far, 0.38f);
-            Color b = Color.Lerp(p.Wall, far, 0.46f);
-            Color roof = Color.Lerp(p.Wall, far, 0.26f);
+            float cx = (left + right) * 0.5f;
+            float z = back + 13f;
 
-            int i = 0;
-            for (float x = from; x < to; i++)
+            GameObject root = new GameObject("Sky");
+            root.transform.SetParent(transform, false);
+            _skyline = root;
+
+            for (int i = 0; i < Bands; i++)
             {
-                // Widths cycle 4.2 / 6.0 / 5.1 so the rhythm does not read as
-                // a fence.
-                float w = i % 3 == 0 ? 4.2f : (i % 3 == 1 ? 6.0f : 5.1f);
-                // 3.6-6.0 m -> 3.0-4.4 m. The tall version ran off the TOP of
-                // the frame: what the player saw was a row of rectangles with
-                // no tops, which is a wall, not a skyline. A block has to show
-                // its parapet to read as a building, and at the overview
-                // camera that means staying under about 4.5 m.
-                //
-                // The back wall is 2.6, so every one of them still clears it.
-                float h = 3.0f + (i % 5) * 0.35f;
+                GameObject band = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                band.name = "SkyBand" + i;
+                band.transform.SetParent(root.transform, false);
+                band.transform.localPosition =
+                    new Vector3(cx, (i + 0.5f) * (Height / Bands) - 1.5f, z);
+                band.transform.localScale =
+                    new Vector3(Width, Height / Bands + 0.02f, 0.2f);
 
-                m.Box(new Vector3(x + w * 0.5f, h * 0.5f, z + 2.0f),
-                      new Vector3(w - 0.35f, h, 4.0f), i % 2 == 0 ? a : b);
+                Collider col = band.GetComponent<Collider>();
+                if (col != null)
+                {
+                    if (Application.isPlaying) Destroy(col); else DestroyImmediate(col);
+                }
 
-                // A parapet: the line that stops a block reading as a
-                // rectangle of colour.
-                m.Box(new Vector3(x + w * 0.5f, h + 0.13f, z + 2.0f),
-                      new Vector3(w - 0.20f, 0.26f, 4.3f), roof);
+                Renderer r = band.GetComponent<Renderer>();
+                r.sharedMaterial = _badgeMat;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                _skyBands.Add(r);
+            }
 
-                x += w;
+            TintSky(new Color(0.145f, 0.195f, 0.255f));
+        }
+
+        private readonly System.Collections.Generic.List<Renderer> _skyBands =
+            new System.Collections.Generic.List<Renderer>();
+
+        /// <summary>
+        /// Paints the sky from the colour the camera is clearing to.
+        ///
+        /// Lighter at the horizon and deeper above - which is the way round a
+        /// real sky is, and the way round the first attempt got wrong when it
+        /// made the distant buildings DARKER than the sky and they read as a
+        /// heavy near object pressing on the roofline.
+        /// </summary>
+        public void TintSky(Color sky)
+        {
+            if (_skyBands.Count == 0) return;
+            if (_block == null) _block = new MaterialPropertyBlock();
+
+            for (int i = 0; i < _skyBands.Count; i++)
+            {
+                if (_skyBands[i] == null) continue;
+                float t = _skyBands.Count == 1 ? 0f : i / (float)(_skyBands.Count - 1);
+                float k = Mathf.Lerp(1.30f, 0.66f, t);
+                _skyBands[i].GetPropertyBlock(_block);
+                _block.SetColor(BaseColorId,
+                                new Color(sky.r * k, sky.g * k, sky.b * k, 1f));
+                _skyBands[i].SetPropertyBlock(_block);
             }
         }
 
@@ -792,9 +754,19 @@ namespace Lokanta.Game
                 if (r.Name != "Kitchen") continue;
                 if (!RoomPlan.RoomOpen(in r, tables)) return;
 
-                float z = r.Z0 + r.D - 0.75f;
-                float x = r.CenterX - 0.30f;
-                float w = r.W - 1.9f;
+                // MEASURED OFF THE LINE, not off the room. `r.W - 1.9` was
+                // three stove prefabs' worth of wall; the line is now whatever
+                // the cuisine owns and it is a different width in each.
+                if (HoodTo - HoodFrom < 0.5f) return;
+                float w = (HoodTo - HoodFrom) + 0.16f;
+                float x = (HoodFrom + HoodTo) * 0.5f;
+                float z = r.Z0 + r.D - 0.78f;
+
+                // IT HANGS ABOVE THE TALLEST THING IN THE LINE. The mouth used
+                // to sit at 1.44 m and an oven is 1.52 - the hood was cutting
+                // through the oven's top. A real extraction hood clears the
+                // equipment by about a hand's width.
+                float mouth = Mathf.Max(1.44f, HoodTop + 0.12f);
 
                 // The body: a funnel widening downwards.
                 // THE HOOD IS STEEL IN EVERY CUISINE.
@@ -803,11 +775,12 @@ namespace Lokanta.Game
                 // stood in the Turkish kitchen as a GOLD box. A hood is not
                 // decoration but equipment; it is stainless in every restaurant.
                 Color steel = new Color(0.576f, 0.612f, 0.659f);
-                m.Box(new Vector3(x, 1.62f, z), new Vector3(w, 0.34f, 0.86f), steel);
-                m.Box(new Vector3(x, 1.82f, z), new Vector3(w * 0.55f, 0.30f, 0.50f),
+                m.Box(new Vector3(x, mouth + 0.19f, z), new Vector3(w, 0.32f, 0.78f),
                       steel);
+                m.Box(new Vector3(x, mouth + 0.42f, z),
+                      new Vector3(w * 0.45f, 0.26f, 0.44f), steel);
                 // The lower mouth: a dark strip, the mouth of the funnel.
-                m.Box(new Vector3(x, 1.44f, z), new Vector3(w - 0.12f, 0.06f, 0.74f),
+                m.Box(new Vector3(x, mouth, z), new Vector3(w - 0.12f, 0.06f, 0.70f),
                       p.WallTrim);
                 return;
             }

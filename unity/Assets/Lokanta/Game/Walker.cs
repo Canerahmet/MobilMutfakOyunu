@@ -95,6 +95,19 @@ namespace Lokanta.Game
         /// <summary>Has it yet to arrive?</summary>
         public bool Moving { get { return _at < _path.Count; } }
 
+        /// <summary>
+        /// The furthest any figure has been moved without walking, and who.
+        ///
+        /// Static because it is a property of the RUN, not of one walker, and
+        /// because the tour has to be able to ask one question and get one
+        /// answer. Reset at the start of the measurement window.
+        /// </summary>
+        public static float WorstWarp;
+        public static string WorstWarpName = "nobody";
+
+        /// <summary>Starts a fresh measurement window.</summary>
+        public static void ResetWarps() { WorstWarp = 0f; WorstWarpName = "nobody"; }
+
         /// <summary>Where the current path began. The figure's own position if it has none.</summary>
         public Vector3 Origin { get; private set; }
 
@@ -110,8 +123,44 @@ namespace Lokanta.Game
 
         // =====================================================================
         /// <summary>Places it instantly; cancels the path if there is one.</summary>
+        /// <summary>
+        /// Puts a figure down that was not on screen a moment ago.
+        ///
+        /// SEPARATE FROM Warp SO THE INTENT IS AT THE CALL SITE. A guest
+        /// appearing on the pavement and a preview frame placing everybody at
+        /// once are not teleports - there was nothing there to teleport. A
+        /// staff member sliding across the kitchen to a new home post IS one,
+        /// and the user asked for it to stop: "let all these transitions be
+        /// done by the characters".
+        ///
+        /// Both do the same thing; only one is counted.
+        /// </summary>
+        public void Appear(Vector3 local, float yaw)
+        {
+            float keep = WorstWarp;
+            string who = WorstWarpName;
+            Warp(local, yaw);
+            WorstWarp = keep;
+            WorstWarpName = who;
+        }
+
         public void Warp(Vector3 local, float yaw)
         {
+            // HOW FAR THIS ONE MOVED THE FIGURE WITHOUT WALKING IT.
+            //
+            // The user's rule: "let all these transitions be done by the
+            // characters - the model should not teleport there or appear
+            // there". Some warps are legitimate (a figure is placed where it
+            // already stands before a path is handed to it, and the editor's
+            // preview is a single frame with no walking at all); a warp that
+            // moves somebody across the room is not.
+            //
+            // The distance is recorded rather than forbidden, because the
+            // legitimate ones are zero-distance and the illegitimate ones are
+            // metres - so one number separates them and the tour can read it.
+            float jump = (local - transform.localPosition).magnitude;
+            if (jump > WorstWarp) { WorstWarp = jump; WorstWarpName = name; }
+
             if (Body != null) Body.ResetPlaybackSpeed();
             _path.Clear();
             _at = 0;

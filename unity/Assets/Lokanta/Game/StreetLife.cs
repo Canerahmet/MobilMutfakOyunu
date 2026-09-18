@@ -335,7 +335,12 @@ namespace Lokanta.Game
                 // came in from the same edge the street would look like a crowd
                 // emptying out of a door.
                 float x = Lerp(i / (float)Mathf.Max(1, MaxWalkers - 1));
-                p.Walk.Warp(new Vector3(x, 0f, Paths.PavementLane(p.Dir)),
+                // Appear, not Warp: this is a figure being PUT on the
+                // pavement as the street is built, not one being moved off a
+                // spot it was standing on. The distance from the origin is up
+                // to 18.8 m and the tour reported exactly that the first time
+                // warps were measured.
+                p.Walk.Appear(new Vector3(x, 0f, Paths.PavementLane(p.Dir)),
                             p.Dir > 0 ? 90f : -90f);
                 _people.Add(p);
                 Send(p);

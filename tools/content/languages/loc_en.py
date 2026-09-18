@@ -202,6 +202,7 @@ ROLES = {
 }
 
 STATIONS = {
+    "fritoz": "Fryer",
     "ocak": "Stove", "izgara": "Grill", "firin": "Oven",
     "soguk": "Cold Station", "icecek": "Drinks", "tatli": "Desserts",
     "milkshake_makinesi": "Milkshake Machine",

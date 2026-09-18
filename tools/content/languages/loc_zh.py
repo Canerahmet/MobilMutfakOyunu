@@ -191,6 +191,7 @@ ROLES = {
 }
 
 STATIONS = {
+    "fritoz": "炸炉",
     "ocak": "灶台", "izgara": "烤架", "firin": "烤箱",
     "soguk": "冷菜台", "icecek": "饮品", "tatli": "甜点",
     "milkshake_makinesi": "奶昔机",

@@ -177,6 +177,7 @@ ROLES = {
 }
 
 STATIONS = {
+    "fritoz": "المقلاة",
     "ocak": "موقد", "izgara": "شواية", "firin": "فرن",
     "soguk": "قسم بارد", "icecek": "مشروبات", "tatli": "حلويات",
     "milkshake_makinesi": "آلة ميلك شيك",

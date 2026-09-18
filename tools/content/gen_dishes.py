@@ -46,7 +46,7 @@ DECIMAL_RE = re.compile(r"[0-9]\.[0-9]")
 # docs/24-art-pipeline.md: a plate = base + 0-3 toppings
 BASES = ("bun", "plate_round", "plate_oval", "bowl", "tray", "paper", "cup")
 TOPPINGS = ("patty", "slice", "sphere", "leaf", "strip", "sauce", "stick", "steam")
-STATIONS = ("ocak", "izgara", "firin", "soguk", "icecek", "tatli")
+STATIONS = ("ocak", "fritoz", "izgara", "firin", "soguk", "icecek", "tatli")
 
 # Named equipment SPECIFIC to a cuisine. It comes after the shared six,
 # it DOES NOT EXIST at the start, and the dishes tied to it stay locked
@@ -295,13 +295,13 @@ FASTFOOD_DISHES = [
     ("acili_burger", "ana", "izgara", 2, 100000, 2, "bun", ["patty", "sauce", "leaf"], [
         ("kiyma", 120), ("burger_ekmek", 80), ("jalapeno", 20), ("acili_sos", 25),
         ("kasar", 20), ("marul", 15), ("sogan", 10)]),
-    ("crispy_tavuk", "ana", "ocak", 2, 130000, 2, "paper", ["patty", "sauce"], [
+    ("crispy_tavuk", "ana", "fritoz", 2, 130000, 2, "paper", ["patty", "sauce"], [
         ("tavuk_gogus", 160), ("galeta_unu", 40), ("un", 20), ("yumurta", 25),
         ("aycicek_yagi", 30), ("baharat_karisimi", 5)]),
     ("tavuk_durum", "ana", "izgara", 2, 120000, 2, "paper", ["strip", "leaf", "sauce"], [
         ("tavuk_gogus", 120), ("lavas", 90), ("marul", 20), ("domates", 25),
         ("sogan", 10), ("mayonez", 20)]),
-    ("balik_burger", "ana", "ocak", 2, 125000, 3, "bun", ["patty", "leaf", "sauce"], [
+    ("balik_burger", "ana", "fritoz", 2, 125000, 3, "bun", ["patty", "leaf", "sauce"], [
         ("balik_filetosu", 130), ("burger_ekmek", 80), ("galeta_unu", 25),
         ("marul", 15), ("mayonez", 20), ("limon", 10)]),
     ("vejetaryen_burger", "ana", "izgara", 2, 115000, 3, "bun", ["patty", "leaf", "slice"], [
@@ -311,22 +311,22 @@ FASTFOOD_DISHES = [
         ("kiyma", 130), ("lavas", 90), ("marul", 20), ("domates", 25),
         ("sogan", 10), ("acili_sos", 15)]),
     # ---- Sides, 8 items
-    ("patates_kizartma", "yan", "ocak", 1, 55000, 0, "paper", ["strip"], [
+    ("patates_kizartma", "yan", "fritoz", 1, 55000, 0, "paper", ["strip"], [
         ("patates", 200), ("aycicek_yagi", 25), ("tuz", 2)]),
-    ("nugget", "yan", "ocak", 1, 65000, 0, "paper", ["sphere", "sauce"], [
+    ("nugget", "yan", "fritoz", 1, 65000, 0, "paper", ["sphere", "sauce"], [
         ("tavuk_gogus", 110), ("galeta_unu", 30), ("un", 15), ("yumurta", 15),
         ("aycicek_yagi", 20)]),
-    ("baharatli_patates", "yan", "ocak", 1, 60000, 1, "paper", ["strip", "sauce"], [
+    ("baharatli_patates", "yan", "fritoz", 1, 60000, 1, "paper", ["strip", "sauce"], [
         ("patates", 200), ("aycicek_yagi", 25), ("baharat_karisimi", 6)]),
     ("yesil_salata", "yan", "soguk", 1, 45000, 1, "bowl", ["leaf", "slice"], [
         ("marul", 90), ("domates", 50), ("havuc", 30), ("zeytinyagi", 10)]),
-    ("sogan_halkasi", "yan", "ocak", 1, 70000, 2, "paper", ["sphere"], [
+    ("sogan_halkasi", "yan", "fritoz", 1, 70000, 2, "paper", ["sphere"], [
         ("sogan", 140), ("un", 30), ("galeta_unu", 25), ("yumurta", 20),
         ("aycicek_yagi", 25)]),
-    ("acili_kanat", "yan", "ocak", 2, 140000, 2, "paper", ["sphere", "sauce"], [
+    ("acili_kanat", "yan", "fritoz", 2, 140000, 2, "paper", ["sphere", "sauce"], [
         ("tavuk_kanat", 180), ("acili_sos", 30), ("baharat_karisimi", 4),
         ("aycicek_yagi", 15)]),
-    ("mozzarella_cubuk", "yan", "ocak", 1, 80000, 3, "paper", ["stick", "sauce"], [
+    ("mozzarella_cubuk", "yan", "fritoz", 1, 80000, 3, "paper", ["stick", "sauce"], [
         ("mozzarella", 100), ("galeta_unu", 30), ("un", 15), ("yumurta", 15),
         ("aycicek_yagi", 20)]),
     ("coleslaw", "yan", "soguk", 1, 40000, 3, "bowl", ["strip"], [

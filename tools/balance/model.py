@@ -132,8 +132,27 @@ MARGIN_TARGETS = {4: 0.05, 7: 0.09, 10: 0.14, 14: 0.20}
 # topAttend: attendBp at the top equipment tier. An equipment upgrade DOES
 #           NOT TOUCH prepMs (docs/27 Decision D); it either adds a slot or
 #           releases the cook earlier.
+# THE FRYER IS THE HOB'S TWIN, AND THAT IS DELIBERATE.
+#
+# Every one of fast food's eight hob dishes is deep fried - chips, nuggets,
+# onion rings, mozzarella sticks, wings, crispy chicken, the fish patty,
+# spicy chips. A burger bar has no hob; it has a fryer, and the user asked
+# the question that exposed it: "for fast food, is there a model of the
+# place where the chips are fried?"
+#
+# So the dishes move to a station of their own, with the SAME numbers as the
+# hob they came from: same conc, same attend, same ladder, therefore the same
+# prices and the same pressure at the same table counts. This is a naming and
+# a MODEL correction, not a balance change, and the campaign run says so - the
+# numbers do not move because nothing about the work changed, only what the
+# thing is called and what it looks like.
+#
+# Turkish keeps the hob (thirteen dishes) and never sees the fryer:
+# Simulation.IsStationUsed is per cuisine, so an unused station is never
+# compulsory and never priced.
 STATIONS = [
     dict(id="ocak",   attend=3_500,  conc=3.33, topAttend=2_800),
+    dict(id="fritoz", attend=3_500,  conc=3.33, topAttend=2_800),
     dict(id="izgara", attend=5_600,  conc=3.23, topAttend=3_500),
     dict(id="firin",  attend=2_000,  conc=1.13, topAttend=2_000),
     dict(id="soguk",  attend=10_000, conc=0.20, topAttend=8_000),

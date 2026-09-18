@@ -43,6 +43,36 @@ namespace Lokanta.Core.Tests
         }
 
         /// <summary>
+        /// The first station this cuisine actually uses.
+        ///
+        /// NOT STATION 0. These tests used to buy index 0 on the assumption
+        /// that it is the hob and the hob is always in use. It stopped being
+        /// true the day fast food's fried dishes moved to a fryer of their own
+        /// (18 September): every one of its hob dishes was deep fried, so the
+        /// cuisine no longer uses the hob at all - and the simulation is right
+        /// to refuse to sell equipment for a station nothing cooks on.
+        ///
+        /// A test that names a station by INDEX is a test that will break the
+        /// next time the closed list grows in the middle. This asks the
+        /// simulation.
+        /// </summary>
+        private static int UsedStation(Simulation sim) { return UsedStation(sim, 0); }
+
+        /// <summary>The nth station this cuisine uses.</summary>
+        private static int UsedStation(Simulation sim, int nth)
+        {
+            int seen = 0;
+            for (int i = 0; i < sim.StationCount; i++)
+            {
+                if (!sim.IsStationUsed(i)) continue;
+                if (seen == nth) return i;
+                seen++;
+            }
+            throw new Xunit.Sdk.XunitException(
+                "the cuisine uses fewer than " + (nth + 1) + " stations");
+        }
+
+        /// <summary>
         /// Buys stock at the market in the morning. Without this the kitchen is
         /// empty: in the warm-up run the reputation fell to zero and the
         /// measurement became meaningless.
@@ -89,15 +119,21 @@ namespace Lokanta.Core.Tests
 
         // ====================================================================
         [Fact]
-        public void The_content_loads_six_stations_and_their_ladders()
+        public void The_content_loads_the_shared_stations_and_their_ladders()
         {
             ContentSet c = Content();
 
-            // The six shared stations come FIRST and that order is binding: a
+            // The shared stations come FIRST and that order is binding: a
             // dish's StationIndex and the equipment tiers in the save file are
             // carried by index. The cuisine's own named equipment is appended
             // behind them (docs/09: 10 per cuisine).
-            string[] want = { "ocak", "izgara", "firin", "soguk", "icecek", "tatli" };
+            //
+            // THE LIST IS ASKED OF THE LOADER, not copied here. It used to be
+            // written out in this test as well, and when the fryer was added
+            // between the hob and the grill (18 September) the test failed for
+            // being out of date rather than for anything being wrong - which
+            // is a test measuring its own copy of the answer.
+            string[] want = Lokanta.Content.ContentSetLoader.StationIds;
             Assert.True(c.Stations.Length >= want.Length);
             for (int i = 0; i < want.Length; i++)
                 Assert.Equal(want[i], c.Stations[i].Id);
@@ -153,15 +189,16 @@ namespace Lokanta.Core.Tests
         public void Buying_comes_out_of_the_till_and_raises_the_tier()
         {
             Simulation sim = NewSim();
+            int st = UsedStation(sim);
             long before = sim.Cash;
-            long price = sim.NextEquipmentPrice(0);
+            long price = sim.NextEquipmentPrice(st);
 
             Assert.True(price > 0, "the first tier appears to be free");
-            Assert.Equal(0, sim.StationTier(0));
+            Assert.Equal(0, sim.StationTier(st));
 
-            sim.Apply(new Command(sim.TickIndex, CommandKind.BuyEquipment, 0));
+            sim.Apply(new Command(sim.TickIndex, CommandKind.BuyEquipment, st));
 
-            Assert.Equal(1, sim.StationTier(0));
+            Assert.Equal(1, sim.StationTier(st));
             Assert.Equal(before - price, sim.Cash);
         }
 
@@ -323,11 +360,15 @@ namespace Lokanta.Core.Tests
             NarrowMenu(sim);
             if (buyEquipment)
             {
-                // Main course stations only: the hob and the grill.
+                // The cuisine's first two stations, whichever they are: fast
+                // food's hob became a fryer and moved index (18 September), and
+                // a test that names a station by number is a test that breaks
+                // the next time the closed list grows in the middle.
+                int a = UsedStation(sim, 0), b = UsedStation(sim, 1);
                 for (int k = 0; k < 3; k++)
                 {
-                    sim.Apply(new Command(0, CommandKind.BuyEquipment, 0));
-                    sim.Apply(new Command(0, CommandKind.BuyEquipment, 1));
+                    sim.Apply(new Command(0, CommandKind.BuyEquipment, a));
+                    sim.Apply(new Command(0, CommandKind.BuyEquipment, b));
                 }
             }
             return sim;
@@ -460,8 +501,9 @@ namespace Lokanta.Core.Tests
         public void The_save_carries_the_equipment_tier_and_the_work_in_progress()
         {
             Simulation sim = NewSim();
-            sim.Apply(new Command(sim.TickIndex, CommandKind.BuyEquipment, 0));
-            sim.Apply(new Command(sim.TickIndex, CommandKind.BuyEquipment, 1));
+            int a = UsedStation(sim, 0), b = UsedStation(sim, 1);
+            sim.Apply(new Command(sim.TickIndex, CommandKind.BuyEquipment, a));
+            sim.Apply(new Command(sim.TickIndex, CommandKind.BuyEquipment, b));
 
             // Save in the middle of service: there is work cooking at a station.
             sim.Apply(new Command(sim.TickIndex, CommandKind.OpenService));
@@ -472,8 +514,12 @@ namespace Lokanta.Core.Tests
             Simulation restored = NewSim();
             restored.Restore(new JsonStateReader(w.ToJson()));
 
-            Assert.Equal(sim.StationTier(0), restored.StationTier(0));
-            Assert.Equal(sim.StationTier(1), restored.StationTier(1));
+            // The tiers must be NON-ZERO, or this compares nothing: the buys
+            // above are refused for a station the cuisine does not use, and
+            // 0 == 0 passes without testing the save at all.
+            Assert.True(sim.StationTier(a) > 0, "the first buy did not take");
+            Assert.Equal(sim.StationTier(a), restored.StationTier(a));
+            Assert.Equal(sim.StationTier(b), restored.StationTier(b));
             Assert.Equal(sim.StateHash(), restored.StateHash());
 
             // It must end the same as an uninterrupted run: the slot counter is

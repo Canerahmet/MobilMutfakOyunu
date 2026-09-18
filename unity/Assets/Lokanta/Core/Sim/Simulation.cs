@@ -2798,6 +2798,25 @@ namespace Lokanta.Core.Sim
             return next > def.MaxTier ? -1 : def.Tiers[next].Price;
         }
 
+        /// <summary>
+        /// The station's content id: "ocak", "izgara", "doner_ocagi"...
+        ///
+        /// WHY THE VIEW NEEDS IT. Until now the kitchen drew three copies of
+        /// one stove prefab and spread sixteen possible stations over them by
+        /// `station % 3`, so buying a grill changed nothing on screen. The
+        /// view builds one object per station now, and it has to know WHICH
+        /// station each one is to build the right thing - a fryer is not an
+        /// oven.
+        ///
+        /// Returns the empty string out of range rather than throwing: the
+        /// view runs against a preview simulation as well as a live one.
+        /// </summary>
+        public string StationId(int station)
+        {
+            if (station < 0 || station >= _content.Stations.Length) return string.Empty;
+            return _content.Stations[station].Id;
+        }
+
         /// <summary>The equipment tier owned for this station.</summary>
         public int StationTier(int station)
         {

@@ -466,6 +466,15 @@ namespace Lokanta.Game
 
         /// <summary>The wall's thickness (m).</summary>
         private const float WallThick = 0.06f;
+        /// <summary>
+        /// The pack's stove prefab is no longer used in the kitchen.
+        ///
+        /// It stays as a FIELD because Appliance still drives the prefab's
+        /// door and lamp wherever one is placed by hand, and deleting a
+        /// working component because one caller stopped using it is how a
+        /// project loses the ability to put a stove somewhere later. The
+        /// list is empty in the shipped kitchen.
+        /// </summary>
         private readonly List<Appliance> _stoves = new List<Appliance>();
 
         /// <summary>
@@ -554,6 +563,9 @@ namespace Lokanta.Game
             _roomBadges.Clear();
             _roomOfTable.Clear();
             _stoves.Clear();
+            _stations.Clear();
+            _stationOf.Clear();
+            HoodTop = 0f;
             _tableSquareZ = 0f;
             _chairs.Clear();
             _potSpots.Clear();
@@ -2463,96 +2475,15 @@ namespace Lokanta.Game
                 switch (r.Name)
                 {
                     case "Kitchen":
-                        // THE FRIDGE IS IN THE BACK RIGHT CORNER, and the row of stoves
-                        // leaves room for it.
+                        // THE KITCHEN IS BUILT FROM THE STATIONS THE PLAYER OWNS.
                         //
-                        // Both used to be in the back LEFT corner: the placement audit
-                        // measured a 0.30 m overlap between the stove and the fridge -
-                        // the fridge stood inside the first stove and in the general
-                        // view they read as a single shapeless mass.
-                        LineUp(r, StovePrefab, 3, 0.55f, 180f, rightInset: 1.15f,
-                               appliance: true);
-                        // THE FRONT ROW OF COUNTERS WAS REMOVED.
-                        //
-                        // The SERVICE COUNTER came in its place
-                        // (RestaurantView.Decor) and the two stood in the SAME place: in
-                        // the screenshot the counter boxes came out through the service
-                        // counter and the pans hung in the air above it. Without a
-                        // close-up it would not have been noticed.
-                        //
-                        // The service counter is a better counter anyway: it has a top, a
-                        // row of trays and a glass screen. The cook's working posts are
-                        // derived from the stoves (KitchenPosts), so removing the row of
-                        // counters leaves nobody out of work.
-                        // On the right wall: its face at -X, that is, towards the room.
-                        // While it was on the left wall 90 was right; it was corrected
-                        // when it moved.
-                        WallFlush(Place(FridgePrefab, r.X0 + r.W - 0.55f,
-                                        r.Z0 + r.D - 0.7f, -90f),
-                                  r.X0 + r.W, 0, -1f);
-
-                        // THE PREP RUN, ALONG THE LEFT WALL: the kitchen was a
-                        // row of stoves and a fridge, with nothing to put
-                        // anything down on.
-                        //
-                        // A small restaurant kitchen is a sequence and the
-                        // sequence was missing its middle: cold store, PREP,
-                        // cooking line, pass. The fridge is in the back-right
-                        // corner, the stoves along the back wall and the pass
-                        // at the front (RestaurantView.Decor's service
-                        // counter) - so prep belongs on the left wall, which
-                        // turns the line into an L and leaves the middle of
-                        // the room clear.
-                        //
-                        // THE MIDDLE HAS TO STAY CLEAR, and that is not a
-                        // matter of taste: Paths.CookHome puts the idle cook
-                        // at the room's centre and Paths.KitchenPost puts the
-                        // working cook in front of the stoves, so an island
-                        // would be something to walk through - and the in-room
-                        // routing added today covers DINING rooms only.
-                        //
-                        // It runs from the middle of the room to the back
-                        // wall, not the full depth: the front half is where a
-                        // cook coming in from the entrance walks.
-                        // TWO, NOT THREE, AND THE AUDIT SAID SO.
-                        //
-                        // The counter prefab is 0.92 m long. Three of them
-                        // wanted 2.76 m of wall and the first run gave them
-                        // 1.94, so they stood INSIDE each other - the
-                        // placement audit reported 0.23 m of overlap between
-                        // neighbours and 0.38 m between the top one and the
-                        // leftmost stove. That audit had been reporting
-                        // nothing but noise until this morning, which is why
-                        // it is worth saying that it caught this the first
-                        // time it was asked.
-                        //
-                        // So the run starts further forward and holds two:
-                        // 2.09 m of wall for 1.84 m of counter, and 0.76 m
-                        // clear of the cooking line.
-                        float prepZ0 = r.Z0 + r.D * 0.35f;
-                        float prepZ1 = r.Z0 + r.D - 1.55f;
-                        int prepCount = 2;
-                        for (int i = 0; i < prepCount; i++)
-                        {
-                            float t = (i + 0.5f) / prepCount;
-                            // x = 0.34 so the counter's far edge stays clear of
-                            // KitchenPost's leftmost post at 0.75 with half a
-                            // body (0.22) to spare.
-                            // x is now MEASURED against the wall instead of
-                            // guessed at 0.34 - see WallFlush.
-                            WallFlush(Place(CounterPrefab, r.X0 + 0.5f,
-                                            prepZ0 + (prepZ1 - prepZ0) * t, 90f),
-                                      r.X0, 0, 1f);
-                        }
-
-                        // NO SHELVES ABOVE IT. ShelfPrefab is a floor-standing
-                        // unit - the store room lines the wall with it - not a
-                        // wall bracket, and `Place` puts things on the floor.
-                        // Two floor units cannot share one wall strip, so a
-                        // shelf here would simply stand inside the counter.
-                        // The kitchen hood already gives the back wall its
-                        // vertical detail; the left wall does not need
-                        // clutter it cannot hold.
+                        // It used to be a fixed row of three stove prefabs and a
+                        // fridge, whatever the cuisine and whatever had been
+                        // bought. docs/59 states the measurement that condemned
+                        // it: buy a station, count how many pixels of the frame
+                        // change - the answer was zero, while docs/32 had built a
+                        // whole equipment ladder behind it.
+                        BuildKitchen(r);
                         break;
                     case "Sink":
                         BuildDishStation(r);
@@ -2589,6 +2520,288 @@ namespace Lokanta.Game
             }
         }
 
+        /// <summary>
+        /// Builds the kitchen out of the stations this cuisine actually uses.
+        ///
+        /// WHERE THEY GO, AND EVERY BOUND IS MEASURED (docs/59 §4):
+        ///
+        ///   back wall   the hot line, filled greedily by MEASURED width.
+        ///               Usable width is 5.2 - 1.0 = 4.20 m.
+        ///
+        ///   left wall   the next ones, from z = 5.35, so that a cook coming
+        ///               through the wash-room gap at x = 0.72 is clear of
+        ///               them before it passes.
+        ///
+        ///   right wall  whatever is left, in the stretches the doorways
+        ///               leave: the kitchen shares that wall with the
+        ///               entrance and with the store, and both gaps come from
+        ///               the same Shared() the walls are built from.
+        ///
+        /// EVERY STATION STANDS ON THE FLOOR. The first version put the small
+        /// appliances on the prep counters, and Turkish ran out of room: a
+        /// stone oven, a doner spit and a pide oven were left with nowhere to
+        /// go. They bring their own stand now (KitchenStation.Plinth), which
+        /// is what a burger bar actually does with a milkshake machine, and
+        /// the layout has one list to solve instead of two.
+        ///
+        /// THE MIDDLE STAYS CLEAR and that is not taste: Paths.CookHome puts
+        /// the idle cook at z = 6.5 and Paths.KitchenPost puts the working
+        /// cook at z = 8.25, 1.35 m off the back wall.
+        /// </summary>
+        private void BuildKitchen(RoomPlan.Room r)
+        {
+            _stations.Clear();
+            _stationOf.Clear();
+
+            Simulation sim = Source;
+            int count = sim != null ? sim.StationCount : 0;
+
+            List<KitchenStation> line = new List<KitchenStation>();
+            for (int i = 0; i < count; i++)
+            {
+                if (!sim.IsStationUsed(i)) continue;
+                KitchenStation st = MakeStation(i, sim);
+                if (st != null) line.Add(st);
+            }
+
+            // THREE WALLS, IN THIS ORDER: back, left, right.
+            //
+            // The back wall is the hot line a player looks at first, so the
+            // shared stations land there in content order and the cuisine's
+            // own equipment goes down the sides - which is also how a real
+            // kitchen this size grows, because the run you started with is
+            // against the long wall.
+            //
+            // GREEDY BY MEASURED WIDTH, not a fixed pitch. 1.05 m is right for
+            // a 0.90 m range and wrong for a 1.16 m stone oven; the audit
+            // found the Turkish pair 0.86 m inside each other the first time
+            // this ran.
+            const float Gap = 0.14f;
+            const float Edge = 0.50f;
+            int at = 0;
+
+            at += Wall(line, at, r.X0 + Edge, r.W - Edge * 2f, Gap,
+                       r.Z0 + r.D - 0.45f, 180f, true, r.Z0 + r.D, 2, -1f);
+
+            // WHAT THE EXTRACTOR HOOD HAS TO COVER, measured off the run that
+            // was actually laid rather than off the room. The hood used to be
+            // sized for three stove prefabs and a fixed 3.3 m; with an oven in
+            // the line it was cutting through the oven's top at 1.52 m.
+            HoodFrom = 0f; HoodTo = 0f;
+            for (int i = 0; i < at; i++)
+            {
+                float cx = line[i].transform.localPosition.x;
+                float half = line[i].Width * 0.5f;
+                if (i == 0) { HoodFrom = cx - half; HoodTo = cx + half; }
+                else { HoodFrom = Mathf.Min(HoodFrom, cx - half);
+                       HoodTo = Mathf.Max(HoodTo, cx + half); }
+                HoodTop = Mathf.Max(HoodTop, TopOf(line[i].gameObject));
+            }
+
+            // The left wall starts well inside the room: a cook coming through
+            // the wash-room gap at x = 0.72 is still hugging that wall for the
+            // first metre.
+            float leftFrom = r.Z0 + 1.35f;
+            at += Wall(line, at, leftFrom, (r.Z0 + r.D - 0.50f) - leftFrom, Gap,
+                       r.X0 + 0.45f, 90f, false, r.X0, 0, 1f);
+
+            List<Vector2> free = RightWallBands(r);
+            for (int b = 0; b < free.Count && at < line.Count; b++)
+                at += Wall(line, at, free[b].x, free[b].y - free[b].x, Gap,
+                           r.X0 + r.W - 0.45f, -90f, false, r.X0 + r.W, 0, -1f);
+
+            if (at < line.Count)
+            {
+                // NOT SILENT, AND NOT LEFT AT THE ORIGIN. A station with
+                // nowhere to stand used to pile up at (0,0) - which the audit
+                // reported as an object 0.58 m outside the wash room, three
+                // rooms away. It is switched off instead, and said out loud.
+                for (int i = at; i < line.Count; i++)
+                {
+                    Debug.LogWarning("BuildKitchen: '" + line[i].Id + "' ("
+                                     + line[i].Width.ToString("0.00")
+                                     + " m wide) has nowhere to stand in a "
+                                     + r.W.ToString("0.0") + " x "
+                                     + r.D.ToString("0.0") + " m kitchen");
+                    line[i].gameObject.SetActive(false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// How many of the stations from `first` fit into `span` end to end.
+        /// </summary>
+        private static int Fit(List<KitchenStation> all, int first, float span, float gap)
+        {
+            float used = 0f;
+            int n = 0;
+            for (int i = first; i < all.Count; i++)
+            {
+                float next = used + all[i].Width + (n > 0 ? gap : 0f);
+                if (next > span) break;
+                used = next;
+                n++;
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// Lays `n` stations along a wall, centred in the space they need, and
+        /// then slides each one flush against the wall by MEASURING it.
+        /// </summary>
+        private int Wall(List<KitchenStation> all, int first,
+                         float from, float span, float gap,
+                         float wallSide, float yaw, bool alongX,
+                         float wall, int axis, float inward)
+        {
+            int n = Fit(all, first, span, gap);
+            if (n <= 0) return 0;
+
+            float used = -gap;
+            for (int i = 0; i < n; i++) used += all[first + i].Width + gap;
+            float cursor = from + (span - used) * 0.5f;
+
+            for (int i = 0; i < n; i++)
+            {
+                KitchenStation s = all[first + i];
+                float centre = cursor + s.Width * 0.5f;
+                cursor += s.Width + gap;
+
+                s.transform.localPosition = alongX
+                    ? new Vector3(centre, 0f, wallSide)
+                    : new Vector3(wallSide, 0f, centre);
+                s.transform.localRotation = Quaternion.Euler(0f, yaw + PropYaw, 0f);
+                WallFlush(s.gameObject, wall, axis, inward);
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// The stretches of the kitchen's right wall that no doorway cuts.
+        ///
+        /// Both openings come from the same Shared() the walls are built from,
+        /// so a doorway that moves takes the free stretches with it instead of
+        /// leaving a station standing in a hole - which is exactly how the
+        /// wash room's sink ended up behind the kitchen gap.
+        /// </summary>
+        private List<Vector2> RightWallBands(RoomPlan.Room r)
+        {
+            // 0.30 -> 0.22. The jamb has to clear the door leaf and a hand,
+            // not a whole shoulder: a station beside a doorway is not something
+            // anybody squeezes past. Measured in the band it leaves - 1.10 m
+            // became 1.26, which is the difference between the Turkish pide
+            // oven having a wall and being switched off.
+            const float Half = DoorWidth * 0.5f + 0.22f;
+
+            List<float> blocked = new List<float>();
+            for (int i = 0; i < RoomPlan.Rooms.Length; i++)
+            {
+                RoomPlan.Room n = RoomPlan.Rooms[i];
+                if (n.Name == r.Name) continue;
+                if (Mathf.Abs(n.X0 - (r.X0 + r.W)) > 0.01f) continue;
+                if (!Connect(r.Name, n.Name)) continue;
+                float coord, spot; bool vertical;
+                if (!Shared(in r, in n, out coord, out spot, out vertical)) continue;
+                if (!vertical) continue;
+                blocked.Add(spot);
+            }
+            blocked.Sort();
+
+            List<Vector2> free = new List<Vector2>();
+            float cursor = r.Z0 + 0.50f;
+            float end = r.Z0 + r.D - 0.50f;
+            for (int i = 0; i < blocked.Count; i++)
+            {
+                float lo = blocked[i] - Half, hi = blocked[i] + Half;
+                if (lo > cursor) free.Add(new Vector2(cursor, Mathf.Min(lo, end)));
+                cursor = Mathf.Max(cursor, hi);
+            }
+            if (cursor < end) free.Add(new Vector2(cursor, end));
+            return free;
+        }
+
+        /// <summary>Builds a station at the origin; the layout moves it afterwards.</summary>
+        private KitchenStation MakeStation(int station, Simulation sim)
+        {
+            KitchenStation s = KitchenStation.Build(
+                transform, sim.StationId(station), sim.StationTier(station),
+                Vector3.zero, 0f, _floorMat, _badgeMat, _block);
+            if (s == null) return null;
+            _stations.Add(s);
+            _stationOf.Add(station);
+            // The pans go on the burners this station provides. BuildPots runs
+            // after every room is built and measures each spot's own surface.
+            for (int i = 0; i < s.PotSpots.Count; i++) _potSpots.Add(s.PotSpots[i]);
+            return s;
+        }
+
+        /// <summary>
+        /// The stretch of back wall the hot line occupies, and how tall the
+        /// tallest thing in it is.
+        ///
+        /// The extractor hood is built in RestaurantView.Decor, AFTER the
+        /// rooms, and it used to size itself from the room: `w = r.W - 1.9`,
+        /// which was three stove prefabs' worth. Now that the line is built
+        /// from whatever the cuisine owns, the hood has to be told - and the
+        /// height matters as much as the width, because an oven is 1.52 m and
+        /// the hood's mouth was at 1.44.
+        /// </summary>
+        public float HoodFrom { get; private set; }
+        public float HoodTo { get; private set; }
+        public float HoodTop { get; private set; }
+
+        /// <summary>The station objects, and which station index each one is.</summary>
+        private readonly List<KitchenStation> _stations = new List<KitchenStation>();
+        private readonly List<int> _stationOf = new List<int>();
+
+        /// <summary>How many stations are standing in the kitchen. So the tour can ask.</summary>
+        public int StationObjectCount { get { return _stations.Count; } }
+
+        /// <summary>
+        /// How many stations the simulation USES but the kitchen does not show.
+        ///
+        /// THE GUARD FOR THE WHOLE OF docs/59. A station with no object is a
+        /// station the player buys and never sees, and the kitchen looks
+        /// perfectly normal without it - which is how the old `station % 3`
+        /// fan-out survived for months.
+        /// </summary>
+        public int StationsMissing
+        {
+            get
+            {
+                Simulation sim = Source;
+                if (sim == null) return 0;
+                int missing = 0;
+                for (int i = 0; i < sim.StationCount; i++)
+                {
+                    if (!sim.IsStationUsed(i)) continue;
+                    if (!_stationOf.Contains(i)) missing++;
+                }
+                return missing;
+            }
+        }
+
+        /// <summary>
+        /// How many station objects are showing a tier other than the one the
+        /// simulation says is owned.
+        ///
+        /// The second half of the same guard: an object that exists but never
+        /// changes is the old behaviour wearing a new shape.
+        /// </summary>
+        public int StationsStale
+        {
+            get
+            {
+                Simulation sim = Source;
+                if (sim == null) return 0;
+                int stale = 0;
+                for (int i = 0; i < _stations.Count && i < _stationOf.Count; i++)
+                    if (_stations[i] != null
+                        && _stations[i].Tier != sim.StationTier(_stationOf[i])) stale++;
+                return stale;
+            }
+        }
+
         /// THE WASH ROOM: the sinks, the dirty stack, the clean stack, the
         /// washing spot.
         ///
@@ -2609,6 +2822,7 @@ namespace Lokanta.Game
             _cleanStack.Clear();
             _washSpots.Clear();
             _sinkWater.Clear();
+            _sinkFill.Clear();
             _foam.Clear();
 
             const float Inset = 0.6f;
@@ -2689,6 +2903,7 @@ namespace Lokanta.Game
                 // look at than two figures sharing one.
                 _washSpots.Add(new Vector3(sink, 0f, sinkZ - 0.75f));
                 _sinkWater.Add(TapWater(sink, sinkTop, sinkZ));
+                _sinkFill.Add(Basin(sink, sinkTop, sinkZ));
                 _foam.Add(Suds(sink, sinkTop, sinkZ));
             }
 
@@ -2721,6 +2936,51 @@ namespace Lokanta.Game
             if (_waterMat != null) ren.sharedMaterial = _waterMat;
             ren.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             ren.receiveShadows = false;
+            water.SetActive(false);
+            return water;
+        }
+
+        /// <summary>
+        /// The water standing in one basin: a still surface a few centimetres
+        /// under the rim.
+        ///
+        /// STILL, and that is a decision rather than a shortcut. A moving
+        /// surface needs either a shader or a mesh rebuilt every frame, and
+        /// docs/19 targets a low-end Adreno; what says "there is water in
+        /// there" at this camera is the FLAT PLANE catching the light where a
+        /// moment ago there was a dark hole. The suds on top carry the motion.
+        ///
+        /// Its height comes from MEASURING the sink, like everything else that
+        /// sits on a surface in this file.
+        /// </summary>
+        private GameObject Basin(float x, float sinkTop, float z)
+        {
+            GameObject water = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            water.name = "BasinWater";
+            water.transform.SetParent(transform, false);
+            water.transform.localPosition = new Vector3(x, sinkTop - 0.075f, z - 0.05f);
+            water.transform.localScale = new Vector3(0.42f, 0.02f, 0.30f);
+
+            Collider col = water.GetComponent<Collider>();
+            if (col != null)
+            {
+                if (Application.isPlaying) Destroy(col); else DestroyImmediate(col);
+            }
+
+            // NOT THE TAP'S MATERIAL. The running water is transparent, which
+            // is right for a thin jet and wrong for a full basin: a 2 cm slab
+            // of transparent material over a dark steel box is invisible, and
+            // the foam went back to floating in a hole. A still surface reads
+            // by CATCHING THE LIGHT, so it takes the ordinary lit material and
+            // a pale colour.
+            Renderer ren = water.GetComponent<Renderer>();
+            if (_floorMat != null) ren.sharedMaterial = _floorMat;
+            ren.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            ren.receiveShadows = false;
+            if (_block == null) _block = new MaterialPropertyBlock();
+            ren.GetPropertyBlock(_block);
+            _block.SetColor(BaseColorId, new Color(0.514f, 0.643f, 0.702f));
+            ren.SetPropertyBlock(_block);
             water.SetActive(false);
             return water;
         }
@@ -2804,6 +3064,9 @@ namespace Lokanta.Game
         /// scrubbing"; a figure holding a plate on its own looks as if it is
         /// carrying it.
         /// </summary>
+        /// <summary>Where the sponge rests; UpdateScrub moves it around this.</summary>
+        private static readonly Vector3 ScrubHome = new Vector3(0.155f, 0.585f, 0.30f);
+
         private void ShowSponge(GameObject staff, bool on)
         {
             if (staff == null) return;
@@ -2830,9 +3093,20 @@ namespace Lokanta.Game
                 t = g.transform;
             }
 
-            // A little beside the plate and below it: the two hands are
-            // holding different things.
-            t.localPosition = new Vector3(0.17f, 0.58f, 0.26f);
+            // ONE THING IN EACH HAND, and the right hand moves.
+            //
+            // The user's description: "when the dishwasher is washing up, it
+            // should have a plate in one hand and a sponge in the other, and
+            // scrub the plate". Both were already there but both were on the
+            // same side, so it read as a figure holding a plate with something
+            // stuck to it.
+            //
+            // The plate moves to the left hand in ShowCarry (see the `washing`
+            // flag) and the sponge stays right; UpdateScrub gives it the
+            // motion, which is a per-frame offset rather than a clip - this
+            // pack has no scrubbing animation and adding one would mean a new
+            // asset and a new licence row.
+            t.localPosition = ScrubHome;
             if (t.gameObject.activeSelf != on) t.gameObject.SetActive(on);
         }
 
@@ -2925,7 +3199,7 @@ namespace Lokanta.Game
             Figure f = _staffFigure[i];
             if (w == null || f == null) return;
 
-            w.Warp(WashSpotAt(0), 0f);
+            w.Appear(WashSpotAt(0), 0f);
             f.Sample(Figure.Pose.Wash, 0.5f);
             ShowCarry(_staff[i], 1);
             ShowSponge(_staff[i], true);
@@ -3051,6 +3325,16 @@ namespace Lokanta.Game
         private Vector3 _plateSpot;
         /// <summary>The running tap at each sink, and the suds in each basin.</summary>
         private readonly List<GameObject> _sinkWater = new List<GameObject>();
+
+        /// <summary>
+        /// The water standing IN each basin.
+        ///
+        /// The user asked for it: "the inside of the sink can be full of water
+        /// with white foam on the surface". It was a running tap over an empty
+        /// steel box before, and the foam floated in that box with nothing
+        /// under it - which reads as litter rather than as washing up.
+        /// </summary>
+        private readonly List<GameObject> _sinkFill = new List<GameObject>();
         private readonly List<List<GameObject>> _foam = new List<List<GameObject>>();
 
         /// The number of figures standing at the sink right now. So the tour
@@ -3102,8 +3386,37 @@ namespace Lokanta.Game
         /// "left on" - and it leaves the player no reason to look at the
         /// sink.
         /// </summary>
+        /// <summary>
+        /// The scrubbing motion: a small circle traced by the sponge hand.
+        ///
+        /// A PER-FRAME OFFSET, NOT A CLIP. The character pack ships no
+        /// scrubbing animation; adding one would mean a new asset, a licence
+        /// row and a retarget. What actually reads at this camera is that the
+        /// hand MOVES while the other one holds still - the eye reads the
+        /// relative motion, not the elbow.
+        ///
+        /// 7.4 rad/s is about 1.2 scrubs a second, and each figure is offset
+        /// so that two dishwashers at two sinks are not metronomes.
+        /// </summary>
+        private void UpdateScrub()
+        {
+            for (int i = 0; i < _staff.Count; i++)
+            {
+                if (_staff[i] == null) continue;
+                Transform sp = _staff[i].transform.Find("Sponge");
+                if (sp == null || !sp.gameObject.activeSelf) continue;
+
+                float t = Time.time * 7.4f + i * 1.7f;
+                sp.localPosition = ScrubHome
+                    + new Vector3(Mathf.Sin(t) * 0.038f,
+                                  Mathf.Cos(t * 2f) * 0.020f,
+                                  Mathf.Sin(t * 0.5f) * 0.012f);
+            }
+        }
+
         private void UpdateWater()
         {
+            UpdateScrub();
             // PER SINK, NOT FOR THE ROOM. With two basins, running both taps
             // because one person is washing says the wrong thing twice over:
             // it hides how many people are on it, and it leaves a tap running
@@ -3116,6 +3429,12 @@ namespace Lokanta.Game
 
                 GameObject w = _sinkWater[k];
                 if (w != null && w.activeSelf != running) w.SetActive(running);
+                if (k < _sinkFill.Count)
+                {
+                    GameObject fill = _sinkFill[k];
+                    if (fill != null && fill.activeSelf != running)
+                        fill.SetActive(running);
+                }
                 if (k >= _foam.Count) continue;
                 List<GameObject> suds = _foam[k];
                 for (int i = 0; i < suds.Count; i++)
@@ -3750,7 +4069,7 @@ namespace Lokanta.Game
                         // rather than "it arrived". It now appears on the pavement, a
                         // few metres from the door, and comes in on foot - the moment
                         // of walking in through the door can be watched.
-                        w.Warp(Paths.Street(t), 0f);
+                        w.Appear(Paths.Street(t), 0f);
 
                         Paths.FromStreet(_path, seat);
                         w.GoTo(_path, yaw, () => Pose(f, Figure.Pose.Sit));
@@ -3760,7 +4079,7 @@ namespace Lokanta.Game
                         // the door and the hall would come out empty.
                         if (PreviewPoses)
                         {
-                            w.Warp(seat, yaw);
+                            w.Appear(seat, yaw);
                             Pose(f, Figure.Pose.Sit);
                         }
 
@@ -3825,12 +4144,12 @@ namespace Lokanta.Game
 
                     if (PreviewPoses)
                     {
-                        w0.Warp(spot, 0f);
+                        w0.Appear(spot, 0f);
                         Pose(f0, Figure.Pose.Idle);
                     }
                     else
                     {
-                        w0.Warp(Paths.Street(p), 0f);
+                        w0.Appear(Paths.Street(p), 0f);
                         _path.Clear();
                         _path.Add(Paths.Inside);
                         _path.Add(spot);
@@ -4343,7 +4662,30 @@ namespace Lokanta.Game
                     Vector3 home = isCook ? Paths.CookHome(i, Mathf.Max(1, sim.Cooks))
                                       : Paths.HallHome(i - sim.Cooks,
                                                         Mathf.Max(1, sim.HallStaff));
-                    WalkerOf(_staff[i]).Warp(home, isCook ? 180f : 0f);
+                    // IT WALKS HOME UNLESS IT HAS ONLY JUST BEEN MADE.
+                    //
+                    // The crew is rebuilt whenever somebody is hired or
+                    // leaves, and every remaining figure used to be warped to
+                    // its new post - which on screen is the whole kitchen
+                    // staff sliding a metre sideways in one frame. The user
+                    // asked for it to stop: "the model should not teleport
+                    // there or appear there".
+                    //
+                    // A figure still sitting at the origin is one Instantiate
+                    // made a few lines above and has never been anywhere, so
+                    // it is PUT at its post; anybody else walks.
+                    Walker sw = WalkerOf(_staff[i]);
+                    float syaw = isCook ? 180f : 0f;
+                    if (sw.transform.localPosition.sqrMagnitude < 0.04f)
+                    {
+                        sw.Appear(home, syaw);
+                    }
+                    else
+                    {
+                        Paths.Between(_path, sw.transform.localPosition, home);
+                        _path.Add(home);
+                        sw.GoTo(_path, syaw, null);
+                    }
                     _staffTask[i] = int.MinValue;
                     if (i < _washHold.Count) _washHold[i] = 0f;
                 }
@@ -4512,7 +4854,7 @@ namespace Lokanta.Game
                         // HAND: that is the plate being washed. A figure making a
                         // scrubbing motion with an empty hand does not read as
                         // "washing".
-                        ShowCarry(washBody, 1);
+                        ShowCarry(washBody, 1, washing: true);
                         // It stays at the sink for a VISIBLE length of time.
                         _washHold[idx] = WashVisitSeconds;
                     });
@@ -4588,12 +4930,21 @@ namespace Lokanta.Game
             return n;
         }
 
-        /// <summary>The station's stove (as an object). The pan is put there.</summary>
+        /// <summary>
+        /// The station's own object. The pan is put there and the cook walks
+        /// to it.
+        ///
+        /// IT IS THE STATION'S OWN, not station % 3. The old mapping sent the
+        /// cook to a stove that stood for four different stations, so the
+        /// figure could be working at a lit hob while the grill it was
+        /// actually cooking on was somewhere else entirely.
+        /// </summary>
         private Transform StoveOf(int station)
         {
-            if (_stoves.Count == 0) return null;
-            int i = (station < 0 ? 0 : station) % _stoves.Count;
-            return _stoves[i] != null ? _stoves[i].transform : null;
+            for (int i = 0; i < _stationOf.Count && i < _stations.Count; i++)
+                if (_stationOf[i] == station)
+                    return _stations[i] != null ? _stations[i].transform : null;
+            return null;
         }
 
         /// The position of the station's stove. The wall side if there is no
@@ -4605,13 +4956,9 @@ namespace Lokanta.Game
         /// </summary>
         private Vector3 StovePos(int station, Vector3 fallbackFrom)
         {
-            if (_stoves.Count > 0)
-            {
-                int i = (station < 0 ? 0 : station) % _stoves.Count;
-                if (_stoves[i] != null)
-                    return _stoves[i].transform.localPosition;
-            }
-            // With no stove, facing the back (the wall): the counter is there.
+            Transform t = StoveOf(station);
+            if (t != null) return t.localPosition;
+            // With no object, facing the back (the wall): the counter is there.
             return fallbackFrom + new Vector3(0f, 0f, 1f);
         }
 
@@ -4640,37 +4987,33 @@ namespace Lokanta.Game
         /// decision taken most often, and the only place the player can see it
         /// is the kitchen itself.
         ///
-        /// The number of stoves is NOT the same as the number of stations:
-        /// three stoves, six stations. Stove i stands for stations i, (i+3),
-        /// and so on - the same mapping is in Paths.KitchenPost, which picks
-        /// the counter the cook walks to, so the cook goes to the stove that
-        /// is lit.
+        /// ONE OBJECT TO ONE STATION now. It used to be three stove prefabs
+        /// standing for sixteen possible stations by `station % 3`, so stove 0
+        /// showed the SUM of stations 0, 3, 6 and 9 - a hob could read as
+        /// jammed because the drinks station was busy. docs/59 replaced the
+        /// fan-out with an object per station; the load it shows is its own.
         /// </summary>
         private void UpdateAppliances(Simulation sim)
         {
-            if (_stoves.Count == 0) return;
+            if (sim == null) return;
 
-            int n = _stoves.Count;
-            for (int i = 0; i < n; i++)
+            // A TIER THE PLAYER BOUGHT REBUILDS THE OBJECT. The geometry
+            // carries the tier - a second burner, a third fryer well - so an
+            // object left at the old tier is the old bug wearing a new shape:
+            // you pay, and nothing on screen moves.
+            for (int i = 0; i < _stations.Count && i < _stationOf.Count; i++)
             {
-                // THE BACKLOG IS SUMMED, NOT TESTED.
-                //
-                // This used to `break` on the first station with anything on
-                // it, so the stove knew "somebody is cooking" and nothing
-                // else. Stove i stands for stations i, i+n, i+2n..., so the
-                // load it should show is the load of all of them together -
-                // and the slots likewise, or a stove standing for two stations
-                // would read as jammed whenever both were merely busy.
-                //
-                // The upper limit is FIXED: App can be null in the preview and
-                // StationLoad returns 0 out of range anyway.
-                int load = 0, slots = 0;
-                for (int st = i; st < 16; st += n)
-                {
-                    load += sim.StationLoad(st);
-                    slots += sim.StationSlotCount(st);
-                }
-                _stoves[i].SetLoad(load, slots);
+                KitchenStation st = _stations[i];
+                if (st == null) continue;
+                if (st.Tier != sim.StationTier(_stationOf[i])) { Rebuild(); return; }
+            }
+
+            for (int i = 0; i < _stations.Count && i < _stationOf.Count; i++)
+            {
+                if (_stations[i] == null) continue;
+                int station = _stationOf[i];
+                _stations[i].SetLoad(sim.StationLoad(station),
+                                     sim.StationSlotCount(station));
             }
         }
 
@@ -4705,7 +5048,7 @@ namespace Lokanta.Game
         /// read FROM THE SIMULATION (how many tables are waiting for food), so
         /// it is not made up; it is simply a PICTURE rather than a constraint.
         /// </summary>
-        private void ShowCarry(GameObject staff, int count)
+        private void ShowCarry(GameObject staff, int count, bool washing = false)
         {
             if (staff == null || PlatePrefab == null) return;
             count = Mathf.Clamp(count, 0, TrayCapacity);
@@ -4733,7 +5076,8 @@ namespace Lokanta.Game
                 // THE TRAY (a little higher and laid out sideways).
                 t.localPosition = count > 1
                     ? new Vector3((i - (count - 1) * 0.5f) * 0.17f, 0.66f, 0.30f)
-                    : new Vector3(0f, 0.62f, 0.28f);
+                    : (washing ? new Vector3(-0.145f, 0.600f, 0.30f)
+                               : new Vector3(0f, 0.62f, 0.28f));
 
                 if (t.gameObject.activeSelf != wanted)
                     t.gameObject.SetActive(wanted);

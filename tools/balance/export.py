@@ -648,7 +648,8 @@ def equipment():
 
     # At the tier 4 peak every station's slot count has to match docs/27 3.3
     # exactly. Without this check the conc values could quietly drift.
-    want = {"ocak": 4, "izgara": 4, "firin": 2, "soguk": 1, "icecek": 1, "tatli": 1}
+    want = {"ocak": 4, "fritoz": 4, "izgara": 4, "firin": 2,
+            "soguk": 1, "icecek": 1, "tatli": 1}
     for st in stations:
         top = max(t["slots"] for t in st["tiers"])
         assert top == want[st["id"]], (

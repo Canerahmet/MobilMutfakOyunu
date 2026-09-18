@@ -179,6 +179,23 @@ namespace Lokanta.EditorTools
                     Shoot("kitchen_" + cuisine + ".png",
                           CameraFit.RoomBounds(kitchen), 1100, 700);
 
+                    // THE HOT LINE, CLOSER AND FROM THE SIDE.
+                    //
+                    // The room shot is taken at the GAME's angle, which is the
+                    // right test for "can the player read it" and the wrong one
+                    // for "is the model correct": at 34 degrees a stone oven's
+                    // dome and a doner spit's cone are forty pixels each. The
+                    // equipment built in docs/59 needs a frame where a wrong
+                    // model is visible as a wrong model.
+                    {
+                        RoomPlan.Room kr = RoomPlan.Rooms[kitchen];
+                        Bounds line = new Bounds(
+                            new Vector3(kr.CenterX, 0.85f, kr.Z0 + kr.D - 0.9f),
+                            new Vector3(kr.W + 0.4f, 2.4f, 2.0f));
+                        Shoot("kitchen_" + cuisine + "_line.png", line, 1400, 620,
+                              18f, 12f);
+                    }
+
                     // ONE TABLE, CLOSE UP.
                     //
                     // The question "do the models look like they overlap" can

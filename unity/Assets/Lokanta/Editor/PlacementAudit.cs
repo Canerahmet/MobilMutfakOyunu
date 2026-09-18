@@ -277,8 +277,12 @@ namespace Lokanta.EditorTools
                 // the back wall" - but that was never available: an AABB over
                 // a merged mesh cannot answer it either way. Better to
                 // measure the pairs that CAN be measured and say so.
+                // "Sky" is the gradient behind the building: eight bands
+                // ninety metres wide. Measuring them against the furniture
+                // would report every prop in the game as clashing with the
+                // sky.
                 if (t.name == "Decor" || t.name == "DecorGlow"
-                    || t.name == "Skyline") continue;
+                    || t.name == "Sky") continue;
 
                 Bounds? b = PosedBounds(t);
                 if (b != null) all.Add(new Item { Name = t.name, Box = b.Value });
