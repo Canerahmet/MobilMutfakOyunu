@@ -1062,11 +1062,21 @@ namespace Lokanta.Game.Ui
                     Loc.T("ui.staff.raise", 100 + (raiseBp + Simulation.RaiseWageBp) / 100),
                     () => { App.Send(CommandKind.GiveRaise, pool, index); Ui.Refresh(); },
                     wide: true));
-                bool resting = sim.StaffRestingNext(pool, index);
-                levers.Add(Theme.Btn(
-                    Loc.T(resting ? "ui.staff.day_off_set" : "ui.staff.day_off"),
-                    () => { App.Send(CommandKind.DayOff, pool, index); Ui.Refresh(); },
-                    wide: true));
+                // NO DAY-OFF BUTTON FOR THE ONLY COOK. The command is refused
+                // for them - the owner is not the cook - and a button that
+                // does nothing is the docs/49 shape in miniature. The tour
+                // found it: the first day-off button on the screen was the
+                // cook's, its press was refused, and the hall's never got
+                // pressed.
+                bool canRest = !(pool == 0 && sim.Cooks <= 1);
+                if (canRest)
+                {
+                    bool resting = sim.StaffRestingNext(pool, index);
+                    levers.Add(Theme.Btn(
+                        Loc.T(resting ? "ui.staff.day_off_set" : "ui.staff.day_off"),
+                        () => { App.Send(CommandKind.DayOff, pool, index); Ui.Refresh(); },
+                        wide: true));
+                }
                 card.Add(levers);
                 card.Add(Theme.Btn(Loc.T("ui.staff.fire"), () =>
                 {

@@ -435,18 +435,27 @@ namespace Lokanta.Game
                     // With one person in the hall the day off is still legal
                     // (the owner covers the floor); with none there is
                     // nothing to press and the check says so.
-                    if (_app.Sim.HallStaff > 0)
+                    // ONLY WHEN SOMEBODY CAN BE SPARED. A day off given in the
+                    // morning is TODAY'S, and the first version pressed it with
+                    // one person in the hall: that person sat out the service,
+                    // nobody washed at the sink, and the sink check went red in
+                    // both cuisines. The press lands on the first button on the
+                    // screen - the cooks come first, and the only cook has no
+                    // button - so it is safe when that pool keeps somebody.
+                    bool spare = _app.Sim.Cooks >= 2 || (_app.Sim.Cooks <= 1 && _app.Sim.HallStaff >= 2);
+                    if (spare)
                     {
-                        bool restingBefore = _app.Sim.StaffRestingNext(1, 0);
+                        int restingBefore = RestingCount();
                         bool pressedOff = Click(Loc.T("ui.staff.day_off"));
                         yield return Settle();
-                        Note(pressedOff && !restingBefore && _app.Sim.StaffRestingNext(1, 0),
-                             "The day-off button reaches the simulation (hall 0 rests next: "
-                             + _app.Sim.StaffRestingNext(1, 0) + ")");
+                        Note(pressedOff && RestingCount() > restingBefore,
+                             "The day-off button reaches the simulation (resting next: "
+                             + restingBefore + " -> " + RestingCount() + ")");
                     }
                     else
                     {
-                        Skip("The day-off button reaches the simulation (nobody in the hall to give it to)");
+                        Skip("The day-off button reaches the simulation (nobody can be spared today: "
+                             + _app.Sim.Cooks + " cook(s), " + _app.Sim.HallStaff + " in the hall)");
                     }
 
                     // IS THE TRAIT'S VOICE ON SCREEN?
@@ -2707,6 +2716,14 @@ namespace Lokanta.Game
             {
                 Debug.LogWarning((object)("Tour: " + what + " did not run"));
             }
+        }
+
+        private int RestingCount()
+        {
+            int n = 0;
+            for (int i = 0; i < _app.Sim.Cooks; i++) if (_app.Sim.StaffRestingNext(0, i)) n++;
+            for (int i = 0; i < _app.Sim.HallStaff; i++) if (_app.Sim.StaffRestingNext(1, i)) n++;
+            return n;
         }
 
         private void Skip(string what)
