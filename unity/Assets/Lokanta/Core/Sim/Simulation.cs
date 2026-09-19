@@ -4493,13 +4493,23 @@ namespace Lokanta.Core.Sim
                     // single party of four asks for that dish the stock is
                     // short and the customer is turned back at the door.
                     long floorGrams = (long)d.Ingredients[k].Grams * MinPartyBuffer;
-                    grams += expected > floorGrams ? expected : floorGrams;
+
+                    // THE SAFETY MARGIN GOES ON THE FORECAST, NOT ON THE FLOOR.
+                    //
+                    // The 20% below exists because demand fluctuates around
+                    // the forecast. The floor is not a forecast: it is already
+                    // a buffer - a full party's worth held for a dish that
+                    // may sell one portion today. Multiplying a buffer by a
+                    // safety margin bought 4.8 portions of every perishable
+                    // for every low-selling dish, every day, and at four
+                    // tables without a cold store all of it died that night.
+                    // Measured on the Turkish non-expander (docs/63 10) as
+                    // part of a 41% spoilage rate. So the margin applies to
+                    // the expected demand, and the floor stands as written.
+                    long withMargin = Fx.Bp(expected, 12000);
+                    grams += withMargin > floorGrams ? withMargin : floorGrams;
                 }
             }
-
-            // A 20% safety margin: demand fluctuates, and a kitchen that
-            // runs out loses customers.
-            grams = Fx.Bp(grams, 12000);
 
             long missing = grams - (ignoreStock ? 0 : _stockGrams[ingredient]);
             return missing > 0 ? (int)missing : 0;
@@ -4704,6 +4714,39 @@ namespace Lokanta.Core.Sim
         {
             return dish >= 0 && dish < _content.Dishes.Length
                 && _content.IsInRole(_content.Dishes[dish].Group, _content.MainGroups);
+        }
+
+        /// <summary>
+        /// The dish's role on the menu: 0 main, 1 side, 2 drink, 3 dessert,
+        /// -1 none of those. Read-only, for whoever narrows a menu - the
+        /// balance bots first, and the same question a menu screen asks.
+        /// </summary>
+        public int DishRole(int dish)
+        {
+            if (dish < 0 || dish >= _content.Dishes.Length) return -1;
+            string g = _content.Dishes[dish].Group;
+            if (_content.IsInRole(g, _content.MainGroups)) return 0;
+            if (_content.IsInRole(g, _content.SideGroups)) return 1;
+            if (_content.IsInRole(g, _content.DrinkGroups)) return 2;
+            if (_content.IsInRole(g, _content.DessertGroups)) return 3;
+            return -1;
+        }
+
+        /// <summary>
+        /// How likely one guest is to order from a role, in basis points:
+        /// a main for everybody, the rest by chance - the same numbers the
+        /// market recommendation buys against.
+        /// </summary>
+        public int RoleChanceBp(int role)
+        {
+            switch (role)
+            {
+                case 0: return Fx.One;
+                case 1: return _economy.SideChanceBp;
+                case 2: return _economy.DrinkChanceBp;
+                case 3: return _economy.DessertChanceBp;
+                default: return 0;
+            }
         }
 
         public int IngredientCount { get { return _content.Ingredients.Length; } }

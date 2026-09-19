@@ -450,13 +450,43 @@ namespace Lokanta.Harness
             //
             // This is the DECISION the mechanic creates: menu width is limited
             // and the named customer's favourite takes one of those places.
-            int kept = 0;
+            // THE RULE APPLIES TO EVERY DISH, AND UNTIL 19 SEPTEMBER IT WAS
+            // APPLIED TO THE MAINS ALONE.
+            //
+            // The sentence above says why the menu is narrowed: every dish on
+            // it is restocked daily and the leftovers go in the bin. Then the
+            // loop switched every side, drink and dessert ON, every morning,
+            // unconditionally. In Turkish those are the fresh ones - the
+            // salads, the milk puddings - and at four tables the market
+            // recommendation was buying four portions of each for dishes
+            // that sell one a day. Measured (docs/63 10): the non-expander
+            // threw away 41% of what it bought and earned 305 coins in sixty
+            // days, and two levers in the GAME were tried against that
+            // number before this line was read. The bot was not playing a
+            // lokanta; a lokanta has a short menu.
+            //
+            // So the same arithmetic runs per role: a dish stays open while
+            // the role's expected portions, spread over the dishes kept,
+            // still reach `need` a day. Favourites of regulars first, as for
+            // the mains, and at least one dish per role so nothing is ever
+            // unorderable.
+            int[] allowed = new int[4];
+            int[] kept = new int[4];
+            for (int r = 0; r < 4; r++)
+            {
+                long portions = Lokanta.Core.Fx.MulDiv(people, sim.RoleChanceBp(r), Lokanta.Core.Fx.One);
+                allowed[r] = (int)(portions / need);
+                if (allowed[r] < 1) allowed[r] = 1;
+            }
+            allowed[0] = allowedMains;   // the mains keep their floor of two
+
             for (int pass = 0; pass < 2; pass++)
             {
                 for (int i = 0; i < sim.DishCount; i++)
                 {
                     if (!sim.IsUnlocked(i)) continue;
-                    if (!sim.IsMain(i))
+                    int role = sim.DishRole(i);
+                    if (role < 0)
                     {
                         if (pass == 0)
                             sim.Apply(new Command(sim.TickIndex, CommandKind.SetMenuSlot, i, 1));
@@ -467,8 +497,8 @@ namespace Lokanta.Harness
                     if (pass == 0 && !favourite) continue;      // favourites first
                     if (pass == 1 && favourite) continue;       // then the rest
 
-                    bool on = kept < allowedMains;
-                    if (on) kept++;
+                    bool on = kept[role] < allowed[role];
+                    if (on) kept[role]++;
                     sim.Apply(new Command(sim.TickIndex, CommandKind.SetMenuSlot, i, on ? 1 : 0));
                 }
             }

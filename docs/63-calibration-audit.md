@@ -485,3 +485,98 @@ knob, the knob is at its optimum, and the one failure left is provably not
 that knob's to fix. What remains is a design decision about the free
 cuisine's harder sibling at its starting size (§10), and it is now stated in
 the calibration's own output in those words.
+
+## 12. "Sıfır kazanır olmasın" — four levers, measured one at a time
+
+> *"Sıfır kazanır olmasın"*
+>
+> *("Let it not earn zero.")*
+
+The decision was about the outcome, not the means: a four-table Turkish shop
+that never expands must earn something. The acceptance is §10's own check -
+the non-expander earns at least a quarter of the stake, and the grower earns
+1.8-4.0 times what it does. Four levers were measured, each alone, each
+against the same 8-seed baseline (Turkish non-expander 338, grower 10,325;
+fast food 4,750 / 13,955).
+
+**1. A cold-store-aware stocking floor — measured and dropped.** Stock a
+typical party (3) instead of a full one (4) for any ingredient that dies
+tonight. Spoilage fell 2,367 and revenue fell 1,827: at four tables the floor
+was not waste, it was **stock that sometimes sold**, and cutting it turned the
+bin into stock-outs almost one for one. Turkish non-expander 338 → 669. And
+it took 10% off the fast food opening day (102,050 → 91,570) and halved its
+tail, because the opening stock comes from the same recommendation.
+Reverted, test and all.
+
+**2. A shelf life without a cold store — measured and dropped, twice.** Tier
+0 keeps nothing: a thirty-day cheese dies overnight beside the mince. A small
+tier-0 keep rate (10%, 15%) is physically honest, and it is guarded in three
+places as the designed baseline of docs/12 §3. Bypassed for the experiment,
+the first run came back **byte-identical** in all four cells - and
+byte-identical means the arm never ran: `StorageKeepBp()` returns 0 at tier
+0 without reading the content, so the number in the file is dead. Bypassed
+properly, the result was a Turkish non-expander at **−492**: its spoilage
+did not move (12,624), because the waste is not in the long-lived
+ingredients at all. It is in the fresh ones, spoilDays 1-7 - nineteen of
+Turkish's thirty perishables - and those die at every keep rate. Reverted.
+
+**3. The bot was not playing a lokanta.** `NarrowMenu` says why a menu is
+narrowed - *"every dish on the menu has to be restocked daily and the
+leftovers go in the bin; that is why we want four customers per main
+course"* - and then applied that rule to the mains only, switching every
+side, drink and dessert ON every morning. In Turkish those are the fresh
+ones: the salads, the milk puddings. The same arithmetic now runs per role,
+favourites of regulars first, at least one dish per role.
+
+| 8 seeds | before | after |
+|---|---:|---:|
+| Turkish non-expander | 338 | **1,954** |
+| Turkish non-expander, spoiled | 12,596 | 8,452 |
+| Turkish grower | 10,325 | 11,517 |
+| fast food non-expander | 4,750 | 5,435 |
+
+Two levers in the *game* were tried against a number the *bot* was producing.
+It is the planner's bug in another bot (§8), and it is the third time this
+week: a bot that does not do the obvious thing reads as a broken economy.
+
+**4. The safety margin goes on the forecast, not on the floor.** The
+recommendation added 20% to the larger of the forecast and the floor. The
+floor is not a forecast; it is already a buffer, and a buffer times a margin
+bought 4.8 portions of every perishable for a dish that sells one a day.
+The margin now applies to the forecast alone and the floor stands as written.
+
+| 8 seeds | after 3 | after 3 + 4 |
+|---|---:|---:|
+| Turkish non-expander | 1,954 | **3,628** |
+| Turkish non-expander, spoiled | 8,452 | 6,541 |
+| Turkish grower | 11,517 | 13,185 → ratio **3.63** |
+| fast food non-expander / grower | 5,435 / 13,160 | 4,962 / 13,546 → ratio **2.73** |
+| fast food opening day | 102,050, tail 7.3% | **102,050, tail 7.3%** — unchanged |
+
+Guarded by `StockingMarginTests`: one low-selling dish alone on the menu,
+and the recommended stock of each of its ingredients is exactly the floor.
+Proved red under the old rule.
+
+One number to keep an eye on: the Turkish non-expander's reputation fell from
+47.3 to 42.2 with the thinner stock. Fewer portions in the fridge is a few
+more "we are out of that" on a busy night. The grower's reputation did not
+move.
+
+### Acceptance
+
+The calibration's own verification at 7000, **32 seeds, both cuisines**:
+
+```
+penalty 0  BOTH CUISINES CLEAN
+```
+
+The first clean verification in the calibration's history. Levers 3 and 4
+did it; 1 and 2 were measured and reverted. The rate did not move, the rent
+did not move, the cuisine's identity did not move: the bot plays a shorter
+menu, and the recommendation no longer pads a buffer.
+
+At 8 seeds the same run shows one Turkish complaint - the signature mechanic
+at 0.86 against a floor of 0.90 - that is absent at 32. That is §5's
+eight-seed noise showing up where a verdict is now close to a threshold; the
+32-seed verification is the one that counts, and it is why the sweep
+re-measures its winner.
