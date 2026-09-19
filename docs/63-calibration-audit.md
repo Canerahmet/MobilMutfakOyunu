@@ -200,7 +200,123 @@ growth multiplier is a design question now, not a balance one.
   currently resolves them is about rent. A failure that says *a player who
   ignores the design does better* should not be tradeable against a number
   being a little low.
-- **"The planner cannot keep to the calendar"** appears in seven of the nine
-  rows, in both cuisines, at every rate. A complaint that never goes away is
-  either a real design fault or a check measuring the wrong thing, and nothing
-  has told the two apart.
+- ~~**"The planner cannot keep to the calendar"** appears in seven of the nine
+  rows, in both cuisines, at every rate.~~ **Answered the same day — and the
+  answer was a third option this list did not offer.** See §8.
+
+## 8. The complaint that never went away was the bot
+
+§7 offered two explanations for *"planci cannot keep to the calendar"*
+appearing at every rate in both cuisines: a real design fault, or a check
+measuring the wrong thing. It was **neither**, and the missing third option is
+worth naming because this project has now met it three times.
+
+`PlannerSchedule` expands on days 15, 29 and 43:
+
+```csharp
+sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, t));
+break;
+}
+_next++;          // ran whether or not the Expand went through
+```
+
+**A refused expansion burnt the slot for good.** A planner a few hundred coins
+short on the morning of day 43 never asked again, and spent the remaining
+seventeen days earning money it had no way to spend: Turkish finished the
+campaign at **11.0 tables holding 23,622 coins**, when the step it had missed
+costs 8,000. Ending rich and small is the signature, and it was on the table
+the whole time.
+
+It is the lesson already written beside `Interventionist.Tried`, in a
+different bot: *"a bot that gets refused is not a bot"*. The price ceiling
+taught it once, when `yuksek_fiyat` silently became a copy of the reasonable
+player as soon as its prices started bouncing.
+
+### What the fix changed
+
+The slot is consumed only when the table count actually moves, and the planner
+retries each morning until it does.
+
+| Turkish `planci` | before | after |
+|---|---:|---:|
+| tables | 11.0 | **13.8** |
+| served | 2,439 | 2,721 |
+| reputation | 91.7 | 97.3 |
+
+Fast food does not move: 14.0 either way, because it was never refused.
+
+### And the refusals are counted now
+
+"The schedule is unaffordable" and "the bot asked on the wrong day" produced
+the same row, so the difference is now measured rather than inferred:
+**15 refusals across 16 Turkish seeds** — about one morning late per campaign.
+
+That is a different sentence from the one the calibration had been printing.
+The model's calendar is not unaffordable in Turkish; it arrives roughly a day
+early for the money. What the fix then exposes is real and was hidden behind
+the bot giving up: **Turkish reaches the calendar by borrowing**, showing a
+debt day of 49.
+
+### The cost of the bug was not one line in a report
+
+That complaint was worth **6 penalty points on nearly every candidate** of a
+nine-candidate sweep, in a penalty function whose top three settings are
+separated by one point (§5). A constant offset does not change a ranking, but
+this one was not constant - it applied to seven rows of nine, and it pushed
+the search toward whatever eases a Turkish cashflow that was never actually
+that tight. The direction that eases it is cheap rent, which is exactly where
+5500 and 6500 sit, and cheap rent is how *cheap ingredients beat good play*
+arrives. **A penalty for a fault that does not exist steers just as firmly as
+one for a fault that does.**
+
+The sweep was therefore re-run once more.
+
+## 9. The sweep with the planner fixed, and what is left
+
+Same nine candidates, same seeds, the only change being a bot that asks again
+when it is turned down.
+
+| realisation | penalty before | **penalty after** | what it fails now |
+|---:|---:|---:|---|
+| 5500 | 16 | 16 | cheap ingredients beat good play; money stops mattering in week 7 |
+| 6000 | 28 | 22 | growth 1.54; cheap ingredients; signature 0.87 |
+| 6500 | 17 | 17 | cheap ingredients; money stops mattering; signature 0.88 |
+| **7000** | **16** | **10** | **growth 1.72 — and nothing else** |
+| 7500 | 28 | 32 | growth 1.28; signature 0.87; reputation 73.8; the planner |
+| 8000 | 62 | 58 | growth; the hall-only bot beats the planner; reputation 57.5 |
+| 8500 | 44 | 74 | as above, worse; Turkish reputation 39.0 |
+| 9000 | 64 | 84 | growth 1.00 / 0.88; reputation 32.3 / 21.0 |
+| 9335 | 32 | 92 | growth 1.08 / 0.49; reputation 29.7 / 13.4; the shop empties |
+
+**The surface has a shape again.** It was 16, 28, 17, 16, 28, 62, 44, 64, 32 —
+reversing direction three times, with the top three separated by one point.
+It is now 16, 22, 17, **10**, 32, 58, 74, 84, 92: a single minimum with a
+**six-point** margin, and monotone above it. The ranking no longer depends on
+which seeds were drawn.
+
+That is the measure of what the bug was doing. It was not adding noise, it was
+adding a *slope* — six points on seven of nine rows, pushing the search toward
+whatever eased a Turkish cashflow that turned out to be about one morning
+short.
+
+Two other things the fixed planner makes visible, both of which were being
+hidden by a bot that gave up before it could hit them:
+
+- **"The hall-only bot beats the planner"** appears from 8000 upward. At those
+  rents, expanding on the model's calendar is actively worse than standing
+  still. That is a real and useful signal about where the rent stops being
+  pressure and starts being a wall; the old planner never got far enough into
+  the campaign to trip it.
+- **"planci cannot keep to the calendar" now appears only at 7500 and above** —
+  where it is true. Below that the schedule is affordable, which is what the
+  refusal count had already said.
+
+### What is left is one complaint
+
+The winner is 7000 with a penalty of **10**, and the growth multiplier is
+worth exactly 10. Verified at 32 seeds: **1.60 against a target of 1.8-4.0,
+and nothing else fails.**
+
+Applying it produced an empty `git status` for the second sweep running. The
+calibration is at its optimum, the tree is on it, and the one thing still
+failing is the one thing nine realisation rates could not move.
