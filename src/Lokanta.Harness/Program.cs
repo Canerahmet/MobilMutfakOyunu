@@ -111,6 +111,12 @@ namespace Lokanta.Harness
                 ReasonablePlayer.HallShort = proto is PressuredPlayer ? 1 : 0;
                 Interventionist.ResetCounters();
 
+                // STATIC FOR THE SAME REASON AS EVERY COUNTER ABOVE IT.
+                // Left unreset, the planner's refusals would be added to
+                // whatever strategy ran after it and the number would slowly
+                // stop meaning anything.
+                PlannerSchedule.Refused = 0;
+
                 // THE PATIENT MODE IS STATIC TOO: if it is not reset the next
                 // strategy inherits it and the measurement silently measures
                 // something else - the same trap as HallShort above.
@@ -139,6 +145,7 @@ namespace Lokanta.Harness
                 ReasonablePlayer.HallShort = 0;
                 agg.InterventionsTried = Interventionist.Tried;
                 agg.InterventionsApplied = Interventionist.Applied;
+                agg.ExpansionsRefused = PlannerSchedule.Refused;
 
                 agg.Finish(seeds);
                 results.Add(agg);
@@ -549,6 +556,13 @@ namespace Lokanta.Harness
             }
             if (!anyIntervention) Console.WriteLine("  none");
 
+            foreach (StrategyResult r in results)
+            {
+                if (r.ExpansionsRefused == 0) continue;
+                Console.WriteLine($"  {r.Name,-20} {r.ExpansionsRefused,6} scheduled "
+                                  + "expansions refused before they went through");
+            }
+
             Console.WriteLine();
             Console.WriteLine("=== Warnings ===");
             int warnings = 0;
@@ -667,6 +681,14 @@ namespace Lokanta.Harness
 
         /// <summary>This strategy's own intervention counters.</summary>
         public int InterventionsTried, InterventionsApplied;
+
+        /// <summary>
+        /// Mornings on which a scheduled expansion was turned down. It
+        /// separates "the model's calendar is unaffordable" from "the bot
+        /// asked on the wrong day", which the table could not tell apart
+        /// while a refusal silently burnt the slot.
+        /// </summary>
+        public int ExpansionsRefused;
         /// <summary>
         /// Money still ON THE TAB on the sixtieth day. Not in the till, but not
         /// lost either - the docs/08 year-end evaluation measures net worth, and

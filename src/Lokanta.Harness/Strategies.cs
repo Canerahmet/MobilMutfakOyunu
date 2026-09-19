@@ -825,14 +825,50 @@ namespace Lokanta.Harness
 
             if (_next >= Days.Length || sim.Day < Days[_next]) return;
 
+            // A REFUSED EXPANSION USED TO BURN THE SLOT FOREVER.
+            //
+            // _next++ ran whether or not the Expand went through, so a
+            // planner that was a few hundred coins short on day 43 never
+            // tried again - it spent the remaining seventeen days earning
+            // money it had no way to spend. Turkish ended the campaign at
+            // 11.0 tables holding 23,622 coins, when the step it had missed
+            // costs 8,000.
+            //
+            // "A bot that gets refused is not a bot" - the note beside
+            // Interventionist.Tried records the same lesson from the price
+            // ceiling, where yuksek_fiyat silently became a copy of the
+            // reasonable player once its prices started bouncing. Here it
+            // made the calibration read "planci cannot keep to the calendar"
+            // on almost every candidate, at every realisation rate, which is
+            // a complaint the calibration has no lever to answer.
+            //
+            // So the slot is only consumed when the table count ACTUALLY
+            // moves, and until then the planner retries every morning. The
+            // question it asks is unchanged - can the model's schedule be
+            // afforded - but a schedule met on day 45 now reads as met,
+            // where it used to read as never.
+            int before = sim.TableCount;
             for (int t = 0; t < sim.TierCount; t++)
             {
                 if (sim.TablesAtTier(t) <= sim.TableCount) continue;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Expand, t));
                 break;
             }
+            if (sim.TableCount == before)
+            {
+                Refused++;
+                return;
+            }
             _next++;
         }
+
+        /// <summary>
+        /// How many scheduled expansions were turned down. It is the
+        /// difference between "the schedule is unaffordable" and "the bot
+        /// asked once at the wrong moment", and before this counter existed
+        /// the two were indistinguishable in the output.
+        /// </summary>
+        public static int Refused;
 
         public void OnEvening(Simulation sim, in DayReport report)
         {
