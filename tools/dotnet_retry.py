@@ -33,20 +33,48 @@ BLOCKED = "0x800711C7"
 TRIES = 6
 
 
+def assemble(args):
+    """The dotnet command line, with the configuration and the determinism
+    flag added. They are added here rather than left to the caller: when
+    one is forgotten, the symptom looks like "the code is broken".
+
+    THEY GO BEFORE "--", AND FOR FOUR DAYS THEY DID NOT.
+
+    For `dotnet run --project X -- --cuisine turk`, appending the flags put
+    them after the "--", which is the line dotnet stops reading at: they
+    were handed to the application as arguments, the application ignored
+    them, and every first attempt built DEBUG with determinism ON - the
+    exact configuration this tool exists to avoid. The retry then built
+    Release correctly and ran `run --no-build`, which starts the Debug
+    binary: the one that had just been blocked. So a blocked run stayed
+    blocked through all six attempts, which is precisely what the
+    calibration reported on 18 September, twice. The workaround had never
+    once applied to a `run`.
+
+    Nothing said so, because the process list is the only place the
+    configuration is visible, and nobody reads bin\\Debug in a path.
+    """
+    cmd = ["dotnet"] + list(args)
+    flags = []
+    if "-c" not in args and "--configuration" not in args:
+        flags += ["-c", "Release"]
+    if not any(a.startswith("-p:Deterministic") for a in args):
+        flags += ["-p:Deterministic=false"]
+    if "--" in cmd:
+        i = cmd.index("--")
+        cmd[i:i] = flags
+    else:
+        cmd += flags
+    return cmd
+
+
 def main():
     args = sys.argv[1:]
     if not args:
         print(__doc__)
         return 2
 
-    # The configuration and the determinism flag are added here rather
-    # than left to the caller: when one is forgotten, the symptom looks
-    # like "the code is broken".
-    cmd = ["dotnet"] + args
-    if "-c" not in args and "--configuration" not in args:
-        cmd += ["-c", "Release"]
-    if not any(a.startswith("-p:Deterministic") for a in args):
-        cmd += ["-p:Deterministic=false"]
+    cmd = assemble(args)
 
     last = None
     for attempt in range(1, TRIES + 1):

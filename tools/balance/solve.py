@@ -16,18 +16,41 @@ Running it:  python solve.py
 from math import ceil
 import itertools
 
-# --- Fixed formula inputs (the same as model.py) -----------------------------
-SEATS_TURNOVER = 4
-INGREDIENT_RATE = 0.32
+# --- Fixed formula inputs, READ FROM model.py -------------------------------
+#
+# These used to be restated here, under the heading "the same as model.py".
+# A heading is not a check. The cook capacity was restated the same way and
+# went stale for a week, quietly overwriting the corrected value on every
+# calibration sweep (docs/63 1). So the inputs that calibrate.py does not
+# write are taken from the one place they are defined.
+#
+# Two stay local, for opposite reasons. REALISATION_BP is WRITTEN here by
+# calibrate.py, deliberately, so that the manual flow in docs/12 solves the
+# same rent as the sweep. BASE_UPGRADE is a base that calibrate SCALES and
+# writes into model.py's TIERS: reading it back from model.py would close a
+# loop - the exact loop that drifted the cook capacity one notch per sweep
+# (docs/63 2). A value this file writes to model.py must never be read from
+# model.py.
+import importlib.util as _ilu_model
+import os as _os_model
+
+_mspec = _ilu_model.spec_from_file_location(
+    "_lokanta_model",
+    _os_model.path.join(_os_model.path.dirname(_os_model.path.abspath(__file__)), "model.py"))
+_model = _ilu_model.module_from_spec(_mspec)
+_mspec.loader.exec_module(_model)
+
+SEATS_TURNOVER = _model.SEATS_TURNOVER
+INGREDIENT_RATE = _model.INGREDIENT_RATE
 # The same as model.py. The realisation rate measured from the simulation.
 # THE VALUE IN model.py IS THE CORRECT ONE. This copy is written by
 # calibrate.py; if it is changed by hand this file and the game's content
 # split apart, and running this file on its own (the manual flow in docs/12)
 # produces THE WRONG RENT.
 REALISATION_BP = 7000
-WEEKEND_DAYS = 2
-XP_WAGE_GROWTH = 0.022
-START_CASH = 8000
+WEEKEND_DAYS = _model.WEEKEND_DAYS
+XP_WAGE_GROWTH = _model.XP_WAGE_GROWTH
+START_CASH = _model.START_CASH
 
 # THE COOK CAPACITY IS DERIVED, NOT DECLARED - AND IT HAS NOW BEEN GOT WRONG
 # IN BOTH DIRECTIONS, WHICH IS WHY IT IS WORTH THE SIX LINES.
@@ -60,14 +83,14 @@ _spec.loader.exec_module(_timing)
 DERIVED_CAP_COOK = int(round(_timing.SERVICE_DAY_MS / _timing.kitchen_ms_achieved()))
 
 BASE_CAP = dict(cook=DERIVED_CAP_COOK, waiter=26, dishwasher=48, cashier=70)
-WAGE = dict(cook=140, waiter=110, dishwasher=90, cashier=100)
+WAGE = dict(_model.WAGE)
 BASE_UPGRADE = {4: 0, 7: 2500, 10: 4500, 14: 8000}
 # The margin BEFORE CAPITAL EXPENDITURE: equipment is NOT in this ledger (the
 # reasoning is in model.py). Read as "net margin" it would mean the game's
 # largest investment line has been left out - the equipment ladder costs about
 # 37,600 coins at 14 tables, and its prices are tuned with the harness
 # measurement, not with the closed-form model.
-MARGIN_TARGETS = {4: 0.05, 7: 0.09, 10: 0.14, 14: 0.20}
+MARGIN_TARGETS = dict(_model.MARGIN_TARGETS)
 
 PLAN = [
     dict(week=1, tables=4,  rep=35, ticket=50),

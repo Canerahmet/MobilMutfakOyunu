@@ -437,6 +437,17 @@ namespace Lokanta.Harness
             // to three design questions had the wrong sign: the tool said "the
             // high price still pays", when in reality it lost money. Every
             // balance decision taken by looking at these tables was suspect.
+            // "tabl" AND "crew" ARE DAY-60 FIGURES, AND THE HEADER DID NOT SAY.
+            //
+            // Both are accumulated once per run at the end, beside the table
+            // count, while every column around them is a campaign total. On
+            // 19 September a Turkish non-expander read "crew 1.0" and
+            // "wages 13,947": 232 a day is a cook AND a hall worker most of
+            // the campaign, let go before day 60. It took three readings of
+            // the table to see it. The row regex in calibrate.py keys on
+            // lines that begin with "|", so this line is invisible to it.
+            Console.WriteLine("  tabl and crew are the figures on day 60; "
+                              + "every other column is the whole campaign.");
             Console.WriteLine("| strategy      | revenue |   rescue |   stock | spoiled |"
                               + "  tea |   wages |    rent |  invest |     net |   gap |");
             Console.WriteLine("|---------------|--------:|---------:|--------:|--------:|"

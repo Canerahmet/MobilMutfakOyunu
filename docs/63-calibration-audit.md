@@ -440,3 +440,48 @@ asks in those words instead of hiding it behind a passing ratio.
 One small thing for the harness: `crew` sits next to columns that read as
 campaign figures and is a day-60 snapshot. It cost three readings of that
 table to notice, and it should say so in its header.
+
+## 11. The sweep with the check measuring earnings
+
+Same nine candidates, same seeds, the only change being §10's check.
+
+| realisation | §9 penalty | **§11 penalty** | what it fails now |
+|---:|---:|---:|---|
+| 5500 | 16 | 36 | growth **4.18 / 7.46** — over the ceiling in both cuisines; cheap ingredients beat good play |
+| 6000 | 22 | 22 | growth 7.20 in Turkish; cheap ingredients; signature 0.87 |
+| 6500 | 17 | 37 | growth 5.21 in fast food; Turkish non-expander earns **−588**; cheap ingredients |
+| **7000** | **10** | **10** | **Turkish non-expander earns 305 — and nothing else** |
+| 7500 | 32 | 42 | growth 1.76 in fast food; Turkish non-expander earns 834; reputation 73.8 |
+| 8000 | 58 | 48 | the hall-only bot beats the planner; reputation 57.5; Turkish 1,118 |
+| 8500 | 74 | 74 | growth 1.79; the planner beaten; Turkish 1,536 against a grower at 2,201 |
+| 9000 | 84 | 84 | growth 1.00; reputation 32.3 / 21.0; the Turkish grower earns **−364** |
+| 9335 | 92 | 92 | growth 1.31; reputation 29.7 / 13.4; both Turkish players lose money |
+
+**The winner is 7000 for the third sweep running, and for the third time
+applying it left `git status` empty.** Its margin over the runner-up is now
+twelve points. Verified at 32 seeds, one complaint: *Turkish: standing still
+earns 305 on a stake of 8,000 in sixty days.* **Fast food has no complaint
+at all.**
+
+Two things the table says that no earlier table could:
+
+**Cheap rent now fails for the right reason.** 5500 and 6500 used to pass the
+growth check on the till ratio. On earnings they fail it from above - 4.18,
+5.21, 7.46 - which is the design's *"not eleven"* finally being measured: at
+that rent, not growing is not a choice anybody would make, and the cheap
+ingredients that beat good play arrive by the same door.
+
+**There is no realisation rate at which Turkish passes.** Below 6500 its
+growth multiplier is over the ceiling; from 6500 up its non-expander earns
+under a quarter of the stake, and from 9000 up its grower loses money too.
+The rent moves the four-table Turkish shop between "growth is the only move"
+and "nothing is a move" without passing through "growth pays, by a factor of
+two". That is the measurement behind the sentence [52](52-split-and-rent.md)
+wrote a week ago from intuition: Turkish's weaknesses are spoilage and tabs,
+and *they are not things to be closed with rent*.
+
+So the calibration is finished in the only sense that matters: it has one
+knob, the knob is at its optimum, and the one failure left is provably not
+that knob's to fix. What remains is a design decision about the free
+cuisine's harder sibling at its starting size (§10), and it is now stated in
+the calibration's own output in those words.
