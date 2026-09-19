@@ -389,3 +389,54 @@ stake, Turkish's 4%).
   ratio. The surface has to be swept once more with the check measuring
   earnings, because some settings that "failed growth" (6000: 1.54) may pass
   on earnings, and the ranking is only as good as its evaluator.
+
+### Where a four-table Turkish shop's money goes
+
+The corrected check says the Turkish non-expander earns 305 coins in sixty
+days. Before letting that stand it was worth asking whether the bot was doing
+something foolish in one cuisine and not the other - the planner had just been
+caught doing exactly that. It is not: `genislemeyen` is `ReasonablePlayer`
+with expansion switched off, the same code in both cuisines. The money goes
+where the design sends it. Same 32 seeds, both non-expanders, whole campaign:
+
+| | fast food | Turkish | difference |
+|---|---:|---:|---:|
+| revenue | 60,262 | 56,996 | −3,266 |
+| spoiled (of stock bought) | 8,183 (28%) | 12,734 (**41%**) | **+4,551** |
+| wages | 8,346 | 13,947 | **+5,601** |
+| rent | 7,820 | 6,800 | −1,020 |
+| equipment and expansion | 9,956 | 6,581 | −3,375 |
+| loan taken | 0 | 2,031 | +2,031 |
+| **earned** | **4,980** | **305** | **−4,675** |
+
+Two lines carry it, and both are the cuisine's identity rather than a fault:
+
+- **Spoilage.** *"Fast food forgives, Turkish does not"* ([06](06-plan-status.md)):
+  fast food's frozen and jarred ingredients do not spoil, so its factor is
+  0.42 against Turkish's 0.57. At four tables, buying for a menu that has to
+  be stocked every day, that rule throws away two fifths of what a Turkish
+  shop buys.
+- **A second pair of hands.** 13,947 over sixty days is 232 a day: a cook at
+  140 and a hall worker most days. The `crew` column reads 1.0 for both
+  cuisines because it is the crew **on day 60**, not the average - the
+  harness accumulates `Cooks + HallStaff` once per run, at the end, beside
+  the table count. Turkish has table service; fast food's counter *"carried
+  half the hall's workload"* ([51](51-self-service.md)), so at four tables
+  the fast food owner is enough and the Turkish owner is not.
+
+The rest follows: with a waiter's wage and the bin taking 41%, the Turkish
+shop borrows (2,031), buys a third less equipment, and finishes the year where
+it started.
+
+**What is a design decision and not a bug:** whether *zero* is the intended
+magnitude of "does not forgive". The design says a non-expander should earn
+little ([12](12-economy.md): a factor of two, not eleven, between growing and
+not). It does not say nothing. A four-table Turkish lokanta that cannot pay
+its owner in sixty days is either the correct price of the harder cuisine or
+the free cuisine's unlock selling a game that does not work at its starting
+size - and that is a question for the designer, which the calibration now
+asks in those words instead of hiding it behind a passing ratio.
+
+One small thing for the harness: `crew` sits next to columns that read as
+campaign figures and is a day-60 snapshot. It cost three readings of that
+table to notice, and it should say so in its header.
