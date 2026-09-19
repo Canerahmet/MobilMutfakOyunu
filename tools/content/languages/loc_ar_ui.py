@@ -64,6 +64,14 @@ UI = {
     "notice.unlocked": "طبق جديد متاح: {0}",
     "notice.wages_late": "تأخرت الأجور — ينقصك {0}.",
     "notice.weekly": "دفعت {0} إيجارًا و{1} أجورًا.",
+    "notice.fired": "تم الاستغناء عن {0}. دُفعت مكافأة نهاية خدمة {1}.",
+    "notice.signature_open_tab": "من اليوم يمكنك فتح دفتر دَين للزبائن الدائمين.",
+    "notice.signature_open_combo": "من اليوم يمكنك تقديم الوجبات المركّبة.",
+    "notice.season": "حلّ {0}. تتغيّر أسعار السوق.",
+    "ui.season.0": "الربيع",
+    "ui.season.1": "الصيف",
+    "ui.season.2": "الخريف",
+    "ui.season.3": "الشتاء",
     "notice.why.food": "لم يصل الطعام",
     "notice.why.order": "لم يأخذ أحد الطلب",
     "notice.why.table": "لم يجد طاولة",
@@ -77,7 +85,7 @@ UI = {
     "score.regulars": "الزبائن الدائمون",
     "score.reputation": "السمعة",
     "score.resilience": "المتانة",
-    "score.signature": "المطبخ",
+    "score.signature": "البصمة",
     "score.wealth": "الثروة",
 
     # --- common -----------------------------------------------------------

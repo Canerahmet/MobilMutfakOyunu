@@ -64,6 +64,14 @@ UI = {
     "notice.unlocked": "Nuevo plato disponible: {0}",
     "notice.wages_late": "Los sueldos se atrasaron — faltan {0}.",
     "notice.weekly": "Pagaste {0} de renta y {1} de sueldos.",
+    "notice.fired": "{0} despedido. Indemnización pagada: {1}.",
+    "notice.signature_open_tab": "Desde hoy puedes fiar a los habituales.",
+    "notice.signature_open_combo": "Desde hoy puedes ofrecer combos.",
+    "notice.season": "Llega {0}. Los precios del mercado cambian.",
+    "ui.season.0": "Primavera",
+    "ui.season.1": "Verano",
+    "ui.season.2": "Otoño",
+    "ui.season.3": "Invierno",
     "notice.why.food": "la comida nunca llegó",
     "notice.why.order": "nadie tomó el pedido",
     "notice.why.other": "no pudo esperar",
@@ -77,7 +85,7 @@ UI = {
     "score.regulars": "Habituales",
     "score.reputation": "Reputación",
     "score.resilience": "Solidez",
-    "score.signature": "Cocina",
+    "score.signature": "Sello",
     "score.wealth": "Patrimonio",
 
     # --- common -----------------------------------------------------------

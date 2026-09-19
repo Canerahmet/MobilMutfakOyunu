@@ -1476,9 +1476,22 @@ namespace Lokanta.Core.Sim
                 ? beats * 100 / (RegularCount * StoryBeatsPerRegular) : 0;
 
             // --- crew: how full the roster is and its morale, half and half
-            int cap = StaffCap;
+            // FULL MARKS FOR THE CREW THE PEAK NEEDS, NOT FOR THE CREW THE
+            // CAP ALLOWS. This read head / StaffCap, so the way to a perfect
+            // crew mark was to hire to the ceiling: measured, the bot that
+            // inflates its crew to the cap and loses money (fazla_kadro, net
+            // -3,350) held the best crew mark of all twenty-five arms, 85
+            // against the reasonable player's 75 - while docs/14 says an
+            // extra person "is written straight to the loss" (docs/64 3).
+            // The roster is now measured against what the weekend peak asks
+            // for, capped at 100: the right crew is full marks and a bigger
+            // one is not more.
+            Crew peak = RequiredCrewPeak();
+            int needed = peak.Cooks + peak.Hall;
             int head = _cooks + _hall;
-            int fill = cap > 0 ? head * 100 / cap : 0;
+            int fill = needed > 0
+                ? (head >= needed ? 100 : head * 100 / needed)
+                : (head > 0 ? 100 : 0);
             int crew = head > 0 ? (fill + AverageMorale()) / 2 : 0;
 
             // --- place: tables, against the top tier
@@ -2518,9 +2531,21 @@ namespace Lokanta.Core.Sim
             if (_phase != DayPhase.Evening) return;
 
             // Update the peak BEFORE the day's covers are zeroed.
+            int seasonBefore = Season;
 
             _day++;
             _phase = DayPhase.Morning;
+
+            // THE CALENDAR ANNOUNCES WHAT IT DOES. The tab and the combo
+            // arrived on day 16 with no notice, and the seasons turned prices
+            // over with no name: both were "invisible in play" in docs/64 4.
+            // These are labels on measured states - the kind of text that
+            // holds - not claims about them.
+            if (_content.Signature.Kind != SignatureKind.None
+                && _day == _content.Signature.FromDay)
+                Emit(SimEventKind.SignatureOpened, (int)_content.Signature.Kind, 0);
+            if (Season != seasonBefore)
+                Emit(SimEventKind.SeasonChanged, Season, 0);
             _serviceTick = 0;
             _dayWages = 0;
             _dayRent = 0;
@@ -3418,12 +3443,33 @@ namespace Lokanta.Core.Sim
             }
 
             int[] names = pool == 0 ? _cookName : _hallName;
+            int firedName = index < MaxServers ? names[index] : -1;
             if (index != last && last < MaxServers) names[index] = names[last];
             if (last < MaxServers) names[last] = -1;
 
             if (pool == 0) _cooks--; else _hall--;
-            Emit(SimEventKind.StaffResigned, pool, index);
+
+            // LETTING SOMEBODY GO COSTS WHAT docs/14 SAID IT COSTS.
+            //
+            // A week's wage in severance, and the rest of the crew takes it
+            // badly. Neither existed: Fire() was an array shuffle, and the
+            // morale code's own comment cited "the event list in docs/14"
+            // for levers that were never written (docs/64 3). The severance
+            // is the week's bill for one person of this pool, from the same
+            // table the payroll uses, so a senior cook costs more to lose
+            // than a new one. The morale hit lands on those who stay, after
+            // the removal, so the person leaving is not counted.
+            long severance = StaffingModel.WeeklyWageBill(
+                new Crew(pool == 0 ? 1 : 0, pool == 0 ? 0 : 1), _day / 7, _economy);
+            _cash -= severance;
+            _weeklyWagesPaid += severance;
+            _dayWages += severance;
+            MoraleEvent(FiringMoraleDelta);
+            Emit(SimEventKind.StaffFired, firedName, (int)(severance / 100));
         }
+
+        /// <summary>docs/14: the rest of the crew drops ten points on a firing.</summary>
+        public const int FiringMoraleDelta = -10;
 
         // =====================================================================
         // The signature mechanics. docs/07: "the most important line - this
@@ -3864,6 +3910,7 @@ namespace Lokanta.Core.Sim
             int chance = TabChanceBp(tab, halfChance);
 
             bool paid = _rngCredit.Chance(chance);
+            int owner = _tabRegular[tab];   // before RemoveTab closes over the slot
             RemoveTab(tab);
 
             if (paid)
@@ -3895,6 +3942,8 @@ namespace Lokanta.Core.Sim
                 // have chased does not come back.
                 _creditLoyaltyBp -= sig.CreditLoyaltyDemandBp;
                 if (_creditLoyaltyBp < 0) _creditLoyaltyBp = 0;
+                // And the person is remembered.
+                if (owner >= 0 && owner < RegularCount) _regDefaults[owner]++;
 
                 Emit(SimEventKind.CreditDefaulted, (int)amount,
                      sig.CreditDefaultRepPenaltyCenti);
@@ -3912,12 +3961,49 @@ namespace Lokanta.Core.Sim
         /// </summary>
         private int TabTrustBp(int tab)
         {
-            int r = _tabRegular[tab];
-            if (r < 0 || r >= RegularCount) return 0;
+            return RegularTrustBp(_tabRegular[tab]);
+        }
 
-            long bp = (long)_regVisits[r] * _content.Signature.CreditTrustPerVisitBp;
+        /// <summary>
+        /// How many times this regular's account has gone bad. It is the
+        /// memory the tab did not have: a default touched the shop's
+        /// reputation and a global demand bonus and wrote nothing to the
+        /// person - "you can stiff Hasan Usta and he comes back tomorrow
+        /// unchanged" (docs/64 2).
+        /// </summary>
+        private readonly int[] _regDefaults = new int[MaxRegulars];
+        public int RegularDefaults(int regular)
+        {
+            return regular >= 0 && regular < RegularCount ? _regDefaults[regular] : 0;
+        }
+
+        /// <summary>
+        /// The trust in a regular, in basis points: their visits, less two
+        /// visits' worth for every account of theirs that went bad, bounded
+        /// by the ceiling in the content. Two visits, because the content
+        /// already prices a visit (CreditTrustPerVisitBp) and a bad account
+        /// should cost more than the one visit it took to open it - a second
+        /// number would be a second knob nobody tuned. The ledger shows the
+        /// resulting chance, so the memory is visible where the decision is
+        /// made.
+        /// </summary>
+        public int RegularTrustBp(int regular)
+        {
+            if (regular < 0 || regular >= RegularCount) return 0;
+            int perVisit = _content.Signature.CreditTrustPerVisitBp;
             int cap = _content.Signature.CreditTrustCapBp;
-            return bp > cap ? cap : (int)bp;
+            long bp = (long)_regVisits[regular] * perVisit;
+            if (bp > cap) bp = cap;
+            // THE PENALTY COMES OFF AFTER THE CEILING, NOT BEFORE. The first
+            // version subtracted it from the raw visits: a regular of
+            // twenty-two visits stood at 8,800 against a ceiling of 3,000,
+            // lost 800, and was still at the ceiling - the memory was
+            // invisible for exactly the long-standing regular it was written
+            // for. Taken off the capped value, a bad account costs two
+            // visits of trust from wherever the regular stands.
+            bp -= (long)_regDefaults[regular] * 2 * perVisit;
+            if (bp < 0) bp = 0;
+            return (int)bp;
         }
 
         private void RemoveTab(int tab)

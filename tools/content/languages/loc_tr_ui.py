@@ -344,6 +344,14 @@ UI = {
     "notice.tenure_zincir": "{0} {1} gündür vardiyada. Yeni gelenler ona soruyor.",
 
     "notice.weekly": "Kira {0}, maaş {1} ödendi.",
+    "notice.fired": "{0} işten çıkarıldı. {1} tazminat ödendi.",
+    "notice.signature_open_tab": "Bugünden itibaren müdavimlere veresiye açabilirsin.",
+    "notice.signature_open_combo": "Bugünden itibaren menü (kombo) sunabilirsin.",
+    "notice.season": "{0} geldi. Hal fiyatları değişiyor.",
+    "ui.season.0": "İlkbahar",
+    "ui.season.1": "Yaz",
+    "ui.season.2": "Sonbahar",
+    "ui.season.3": "Kış",
     "notice.wages_late": "Maaş gecikti — {0} eksik.",
     "notice.debt": "Kasa eksiye düştü: {0}",
 
@@ -418,7 +426,7 @@ UI = {
     "score.crew": "Ekip",
     "score.place": "Mekân",
     "score.resilience": "Sağlamlık",
-    "score.signature": "Mutfak",
+    "score.signature": "İmza",
 
     "score.axis.combo": "Kombo payı",
     "score.axis.credit": "Veresiye tahsilatı",

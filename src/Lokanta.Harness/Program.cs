@@ -34,6 +34,8 @@ namespace Lokanta.Harness
         /// </summary>
         private const string DefaultCuisine = "fastfood";
 
+        private static readonly SimEvent[] _eventBuffer = new SimEvent[4096];
+
         public static int Main(string[] args)
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -323,6 +325,15 @@ namespace Lokanta.Harness
                 plateBlocked += sim.PlateBlockedTicks;
                 sim.Apply(new Command(sim.TickIndex, CommandKind.CloseDay));
 
+                // FIRINGS ARE COUNTED. Letting somebody go costs a week's
+                // wage now, and the day it arrived three bots quietly paid
+                // it every week - a waiter hired for Saturday and sacked on
+                // Monday. Nothing in the table said so; wages rose and the
+                // reason had to be inferred. The event says it.
+                int drained = sim.Events.Drain(_eventBuffer);
+                for (int ev = 0; ev < drained; ev++)
+                    if (_eventBuffer[ev].Kind == SimEventKind.StaffFired) agg.Fired++;
+
                 DayReport r = sim.BuildDayReport();
                 strategy.OnEvening(sim, r);
 
@@ -569,6 +580,11 @@ namespace Lokanta.Harness
 
             foreach (StrategyResult r in results)
             {
+                if (r.Fired == 0) continue;
+                Console.WriteLine($"  {r.Name,-20} {r.Fired,6} people let go, with severance");
+            }
+            foreach (StrategyResult r in results)
+            {
                 if (r.ExpansionsRefused == 0) continue;
                 Console.WriteLine($"  {r.Name,-20} {r.ExpansionsRefused,6} scheduled "
                                   + "expansions refused before they went through");
@@ -700,6 +716,9 @@ namespace Lokanta.Harness
         /// while a refusal silently burnt the slot.
         /// </summary>
         public int ExpansionsRefused;
+
+        /// <summary>People let go over the campaign, summed over the seeds.</summary>
+        public int Fired;
         /// <summary>
         /// Money still ON THE TAB on the sixtieth day. Not in the till, but not
         /// lost either - the docs/08 year-end evaluation measures net worth, and

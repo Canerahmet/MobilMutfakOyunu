@@ -94,6 +94,30 @@ namespace Lokanta.Game
                     text = Loc.T("notice.resigned", Who(sim, e.A, e.B));
                     return true;
 
+                case SimEventKind.StaffFired:
+                    // The name index travels in the event, because by the
+                    // time the notice is built the roster has already closed
+                    // over the gap and (pool, index) names the wrong person.
+                    tone = NoticeTone.Bad;
+                    text = Loc.T("notice.fired", Loc.StaffName(e.A), e.B);
+                    return true;
+
+                case SimEventKind.SignatureOpened:
+                    tone = NoticeTone.Info;
+                    text = Loc.T(e.A == (int)SignatureKind.Credit
+                                 ? "notice.signature_open_tab"
+                                 : "notice.signature_open_combo");
+                    return true;
+
+                case SimEventKind.SeasonChanged:
+                    // Literal keys, because the string check reads the code
+                    // for the keys it asks for and cannot see a key built at
+                    // run time.
+                    tone = NoticeTone.Info;
+                    text = Loc.T("notice.season", Loc.T(
+                        e.A == 1 ? "ui.season.1" : e.A == 2 ? "ui.season.2" : e.A == 3 ? "ui.season.3" : "ui.season.0"));
+                    return true;
+
                 case SimEventKind.StaffLeveledUp:
                     tone = NoticeTone.Good;
                     text = Loc.T("notice.level_up", Who(sim, e.A, 0), e.B);

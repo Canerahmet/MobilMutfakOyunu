@@ -75,7 +75,7 @@ namespace Lokanta.Core.Sim
         // rather than a guessed one: a save is taken between days, so the
         // service has not started - nothing is banked and the door is open.
         // That is a derivation, which is why 20 through 23 stay readable.
-        public const int SaveVersion = 24;
+        public const int SaveVersion = 25;
 
         /// <summary>
         /// Where the fryer was inserted into the closed station list.
@@ -198,6 +198,11 @@ namespace Lokanta.Core.Sim
             w.Int("candDay", _candDay);
             w.IntArray("candA", _candTraitA, CandidateSlots * 2);
             w.IntArray("candB", _candTraitB, CandidateSlots * 2);
+            // In the RESTAURANT block, not beside the other regular arrays in
+            // "signature": the migration test builds an old save by removing
+            // from this block the fields the table says were added later,
+            // and a field anywhere else cannot be migrated by it.
+            w.IntArray("regDefaults", _regDefaults, MaxRegulars);
             w.End();
 
             w.Begin("rng");
@@ -476,6 +481,10 @@ namespace Lokanta.Core.Sim
             _candDay = r.Int("candDay");
             r.IntArray("candA", _candTraitA, CandidateSlots * 2);
             r.IntArray("candB", _candTraitB, CandidateSlots * 2);
+            if (version >= 25)
+                r.IntArray("regDefaults", _regDefaults, MaxRegulars);
+            else
+                for (int i = 0; i < MaxRegulars; i++) _regDefaults[i] = 0;
             r.End();
 
             r.Begin("rng");

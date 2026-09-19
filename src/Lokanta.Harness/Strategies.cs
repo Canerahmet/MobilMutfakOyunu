@@ -117,7 +117,18 @@ namespace Lokanta.Harness
             // never fired and the mechanic remained a dice roll rather than a
             // decision. 1,200 catches the difference between "a surly waiter"
             // and "a waiter you get on with".
-            if (candScore - worstScore < 1200) return false;
+            //
+            // AND THEN FIRING STARTED TO COST A WEEK'S WAGE (docs/14, docs/64
+            // 3), and the threshold was measured again, 8 seeds, both
+            // cuisines. At 1,200 the reasonable player let 27 people go in
+            // Turkish and 46 in fast food per eight campaigns and finished
+            // with 17,171 / 17,235. With the rule switched off: 2 and 17,
+            // 18,484 / 19,258. At 2,000: in between, and worse than off. At
+            // 3,000: 3 and 18, 18,413 / 19,115 - indistinguishable from off.
+            // So the rule that was tuned when a sacking was free is set to
+            // where it fires only for the genuinely bad, and a player who
+            // pays severance does not chase a slightly better waiter.
+            if (candScore - worstScore < 3000) return false;
 
             // It removes the WORST person. The command now takes an index; sent
             // without one it always removed the last person, and the "replace
@@ -573,13 +584,31 @@ namespace Lokanta.Harness
 
             // Surplus crew is a direct loss: the wage is paid whether the
             // customers come or not.
-            if (sim.HallStaff > hallTarget && _surplusDays >= 3)
+            // SACKED ONLY WHEN THE WEEKEND WILL NOT WANT THEM EITHER.
+            //
+            // Firing now costs a week's wage (docs/14, docs/64 3). This rule
+            // measured the surplus against TOMORROW, so a waiter hired for
+            // the weekend was three days over strength by Wednesday, let go
+            // with severance, and hired back on Friday. Measured the day the
+            // severance arrived: the non-expander's wages went from 13,459
+            // to 22,339 and its year from +3,628 to -1,008 - the bot was
+            // paying to churn. A real player keeps the weekend waiter through
+            // the week; the surplus that is sacked is the one even the peak
+            // does not need.
+            int keep = sim.RequiredCrewPeak().Hall - HallShort;
+            if (keep < hallTarget) keep = hallTarget;
+            if (sim.HallStaff > keep && _surplusDays >= 3)
             {
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1,
                                       sim.HallStaff - 1));
                 _surplusDays = 0;
             }
-            else if (sim.Cooks > need.Cooks && sim.Cooks > 1)
+            // The same rule for the kitchen: a cook is let go only when even
+            // the weekend peak will not want them. Judged against tomorrow
+            // alone, a cook hired for Saturday was sacked on Monday with a
+            // week's wage in severance and hired again on Friday.
+            else if (sim.Cooks > need.Cooks && sim.Cooks > sim.RequiredCrewPeak().Cooks
+                     && sim.Cooks > 1)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 0,
                                       sim.Cooks - 1));
         }
@@ -824,8 +853,8 @@ namespace Lokanta.Harness
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, Hiring.Pick(sim, 0)));
             else if (sim.HallStaff < need.Hall && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, Hiring.Pick(sim, 1)));
-            else if (sim.HallStaff > need.Hall)
-                sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1));
+            else if (sim.HallStaff > need.Hall && sim.HallStaff > sim.RequiredCrewPeak().Hall)
+                sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1));   // not the weekend's waiter
         }
     }
 
@@ -907,8 +936,8 @@ namespace Lokanta.Harness
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 0, Hiring.Pick(sim, 0)));
             else if (sim.HallStaff < need.Hall && sim.Cooks + sim.HallStaff < sim.StaffCap)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Hire, 1, Hiring.Pick(sim, 1)));
-            else if (sim.HallStaff > need.Hall)
-                sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1));
+            else if (sim.HallStaff > need.Hall && sim.HallStaff > sim.RequiredCrewPeak().Hall)
+                sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 1));   // not the weekend's waiter
         }
     }
 

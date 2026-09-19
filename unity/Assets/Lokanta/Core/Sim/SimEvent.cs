@@ -108,7 +108,29 @@
 
         /// <summary>Last orders: the door is shut, nobody is thrown out.</summary>
         LastOrders = 39,
-        Count = 40
+
+        /// <summary>
+        /// The cuisine's signature mechanic opened this morning. A = the
+        /// SignatureKind. Until 19 September the tab and the combo arrived on
+        /// day 16 with no notice, no hint and no string: a button silently
+        /// appeared (docs/64 4).
+        /// </summary>
+        SignatureOpened = 40,
+
+        /// <summary>
+        /// The season turned this morning. A = the new season, 0 spring to 3
+        /// winter. The seasons were a price multiplier and nothing else the
+        /// player could see (docs/64 4).
+        /// </summary>
+        SeasonChanged = 41,
+
+        /// <summary>
+        /// Somebody was let go. A = their name index, B = the severance paid,
+        /// in coins. Firing used to be an array shuffle: no cost, no morale
+        /// event, while docs/14 promised both (docs/64 3).
+        /// </summary>
+        StaffFired = 42,
+        Count = 43
     }
 
     public readonly struct SimEvent

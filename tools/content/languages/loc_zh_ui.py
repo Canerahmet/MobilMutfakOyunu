@@ -58,6 +58,14 @@ UI = {
     "notice.unlocked": "解锁新菜品：{0}",
     "notice.wages_late": "工资发晚了——还差 {0}。",
     "notice.weekly": "付了 {0} 租金和 {1} 工资。",
+    "notice.fired": "{0}已被辞退，付了{1}补偿。",
+    "notice.signature_open_tab": "从今天起可以为常客记账。",
+    "notice.signature_open_combo": "从今天起可以推出套餐。",
+    "notice.season": "{0}到了，市场价格有所变动。",
+    "ui.season.0": "春天",
+    "ui.season.1": "夏天",
+    "ui.season.2": "秋天",
+    "ui.season.3": "冬天",
     "notice.why.food": "菜一直没上",
     "notice.why.order": "没人来点单",
     "notice.why.table": "没等到位子",
@@ -71,7 +79,7 @@ UI = {
     "score.regulars": "常客",
     "score.reputation": "声誉",
     "score.resilience": "稳健",
-    "score.signature": "厨房",
+    "score.signature": "招牌",
     "score.wealth": "资产",
 
     # --- common -----------------------------------------------------------

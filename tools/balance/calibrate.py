@@ -293,8 +293,21 @@ def harness(cuisine="fastfood", seeds=None):
     return rows, out
 
 
+SCORE_ROW = re.compile(r"^\|\s*(\w+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|"
+                       r"\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|"
+                       r"\s*(\d+)\s*\|\s*([\d.]+)\s*\|", re.M)
+
+
 def _parse(out):
-    """The strategy table, as {name: row}. Empty if the run produced none."""
+    """The strategy table, as {name: row}. Empty if the run produced none.
+
+    THE SCORE TABLE IS READ TOO. The harness has printed the seven year-end
+    axes for weeks and this tool never looked at them: every check was on
+    the till, while the game tells the player seven axes and docs/12 8b says
+    money is not the goal. docs/64 6 called that the contradiction to fix
+    first - the crew axis rewarded hiring to the cap and nobody noticed
+    because nothing here asserted on it.
+    """
     rows = {}
     for m in ROW.finditer(out):
         name = m.group(1)
@@ -312,6 +325,14 @@ def _parse(out):
             debt=m.group(10),
             trivial=m.group(11),
         )
+    for m in SCORE_ROW.finditer(out):
+        name = m.group(1)
+        if name not in rows:
+            continue
+        rows[name].update(
+            score=int(m.group(2)), axis_wealth=int(m.group(3)), axis_rep=int(m.group(4)),
+            axis_regulars=int(m.group(5)), axis_crew=int(m.group(6)), axis_place=int(m.group(7)),
+            axis_resilience=int(m.group(8)), axis_signature=int(m.group(9)))
     return rows
 
 
@@ -555,6 +576,17 @@ def evaluate(rows):
     bad(rows["makul"]["tables"] >= 7, 6, "the reasonable player cannot expand")
     bad(rows["planci"]["tables"] >= 13, 6, "planci cannot keep to the calendar")
     bad(rows["fazla_kadro"]["cash"] < rows["makul"]["cash"], 4, "overstaffing is not punished")
+
+    # THE PLAQUE, NOT ONLY THE TILL. The first axis asserted is the one the
+    # review caught lying: the overstaffer must not out-score the reasonable
+    # player on the crew axis. It did - 85 against 75 - because the axis was
+    # roster / cap.
+    if "axis_crew" in rows["fazla_kadro"] and "axis_crew" in rows["makul"]:
+        bad(rows["fazla_kadro"]["axis_crew"] <= rows["makul"]["axis_crew"], 6,
+            "the overstaffer tops the crew axis (%d against %d)"
+            % (rows["fazla_kadro"]["axis_crew"], rows["makul"]["axis_crew"]))
+    else:
+        bad(False, 6, "the score table was not read, so the crew axis is unchecked")
     bad(rows["yuksek_fiyat"]["cash"] < rows["makul"]["cash"], 4, "high prices are not punished")
 
     # Money must not stop mattering before the eighth week
