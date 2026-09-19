@@ -243,3 +243,92 @@ that decides its place in the queue.
    supports the complaint, and the counter-evidence (two calendar mechanics
    removed on measurement) is also real. It needs an arm before it needs a
    beat.
+
+## 9. What was done, in the order of §8
+
+> *"devam et. tum sureci bitir. sonrasinda tekrar konusalim"*
+>
+> *("Go on. Finish the whole process. Then we talk again.")*
+
+**1. The plaque is scored.** `calibrate.py` now parses the harness's score
+table alongside the till, and its first axis assertion is the one the review
+caught lying: the overstaffer must not top the crew axis.
+
+**2. The crew axis measures the roster against the weekend peak's need**,
+capped at 100, instead of against the cap. Hiring to the ceiling no longer
+raises the mark. Guarded, and proved red.
+
+**3. A defaulter is remembered by the regular who defaulted.** Two visits'
+worth of trust off the *capped* value, per bad account, visible where the
+ledger shows the chance. The first version took it off the raw visits and a
+regular of twenty-two visits lost nothing: 8,800 less 800 is still over a
+ceiling of 3,000 - the memory was invisible for exactly the long-standing
+regular it was written for, and the guard said so. Save version 25.
+Measured: `secici_veresiye` over `imzaci` widened from +1,052 to +1,219 and
+one axis point to two; a small gap, now a real one.
+
+**4. The calendar announces what it does.** The tab and the combo say so on
+the day they open; the seasons turn with a name, in five languages. The
+Chinese line for severance was reworded twice to stay inside the font
+subset, and the subset was rebuilt from the strings (998 characters, all
+covered) - the check that had found the Chinese build broken in three places
+([55](55-translation-review.md)) found this one before it shipped. The score
+label "Kitchen" is "Signature".
+
+**5. Letting somebody go costs what [14](14-staff-system.md) said**: a week's
+wage from the payroll's own table, and ten points off the morale of everyone
+who stays. Proved red - 716 coins and 70 → 60 on the colleague.
+
+### And the bots had to learn the price
+
+The day severance arrived, the reasonable player's wages went from 25,848 to
+**35,896** in fast food and its year from 21,546 to 15,489. It was not the
+economy; it was the bot playing by the old price: a waiter hired for
+Saturday sacked on Wednesday and hired back on Friday, a cook the same, and a
+replace-the-worst rule tuned when a sacking was free.
+
+The harness counts firings per strategy now, because the wages column rose
+and the reason had to be inferred. Measured, 8 seeds:
+
+| `makul`, per eight campaigns | let go | Turkish | fast food |
+|---|---:|---:|---:|
+| old rules under severance | 27 / 46 | 17,171 | 17,235 |
+| surplus judged against the weekend peak, replace-the-worst at 1,200 | 27 / 46 | 17,171 | 17,235 |
+| … at 2,000 | 20 / 33 | 17,491 | 19,000 |
+| … at 3,000 | 3 / 18 | 18,413 | 19,115 |
+| … switched off | 2 / 17 | 18,484 | 19,258 |
+
+Under a real severance, replacing a slightly better waiter never pays at any
+threshold; 3,000 is indistinguishable from off and keeps the mechanism for
+the genuinely bad. This is the fourth bot this week to read as a broken
+economy, and the first one caused by a change made the same day - which is
+the argument for the counter.
+
+**6. The arc is left as §4 states it**: a disagreement between two readers
+and a flat `makul` from week 4, waiting for an arm before a beat.
+
+### Verification, 32 seeds, both cuisines
+
+```
+penalty 12  fastfood: the overstaffer tops the crew axis (85 against 78);
+            turk:     the overstaffer tops the crew axis (85 against 79)
+```
+
+Growth, the signature, the planner, cheap ingredients: all clean. The one
+line left is the crew axis, and it is no longer the roster: with that half
+fixed, the overstaffer wins **by morale**. An idle crew is a happy one; the
+reasonable player's is busy and, two or three times a campaign, let go. The
+axis is telling the truth.
+
+What it exposes is §3's missing half: [14](14-staff-system.md) promises a
+raise and a day off, and neither command exists, so the reference player has
+no way to lift a busy crew's morale except to hire people it does not need.
+That is not a fault the realisation rate can reach, and a penalty the sweep
+cannot answer steers it toward whatever masks the symptom
+([63](63-calibration-audit.md) §8) - so the check now weighs nothing and
+prints on every run, until the levers exist and it can be turned back into a
+penalty with a target.
+
+**Open, in the order of §8:** the morale levers (a raise, a day off - the
+measurable claim is that `makul` can reach the overstaffer's crew mark
+without its roster), then §4's arc.
