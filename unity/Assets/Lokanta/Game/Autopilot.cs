@@ -967,6 +967,25 @@ namespace Lokanta.Game
                 // in the game.
                 bool heldPaused = _app.Paused;
                 _app.Paused = false;
+
+                // A FULL POOL CANNOT REFILL, AND THAT IS NOT A FAILURE.
+                //
+                // On 19 September this check went red in a fast food run
+                // where the earlier tea step had found no waiting table, so
+                // nothing had been spent, the pool stood at its cap, and the
+                // regeneration - correctly - did nothing. The first version
+                // of this check skipped in that case; the second dropped the
+                // skip and turned a run-dependent state into a red mark. A
+                // check must not depend on what an earlier step happened to
+                // find, and it must not skip either: it spends one charge
+                // itself, on the house, and then watches the pool come back.
+                bool spentToMeasure = false;
+                if (_app.Sim.InterventionsLeft >= _app.Sim.InterventionCapToday)
+                {
+                    _app.Sim.Apply(new Command(_app.Sim.TickIndex, CommandKind.Intervene,
+                                               0, (int)InterventionKind.FreeTea));
+                    spentToMeasure = true;
+                }
                 int bankedBefore = _app.Sim.InterventionRegenMs;
                 int poolBefore = _app.Sim.InterventionsLeft;
                 float watched = 0f;
@@ -984,7 +1003,8 @@ namespace Lokanta.Game
                      + bankedBefore + " -> " + _app.Sim.InterventionRegenMs
                      + " ms of " + _app.Sim.InterventionRegenPeriodMs
                      + ", pool " + _app.Sim.InterventionsLeft + " of a cap of "
-                     + _app.Sim.InterventionCapToday + ")");
+                     + _app.Sim.InterventionCapToday
+                     + (spentToMeasure ? ", one spent first to make room" : "") + ")");
                 _app.Paused = heldPaused;
 
                 // THE SINK BUTTON SENDS ITS COMMAND.
