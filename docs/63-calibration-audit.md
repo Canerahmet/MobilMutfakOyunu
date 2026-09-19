@@ -320,3 +320,72 @@ and nothing else fails.**
 Applying it produced an empty `git status` for the second sweep running. The
 calibration is at its optimum, the tree is on it, and the one thing still
 failing is the one thing nine realisation rates could not move.
+
+## 10. The one complaint left was the check reading the design backwards
+
+§9 ended with exactly one failure standing: the fast food growth multiplier,
+1.60 against a target of 1.8-4.0, unmoved by nine realisation rates and by
+the intervention work before them. The check that produced it:
+
+```python
+g = rows["genislemeyen"]["cash"]
+m = rows["makul"]["cash"]
+ratio = m / g
+bad(1.8 <= ratio <= 4.0, 10, "growth multiplier ...")
+```
+
+It divides **end cash**. The sentence it cites from [12](12-economy.md) is
+*"Growing **pays**, but by a factor of two, not eleven"* — a statement about
+what growing earns. Those are not the same number, because both bots start
+with the same 8,000, and the till is `8,000 + earned`. A constant on both
+sides of a ratio pulls it toward 1, and the constant has nothing to do with
+growing.
+
+Measured on 32 seeds, taking the stake off:
+
+| | till ratio (the check) | earned ratio (the design) |
+|---|---:|---:|
+| fast food, `makul` / `genislemeyen` | 20,763 / 12,980 = **1.60** — fails | 12,763 / 4,980 = **2.56** — inside the band |
+| Turkish | 18,702 / 8,305 = **2.25** — passes | 10,702 / 305 = **35.1** — "eleven", three times over |
+
+**The check had both cuisines backwards at once.** Fast food meets the design
+sentence and was being failed for it; Turkish violates the design's ceiling
+threefold and was being passed, because the stake was hiding a non-expander
+who earns nothing.
+
+So the chase of the last week — the intervention pool, nine rates, three
+sweeps — was aimed at a number that was already where the design asked for it.
+
+### What the check measures now
+
+The stake comes off both sides, and the band is applied to what the campaign
+earns. Proved in both directions on the fast food rows: a grower earning 1.2x
+fails low, one earning 6.0x fails high.
+
+The Turkish case needed a second thought. On a base of 305 coins a ratio is
+not a measurement, it is a division, and "35.1" points at nothing anybody can
+fix. So when the non-expander's earnings are under **a quarter of the stake**
+the complaint is *that* — *"growth is a no-brainer: standing still earns 305
+on a stake of 8,000 in sixty days"* — and it points at the actual remedy,
+which [52](52-split-and-rent.md) named a week ago and explicitly said was not
+the rent's job: Turkish spoils **41%** of what it buys at four tables
+(12,734 of 30,972) and its tabs net negative. The quarter is a judgment, drawn
+where it is near neither cuisine (fast food's non-expander earns 62% of the
+stake, Turkish's 4%).
+
+### Three things this closes, and one it opens
+
+- The fast food growth multiplier is **not a problem and never was**. §6's
+  conclusion — that it is a design question — is withdrawn: it was a
+  measurement question, and the memory of this project already says so in
+  general terms (*measure the mechanic, not a proxy for it*). The proxy here
+  was the till.
+- The calibration's penalty at 7000 does not change in size — one complaint
+  worth 10 — but it changes **cuisine and meaning**, from a fast food number
+  that was fine to a Turkish fact that is not.
+- The remedy is now the one [52](52-split-and-rent.md) already identified,
+  and it is not a knob in this tool.
+- **Opened:** every candidate's growth complaint in §5 and §9 was the till
+  ratio. The surface has to be swept once more with the check measuring
+  earnings, because some settings that "failed growth" (6000: 1.54) may pass
+  on earnings, and the ranking is only as good as its evaluator.

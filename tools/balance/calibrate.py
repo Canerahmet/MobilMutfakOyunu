@@ -356,11 +356,45 @@ def evaluate(rows):
     bad(rows["planci"]["cash"] > 0, 8, "the planner goes under")
     bad(rows["genislemeyen"]["cash"] > 0, 6, "the non-expander goes under")
 
-    # Growth has to be rewarded: docs/12 "three times, not eleven"
-    g = rows["genislemeyen"]["cash"]
-    m = rows["makul"]["cash"]
-    ratio = (m / float(g)) if g > 0 else 0.0
-    bad(1.8 <= ratio <= 4.0, 10, "growth multiplier %.2f (target 1.8-4.0)" % ratio)
+    # GROWTH HAS TO PAY, AND IT MUST NOT BE A NO-BRAINER. docs/12: "Growing
+    # pays, but by a factor of two, not eleven."
+    #
+    # THIS USED TO DIVIDE THE TILL, AND THE TILL INCLUDES THE STAKE. Both
+    # bots start with the same 8,000, so the old ratio was
+    # (8,000 + earned) / (8,000 + earned'): a number pulled toward 1 by a
+    # constant that has nothing to do with growing. It read the design
+    # BACKWARDS in both cuisines at once, on the same 32 seeds:
+    #
+    #     fast food   till 1.60  FAIL      earned 2.56   inside the band
+    #     Turkish     till 2.25  pass      earned 35.1   "eleven", three times
+    #
+    # A week of calibration chased the fast food number through nine
+    # realisation rates, and it could not move, because the game already met
+    # the sentence it was being measured against.
+    #
+    # The design quantity is what growing EARNS over the campaign, so the
+    # stake comes off both sides. That exposes the Turkish case the stake had
+    # been hiding: standing still there nets 305 coins in sixty days, so
+    # growth is not "rewarded", it is the only move - and a ratio on a base
+    # of 305 is not a measurement, it is a division. When the base is under a
+    # quarter of the stake the complaint is THAT, and it points at the actual
+    # remedy (docs/52: spoilage and tabs) rather than at the rent. The
+    # quarter is a judgment: fast food's non-expander earns 62% of the stake,
+    # Turkish's 4%, and the line is drawn where it is not near either.
+    import model
+    stake = model.START_CASH
+    earned_g = rows["genislemeyen"]["cash"] - stake
+    earned_m = rows["makul"]["cash"] - stake
+    if earned_g < stake // 4:
+        bad(False, 10,
+            "growth is a no-brainer: standing still earns %d on a stake of %d in "
+            "sixty days (the grower earns %d), so there is no base to measure the "
+            "multiplier against" % (earned_g, stake, earned_m))
+    else:
+        ratio = earned_m / float(earned_g)
+        bad(1.8 <= ratio <= 4.0, 10,
+            "growth multiplier %.2f on what the campaign earns (target 1.8-4.0)"
+            % ratio)
 
     # Passivity has to lose visibly. "sadece_hal" does nothing at all: it does
     # not hire, does not manage the menu, does not expand, does not buy
