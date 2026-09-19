@@ -4417,12 +4417,9 @@ namespace Lokanta.Core.Sim
 
             int dayFactorBp = IsWeekend(_day)
                 ? _economy.WeekendMultiplierBp : _economy.WeekdayMultiplierBp;
+            // The tab's loyalty is inside ExpectedCustomers now, with every
+            // other demand term, so the stock and the arrivals agree.
             int people = ExpectedCustomers(dayFactorBp);
-
-            // The tab's loyalty: the customer who comes back. Its ceiling is
-            // in the content.
-            if (_creditLoyaltyBp > 0)
-                people = (int)Fx.MulDiv(people, Fx.One + _creditLoyaltyBp, Fx.One);
             if (people <= 0) return 0;
 
             // How many OPEN dishes there are in each role; orders spread
@@ -7025,6 +7022,22 @@ namespace Lokanta.Core.Sim
             int multiplier = _content.CustomerMultiplierBp;
             if (multiplier > 0 && multiplier != Fx.One)
                 people = (int)Fx.Bp(people, multiplier);
+
+            // THE TAB'S LOYALTY - THE CUSTOMER WHO COMES BACK - LIVES HERE,
+            // AT THE GATE, AND UNTIL 19 SEPTEMBER IT DID NOT.
+            //
+            // It was applied inside RecommendedRestock alone, after this
+            // method had returned. So every settled account raised the
+            // number of people the MARKET screen bought stock for, and not
+            // the number who arrived: the neighbourhood's trust bought
+            // ingredients for customers who never came. Measured, Turkish, 8
+            // seeds: the bot that runs tabs served FEWER people than the one
+            // that does not (1,829 against 1,846) and spoiled 2,700 coins
+            // more. The sentence at the top of this method warned about
+            // exactly this - "recommending stock for customers who would not
+            // actually arrive" - one mechanic before it happened.
+            if (_creditLoyaltyBp > 0)
+                people = (int)Fx.MulDiv(people, Fx.One + _creditLoyaltyBp, Fx.One);
 
             return DemandModel.ApplyPrice(people, MenuPriceDiffBp(),
                                           _economy.PriceElasticityBp);
