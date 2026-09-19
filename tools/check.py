@@ -232,16 +232,22 @@ def main():
     # state for a tool that says "I run all of them" is not counting what
     # it did not run.
     unity_checks = [
+        # -ExecutionPolicy Bypass ON EVERY CALL. On 19 September all six Unity
+        # checks went red with "UnauthorizedAccess": every execution-policy
+        # scope on the machine had become Undefined, which on a Windows client
+        # means Restricted, and a runner that relies on the machine's policy
+        # is a runner that fails on a setting nobody in this repository
+        # changed. The scripts are ours; the policy is not a guard we use.
         ("art check",
-         ["powershell", "-NoProfile", "-File",
+         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
           os.path.join("tools", "unity", "run.ps1"),
           "-Method", "Lokanta.EditorTools.ArtCheck.Run"]),
         ("placement check",
-         ["powershell", "-NoProfile", "-File",
+         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
           os.path.join("tools", "unity", "run.ps1"),
           "-Method", "Lokanta.EditorTools.PlacementAudit.Run"]),
         ("room layout",
-         ["powershell", "-NoProfile", "-File",
+         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
           os.path.join("tools", "unity", "run.ps1"),
           "-Method", "Lokanta.EditorTools.RoomLayout.Capture"]),
         # THE CEILING GATE, AND IT HAS NEVER RUN.
@@ -256,18 +262,18 @@ def main():
         # It did not run it. A guard argued for in a comment and never
         # executed is not a guard.
         ("scene screenshot",
-         ["powershell", "-NoProfile", "-File",
+         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
           os.path.join("tools", "unity", "shot.ps1"),
           "-Method", "Lokanta.EditorTools.GameShot.Capture"]),
         # BOTH CUISINES. tour.ps1 defaults to turk, so fast food - its
         # self-service hall, its cleaner instead of a waiter, its tray station
         # and its combo - was never toured by this file at all.
         ("smoke tour (turk)",
-         ["powershell", "-NoProfile", "-File",
+         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
           os.path.join("tools", "unity", "tour.ps1"),
           "-Cuisine", "turk"]),
         ("smoke tour (fastfood)",
-         ["powershell", "-NoProfile", "-File",
+         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
           os.path.join("tools", "unity", "tour.ps1"),
           "-Cuisine", "fastfood", "-SkipBuild"]),
     ]
