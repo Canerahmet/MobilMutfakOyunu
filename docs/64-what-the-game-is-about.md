@@ -332,3 +332,53 @@ penalty with a target.
 **Open, in the order of §8:** the morale levers (a raise, a day off - the
 measurable claim is that `makul` can reach the overstaffer's crew mark
 without its roster), then §4's arc.
+
+### The full sweep, with the plaque in the evaluator and severance in the economy
+
+| realisation | 5500 | 6000 | 6500 | **7000** | 7500 | 8000 | 8500 | 9000 | 9335 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| penalty | 16 | 6 | 25 | **0** | 32 | 38 | 84 | 92 | 136 |
+
+**7000, penalty 0 at 8 seeds and 0 at 32.** The first sweep in which the
+winner is clean at both scales, and the fourth in a row to pick the rate the
+repository already had. The crew-axis note printed on every row - the
+overstaffer ahead by morale - which is the lever this section ends on.
+
+### The levers, built and measured
+
+> *"Son doğrulama ve açık kalan kısmını kastettim"*
+>
+> *("I meant the final verification and the part left open.")*
+
+The raise and the day off now exist: `GiveRaise` (+15 morale, +15% wage for
+good) and `DayOff` (+10 morale, absent and paid tomorrow; the only cook
+cannot take one), on the crew card in five languages, announced by notice,
+saved (version 26), pressed by the tour, and used by the reasonable player
+when a crew member's morale falls under 70. Three guards, each seen red.
+
+What the harness then said, 8 seeds:
+
+| `makul` | raises | days off | crew axis | idle overstaffer |
+|---|---:|---:|---:|---:|
+| Turkish | 4 | **0** | 81 | 85 |
+| fast food | 33 | **0** | 81 (was 79) | 85 |
+
+**Days off never fire**, and that is a fact about the design rather than the
+bot: a day off needs somebody to spare tomorrow, and a crew sized to its need
+- which is what playing well means here - has nobody to spare. Slack costs a
+wage. **Raises fire and barely move the mark**: fifteen points once, against
+fifteen per cent of a wage for good, while a working crew's morale erodes on
+busy days and an idle one's does not. Fast food's reasonable player paid
+3,000 coins for two axis points.
+
+So the crew-axis check is a note again, with the levers in place this time,
+and the sentence it prints is measured: *the idle overstaffer still tops the
+crew axis; raises fire, days off need slack a right-sized crew does not
+have.* The verification is otherwise clean, and the rate cannot reach this.
+
+**What is genuinely open, and only this:** whether an idle crew *should* be
+the ceiling of the crew axis - that is, whether the axis should read the
+morale of a crew that works as worth more than the morale of one that waits.
+That is a design sentence for [08](08-endgame.md), not a number for the
+sweep, and it is the last thing this review leaves on the table beside §4's
+arc.

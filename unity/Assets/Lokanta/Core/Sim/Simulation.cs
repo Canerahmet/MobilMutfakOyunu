@@ -249,6 +249,22 @@ namespace Lokanta.Core.Sim
 
         private readonly int[] _cookMorale = new int[MaxServers];
         private readonly int[] _hallMorale = new int[MaxServers];
+
+        /// <summary>Raises given, as basis points on top of the base wage, for good.</summary>
+        private readonly int[] _cookRaiseBp = new int[MaxServers];
+        private readonly int[] _hallRaiseBp = new int[MaxServers];
+
+        /// <summary>The day this person has off, or 0. They sit out that day's service.</summary>
+        private readonly int[] _cookOffDay = new int[MaxServers];
+        private readonly int[] _hallOffDay = new int[MaxServers];
+
+        /// <summary>How many of each pool are resting today, held out of the count during service.</summary>
+        private int _cooksResting, _hallResting;
+
+        /// <summary>docs/14: a raise lifts morale fifteen points and the wage 15%; a day off lifts ten.</summary>
+        public const int RaiseMoraleDelta = 15;
+        public const int RaiseWageBp = 1500;
+        public const int DayOffMoraleDelta = 10;
         /// <summary>Which waiter served this party last; for the trait's effect on satisfaction.</summary>
         private readonly int[] _pServer = new int[MaxParties];
         /// <summary>Which cook last cooked this party's food.</summary>
@@ -1344,6 +1360,7 @@ namespace Lokanta.Core.Sim
                 Crew crew = new Crew(_cooks, _hall);
                 long wages = StaffingModel.WeeklyWageBill(crew, _day / 7, _economy);
                 wages = Fx.MulDiv(wages, TraitWageMultiplierBp(), Fx.One);
+                wages += RaiseBill(_day / 7);
                 return wages + _economy.TierForTables(_tableCount).Rent + _loanInstallment;
             }
         }
@@ -1784,6 +1801,8 @@ namespace Lokanta.Core.Sim
                 case CommandKind.Hire: Hire(c.A, c.B); break;
                 case CommandKind.SetDishwashers: SetDishwashers(c.A); break;
                 case CommandKind.Fire: Fire(c.A, c.B); break;
+                case CommandKind.GiveRaise: GiveRaise(c.A, c.B); break;
+                case CommandKind.DayOff: DayOff(c.A, c.B); break;
                 case CommandKind.OrderIngredient: OrderIngredient(c.A, c.B); break;
                 case CommandKind.OrderRecommended: OrderRecommended(); break;
                 case CommandKind.TakeLoan: TakeLoan(c.A); break;
@@ -1805,6 +1824,7 @@ namespace Lokanta.Core.Sim
             }
             _phase = DayPhase.Service;
             _serviceTick = 0;
+            HoldOutTheResting();
             // THE POOL IS SET WHERE SERVICE BEGINS, not where the day turns.
             //
             // The day-turn is the wrong place and the first version used it:
@@ -1853,6 +1873,7 @@ namespace Lokanta.Core.Sim
             // Whoever is left in the hall leaves angry.
             for (int i = 0; i < MaxParties; i++)
                 if (_pActive[i]) LeaveAngry(i);
+            ReturnTheResting();
 
             ApplyReputation();
             SpoilPerishables();
@@ -2302,6 +2323,7 @@ namespace Lokanta.Core.Sim
             // that is why the shape of the wage model (the capacity model of
             // docs/14) is not broken.
             wages = Fx.MulDiv(wages, TraitWageMultiplierBp(), Fx.One);
+            wages += RaiseBill(week);
 
             long rent = _economy.TierForTables(_tableCount).Rent;
 
@@ -3215,6 +3237,8 @@ namespace Lokanta.Core.Sim
             int[] morale = pool == 0 ? _cookMorale : _hallMorale;
 
             morale[index] = _economy.StartingMorale;
+            (pool == 0 ? _cookRaiseBp : _hallRaiseBp)[index] = 0;
+            (pool == 0 ? _cookOffDay : _hallOffDay)[index] = 0;
             a[index] = -1;
             b[index] = -1;
 
@@ -3446,6 +3470,10 @@ namespace Lokanta.Core.Sim
             int firedName = index < MaxServers ? names[index] : -1;
             if (index != last && last < MaxServers) names[index] = names[last];
             if (last < MaxServers) names[last] = -1;
+            int[] raise = pool == 0 ? _cookRaiseBp : _hallRaiseBp;
+            int[] off = pool == 0 ? _cookOffDay : _hallOffDay;
+            if (index != last && last < MaxServers) { raise[index] = raise[last]; off[index] = off[last]; }
+            if (last < MaxServers) { raise[last] = 0; off[last] = 0; }
 
             if (pool == 0) _cooks--; else _hall--;
 
@@ -3470,6 +3498,153 @@ namespace Lokanta.Core.Sim
 
         /// <summary>docs/14: the rest of the crew drops ten points on a firing.</summary>
         public const int FiringMoraleDelta = -10;
+
+        /// <summary>
+        /// A raise: the wage goes up by RaiseWageBp for good and morale by
+        /// RaiseMoraleDelta. Nothing else - it is the plain lever docs/14
+        /// wrote down, and its cost is in every payroll from here on.
+        /// </summary>
+        private void GiveRaise(int pool, int index)
+        {
+            int count = pool == 0 ? _cooks : _hall;
+            if (pool < 0 || pool > 1 || index < 0 || index >= count || index >= MaxServers)
+            {
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.GiveRaise, 5);
+                return;
+            }
+            int[] raise = pool == 0 ? _cookRaiseBp : _hallRaiseBp;
+            int[] morale = pool == 0 ? _cookMorale : _hallMorale;
+            raise[index] += RaiseWageBp;
+            morale[index] += RaiseMoraleDelta;
+            ClampMorale(pool, index);
+            int[] names = pool == 0 ? _cookName : _hallName;
+            Emit(SimEventKind.StaffRaised, names[index], 100 + raise[index] / 100);
+        }
+
+        /// <summary>
+        /// A day off tomorrow: morale up by DayOffMoraleDelta today, and
+        /// tomorrow the person sits out the service, paid. The only cook
+        /// cannot have one - the owner is not the cook, and a kitchen with
+        /// nobody in it is not a day off, it is a closed shop.
+        /// </summary>
+        private void DayOff(int pool, int index)
+        {
+            int count = pool == 0 ? _cooks : _hall;
+            if (pool < 0 || pool > 1 || index < 0 || index >= count || index >= MaxServers)
+            {
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.DayOff, 5);
+                return;
+            }
+            if (_phase != DayPhase.Morning && _phase != DayPhase.Evening)
+            {
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.DayOff, 2);
+                return;
+            }
+            int[] off = pool == 0 ? _cookOffDay : _hallOffDay;
+            int tomorrow = _phase == DayPhase.Morning ? _day : _day + 1;
+            if (pool == 0 && CooksOffOn(tomorrow) + 1 >= _cooks)
+            {
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.DayOff, 20);
+                return;
+            }
+            if (off[index] == tomorrow)
+            {
+                Emit(SimEventKind.CommandRejected, (int)CommandKind.DayOff, 21);
+                return;
+            }
+            off[index] = tomorrow;
+            int[] morale = pool == 0 ? _cookMorale : _hallMorale;
+            morale[index] += DayOffMoraleDelta;
+            ClampMorale(pool, index);
+            int[] names = pool == 0 ? _cookName : _hallName;
+            Emit(SimEventKind.StaffDayOff, names[index], tomorrow);
+        }
+
+        private int CooksOffOn(int day)
+        {
+            int n = 0;
+            for (int i = 0; i < _cooks && i < MaxServers; i++) if (_cookOffDay[i] == day) n++;
+            return n;
+        }
+
+        /// <summary>
+        /// Whoever has today off is moved to the end of the roster and held
+        /// out of the count for the service; CloseDay puts them back. The
+        /// roster arrays keep their data, so nothing about the person is
+        /// lost - they are simply not on the floor.
+        /// </summary>
+        private void HoldOutTheResting()
+        {
+            _cooksResting = 0;
+            _hallResting = 0;
+            for (int pool = 0; pool < 2; pool++)
+            {
+                int[] off = pool == 0 ? _cookOffDay : _hallOffDay;
+                int count = pool == 0 ? _cooks : _hall;
+                int i = 0;
+                while (i < count && i < MaxServers)
+                {
+                    if (off[i] != _day) { i++; continue; }
+                    int last = count - 1;
+                    if (i != last) SwapStaff(pool, i, last);
+                    count--;
+                    if (pool == 0) { _cooks--; _cooksResting++; } else { _hall--; _hallResting++; }
+                }
+            }
+        }
+
+        private void ReturnTheResting()
+        {
+            _cooks += _cooksResting;
+            _hall += _hallResting;
+            _cooksResting = 0;
+            _hallResting = 0;
+            for (int i = 0; i < MaxServers; i++)
+            {
+                if (_cookOffDay[i] == _day) _cookOffDay[i] = 0;
+                if (_hallOffDay[i] == _day) _hallOffDay[i] = 0;
+            }
+        }
+
+        private void SwapStaff(int pool, int a, int b)
+        {
+            int[][] all = pool == 0
+                ? new[] { _cookXpDays, _cookTenure, _cookTraitA, _cookTraitB, _cookMorale, _cookName, _cookRaiseBp, _cookOffDay }
+                : new[] { _hallXpDays, _hallTenure, _hallTraitA, _hallTraitB, _hallMorale, _hallName, _hallRaiseBp, _hallOffDay };
+            foreach (int[] arr in all) { int t = arr[a]; arr[a] = arr[b]; arr[b] = t; }
+        }
+
+        public int StaffRaiseBp(int pool, int index)
+        {
+            int count = pool == 0 ? _cooks : _hall;
+            if (index < 0 || index >= count || index >= MaxServers) return 0;
+            return (pool == 0 ? _cookRaiseBp : _hallRaiseBp)[index];
+        }
+
+        /// <summary>Is this person off tomorrow (or today, asked in the morning).</summary>
+        public bool StaffRestingNext(int pool, int index)
+        {
+            int count = pool == 0 ? _cooks : _hall;
+            if (index < 0 || index >= count || index >= MaxServers) return false;
+            int next = _phase == DayPhase.Morning ? _day : _day + 1;
+            return (pool == 0 ? _cookOffDay : _hallOffDay)[index] == next;
+        }
+
+        public int CooksResting { get { return _cooksResting; } }
+        public int HallResting { get { return _hallResting; } }
+
+        /// <summary>The weekly cost of every raise given, on top of the base bill.</summary>
+        private long RaiseBill(int week)
+        {
+            long total = 0;
+            long oneCook = StaffingModel.WeeklyWageBill(new Crew(1, 0), week, _economy);
+            long oneHall = StaffingModel.WeeklyWageBill(new Crew(0, 1), week, _economy);
+            for (int i = 0; i < _cooks + _cooksResting && i < MaxServers; i++)
+                total += Fx.MulDiv(oneCook, _cookRaiseBp[i], Fx.One);
+            for (int i = 0; i < _hall + _hallResting && i < MaxServers; i++)
+                total += Fx.MulDiv(oneHall, _hallRaiseBp[i], Fx.One);
+            return total;
+        }
 
         // =====================================================================
         // The signature mechanics. docs/07: "the most important line - this

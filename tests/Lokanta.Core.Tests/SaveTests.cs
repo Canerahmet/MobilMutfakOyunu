@@ -131,6 +131,8 @@ namespace Lokanta.Core.Tests
                               "weekReportDay", "weekAxis", "weekAxisPrev" } },
                 { 22, new[] { "cookTenure", "salonTenure" } },
                 { 25, new[] { "regDefaults" } },
+                { 26, new[] { "cookRaise", "hallRaise", "cookOff", "hallOff",
+                              "cooksResting", "hallResting" } },
                 // 23 added no FIELD - it changed the SHAPE of two existing
                 // arrays, because a station was inserted in the middle of the
                 // closed list. The migration test still needs a row so it can

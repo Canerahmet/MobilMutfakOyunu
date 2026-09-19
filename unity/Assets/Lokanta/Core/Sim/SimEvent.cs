@@ -130,7 +130,13 @@
         /// event, while docs/14 promised both (docs/64 3).
         /// </summary>
         StaffFired = 42,
-        Count = 43
+
+        /// <summary>A raise was given. A = name index, B = the new wage in per cent of the base.</summary>
+        StaffRaised = 43,
+
+        /// <summary>A day off was given for tomorrow. A = name index.</summary>
+        StaffDayOff = 44,
+        Count = 45
     }
 
     public readonly struct SimEvent

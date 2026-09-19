@@ -1053,6 +1053,21 @@ namespace Lokanta.Game.Ui
             }
             else
             {
+                // THE TWO LEVERS docs/14 NAMED. Until 19 September the only
+                // way to lift a busy crew's morale was to hire people the
+                // shop did not need (docs/64 3, 9).
+                VisualElement levers = Theme.Row(Theme.Gap);
+                int raiseBp = sim.StaffRaiseBp(pool, index);
+                levers.Add(Theme.Btn(
+                    Loc.T("ui.staff.raise", 100 + (raiseBp + Simulation.RaiseWageBp) / 100),
+                    () => { App.Send(CommandKind.GiveRaise, pool, index); Ui.Refresh(); },
+                    wide: true));
+                bool resting = sim.StaffRestingNext(pool, index);
+                levers.Add(Theme.Btn(
+                    Loc.T(resting ? "ui.staff.day_off_set" : "ui.staff.day_off"),
+                    () => { App.Send(CommandKind.DayOff, pool, index); Ui.Refresh(); },
+                    wide: true));
+                card.Add(levers);
                 card.Add(Theme.Btn(Loc.T("ui.staff.fire"), () =>
                 {
                     _confirmFire = key;

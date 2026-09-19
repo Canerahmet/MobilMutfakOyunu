@@ -200,6 +200,11 @@ UI = {
 
     "ui.staff.hire": "İşe al",
     "ui.staff.fire": "Çıkar",
+    "ui.staff.raise": "Zam (maaş %{0})",
+    "ui.staff.day_off": "Yarın izinli",
+    "ui.staff.day_off_set": "Yarın izinde",
+    "notice.raise": "{0} zam aldı: maaşı artık tabanın %{1}'i.",
+    "notice.day_off": "{0} yarın izinli.",
     "ui.staff.candidates": "Adaylar",
     "ui.staff.morale": "Moral",
     "ui.staff.level": "Seviye",

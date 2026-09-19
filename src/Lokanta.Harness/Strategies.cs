@@ -420,6 +420,36 @@ namespace Lokanta.Harness
             }
         }
 
+        // SEVENTY, NOT FIFTY-FIVE. At 55 the levers never fired: the
+        // reasonable player's crew sits near 60, the idle overstaffer's at
+        // 70, and the byte-identical harness rows said the arm had not run.
+        // docs/14 puts the ceiling a crew reaches on its own at 70; above
+        // that "requires the player to DO something". So the player does
+        // something below it.
+        private const int MoraleWorry = 70;
+
+        private static void LiftMorale(Simulation sim, Crew need)
+        {
+            for (int pool = 0; pool < 2; pool++)
+            {
+                int count = pool == 0 ? sim.Cooks : sim.HallStaff;
+                int worst = -1, low = MoraleWorry;
+                for (int i = 0; i < count; i++)
+                {
+                    int m = sim.StaffMorale(pool, i);
+                    if (m < low) { low = m; worst = i; }
+                }
+                if (worst < 0) continue;
+                int needed = pool == 0 ? need.Cooks : need.Hall;
+                bool canSpare = count - 1 >= needed && (pool == 1 || count > 1);
+                if (canSpare && !sim.StaffRestingNext(pool, worst))
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.DayOff, pool, worst));
+                else if (sim.StaffRaiseBp(pool, worst) < 3 * Simulation.RaiseWageBp
+                         && sim.Cash > sim.WeeklyFixedCost() * 2)
+                    sim.Apply(new Command(sim.TickIndex, CommandKind.GiveRaise, pool, worst));
+            }
+        }
+
         /// <summary>
         /// Keeps as many main dishes open as the demand will bear and closes the
         /// rest. Rough rule: every main course needs at least four people a day.
@@ -611,6 +641,16 @@ namespace Lokanta.Harness
                      && sim.Cooks > 1)
                 sim.Apply(new Command(sim.TickIndex, CommandKind.Fire, 0,
                                       sim.Cooks - 1));
+
+            // MORALE IS LIFTED WITH THE LEVERS, NOT WITH A BIGGER ROSTER.
+            //
+            // The crew axis measured against the peak still ranked the
+            // overstaffer first, by morale: an idle crew is happy and a busy
+            // one is not, and this player had nothing to do about it. Now it
+            // has the two things docs/14 wrote: a day off for the lowest
+            // morale person when tomorrow can spare them, and a raise when
+            // it cannot. Guarded by the calibration's crew-axis check.
+            LiftMorale(sim, need);
         }
     }
 

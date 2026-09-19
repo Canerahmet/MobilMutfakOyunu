@@ -75,7 +75,7 @@ namespace Lokanta.Core.Sim
         // rather than a guessed one: a save is taken between days, so the
         // service has not started - nothing is banked and the door is open.
         // That is a derivation, which is why 20 through 23 stay readable.
-        public const int SaveVersion = 25;
+        public const int SaveVersion = 26;
 
         /// <summary>
         /// Where the fryer was inserted into the closed station list.
@@ -203,6 +203,12 @@ namespace Lokanta.Core.Sim
             // from this block the fields the table says were added later,
             // and a field anywhere else cannot be migrated by it.
             w.IntArray("regDefaults", _regDefaults, MaxRegulars);
+            w.IntArray("cookRaise", _cookRaiseBp, MaxServers);
+            w.IntArray("hallRaise", _hallRaiseBp, MaxServers);
+            w.IntArray("cookOff", _cookOffDay, MaxServers);
+            w.IntArray("hallOff", _hallOffDay, MaxServers);
+            w.Int("cooksResting", _cooksResting);
+            w.Int("hallResting", _hallResting);
             w.End();
 
             w.Begin("rng");
@@ -485,6 +491,22 @@ namespace Lokanta.Core.Sim
                 r.IntArray("regDefaults", _regDefaults, MaxRegulars);
             else
                 for (int i = 0; i < MaxRegulars; i++) _regDefaults[i] = 0;
+            if (version >= 26)
+            {
+                r.IntArray("cookRaise", _cookRaiseBp, MaxServers);
+                r.IntArray("hallRaise", _hallRaiseBp, MaxServers);
+                r.IntArray("cookOff", _cookOffDay, MaxServers);
+                r.IntArray("hallOff", _hallOffDay, MaxServers);
+                _cooksResting = r.Int("cooksResting");
+                _hallResting = r.Int("hallResting");
+            }
+            else
+            {
+                for (int i = 0; i < MaxServers; i++)
+                { _cookRaiseBp[i] = 0; _hallRaiseBp[i] = 0; _cookOffDay[i] = 0; _hallOffDay[i] = 0; }
+                _cooksResting = 0;
+                _hallResting = 0;
+            }
             r.End();
 
             r.Begin("rng");

@@ -102,6 +102,16 @@ namespace Lokanta.Game
                     text = Loc.T("notice.fired", Loc.StaffName(e.A), e.B);
                     return true;
 
+                case SimEventKind.StaffRaised:
+                    tone = NoticeTone.Good;
+                    text = Loc.T("notice.raise", Loc.StaffName(e.A), e.B);
+                    return true;
+
+                case SimEventKind.StaffDayOff:
+                    tone = NoticeTone.Good;
+                    text = Loc.T("notice.day_off", Loc.StaffName(e.A));
+                    return true;
+
                 case SimEventKind.SignatureOpened:
                     tone = NoticeTone.Info;
                     text = Loc.T(e.A == (int)SignatureKind.Credit

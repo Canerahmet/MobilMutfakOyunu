@@ -333,6 +333,8 @@ namespace Lokanta.Harness
                 int drained = sim.Events.Drain(_eventBuffer);
                 for (int ev = 0; ev < drained; ev++)
                     if (_eventBuffer[ev].Kind == SimEventKind.StaffFired) agg.Fired++;
+                    else if (_eventBuffer[ev].Kind == SimEventKind.StaffRaised) agg.Raises++;
+                    else if (_eventBuffer[ev].Kind == SimEventKind.StaffDayOff) agg.DaysOff++;
 
                 DayReport r = sim.BuildDayReport();
                 strategy.OnEvening(sim, r);
@@ -580,8 +582,9 @@ namespace Lokanta.Harness
 
             foreach (StrategyResult r in results)
             {
-                if (r.Fired == 0) continue;
-                Console.WriteLine($"  {r.Name,-20} {r.Fired,6} people let go, with severance");
+                if (r.Fired == 0 && r.Raises == 0 && r.DaysOff == 0) continue;
+                Console.WriteLine($"  {r.Name,-20} {r.Fired,6} people let go, with severance; "
+                                  + $"{r.Raises} raises, {r.DaysOff} days off");
             }
             foreach (StrategyResult r in results)
             {
@@ -719,6 +722,9 @@ namespace Lokanta.Harness
 
         /// <summary>People let go over the campaign, summed over the seeds.</summary>
         public int Fired;
+
+        /// <summary>Raises and days off given over the campaign, summed over the seeds.</summary>
+        public int Raises, DaysOff;
         /// <summary>
         /// Money still ON THE TAB on the sixtieth day. Not in the till, but not
         /// lost either - the docs/08 year-end evaluation measures net worth, and

@@ -85,7 +85,22 @@
         /// give up the revenue, keep the reputation and the plate cycle.
         /// </summary>
         LastOrders = 22,
-        Count = 23
+
+        /// <summary>
+        /// A raise for one person: A = pool, B = index. docs/14: "+15 morale"
+        /// and the wage goes up by RaiseBp for good. The lever docs/14 named
+        /// and the code never had (docs/64 3): the morale code's own comment
+        /// cited it, and the only way to lift a busy crew's morale was to
+        /// hire people the shop did not need.
+        /// </summary>
+        GiveRaise = 23,
+
+        /// <summary>
+        /// A day off tomorrow for one person: A = pool, B = index. docs/14:
+        /// "+10 morale". They are absent for the day and paid for it.
+        /// </summary>
+        DayOff = 24,
+        Count = 25
     }
 
     /// <summary>The owner's intervention at a table. docs/12 5.4.</summary>

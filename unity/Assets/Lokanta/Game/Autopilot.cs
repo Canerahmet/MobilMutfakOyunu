@@ -429,6 +429,26 @@ namespace Lokanta.Game
                     Note(HasText(right) && !HasText(wrong),
                          "The hall role's name fits the cuisine (" + right + ")");
 
+                    // THE DAY-OFF BUTTON SENDS ITS COMMAND. docs/14's lever
+                    // arrived on 19 September; the assertion is that the
+                    // simulation recorded a rest, not that a control exists.
+                    // With one person in the hall the day off is still legal
+                    // (the owner covers the floor); with none there is
+                    // nothing to press and the check says so.
+                    if (_app.Sim.HallStaff > 0)
+                    {
+                        bool restingBefore = _app.Sim.StaffRestingNext(1, 0);
+                        bool pressedOff = Click(Loc.T("ui.staff.day_off"));
+                        yield return Settle();
+                        Note(pressedOff && !restingBefore && _app.Sim.StaffRestingNext(1, 0),
+                             "The day-off button reaches the simulation (hall 0 rests next: "
+                             + _app.Sim.StaffRestingNext(1, 0) + ")");
+                    }
+                    else
+                    {
+                        Skip("The day-off button reaches the simulation (nobody in the hall to give it to)");
+                    }
+
                     // IS THE TRAIT'S VOICE ON SCREEN?
                     //
                     // The text was written, generated, bound to the card - and
