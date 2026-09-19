@@ -382,3 +382,52 @@ morale of a crew that works as worth more than the morale of one that waits.
 That is a design sentence for [08](08-endgame.md), not a number for the
 sweep, and it is the last thing this review leaves on the table beside §4's
 arc.
+
+## 10. Two decisions, made and measured
+
+> *"neye karar verilmesi gerekiyor anlamadim. bana secenekler sun ben seceyim"*
+>
+> *("I did not understand what needs deciding. Give me the options and I will
+> choose.")*
+
+Four options were put for each of the two open questions; the owner chose.
+
+**Crew axis: "fazla kadro puandan düşsün" — an extra hand costs the mark.**
+The roster half is now `100 − |head − need| × 100 / max(head, need)`: a hand
+past the peak's need takes the same share off as a missing one, measured
+against the larger count so a second person in a one-person shop costs half
+the mark rather than all of it (the first version hit zero at four tables for
+everybody, the opening shop included, and the guard said so). The check in
+the calibration is a penalty again, with the target the decision implies: the
+idle overstaffer scores **below** the reasonable player.
+
+| crew axis, 8 seeds | `makul` | `fazla_kadro` |
+|---|---:|---:|
+| Turkish | 82 | **68** |
+| fast food | 81 | **52** |
+
+**The arc: "mevsim başına tek olay" — one scheduled event per season, the
+critic first.** On the middle day of the third season (day 38 of 60) a party
+of the critic's archetype is added to the plan on top of the day's people -
+never in place of them - in the slot that archetype favours. The morning
+before, the game says a critic is expected; when they have paid, or walked
+out, or been turned away, their satisfaction is the verdict, recorded once,
+saved (version 27), and announced as pleased or unhappy with the score. Their
+weight on the reputation was already eight times a guest's in the archetype,
+so nothing is scored twice. The visit is a decision - stock, crew, menu on a
+known day - and not a dice roll, which is what the random walk-in had been.
+
+Measured on the opening-tier reference run: Turkish critic 72/100, fast food
+64/100. Guarded by `CriticTests` (announced the morning before, arrives on the
+day, leaves a verdict), proved red by not adding them to the plan.
+
+One guard broke on the way and was worth it: `ExperienceTests` compared two
+ten-day windows by people served and the scheduled critic shifted the arrival
+stream until both windows served exactly 190. It reads people *and* revenue
+now; a coincidence in two numbers is not one this campaign can produce.
+
+**Verification at 32 seeds, both cuisines, with the crew check a penalty:
+`penalty 0  BOTH CUISINES CLEAN`.**
+
+The fourth season's event - the rival - is the next scheduled thing, and the
+same shape: announced, on a day, with a consequence the player can read.

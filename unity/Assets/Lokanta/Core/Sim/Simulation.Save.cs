@@ -75,7 +75,7 @@ namespace Lokanta.Core.Sim
         // rather than a guessed one: a save is taken between days, so the
         // service has not started - nothing is banked and the door is open.
         // That is a derivation, which is why 20 through 23 stay readable.
-        public const int SaveVersion = 26;
+        public const int SaveVersion = 27;
 
         /// <summary>
         /// Where the fryer was inserted into the closed station list.
@@ -208,6 +208,7 @@ namespace Lokanta.Core.Sim
             w.IntArray("cookOff", _cookOffDay, MaxServers);
             w.IntArray("hallOff", _hallOffDay, MaxServers);
             w.Int("cooksResting", _cooksResting);
+            w.Int("criticVerdict", _criticVerdictCenti);
             w.Int("hallResting", _hallResting);
             w.End();
 
@@ -239,6 +240,7 @@ namespace Lokanta.Core.Sim
             w.BoolArray("pCombo", _pCombo, MaxParties);
             w.BoolArray("pAsksCredit", _pAsksCredit, MaxParties);
             w.IntArray("pRegular", _pRegular, MaxParties);
+            w.BoolArray("pCritic", _pCritic, MaxParties);
             w.BoolArray("pMissedFav", _pMissedFavourite, MaxParties);
             w.IntArray("pServer", _pServer, MaxParties);
             w.IntArray("pCook", _pCook, MaxParties);
@@ -331,6 +333,7 @@ namespace Lokanta.Core.Sim
             w.IntArray("tick", _arrTick, MaxParties);
             w.IntArray("archetype", _arrArchetype, MaxParties);
             w.IntArray("size", _arrSize, MaxParties);
+            w.BoolArray("critic", _arrCritic, MaxParties);
             w.IntArray("regular", _arrRegular, MaxParties);
             w.End();
 
@@ -498,6 +501,7 @@ namespace Lokanta.Core.Sim
                 r.IntArray("cookOff", _cookOffDay, MaxServers);
                 r.IntArray("hallOff", _hallOffDay, MaxServers);
                 _cooksResting = r.Int("cooksResting");
+                _criticVerdictCenti = version >= 27 ? r.Int("criticVerdict") : -1;
                 _hallResting = r.Int("hallResting");
             }
             else
@@ -535,6 +539,8 @@ namespace Lokanta.Core.Sim
             r.BoolArray("pCombo", _pCombo, MaxParties);
             r.BoolArray("pAsksCredit", _pAsksCredit, MaxParties);
             r.IntArray("pRegular", _pRegular, MaxParties);
+            if (version >= 27) r.BoolArray("pCritic", _pCritic, MaxParties);
+            else for (int i = 0; i < MaxParties; i++) _pCritic[i] = false;
             r.BoolArray("pMissedFav", _pMissedFavourite, MaxParties);
             r.IntArray("pServer", _pServer, MaxParties);
             r.IntArray("pCook", _pCook, MaxParties);
@@ -687,6 +693,10 @@ namespace Lokanta.Core.Sim
             r.IntArray("tick", _arrTick, MaxParties);
             r.IntArray("archetype", _arrArchetype, MaxParties);
             r.IntArray("size", _arrSize, MaxParties);
+            // The critic's flag rides with the plan, or a save taken on the
+            // critic's day loses them between the plan and the door.
+            if (version >= 27) r.BoolArray("critic", _arrCritic, MaxParties);
+            else for (int i = 0; i < MaxParties; i++) _arrCritic[i] = false;
             r.IntArray("regular", _arrRegular, MaxParties);
             r.End();
 

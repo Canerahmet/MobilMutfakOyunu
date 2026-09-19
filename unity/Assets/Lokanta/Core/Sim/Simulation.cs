@@ -178,6 +178,35 @@ namespace Lokanta.Core.Sim
         private readonly bool[] _pMissedFavourite = new bool[MaxParties];
         private readonly int[] _arrRegular = new int[MaxParties];
 
+        /// <summary>The planned arrival that is the critic, and the party they became.</summary>
+        private readonly bool[] _arrCritic = new bool[MaxParties];
+        private readonly bool[] _pCritic = new bool[MaxParties];
+
+        /// <summary>The critic's archetype, looked up by id at load; -1 if the content has none.</summary>
+        private readonly int _criticArchetype = -1;
+
+        /// <summary>The critic's verdict in centi-points, -1 until they have been.</summary>
+        private int _criticVerdictCenti = -1;
+        public int CriticVerdictCenti { get { return _criticVerdictCenti; } }
+        public bool CriticVisited { get { return _criticVerdictCenti >= 0; } }
+
+        /// <summary>
+        /// The day the critic comes: the middle of the third season. Zero if
+        /// the campaign is too short to have one. The player is told the
+        /// morning before, so the day is a decision - stock, crew, menu - and
+        /// not a dice roll.
+        /// </summary>
+        public int CriticDay
+        {
+            get
+            {
+                int len = _economy.SeasonDays;
+                if (len <= 0 || _criticArchetype < 0) return 0;
+                int day = 2 * len + len / 2 + 1;
+                return day <= _economy.CampaignDays ? day : 0;
+            }
+        }
+
         // docs/14 "Experience and level": DAYS WORKED per head. The sim keeps
         // staff as a count, but experience cannot be a count - how long each
         // one has been here belongs to that person. The first _cooks /
@@ -714,6 +743,11 @@ namespace Lokanta.Core.Sim
             }
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _timing = timing ?? throw new ArgumentNullException(nameof(timing));
+
+            // The critic is whichever archetype the content calls one. Looked
+            // up by id, not by index: the index depends on the content version.
+            for (int a = 0; a < _content.Archetypes.Length; a++)
+                if (_content.Archetypes[a].Id == "yemek_elestirmeni") { _criticArchetype = a; break; }
             _masterSeed = masterSeed;
 
             _tableParty = new int[MaxTables];
@@ -1503,12 +1537,30 @@ namespace Lokanta.Core.Sim
             // The roster is now measured against what the weekend peak asks
             // for, capped at 100: the right crew is full marks and a bigger
             // one is not more.
+            // AND A HAND PAST THAT NEED COSTS THE MARK AS MUCH AS A MISSING
+            // ONE. Capping the roster half at 100 was not enough: the idle
+            // overstaffer still topped the axis on morale alone, because a
+            // crew that waits never wears down and a crew that works does
+            // (docs/64 9, measured 85 against 81 with the levers in play).
+            // Decided on 19 September: "fazla kadro puandan düşsün" - the
+            // year-end mark for the crew is for the RIGHT crew, happy. Each
+            // person above or below the peak's need takes the same share off.
             Crew peak = RequiredCrewPeak();
             int needed = peak.Cooks + peak.Hall;
             int head = _cooks + _hall;
-            int fill = needed > 0
-                ? (head >= needed ? 100 : head * 100 / needed)
-                : (head > 0 ? 100 : 0);
+            // The share is taken against the larger of the two counts, so a
+            // second person in a one-person shop costs half the mark and not
+            // all of it - measured against the need alone the mark hit zero
+            // at four tables for everybody, the opening shop included.
+            int fill;
+            if (needed <= 0) fill = head > 0 ? 100 : 0;
+            else
+            {
+                int off = head > needed ? head - needed : needed - head;
+                int against = head > needed ? head : needed;
+                fill = 100 - off * 100 / against;
+                if (fill < 0) fill = 0;
+            }
             int crew = head > 0 ? (fill + AverageMorale()) / 2 : 0;
 
             // --- place: tables, against the top tier
@@ -2568,6 +2620,8 @@ namespace Lokanta.Core.Sim
                 Emit(SimEventKind.SignatureOpened, (int)_content.Signature.Kind, 0);
             if (Season != seasonBefore)
                 Emit(SimEventKind.SeasonChanged, Season, 0);
+            if (CriticDay > 0 && _day == CriticDay - 1)
+                Emit(SimEventKind.CriticExpected, CriticDay, 0);
             _serviceTick = 0;
             _dayWages = 0;
             _dayRent = 0;
@@ -3498,6 +3552,18 @@ namespace Lokanta.Core.Sim
 
         /// <summary>docs/14: the rest of the crew drops ten points on a firing.</summary>
         public const int FiringMoraleDelta = -10;
+
+        /// <summary>
+        /// The critic's verdict is their satisfaction, once. Their weight on
+        /// the reputation is already in the archetype (eight times a guest),
+        /// so this records and announces; it does not score twice.
+        /// </summary>
+        private void RecordCriticVerdict(int satisfactionCenti)
+        {
+            if (_criticVerdictCenti >= 0) return;
+            _criticVerdictCenti = satisfactionCenti < 0 ? 0 : satisfactionCenti;
+            Emit(SimEventKind.CriticVerdict, _criticVerdictCenti / 100, 0);
+        }
 
         /// <summary>
         /// A raise: the wage goes up by RaiseWageBp for good and morale by
@@ -5550,6 +5616,7 @@ namespace Lokanta.Core.Sim
                 _pKitchenTask[slot] = false;
                 _pWarned[slot] = false;
                 _pRegular[slot] = _arrRegular[_arrNext];
+                _pCritic[slot] = _arrCritic[_arrNext];
                 _pServer[slot] = -1;
                 _pCook[slot] = -1;
                 PickOrder(slot, a.PatienceMs);
@@ -5567,6 +5634,7 @@ namespace Lokanta.Core.Sim
                     _turnedAwayParties++;
                     AccumulateReputation(slot, TurnAwaySatisfactionCenti);
                     Emit(SimEventKind.TurnedAway, slot, arch, _pSize[slot]);
+                    if (_pCritic[slot]) { RecordCriticVerdict(0); _pCritic[slot] = false; }
                     _arrNext++;
                     continue;
                 }
@@ -6016,6 +6084,7 @@ namespace Lokanta.Core.Sim
             int stage = (int)_pStage[i];
             _pSatisfactionCenti[i] = 0;
             AccumulateReputation(i, 0);
+            if (_pCritic[i]) RecordCriticVerdict(0);
             _angryParties++;
             if (_pTable[i] >= 0) _angrySeated++;
 
@@ -7093,6 +7162,7 @@ namespace Lokanta.Core.Sim
             _servedPeople += size;
             _satisfactionSum += (long)satisfaction * size;
 
+            if (_pCritic[party]) RecordCriticVerdict(satisfaction);
             AccumulateReputation(party, satisfaction);
             RecordRegularVisit(party, satisfaction);
 
@@ -7600,10 +7670,28 @@ namespace Lokanta.Core.Sim
                 _arrArchetype[_arrCount] = arch;
                 _arrSize[_arrCount] = size;
                 _arrRegular[_arrCount] = -1;
+                _arrCritic[_arrCount] = false;
                 _arrCount++;
                 assigned += size;
             }
 
+
+            // THE CRITIC COMES ON THE DAY THEY WERE ANNOUNCED FOR. One party,
+            // the critic's archetype, in the slot that archetype favours. It
+            // is added on top of the day's people rather than in place of
+            // one, so a critic never makes the day quieter.
+            if (_day == CriticDay && !CriticVisited && _arrCount < MaxParties)
+            {
+                ArchetypeDef critic = _content.Archetypes[_criticArchetype];
+                int slot = PickSlot(critic);
+                _arrTick[_arrCount] = _timing.SlotStartTick(slot)
+                                      + _rngArrival.NextInt(_timing.SlotTicks(slot));
+                _arrArchetype[_arrCount] = _criticArchetype;
+                _arrSize[_arrCount] = critic.GroupSizeMin;
+                _arrRegular[_arrCount] = -1;
+                _arrCritic[_arrCount] = true;
+                _arrCount++;
+            }
             SortArrivals();
 
             // The regulars are bound after the plan has been built AND

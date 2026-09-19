@@ -112,6 +112,16 @@ namespace Lokanta.Game
                     text = Loc.T("notice.day_off", Loc.StaffName(e.A));
                     return true;
 
+                case SimEventKind.CriticExpected:
+                    tone = NoticeTone.Info;
+                    text = Loc.T("notice.critic_expected");
+                    return true;
+
+                case SimEventKind.CriticVerdict:
+                    tone = e.A >= 70 ? NoticeTone.Good : NoticeTone.Bad;
+                    text = Loc.T(e.A >= 70 ? "notice.critic_good" : "notice.critic_bad", e.A);
+                    return true;
+
                 case SimEventKind.SignatureOpened:
                     tone = NoticeTone.Info;
                     text = Loc.T(e.A == (int)SignatureKind.Credit

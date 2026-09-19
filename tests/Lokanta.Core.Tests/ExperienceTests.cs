@@ -191,16 +191,24 @@ namespace Lokanta.Core.Tests
             // This test measures not the balance but THAT THE MECHANIC IS WIRED
             // UP - if experience touched nothing, the two windows would come out
             // the same.
+            // PEOPLE AND MONEY TOGETHER, NOT PEOPLE ALONE. On 19 September the
+            // scheduled critic's visit shifted the arrival stream and the two
+            // windows served exactly 190 people each - a coincidence, and the
+            // guard called it "experience touches nothing". The revenue
+            // carries the ticket and the dish mix, so equality by chance is
+            // out; a mechanic that touches nothing still fails.
             Simulation sim = NewSim();
 
             int early = 0, late = 0;
-            for (int d = 0; d < 10; d++) early += RunOneDay(sim).ServedPeople;
+            long earlyMoney = 0, lateMoney = 0;
+            for (int d = 0; d < 10; d++) { DayReport r = RunOneDay(sim); early += r.ServedPeople; earlyMoney += r.Revenue; }
             for (int d = 0; d < 80; d++) RunOneDay(sim);
-            for (int d = 0; d < 10; d++) late += RunOneDay(sim).ServedPeople;
+            for (int d = 0; d < 10; d++) { DayReport r = RunOneDay(sim); late += r.ServedPeople; lateMoney += r.Revenue; }
 
-            _out.WriteLine($"first ten days {early} people, days 90-100 {late} people");
+            _out.WriteLine($"first ten days {early} people / {earlyMoney}, days 90-100 {late} people / {lateMoney}");
             Assert.Equal(3, sim.StaffLevel(0, 0));
-            Assert.NotEqual(early, late);
+            Assert.True(early != late || earlyMoney != lateMoney,
+                "the two windows are identical in people and money: experience touched nothing");
         }
 
         [Fact]

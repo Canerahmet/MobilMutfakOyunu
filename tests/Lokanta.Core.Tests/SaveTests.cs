@@ -133,6 +133,10 @@ namespace Lokanta.Core.Tests
                 { 25, new[] { "regDefaults" } },
                 { 26, new[] { "cookRaise", "hallRaise", "cookOff", "hallOff",
                               "cooksResting", "hallResting" } },
+                // pCritic and critic live in the parties and arrivals blocks,
+                // which this test does not strip; criticVerdict is the one in
+                // "restaurant".
+                { 27, new[] { "criticVerdict" } },
                 // 23 added no FIELD - it changed the SHAPE of two existing
                 // arrays, because a station was inserted in the middle of the
                 // closed list. The migration test still needs a row so it can

@@ -592,19 +592,12 @@ def evaluate(rows):
     # a fault the sweep cannot reach steers it toward whatever masks the
     # symptom (docs/63 8). So it is printed on every run and weighs nothing.
     if "axis_crew" in rows["fazla_kadro"] and "axis_crew" in rows["makul"]:
-        # A NOTE THAT WEIGHS NOTHING, FOR THE SECOND TIME, AND THIS TIME WITH
-        # THE LEVERS IN PLACE. docs/14's raise and day off exist now and the
-        # reasonable player uses them (measured: 4 raises per eight Turkish
-        # campaigns, 33 per eight fast food ones, and no days off, because a
-        # crew sized to its need has nobody to spare). The gap to the idle
-        # overstaffer closed from 85-79 to 85-81 and no further: a raise is
-        # fifteen points once against fifteen per cent of a wage for good,
-        # and a working crew's morale erodes on busy days where an idle one's
-        # does not. That is the design's own arithmetic, not a fault the
-        # realisation rate can reach, so it is printed and not scored.
-        bad(rows["fazla_kadro"]["axis_crew"] <= rows["makul"]["axis_crew"], 0,
-            "note: the idle overstaffer still tops the crew axis (%d against %d) - "
-            "raises fire, days off need slack a right-sized crew does not have"
+        # A PENALTY, BY DECISION. On 19 September the owner chose "fazla kadro
+        # puandan düşsün": a hand past the peak's need takes the mark down as
+        # a missing one does. So the idle overstaffer must score BELOW the
+        # reasonable player on this axis, and the sweep may hold it to that.
+        bad(rows["fazla_kadro"]["axis_crew"] < rows["makul"]["axis_crew"], 6,
+            "the overstaffer is not below the reasonable player on the crew axis (%d against %d)"
             % (rows["fazla_kadro"]["axis_crew"], rows["makul"]["axis_crew"]))
     else:
         bad(False, 6, "the score table was not read, so the crew axis is unchecked")

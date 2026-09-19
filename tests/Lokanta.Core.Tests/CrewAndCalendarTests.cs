@@ -42,33 +42,31 @@ namespace Lokanta.Core.Tests
         }
 
         [Fact]
-        public void Hiring_past_what_the_peak_needs_does_not_raise_the_crew_mark()
+        public void Hiring_past_what_the_peak_needs_lowers_the_crew_mark()
         {
             Simulation sim = Fresh("turk", out _);
             Crew need = sim.RequiredCrewPeak();
             int needed = need.Cooks + need.Hall;
             _out.WriteLine($"the peak needs {need.Cooks} cooks and {need.Hall} hall; cap {sim.StaffCap}");
 
-            // Hire exactly what the peak needs, read the mark, then hire to
-            // the cap and read it again. Morale is the same fresh value for
-            // everybody, so the difference - if any - is the roster half.
+            // Bring the roster to at least the need, read the mark, then hire
+            // one more and read it again. Morale is the same fresh value for
+            // everybody, so the difference is the roster half alone.
             while (sim.Cooks < need.Cooks) Hire(sim, 0);
             while (sim.HallStaff < need.Hall) Hire(sim, 1);
+            int before = sim.Cooks + sim.HallStaff;
             int right = sim.Score().Crew;
 
-            int before = sim.Cooks + sim.HallStaff;
-            while (sim.Cooks + sim.HallStaff < sim.StaffCap)
-            {
-                int was = sim.Cooks + sim.HallStaff;
-                Hire(sim, 1);
-                if (sim.Cooks + sim.HallStaff == was) break;   // refused: cash or cap
-            }
+            Hire(sim, 1);
+            Assert.True(sim.Cooks + sim.HallStaff == before + 1, "the extra hire was refused, nothing to compare");
             int over = sim.Score().Crew;
             _out.WriteLine($"crew mark with {before} on the roster {right}, with {sim.Cooks + sim.HallStaff} on it {over}");
 
             Assert.True(sim.Cooks + sim.HallStaff > needed, "could not hire past the need, nothing to compare");
-            Assert.True(over <= right,
-                $"hiring past the peak's need raised the crew mark from {right} to {over}: the axis is still roster / cap");
+            // Decided 19 September: a hand past the need costs the mark, as a
+            // missing one does. Not merely "no higher" - LOWER.
+            Assert.True(over < right,
+                $"hiring past the peak's need left the crew mark at {over} against {right}: an idle extra hand is free");
         }
 
         [Fact]

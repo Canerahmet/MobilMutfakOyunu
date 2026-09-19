@@ -136,7 +136,19 @@
 
         /// <summary>A day off was given for tomorrow. A = name index.</summary>
         StaffDayOff = 44,
-        Count = 45
+
+        /// <summary>A food critic is expected tomorrow. Emitted the morning before CriticDay.</summary>
+        CriticExpected = 45,
+
+        /// <summary>
+        /// The critic has left. A = their satisfaction in whole points, 0 if
+        /// they walked out or were turned away. Decided 19 September: one
+        /// scheduled event per season that happens TO the restaurant; the
+        /// third season's is this, which docs/09 had promised and the game
+        /// had as a random walk-in (docs/64 4).
+        /// </summary>
+        CriticVerdict = 46,
+        Count = 47
     }
 
     public readonly struct SimEvent
