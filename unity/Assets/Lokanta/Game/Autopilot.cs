@@ -982,10 +982,27 @@ namespace Lokanta.Game
                 bool spentToMeasure = false;
                 if (_app.Sim.InterventionsLeft >= _app.Sim.InterventionCapToday)
                 {
+                    int held = _app.Sim.InterventionsLeft;
                     _app.Sim.Apply(new Command(_app.Sim.TickIndex, CommandKind.Intervene,
                                                0, (int)InterventionKind.FreeTea));
-                    spentToMeasure = true;
+                    spentToMeasure = _app.Sim.InterventionsLeft < held;
                 }
+                if (_app.Sim.InterventionsLeft >= _app.Sim.InterventionCapToday)
+                {
+                    // AND IF THE ROOM IS EMPTY NOTHING CAN BE SPENT. The tea
+                    // is refused with nobody seated, the pool stays at its
+                    // cap, and a full pool does not regenerate - by design.
+                    // That is not a failure of the mechanic and it must not
+                    // read as one; it is a run in which this could not be
+                    // measured, and it says so. The refill itself is proved
+                    // deterministically in InterventionTests.
+                    Skip("The owner's attention is coming back (the pool is at "
+                         + "its cap and nothing could be spent to make room: "
+                         + _app.Sim.ActiveParties + " parties in the room)");
+                    _app.Paused = heldPaused;
+                }
+                else
+                {
                 int bankedBefore = _app.Sim.InterventionRegenMs;
                 int poolBefore = _app.Sim.InterventionsLeft;
                 float watched = 0f;
@@ -1006,6 +1023,7 @@ namespace Lokanta.Game
                      + _app.Sim.InterventionCapToday
                      + (spentToMeasure ? ", one spent first to make room" : "") + ")");
                 _app.Paused = heldPaused;
+                }
 
                 // THE SINK BUTTON SENDS ITS COMMAND.
                 //
